@@ -38,6 +38,7 @@ pub mod takaful;           // Takaful Compliance (Section 2)
 pub mod mtls;              // Zero-Trust mTLS (Section 5)
 pub mod hipaa;             // HIPAA Healthcare Compliance (Section 2)
 pub mod pci;               // PCI-DSS Payment Compliance (Section 2)
+pub mod fhir;              // FHIR R4 Healthcare Integration (Section 2)
 
 #[cfg(feature = "wasm")]
 pub mod wasm;              // WASM Component Model
