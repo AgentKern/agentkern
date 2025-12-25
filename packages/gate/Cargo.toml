@@ -1,0 +1,52 @@
+[package]
+name = "verimantle-gate"
+version = "0.1.0"
+edition = "2021"
+description = "VeriMantle-Gate: Neuro-Symbolic Verification Engine"
+license = "MIT"
+
+[lib]
+name = "verimantle_gate"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gate-server"
+path = "src/bin/server.rs"
+
+[dependencies]
+# Async runtime (per ARCHITECTURE: io_uring optimized)
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+
+# ONNX Runtime for Neural path (per ENGINEERING_STANDARD: Neuro-Symbolic)
+# ort = "1.16"  # Uncomment when ML models are integrated
+
+# Policy engine for symbolic path
+# polar-core = "0.26"  # Uncomment when Oso/Polar is integrated
+
+# HTTP server
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Tracing/observability (per ARCHITECTURE: eBPF-compatible)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# UUID for policy IDs
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+# criterion = "0.5"  # Uncomment when adding benchmarks

@@ -1,0 +1,295 @@
+//! VeriMantle-Gate: Core Verification Engine
+//!
+//! The heart of the Neuro-Symbolic verification system.
+//!
+//! Per ENGINEERING_STANDARD.md:
+//! - Fast Path (Symbolic): <1ms
+//! - Safety Path (Neural): <20ms (only when risk > threshold)
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Instant;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+use chrono::Utc;
+
+use crate::dsl::{evaluate, EvalContext};
+use crate::neural::NeuralScorer;
+use crate::policy::{Policy, PolicyAction};
+use crate::types::{
+    DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
+};
+
+/// The VeriMantle Gate Engine.
+/// 
+/// Evaluates agent actions against registered policies using a
+/// two-phase Neuro-Symbolic approach.
+pub struct GateEngine {
+    /// Registered policies
+    policies: Arc<RwLock<HashMap<String, Policy>>>,
+    /// Neural scorer for semantic analysis
+    neural_scorer: NeuralScorer,
+    /// Threshold for triggering neural path
+    neural_threshold: u8,
+    /// Current jurisdiction
+    jurisdiction: DataRegion,
+}
+
+impl Default for GateEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GateEngine {
+    /// Create a new Gate Engine.
+    pub fn new() -> Self {
+        Self {
+            policies: Arc::new(RwLock::new(HashMap::new())),
+            neural_scorer: NeuralScorer::new(),
+            neural_threshold: 50,
+            jurisdiction: DataRegion::Global,
+        }
+    }
+
+    /// Set the jurisdiction for policy filtering.
+    pub fn with_jurisdiction(mut self, jurisdiction: DataRegion) -> Self {
+        self.jurisdiction = jurisdiction;
+        self
+    }
+
+    /// Set the threshold for triggering neural evaluation.
+    pub fn with_neural_threshold(mut self, threshold: u8) -> Self {
+        self.neural_threshold = threshold;
+        self.neural_scorer = NeuralScorer::new().with_threshold(threshold);
+        self
+    }
+
+    /// Register a policy.
+    pub async fn register_policy(&self, policy: Policy) {
+        let mut policies = self.policies.write().await;
+        policies.insert(policy.id.clone(), policy);
+    }
+
+    /// Remove a policy.
+    pub async fn remove_policy(&self, policy_id: &str) -> Option<Policy> {
+        let mut policies = self.policies.write().await;
+        policies.remove(policy_id)
+    }
+
+    /// Get all registered policies.
+    pub async fn get_policies(&self) -> Vec<Policy> {
+        let policies = self.policies.read().await;
+        policies.values().cloned().collect()
+    }
+
+    /// Verify an action against all applicable policies.
+    pub async fn verify(&self, request: VerificationRequest) -> VerificationResult {
+        let start = Instant::now();
+        
+        // === SYMBOLIC PATH (Fast) ===
+        let symbolic_start = Instant::now();
+        let (evaluated, blocking, symbolic_risk) = self.evaluate_symbolic(&request).await;
+        let symbolic_us = symbolic_start.elapsed().as_micros() as u64;
+
+        // === NEURAL PATH (If needed) ===
+        let neural_result = if symbolic_risk >= self.neural_threshold {
+            let neural_start = Instant::now();
+            let score = self.neural_scorer.score(&request.action, &request.context).await;
+            Some((score, neural_start.elapsed().as_micros() as u64))
+        } else {
+            None
+        };
+
+        let total_us = start.elapsed().as_micros() as u64;
+
+        // Calculate final risk score
+        let final_risk = if let Some((neural_risk, _)) = neural_result {
+            // Combine symbolic and neural scores (weighted average)
+            ((symbolic_risk as u16 + neural_risk as u16) / 2) as u8
+        } else {
+            symbolic_risk
+        };
+
+        // Determine if action is allowed
+        let allowed = blocking.is_empty() && final_risk < 80;
+
+        // Generate reasoning
+        let reasoning = if !blocking.is_empty() {
+            format!("Blocked by policies: {}", blocking.join(", "))
+        } else if final_risk >= 80 {
+            "Action blocked due to high risk score".to_string()
+        } else {
+            "All policies passed".to_string()
+        };
+
+        VerificationResult {
+            request_id: request.request_id,
+            allowed,
+            evaluated_policies: evaluated,
+            blocking_policies: blocking,
+            symbolic_risk_score: symbolic_risk,
+            neural_risk_score: neural_result.map(|(score, _)| score),
+            final_risk_score: final_risk,
+            reasoning,
+            latency: LatencyBreakdown {
+                total_us,
+                symbolic_us,
+                neural_us: neural_result.map(|(_, us)| us),
+            },
+        }
+    }
+
+    /// Evaluate policies using the symbolic (deterministic) path.
+    async fn evaluate_symbolic(
+        &self,
+        request: &VerificationRequest,
+    ) -> (Vec<String>, Vec<String>, u8) {
+        let policies = self.policies.read().await;
+        
+        let mut evaluated = Vec::new();
+        let mut blocking = Vec::new();
+        let mut max_risk = 0u8;
+
+        // Build evaluation context
+        let eval_ctx = EvalContext {
+            action: request.action.clone(),
+            agent_id: request.agent_id.clone(),
+            context: request.context.data.clone(),
+        };
+
+        // Sort policies by priority (higher first)
+        let mut sorted_policies: Vec<_> = policies.values()
+            .filter(|p| p.enabled && p.applies_to_jurisdiction(self.jurisdiction))
+            .collect();
+        sorted_policies.sort_by(|a, b| b.priority.cmp(&a.priority));
+
+        for policy in sorted_policies {
+            evaluated.push(policy.id.clone());
+
+            for rule in &policy.rules {
+                if evaluate(&rule.condition, &eval_ctx) {
+                    // Rule matched
+                    if let Some(risk) = rule.risk_score {
+                        max_risk = max_risk.max(risk);
+                    }
+
+                    match rule.action {
+                        PolicyAction::Deny => {
+                            blocking.push(policy.id.clone());
+                            max_risk = max_risk.max(100);
+                        }
+                        PolicyAction::Review => {
+                            // Flag for review but don't block
+                            max_risk = max_risk.max(60);
+                        }
+                        PolicyAction::Audit => {
+                            // Just log, no action needed
+                        }
+                        PolicyAction::Allow => {
+                            // Explicitly allow
+                        }
+                    }
+                }
+            }
+        }
+
+        (evaluated, blocking, max_risk)
+    }
+}
+
+/// Builder for creating verification requests.
+pub struct VerificationRequestBuilder {
+    agent_id: String,
+    action: String,
+    context: HashMap<String, serde_json::Value>,
+}
+
+impl VerificationRequestBuilder {
+    pub fn new(agent_id: impl Into<String>, action: impl Into<String>) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            action: action.into(),
+            context: HashMap::new(),
+        }
+    }
+
+    pub fn context(mut self, key: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
+        self.context.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn build(self) -> VerificationRequest {
+        VerificationRequest {
+            request_id: Uuid::new_v4(),
+            agent_id: self.agent_id,
+            action: self.action,
+            context: VerificationContext { data: self.context },
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::policy::PolicyRule;
+
+    #[tokio::test]
+    async fn test_engine_allows_safe_action() {
+        let engine = GateEngine::new();
+        
+        let request = VerificationRequestBuilder::new("agent-1", "send_email")
+            .context("to", "user@example.com")
+            .build();
+
+        let result = engine.verify(request).await;
+        assert!(result.allowed);
+        assert_eq!(result.blocking_policies.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_engine_blocks_by_policy() {
+        let engine = GateEngine::new();
+
+        // Register a blocking policy
+        let policy = Policy {
+            id: "no-transfers".to_string(),
+            name: "No Transfers".to_string(),
+            description: String::new(),
+            priority: 100,
+            enabled: true,
+            jurisdictions: vec![],
+            rules: vec![PolicyRule {
+                id: "block-transfer".to_string(),
+                condition: "action == 'transfer_funds'".to_string(),
+                action: PolicyAction::Deny,
+                message: Some("Transfers are blocked".to_string()),
+                risk_score: Some(100),
+            }],
+        };
+        engine.register_policy(policy).await;
+
+        let request = VerificationRequestBuilder::new("agent-1", "transfer_funds")
+            .context("amount", 5000)
+            .build();
+
+        let result = engine.verify(request).await;
+        assert!(!result.allowed);
+        assert!(result.blocking_policies.contains(&"no-transfers".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_latency_breakdown() {
+        let engine = GateEngine::new();
+        
+        let request = VerificationRequestBuilder::new("agent-1", "read_data")
+            .build();
+
+        let result = engine.verify(request).await;
+        
+        // Symbolic path should be very fast
+        assert!(result.latency.symbolic_us < 1000); // <1ms
+        assert!(result.latency.total_us >= result.latency.symbolic_us);
+    }
+}
