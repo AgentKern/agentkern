@@ -64,22 +64,25 @@ pub struct LatencyBreakdown {
 }
 
 /// Data residency region for sovereignty compliance.
+/// Per GLOBAL_GAPS.md and ENGINEERING_STANDARD.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DataRegion {
-    /// United States
+    /// United States (HIPAA, Sales Tax)
     Us,
-    /// European Union (GDPR)
+    /// European Union (GDPR, VAT)
     Eu,
-    /// China (PIPL)
+    /// China (PIPL - Personal Information Protection Law)
     Cn,
-    /// Saudi Arabia (Vision 2030)
-    Sa,
-    /// India (DPDP)
-    In,
-    /// Brazil (LGPD)
-    Br,
-    /// Global (no specific residency)
+    /// Middle East & North Africa (Islamic Finance/Takaful, Vision 2030)
+    Mena,
+    /// Asia-Pacific (Regional codes, DPDP India, Singapore PDPA)
+    Asia,
+    /// Africa (National sovereignty, data localization)
+    Africa,
+    /// Oceania (Australian Privacy Act, NZ Privacy Act)
+    Oceania,
+    /// Global (no specific residency, universal policies)
     Global,
 }
 
@@ -88,3 +91,4 @@ impl Default for DataRegion {
         Self::Global
     }
 }
+
