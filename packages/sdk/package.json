@@ -1,0 +1,15 @@
+{
+  "name": "@verimantle/sdk",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "dev": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "eslint": "latest"
+  }
+}

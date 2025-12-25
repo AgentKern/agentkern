@@ -1,0 +1,43 @@
+rules:
+  - id: nestjs-raw-query
+    patterns:
+      - pattern: $REPO.query(...)
+      - pattern-not: $REPO.query("...", ...)
+    message: "Potential SQL injection: raw query used with non-literal string."
+    languages: [typescript]
+    severity: ERROR
+
+  - id: nestjs-unsafe-redirect
+    pattern: $RES.redirect($REQ.query.$PARAM)
+    message: "Potential Open Redirect: redirecting based on user input."
+    languages: [typescript]
+    severity: WARNING
+
+  - id: hardcoded-secret-assignment
+    pattern: |
+      $X = "$SECRET";
+    metavariable-regex:
+      metavariable: $SECRET
+      regex: (^[a-zA-Z0-9+/]{32,}|^[0-9a-z]{40,}|.*[Kk]ey.*|.*[Ss]ecret.*)
+    message: "Potential hardcoded secret assigned to variable."
+    languages: [typescript, javascript, yaml]
+    severity: WARNING
+
+  - id: insecure-cookie-setting
+    pattern: |
+      res.cookie(..., { ..., httpOnly: false, ... })
+    message: "Insecure cookie: httpOnly should be set to true."
+    languages: [typescript]
+    severity: WARNING
+
+  - id: insecure-cors-origin
+    pattern: origin: '*'
+    message: "Insecure CORS configuration: allowing all origins."
+    languages: [typescript, yaml]
+    severity: WARNING
+
+  - id: unsafe-json-parse
+    pattern: JSON.parse($X)
+    message: "Unsafe JSON parsing: ensure $X is validated before parsing."
+    languages: [typescript]
+    severity: INFO
