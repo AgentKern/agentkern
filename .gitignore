@@ -5,6 +5,17 @@ dist
 coverage
 .turbo
 
+# Rust build artifacts
+target/
+Cargo.lock
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
 # Strategic Docs (Local Only)
 MANDATE.md
 ARCHITECTURE.md
