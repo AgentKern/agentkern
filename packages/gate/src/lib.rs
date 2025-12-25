@@ -9,6 +9,8 @@
 //! - `neural`: ONNX Runtime for neuro-symbolic guards
 //! - `actors`: Actix for dynamic supervision with hot-swap
 //! - `sovereign`: Data sovereignty and geo-fencing
+//! - `crypto`: Quantum-safe cryptography
+//! - `mtls`: Zero-trust mTLS
 
 pub mod policy;
 pub mod dsl;
@@ -27,6 +29,12 @@ pub mod actors;            // Dynamic Supervision (Section 1)
 // GLOBAL_GAPS.md modules
 pub mod sovereign;         // Data Sovereignty & Geo-Fencing (Section 1)
 
+// EXECUTION_MANDATE.md modules
+pub mod budget;            // Gas Limits & Budgets (Section 6)
+pub mod crypto_agility;    // Quantum-Safe Crypto (Section 3)
+pub mod takaful;           // Takaful Compliance (Section 2)
+pub mod mtls;              // Zero-Trust mTLS (Section 5)
+
 #[cfg(feature = "wasm")]
 pub mod wasm;              // WASM Component Model
 
@@ -39,4 +47,9 @@ pub use tee::Enclave;
 pub use observability::{ObservabilityPlane, GateMetrics};
 pub use actors::{GateSupervisor, PolicyResult, SupervisorStatus};
 pub use sovereign::{SovereignController, DataTransfer, TransferDecision};
+pub use budget::{AgentBudget, BudgetConfig, BudgetError};
+pub use crypto_agility::{CryptoProvider, CryptoMode, Algorithm};
+pub use takaful::{TakafulValidator, TakafulError, ComplianceResult};
+pub use mtls::{CertificateValidator, MtlsConfig, CertificateInfo};
+
 

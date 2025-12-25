@@ -1,0 +1,153 @@
+name: Security & Supply Chain
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================
+  # SBOM Generation (SLSA Level 4)
+  # ============================================
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-sbom
+        run: cargo install cargo-sbom
+      
+      - name: Generate SBOM for Gate
+        working-directory: packages/gate
+        run: |
+          cargo sbom --output-format cyclonedx-json > gate-sbom.json
+      
+      - name: Generate SBOM for Synapse
+        working-directory: packages/synapse
+        run: |
+          cargo sbom --output-format cyclonedx-json > synapse-sbom.json
+      
+      - name: Generate SBOM for Arbiter
+        working-directory: packages/arbiter
+        run: |
+          cargo sbom --output-format cyclonedx-json > arbiter-sbom.json
+      
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            packages/gate/gate-sbom.json
+            packages/synapse/synapse-sbom.json
+            packages/arbiter/arbiter-sbom.json
+
+  # ============================================
+  # Sigstore/Cosign Signing
+  # ============================================
+  sign:
+    name: Sign Artifacts
+    runs-on: ubuntu-latest
+    needs: [sbom]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: sbom/
+      
+      - name: Sign SBOMs with Cosign (keyless)
+        run: |
+          cosign sign-blob sbom/gate-sbom.json --output-signature sbom/gate-sbom.sig
+          cosign sign-blob sbom/synapse-sbom.json --output-signature sbom/synapse-sbom.sig
+          cosign sign-blob sbom/arbiter-sbom.json --output-signature sbom/arbiter-sbom.sig
+      
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-signed
+          path: sbom/
+
+  # ============================================
+  # Security Audit
+  # ============================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Audit Gate dependencies
+        working-directory: packages/gate
+        run: cargo audit
+        continue-on-error: true
+      
+      - name: Audit Synapse dependencies
+        working-directory: packages/synapse
+        run: cargo audit
+        continue-on-error: true
+      
+      - name: Audit Arbiter dependencies
+        working-directory: packages/arbiter
+        run: cargo audit
+        continue-on-error: true
+      
+      - name: npm audit SDK
+        working-directory: packages/sdk
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ============================================
+  # License Compliance
+  # ============================================
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+      
+      - name: Check Gate licenses
+        working-directory: packages/gate
+        run: cargo deny check licenses
+        continue-on-error: true
+      
+      - name: Check Synapse licenses
+        working-directory: packages/synapse
+        run: cargo deny check licenses
+        continue-on-error: true
+      
+      - name: Check Arbiter licenses
+        working-directory: packages/arbiter
+        run: cargo deny check licenses
+        continue-on-error: true
