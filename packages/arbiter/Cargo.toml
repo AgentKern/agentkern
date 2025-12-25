@@ -1,0 +1,45 @@
+[package]
+name = "verimantle-arbiter"
+version = "0.1.0"
+edition = "2021"
+description = "VeriMantle-Arbiter: Conflict Resolution & Coordination Engine"
+license = "MIT"
+
+[lib]
+name = "verimantle_arbiter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "arbiter-server"
+path = "src/bin/server.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Raft for consensus (placeholder - using simple locks first)
+# openraft = "0.9"  # Uncomment for distributed Raft
+
+# HTTP server
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# UUID and time
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

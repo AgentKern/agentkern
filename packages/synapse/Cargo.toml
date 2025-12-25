@@ -1,0 +1,48 @@
+[package]
+name = "verimantle-synapse"
+version = "0.1.0"
+edition = "2021"
+description = "VeriMantle-Synapse: Graph-based State Ledger with Intent Tracking"
+license = "MIT"
+
+[lib]
+name = "verimantle_synapse"
+path = "src/lib.rs"
+
+[[bin]]
+name = "synapse-server"
+path = "src/bin/server.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# CRDTs for distributed state (per ARCHITECTURE: Hybrid Consistency)
+# crdts = "7"  # Uncomment when integrating CRDTs
+
+# Graph storage
+# petgraph = "0.6"  # Uncomment for full graph implementation
+
+# HTTP server
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# UUID and time
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
