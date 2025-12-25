@@ -44,6 +44,9 @@ pub mod adaptive;    // Adaptive Query Execution (ENGINEERING_STANDARD Section 2
 // GLOBAL_GAPS.md modules
 pub mod embeddings;  // Polyglot Embeddings (Section 2)
 
+// COMPETITIVE_LANDSCAPE.md modules
+pub mod crdt;        // Conflict-Free Replicated Data Types
+
 // Re-exports
 pub use state::StateStore;
 pub use intent::{IntentPath, IntentStep};
@@ -52,4 +55,6 @@ pub use types::{AgentState, StateQuery, StateUpdate};
 pub use graph::{GraphVectorDB, GraphNode, GraphEdge, NodeType, EdgeType};
 pub use adaptive::{AdaptiveExecutor, ExecutionStrategy, ExecutionMetrics};
 pub use embeddings::{EmbeddingConfig, EmbeddingProvider, PolyglotEmbedder, SynapseRegion};
+pub use crdt::{GCounter, PNCounter, LwwRegister, OrSet, LwwMap, AgentStateCrdt};
+
 
