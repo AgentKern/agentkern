@@ -8,6 +8,7 @@
 //! - **Graph Vector DB**: State stored as graph with vector embeddings
 //! - **Adaptive Query**: Arrow/Polars for profile-guided optimization
 //! - **Intent Tracking**: Monitor goal progression and detect drift
+//! - **Polyglot Embeddings**: Region-specific embedding models
 //!
 //! # Architecture
 //!
@@ -40,6 +41,9 @@ pub mod types;
 pub mod graph;       // Graph Vector Database
 pub mod adaptive;    // Adaptive Query Execution (ENGINEERING_STANDARD Section 2)
 
+// GLOBAL_GAPS.md modules
+pub mod embeddings;  // Polyglot Embeddings (Section 2)
+
 // Re-exports
 pub use state::StateStore;
 pub use intent::{IntentPath, IntentStep};
@@ -47,3 +51,5 @@ pub use drift::DriftDetector;
 pub use types::{AgentState, StateQuery, StateUpdate};
 pub use graph::{GraphVectorDB, GraphNode, GraphEdge, NodeType, EdgeType};
 pub use adaptive::{AdaptiveExecutor, ExecutionStrategy, ExecutionMetrics};
+pub use embeddings::{EmbeddingConfig, EmbeddingProvider, PolyglotEmbedder, SynapseRegion};
+

@@ -6,6 +6,7 @@
 //! - **Thread-per-Core**: Minimal context switching for sub-ms latency
 //! - **Raft Consensus**: Strong consistency for Atomic Business Locks
 //! - **Priority Preemption**: Higher priority agents can preempt locks
+//! - **ISO 42001 Audit Ledger**: Compliance traceability for all actions
 //!
 //! # Architecture
 //!
@@ -25,6 +26,11 @@
 //! │           │ Raft Lock Manager   │                          │
 //! │           │ (Strong Consistency)│                          │
 //! │           └─────────────────────┘                          │
+//! │                      ▼                                      │
+//! │           ┌─────────────────────┐                          │
+//! │           │   Audit Ledger      │                          │
+//! │           │ (ISO 42001 AIMS)    │                          │
+//! │           └─────────────────────┘                          │
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
@@ -37,6 +43,9 @@ pub mod types;
 pub mod raft;              // Raft Consensus for Atomic Business Locks
 pub mod thread_per_core;   // Thread-per-Core for minimal latency
 
+// ISO 42001 Compliance (per GLOBAL_GAPS.md §3)
+pub mod audit;             // Audit Ledger for compliance traceability
+
 // Re-exports
 pub use locks::LockManager;
 pub use queue::PriorityQueue;
@@ -44,3 +53,5 @@ pub use coordinator::Coordinator;
 pub use types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
 pub use raft::{RaftLockManager, RaftConfig, RaftState};
 pub use thread_per_core::{ThreadPerCoreRuntime, ThreadPerCoreConfig};
+pub use audit::{AuditLedger, AuditRecord, AuditOutcome, AuditStatistics};
+
