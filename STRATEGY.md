@@ -33,6 +33,19 @@ The `VeriMantle-Gate` module dynamically switches its logic execution based on *
 | **Transport** | US Liability Law | **EU/Asia Civil Codes** | Adapts autonomous vehicle decision weighting. |
 | **Commerce** | Sales Tax (Calculated) | **VAT** (Value Added) | Switches tax calculation & invoice logic. |
 
+### Implemented: Hybrid DataRegion Model (Dec 2025)
+
+```rust
+pub enum DataRegion {
+    // Tier 1: Major Regulatory Blocs
+    Us, Eu, Cn,
+    // Tier 2: Emerging Sovereignty Blocs  
+    Mena, India, Brazil,
+    // Tier 3: Regional Fallbacks
+    AsiaPac, Africa, Global,
+}
+```
+
 *This "Polymorphism" allows one agent to operate globally without breaking local laws.*
 
 ---

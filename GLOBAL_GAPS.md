@@ -48,7 +48,48 @@ Nations are building "Sovereign AI Clouds" (Saudi's GPU Farms, France's Mistral 
 
 ---
 
+## Implementation Status (December 2025)
+
+### ✅ Implemented
+
+**Hybrid DataRegion enum** (`packages/gate/src/types.rs`):
+
+```rust
+pub enum DataRegion {
+    // Tier 1: Major Regulatory Blocs
+    Us,      // HIPAA, CCPA, SOX
+    Eu,      // GDPR, EU Data Act 2025
+    Cn,      // PIPL (in-country required)
+    
+    // Tier 2: Emerging Sovereignty Blocs
+    Mena,    // GCC Vision 2030, Saudi PDPL, Islamic Finance
+    India,   // DPDP Act 2023
+    Brazil,  // LGPD
+    
+    // Tier 3: Regional Fallbacks
+    AsiaPac, // Singapore PDPA, Japan APPI, Australia
+    Africa,  // Varying by country
+    Global,  // Default
+}
+```
+
+**Helper methods**:
+- `requires_localization()` → Returns `true` for Cn, Eu, India, Mena
+- `privacy_law()` → Returns the applicable privacy law name
+- `applies_to_jurisdiction()` → Policy filtering by region
+
+### ⏳ Roadmap
+
+| Feature | Status | Target |
+|---------|--------|--------|
+| Geo-Fenced Cell Sync | 🔄 Planned | Q2 2026 |
+| Polyglot Embeddings | 🔄 Planned | Q2 2026 |
+| ISO 42001 Audit Ledger | 🔄 Planned | Q3 2026 |
+
+---
+
 **Summary of Additions:**
-1.  **VeriMantle-Sovereign**: A module for Data Residency & Geo-Fencing.
-2.  **Polyglot Embeddings**: Native language support in `Synapse`.
-3.  **ISO 42001 Logging**: Automated compliance trails.
+1.  **VeriMantle-Sovereign**: Data Residency & Geo-Fencing via `DataRegion` enum.
+2.  **Polyglot Embeddings**: Native language support in `Synapse` (roadmap).
+3.  **ISO 42001 Logging**: Automated compliance trails (roadmap).
+

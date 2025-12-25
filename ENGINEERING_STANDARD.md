@@ -140,5 +140,37 @@ graph = ["petgraph"]            # Graph Vector Database
 
 ---
 
+## 5. Data Sovereignty: Hybrid DataRegion Model
+
+Per December 2025 research on AWS/Azure regional strategies:
+
+```rust
+pub enum DataRegion {
+    // Tier 1: Major Regulatory Blocs (strict localization)
+    Us,      // HIPAA, CCPA, SOX
+    Eu,      // GDPR, EU Data Act 2025
+    Cn,      // PIPL (in-country required)
+    
+    // Tier 2: Emerging Sovereignty Blocs
+    Mena,    // GCC Vision 2030, Saudi PDPL, Islamic Finance
+    India,   // DPDP Act 2023
+    Brazil,  // LGPD
+    
+    // Tier 3: Regional Fallbacks
+    AsiaPac, // Singapore PDPA, Japan APPI, Australia
+    Africa,  // Varying by country
+    Global,  // Default
+}
+```
+
+**Helper Methods**:
+- `requires_localization()` → `true` for Cn, Eu, India, Mena
+- `privacy_law()` → Returns applicable law name
+
+**Implementation**: `packages/gate/src/types.rs`
+
+---
+
 *This is verifiable, safe, and extremely fast.*
 *Last updated: December 25, 2025*
+
