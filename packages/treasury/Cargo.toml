@@ -53,6 +53,7 @@ parking_lot = "0.12"
 
 # Decimal for financial calculations
 rust_decimal = { version = "1", features = ["serde"] }
+rust_decimal_macros = "1"
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -64,3 +64,10 @@ pub use crdt::{GCounter, PNCounter, LwwRegister, OrSet, LwwMap, AgentStateCrdt};
 pub mod sandbox;
 pub use sandbox::{SandboxEngine, Sandbox, SandboxMode, EnvironmentSnapshot, ChaosEvent, TestScenario, TestResult};
 
+// Phase 2: Memory Passport for Sovereign Identity
+pub mod passport;
+pub use passport::{
+    MemoryPassport, PassportVersion, PassportError, MemoryLayers,
+    PassportExporter, PassportImporter, GdprExport,
+};
+

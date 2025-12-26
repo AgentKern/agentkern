@@ -44,6 +44,17 @@ VeriMantle uses an **Open Core** licensing model:
 - ✅ Quantum-safe crypto (hybrid)
 - ✅ TEE attestation (simulated)
 
+#### Phase 2 Features (NEW)
+
+- ✅ **Legacy Bridge SDK** - Connector framework
+- ✅ **SQL Connector** - Generic SQL/JDBC bridge (FREE)
+- ✅ **Protocol Parsers** - SWIFT MT, SAP IDOC, COBOL
+- ✅ **Memory Passport** - Portable agent state
+- ✅ **GDPR Export** - Article 20 compliance
+- ✅ **Escalation Triggers** - Trust threshold monitoring
+- ✅ **Webhook Notifications** - Generic webhook support
+- ✅ **Approval Workflow** - Human-in-the-loop
+
 ---
 
 ## Enterprise License (Commercial)
@@ -75,6 +86,19 @@ VeriMantle uses an **Open Core** licensing model:
 - 🔒 Stripe billing integration
 - 🔒 Audit export (PDF, CSV)
 - 🔒 24/7 support SLA
+
+#### Phase 2 Enterprise Features (NEW)
+
+- 🔒 **SAP Connector** - RFC, BAPI, OData, Event Mesh
+- 🔒 **SWIFT Connector** - MX (ISO 20022), GPI, Sanctions
+- 🔒 **Mainframe Connector** - CICS, IMS, MQ
+- 🔒 **Oracle Connector** - OCI, E-Business Suite
+- 🔒 **Cross-cloud Migration** - AWS, GCP, Azure adapters
+- 🔒 **Memory Encryption** - KMS integration, key rotation
+- 🔒 **Memory Sharding** - Distributed memory storage
+- 🔒 **Slack/Teams/PagerDuty** - Native integrations
+- 🔒 **Multi-approver Workflows** - Complex approval chains
+- 🔒 **Real-time Grid API** - Carbon Intersect integration
 
 ---
 

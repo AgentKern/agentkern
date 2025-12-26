@@ -46,6 +46,9 @@ pub mod prompt_guard;      // Prompt injection detection
 // Roadmap modules
 pub mod explain;           // Explainability Engine
 
+// Phase 2: Legacy Bridge Connectors
+pub mod connectors;        // Legacy system connectors (SAP, SWIFT, SQL)
+
 #[cfg(feature = "wasm")]
 pub mod wasm;              // WASM Component Model
 
@@ -65,6 +68,10 @@ pub use mtls::{CertificateValidator, MtlsConfig, CertificateInfo};
 pub use hipaa::{HipaaValidator, HipaaError, PhiScanResult, HipaaRole};
 pub use pci::{PciValidator, PciError, CardToken, CardBrand};
 pub use explain::{ExplainabilityEngine, Explanation, ExplainContext, ExplanationMethod};
+pub use connectors::{
+    LegacyConnector, ConnectorProtocol, ConnectorConfig, ConnectorHealth,
+    ConnectorRegistry, SqlConnector, MockConnector,
+};
 
 
 

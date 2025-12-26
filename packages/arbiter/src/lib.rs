@@ -57,6 +57,9 @@ pub mod antifragile;       // Anti-Fragile Self-Healing Engine
 pub mod chaos;             // Chaos Testing / Fault Injection
 pub mod loop_prevention;   // Runaway Loop Prevention ($47k incident)
 
+// Phase 2: Human-in-the-Loop Escalation
+pub mod escalation;        // Escalation triggers, webhooks, approval workflow
+
 // NOTE: gateway and marketplace moved to verimantle-nexus during consolidation
 // See: packages/nexus/src/agent_card.rs, protocols/, marketplace/
 
@@ -77,6 +80,10 @@ pub use antifragile::{
 };
 pub use chaos::{ChaosMonkey, ChaosConfig, ChaosError, ChaosResult, ChaosStats};
 pub use loop_prevention::{LoopPreventer, LoopPreventionConfig, TrackedMessage, LoopPreventionError};
+pub use escalation::{
+    EscalationTrigger, TriggerType, TriggerConfig, TriggerResult, EscalationLevel,
+    WebhookNotifier, WebhookConfig, ApprovalWorkflow, ApprovalRequest, ApprovalStatus,
+};
 
 
 

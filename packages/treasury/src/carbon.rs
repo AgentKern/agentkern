@@ -448,7 +448,7 @@ impl CarbonLedger {
         region: CarbonRegion,
     ) -> CarbonFootprint {
         CarbonFootprint::calculate(
-            AgentId::new("estimate"),
+            "estimate".to_string(),
             "estimate",
             compute_type,
             duration_ms,
