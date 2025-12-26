@@ -248,3 +248,130 @@ export interface CoordinationResult {
   /** Estimated wait time in milliseconds */
   estimatedWaitMs?: number;
 }
+
+// ============================================================================
+// NEXUS TYPES (VeriMantle-Nexus) - Protocol Translation & Agent Discovery
+// ============================================================================
+
+/**
+ * Supported agent communication protocols.
+ */
+export type AgentProtocol = 
+  | 'a2a'        // Google Agent-to-Agent
+  | 'mcp'        // Anthropic Model Context Protocol
+  | 'verimantle' // VeriMantle Native
+  | 'anp'        // W3C Agent Network Protocol
+  | 'nlip'       // ECMA NLIP
+  | 'aitp';      // NEAR AITP
+
+/**
+ * Agent Card - A2A compatible discovery format.
+ * Published at /.well-known/agent.json
+ */
+export interface AgentCard {
+  /** Unique agent identifier */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Description of agent capabilities */
+  description: string;
+  /** Base URL for agent API */
+  url: string;
+  /** Agent version */
+  version: string;
+  /** Supported capabilities */
+  capabilities: NexusCapability[];
+  /** Skills this agent can perform */
+  skills: AgentSkill[];
+  /** Supported protocols */
+  protocols: AgentProtocol[];
+  /** When the agent was registered */
+  registeredAt?: Date;
+}
+
+/**
+ * Agent skill definition.
+ */
+export interface AgentSkill {
+  /** Skill identifier */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Description */
+  description?: string;
+  /** Tags for matching */
+  tags?: string[];
+  /** Input JSON schema */
+  inputSchema?: Record<string, unknown>;
+  /** Output JSON schema */
+  outputSchema?: Record<string, unknown>;
+}
+
+/**
+ * Nexus capability definition.
+ */
+export interface NexusCapability {
+  /** Capability name */
+  name: string;
+  /** Input modalities (text, audio, video, etc.) */
+  inputModes?: string[];
+  /** Output modalities */
+  outputModes?: string[];
+  /** Rate limit (requests per minute) */
+  rateLimit?: number;
+}
+
+/**
+ * Unified message format for cross-protocol communication.
+ */
+export interface NexusMessage {
+  /** Message ID */
+  id: string;
+  /** Method/action name */
+  method: string;
+  /** Parameters */
+  params: Record<string, unknown>;
+  /** Source protocol */
+  sourceProtocol: AgentProtocol;
+  /** Target protocol (after translation) */
+  targetProtocol?: AgentProtocol;
+  /** Source agent */
+  sourceAgent?: string;
+  /** Target agent */
+  targetAgent?: string;
+  /** Correlation ID for request/response */
+  correlationId?: string;
+  /** Timestamp */
+  timestamp: Date;
+}
+
+/**
+ * Task for routing to agents.
+ */
+export interface NexusTask {
+  /** Task ID */
+  id: string;
+  /** Task type */
+  taskType: string;
+  /** Required skills */
+  requiredSkills: string[];
+  /** Task parameters */
+  params: Record<string, unknown>;
+  /** Priority (0-100) */
+  priority: number;
+  /** Status */
+  status: 'pending' | 'submitted' | 'working' | 'completed' | 'failed';
+}
+
+/**
+ * Result of routing a task.
+ */
+export interface RoutingResult {
+  /** Selected agent */
+  selectedAgent: AgentCard;
+  /** Task ID */
+  taskId: string;
+  /** Match score (0-100) */
+  matchScore: number;
+}
+
