@@ -60,6 +60,10 @@ pub mod loop_prevention;   // Runaway Loop Prevention ($47k incident)
 // Phase 2: Human-in-the-Loop Escalation
 pub mod escalation;        // Escalation triggers, webhooks, approval workflow
 
+// Phase 3: Security Hardening & Compliance
+pub mod eu_ai_act;         // EU AI Act (Aug 2025) compliance export
+pub mod cost;              // Cost attribution dashboard
+
 // NOTE: gateway and marketplace moved to verimantle-nexus during consolidation
 // See: packages/nexus/src/agent_card.rs, protocols/, marketplace/
 
@@ -84,7 +88,9 @@ pub use escalation::{
     EscalationTrigger, TriggerType, TriggerConfig, TriggerResult, EscalationLevel,
     WebhookNotifier, WebhookConfig, ApprovalWorkflow, ApprovalRequest, ApprovalStatus,
 };
-
-
-
-
+pub use eu_ai_act::{
+    EuAiActExporter, TechnicalDocumentation, ComplianceReport, RiskLevel, OverallStatus,
+};
+pub use cost::{
+    CostTracker, CostEvent, CostCategory, CostAlert, AlertLevel, GlobalCostSummary,
+};
