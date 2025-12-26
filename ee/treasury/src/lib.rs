@@ -690,6 +690,384 @@ impl Treasury {
     }
 }
 
+// ============================================================================
+// INSURANCE MODULE - Per Roadmap: "Agent Liability Insurance"
+// ============================================================================
+
+/// Insurance policy for agent liability.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InsurancePolicy {
+    /// Policy ID
+    pub id: String,
+    /// Agent covered
+    pub agent_id: String,
+    /// Coverage type
+    pub coverage_type: CoverageType,
+    /// Maximum coverage amount
+    pub max_coverage: f64,
+    /// Coverage currency
+    pub currency: Currency,
+    /// Premium amount (per month)
+    pub premium: f64,
+    /// Deductible
+    pub deductible: f64,
+    /// Policy status
+    pub status: PolicyStatus,
+    /// Underwriter (e.g., "Munich Re", "Lloyd's")
+    pub underwriter: String,
+    /// Start date
+    pub start_date: DateTime<Utc>,
+    /// End date
+    pub end_date: DateTime<Utc>,
+    /// Claims history
+    pub claims: Vec<InsuranceClaim>,
+}
+
+/// Coverage types for agent insurance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CoverageType {
+    /// Errors and Omissions
+    ErrorsOmissions,
+    /// Cyber liability
+    CyberLiability,
+    /// Professional liability
+    ProfessionalLiability,
+    /// General liability
+    GeneralLiability,
+    /// Transaction protection
+    TransactionProtection,
+    /// Comprehensive (all of above)
+    Comprehensive,
+}
+
+/// Policy status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PolicyStatus {
+    Active,
+    Pending,
+    Expired,
+    Cancelled,
+    ClaimInProgress,
+}
+
+/// Insurance claim.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InsuranceClaim {
+    /// Claim ID
+    pub id: String,
+    /// Amount claimed
+    pub amount: f64,
+    /// Reason
+    pub reason: String,
+    /// Incident date
+    pub incident_date: DateTime<Utc>,
+    /// Claim status
+    pub status: ClaimStatus,
+    /// Payout amount (if approved)
+    pub payout: Option<f64>,
+}
+
+/// Claim status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ClaimStatus {
+    Submitted,
+    UnderReview,
+    Approved,
+    Denied,
+    Paid,
+}
+
+impl InsurancePolicy {
+    /// Create a new insurance policy.
+    pub fn new(
+        agent_id: impl Into<String>,
+        coverage_type: CoverageType,
+        max_coverage: f64,
+        premium: f64,
+        underwriter: impl Into<String>,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            agent_id: agent_id.into(),
+            coverage_type,
+            max_coverage,
+            currency: Currency::Usd,
+            premium,
+            deductible: max_coverage * 0.01, // 1% deductible
+            status: PolicyStatus::Active,
+            underwriter: underwriter.into(),
+            start_date: now,
+            end_date: now + chrono::Duration::days(365),
+            claims: vec![],
+        }
+    }
+
+    /// Check if policy is active.
+    pub fn is_active(&self) -> bool {
+        self.status == PolicyStatus::Active && Utc::now() < self.end_date
+    }
+
+    /// Get available coverage (max minus pending claims).
+    pub fn available_coverage(&self) -> f64 {
+        let pending_claims: f64 = self.claims
+            .iter()
+            .filter(|c| matches!(c.status, ClaimStatus::Submitted | ClaimStatus::UnderReview))
+            .map(|c| c.amount)
+            .sum();
+        
+        (self.max_coverage - pending_claims).max(0.0)
+    }
+
+    /// Submit a claim.
+    pub fn submit_claim(&mut self, amount: f64, reason: impl Into<String>) -> Result<String, TreasuryError> {
+        if !self.is_active() {
+            return Err(TreasuryError::PaymentFailed {
+                reason: "Policy not active".to_string(),
+            });
+        }
+
+        if amount > self.available_coverage() {
+            return Err(TreasuryError::InsufficientBalance {
+                required: amount,
+                available: self.available_coverage(),
+            });
+        }
+
+        let claim = InsuranceClaim {
+            id: uuid::Uuid::new_v4().to_string(),
+            amount,
+            reason: reason.into(),
+            incident_date: Utc::now(),
+            status: ClaimStatus::Submitted,
+            payout: None,
+        };
+
+        let claim_id = claim.id.clone();
+        self.claims.push(claim);
+        self.status = PolicyStatus::ClaimInProgress;
+
+        Ok(claim_id)
+    }
+
+    /// Verify coverage for an action.
+    pub fn verify_coverage(&self, action: &str, estimated_risk: f64) -> CoverageVerification {
+        CoverageVerification {
+            covered: self.is_active() && estimated_risk <= self.available_coverage(),
+            policy_id: self.id.clone(),
+            available_coverage: self.available_coverage(),
+            deductible: self.deductible,
+            action: action.to_string(),
+            estimated_risk,
+        }
+    }
+}
+
+/// Coverage verification result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoverageVerification {
+    /// Is the action covered?
+    pub covered: bool,
+    /// Policy ID
+    pub policy_id: String,
+    /// Available coverage amount
+    pub available_coverage: f64,
+    /// Deductible
+    pub deductible: f64,
+    /// Action being verified
+    pub action: String,
+    /// Estimated risk amount
+    pub estimated_risk: f64,
+}
+
+// ============================================================================
+// LEGAL ENTITY MODULE - Per Roadmap: "Agent Legal Entity Framework"
+// ============================================================================
+
+/// Agent Legal Entity - First-ever legal personhood for AI agents.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentLegalEntity {
+    /// Entity ID
+    pub id: String,
+    /// Associated agent ID
+    pub agent_id: String,
+    /// Legal name
+    pub legal_name: String,
+    /// Entity type
+    pub entity_type: LegalEntityType,
+    /// Jurisdiction
+    pub jurisdiction: Jurisdiction,
+    /// Registration number
+    pub registration_number: Option<String>,
+    /// EIN/Tax ID (if applicable)
+    pub tax_id: Option<String>,
+    /// Registered agent (human or organization)
+    pub registered_agent: String,
+    /// Status
+    pub status: EntityStatus,
+    /// Formation date
+    pub formation_date: DateTime<Utc>,
+    /// Operating agreement hash (on-chain)
+    pub operating_agreement_hash: Option<String>,
+}
+
+/// Legal entity types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LegalEntityType {
+    /// Wyoming DAO LLC (first US jurisdiction for algorithmic entities)
+    WyomingDaoLlc,
+    /// Delaware LLC
+    DelawareLlc,
+    /// Cayman Islands Foundation
+    CaymanFoundation,
+    /// Singapore Variable Capital Company
+    SingaporeVcc,
+    /// Swiss Association
+    SwissAssociation,
+    /// Unincorporated (no legal entity)
+    Unincorporated,
+}
+
+impl LegalEntityType {
+    /// Get jurisdictions that support this entity type.
+    pub fn jurisdictions(&self) -> Vec<Jurisdiction> {
+        match self {
+            Self::WyomingDaoLlc => vec![Jurisdiction::UsWyoming],
+            Self::DelawareLlc => vec![Jurisdiction::UsDelaware],
+            Self::CaymanFoundation => vec![Jurisdiction::CaymanIslands],
+            Self::SingaporeVcc => vec![Jurisdiction::Singapore],
+            Self::SwissAssociation => vec![Jurisdiction::Switzerland],
+            Self::Unincorporated => vec![Jurisdiction::None],
+        }
+    }
+
+    /// Get minimum requirements.
+    pub fn requirements(&self) -> EntityRequirements {
+        match self {
+            Self::WyomingDaoLlc => EntityRequirements {
+                registered_agent_required: true,
+                minimum_members: 1,
+                annual_report_required: true,
+                smart_contract_governance: true,
+            },
+            Self::DelawareLlc => EntityRequirements {
+                registered_agent_required: true,
+                minimum_members: 1,
+                annual_report_required: true,
+                smart_contract_governance: false,
+            },
+            _ => EntityRequirements::default(),
+        }
+    }
+}
+
+/// Jurisdiction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Jurisdiction {
+    UsWyoming,
+    UsDelaware,
+    CaymanIslands,
+    Singapore,
+    Switzerland,
+    Eu,
+    None,
+}
+
+/// Entity requirements.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EntityRequirements {
+    pub registered_agent_required: bool,
+    pub minimum_members: u32,
+    pub annual_report_required: bool,
+    pub smart_contract_governance: bool,
+}
+
+/// Entity status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EntityStatus {
+    Pending,
+    Active,
+    Suspended,
+    Dissolved,
+}
+
+impl AgentLegalEntity {
+    /// Create a new legal entity for an agent.
+    pub fn new(
+        agent_id: impl Into<String>,
+        legal_name: impl Into<String>,
+        entity_type: LegalEntityType,
+        registered_agent: impl Into<String>,
+    ) -> Self {
+        let jurisdictions = entity_type.jurisdictions();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            agent_id: agent_id.into(),
+            legal_name: legal_name.into(),
+            entity_type,
+            jurisdiction: jurisdictions.first().copied().unwrap_or(Jurisdiction::None),
+            registration_number: None,
+            tax_id: None,
+            registered_agent: registered_agent.into(),
+            status: EntityStatus::Pending,
+            formation_date: Utc::now(),
+            operating_agreement_hash: None,
+        }
+    }
+
+    /// Register the entity (simulate filing).
+    pub fn register(&mut self) -> Result<String, TreasuryError> {
+        let requirements = self.entity_type.requirements();
+        
+        if requirements.registered_agent_required && self.registered_agent.is_empty() {
+            return Err(TreasuryError::PaymentFailed {
+                reason: "Registered agent required".to_string(),
+            });
+        }
+
+        // Generate registration number
+        let reg_number = format!(
+            "{}-{}-{}",
+            match self.jurisdiction {
+                Jurisdiction::UsWyoming => "WY",
+                Jurisdiction::UsDelaware => "DE",
+                Jurisdiction::CaymanIslands => "KY",
+                Jurisdiction::Singapore => "SG",
+                Jurisdiction::Switzerland => "CH",
+                _ => "XX",
+            },
+            chrono::Utc::now().format("%Y"),
+            &self.id[..8]
+        );
+
+        self.registration_number = Some(reg_number.clone());
+        self.status = EntityStatus::Active;
+
+        Ok(reg_number)
+    }
+
+    /// Check if entity can enter contracts.
+    pub fn can_contract(&self) -> bool {
+        self.status == EntityStatus::Active && self.registration_number.is_some()
+    }
+
+    /// Get liability shield status.
+    pub fn has_liability_shield(&self) -> bool {
+        matches!(
+            self.entity_type,
+            LegalEntityType::WyomingDaoLlc
+                | LegalEntityType::DelawareLlc
+                | LegalEntityType::CaymanFoundation
+        ) && self.status == EntityStatus::Active
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -731,14 +1109,16 @@ mod tests {
 
     #[test]
     fn test_treasury_requires_license() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        // SAFETY: Only used in tests, no concurrent access
+        unsafe { std::env::remove_var("VERIMANTLE_LICENSE_KEY") };
         let result = Treasury::new("org-123");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_treasury_payments() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        // SAFETY: Only used in tests, no concurrent access
+        unsafe { std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license") };
         
         let mut treasury = Treasury::new("org-123").unwrap();
         
@@ -753,7 +1133,8 @@ mod tests {
         assert_eq!(treasury.balance("agent-A", Currency::Credits).unwrap(), 75.0);
         assert_eq!(treasury.balance("agent-B", Currency::Credits).unwrap(), 25.0);
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        // SAFETY: Only used in tests, no concurrent access
+        unsafe { std::env::remove_var("VERIMANTLE_LICENSE_KEY") };
     }
 
     #[test]
@@ -781,4 +1162,97 @@ mod tests {
         assert_eq!(response.status, 402);
         assert!(response.www_authenticate.contains("L402"));
     }
+
+    // ========== NEW INSURANCE TESTS ==========
+
+    #[test]
+    fn test_insurance_policy_creation() {
+        let policy = InsurancePolicy::new(
+            "agent-1",
+            CoverageType::Comprehensive,
+            1_000_000.0,
+            5_000.0,
+            "Munich Re"
+        );
+        
+        assert!(policy.is_active());
+        assert_eq!(policy.available_coverage(), 1_000_000.0);
+        assert_eq!(policy.deductible, 10_000.0); // 1% of 1M
+    }
+
+    #[test]
+    fn test_insurance_claim() {
+        let mut policy = InsurancePolicy::new(
+            "agent-1",
+            CoverageType::ErrorsOmissions,
+            100_000.0,
+            1_000.0,
+            "Lloyd's"
+        );
+        
+        let claim_id = policy.submit_claim(25_000.0, "Data breach incident").unwrap();
+        
+        assert!(!claim_id.is_empty());
+        assert_eq!(policy.status, PolicyStatus::ClaimInProgress);
+        assert_eq!(policy.available_coverage(), 75_000.0);
+    }
+
+    #[test]
+    fn test_coverage_verification() {
+        let policy = InsurancePolicy::new(
+            "agent-1",
+            CoverageType::TransactionProtection,
+            50_000.0,
+            500.0,
+            "VeriMantle Insurance"
+        );
+        
+        let verification = policy.verify_coverage("high_value_transfer", 10_000.0);
+        
+        assert!(verification.covered);
+        assert_eq!(verification.available_coverage, 50_000.0);
+    }
+
+    // ========== NEW LEGAL ENTITY TESTS ==========
+
+    #[test]
+    fn test_legal_entity_creation() {
+        let entity = AgentLegalEntity::new(
+            "agent-1",
+            "Agent Alpha LLC",
+            LegalEntityType::WyomingDaoLlc,
+            "Wyoming Registered Agents Inc"
+        );
+        
+        assert_eq!(entity.jurisdiction, Jurisdiction::UsWyoming);
+        assert_eq!(entity.status, EntityStatus::Pending);
+        assert!(!entity.can_contract());
+    }
+
+    #[test]
+    fn test_legal_entity_registration() {
+        let mut entity = AgentLegalEntity::new(
+            "agent-1",
+            "Agent Beta DAO",
+            LegalEntityType::WyomingDaoLlc,
+            "WY Agents"
+        );
+        
+        let reg_number = entity.register().unwrap();
+        
+        assert!(reg_number.starts_with("WY-"));
+        assert_eq!(entity.status, EntityStatus::Active);
+        assert!(entity.can_contract());
+        assert!(entity.has_liability_shield());
+    }
+
+    #[test]
+    fn test_entity_requirements() {
+        let wyoming = LegalEntityType::WyomingDaoLlc;
+        let reqs = wyoming.requirements();
+        
+        assert!(reqs.registered_agent_required);
+        assert!(reqs.smart_contract_governance);
+    }
 }
+
