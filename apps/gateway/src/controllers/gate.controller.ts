@@ -8,7 +8,7 @@
  * - GET /gate/policies - List all policies
  */
 
-import { Controller, Get, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus, Param } from '@nestjs/common';
 import { GateService } from '../services/gate.service';
 import { VerifyActionDto, RegisterPolicyDto } from '../dto/gate.dto';
 
@@ -31,5 +31,30 @@ export class GateController {
   @Get('policies')
   async getPolicies() {
     return this.gateService.getPolicies();
+  }
+
+  @Post('attest')
+  @HttpCode(HttpStatus.OK)
+  async attest(@Body('nonce') nonce: string) {
+    return this.gateService.attest(nonce);
+  }
+
+  @Get('carbon/budget/:agentId')
+  async getCarbonBudget(@Param('agentId') agentId: string) {
+    return this.gateService.getCarbonBudget(agentId);
+  }
+
+  @Post('carbon/budget/:agentId')
+  @HttpCode(HttpStatus.OK)
+  async setCarbonBudget(
+    @Param('agentId') agentId: string,
+    @Body() budget: any,
+  ) {
+    return this.gateService.setCarbonBudget(agentId, budget);
+  }
+
+  @Get('carbon/usage/:agentId')
+  async getCarbonUsage(@Param('agentId') agentId: string) {
+    return this.gateService.getCarbonUsage(agentId);
   }
 }

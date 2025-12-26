@@ -42,6 +42,7 @@ pub mod fhir;              // FHIR R4 Healthcare Integration (Section 2)
 
 // MANDATE.md Section 6: Prompt Defense
 pub mod prompt_guard;      // Prompt injection detection
+pub mod carbon;            // Energy-Aware Veto (ESG)
 
 // Roadmap modules
 pub mod explain;           // Explainability Engine
@@ -58,6 +59,7 @@ pub use policy::{Policy, PolicyRule, PolicyAction};
 pub use types::{VerificationRequest, VerificationResult, DataRegion};
 pub use runtime::{HyperRuntime, TokioRuntime};
 pub use tee::Enclave;
+pub use carbon::{CarbonVeto, CarbonCheckResult};
 pub use observability::{ObservabilityPlane, GateMetrics};
 pub use actors::{GateSupervisor, PolicyResult, SupervisorStatus};
 pub use sovereign::{SovereignController, DataTransfer, TransferDecision};

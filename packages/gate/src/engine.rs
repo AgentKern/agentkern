@@ -14,11 +14,13 @@ use uuid::Uuid;
 use chrono::Utc;
 
 use crate::dsl::{evaluate, EvalContext};
+use crate::carbon::{CarbonCheckResult, CarbonVeto};
 use crate::neural::NeuralScorer;
 use crate::policy::{Policy, PolicyAction};
 use crate::types::{
     DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
+use verimantle_treasury::carbon::{ComputeType};
 
 /// The VeriMantle Gate Engine.
 /// 
@@ -30,9 +32,12 @@ pub struct GateEngine {
     /// Neural scorer for semantic analysis
     neural_scorer: NeuralScorer,
     /// Threshold for triggering neural path
+    /// neural threshold
     neural_threshold: u8,
     /// Current jurisdiction
     jurisdiction: DataRegion,
+    /// Carbon policy veto (optional)
+    carbon_veto: Option<Arc<CarbonVeto>>,
 }
 
 impl Default for GateEngine {
@@ -49,6 +54,7 @@ impl GateEngine {
             neural_scorer: NeuralScorer::new(),
             neural_threshold: 50,
             jurisdiction: DataRegion::Global,
+            carbon_veto: None,
         }
     }
 
@@ -62,6 +68,12 @@ impl GateEngine {
     pub fn with_neural_threshold(mut self, threshold: u8) -> Self {
         self.neural_threshold = threshold;
         self.neural_scorer = NeuralScorer::new().with_threshold(threshold);
+        self
+    }
+
+    /// Set the carbon veto controller.
+    pub fn with_carbon_veto(mut self, veto: CarbonVeto) -> Self {
+        self.carbon_veto = Some(Arc::new(veto));
         self
     }
 
@@ -101,6 +113,27 @@ impl GateEngine {
             None
         };
 
+        // === CARBON PATH (ESG Veto) ===
+        let carbon_result = if let Some(veto) = &self.carbon_veto {
+            // In a real request, these would come from the context or a header
+            let compute_type = match request.context.data.get("compute_type") {
+                Some(v) => match v.as_str() {
+                    Some("gpu") => ComputeType::Gpu,
+                    Some("tpu") => ComputeType::Tpu,
+                    _ => ComputeType::Cpu,
+                },
+                None => ComputeType::Cpu,
+            };
+            
+            let duration_ms = request.context.data.get("duration_ms")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+
+            Some(veto.evaluate(&request.agent_id, &request.action, compute_type, duration_ms))
+        } else {
+            None
+        };
+
         let total_us = start.elapsed().as_micros() as u64;
 
         // Calculate final risk score
@@ -112,10 +145,14 @@ impl GateEngine {
         };
 
         // Determine if action is allowed
-        let allowed = blocking.is_empty() && final_risk < 80;
+        let carbon_allowed = carbon_result.as_ref().map(|r| r.allowed).unwrap_or(true);
+        let allowed = blocking.is_empty() && final_risk < 80 && carbon_allowed;
 
         // Generate reasoning
-        let reasoning = if !blocking.is_empty() {
+        let reasoning = if !carbon_allowed {
+            carbon_result.as_ref().and_then(|r| r.message.clone())
+                .unwrap_or_else(|| "Blocked by carbon budget".to_string())
+        } else if !blocking.is_empty() {
             format!("Blocked by policies: {}", blocking.join(", "))
         } else if final_risk >= 80 {
             "Action blocked due to high risk score".to_string()
@@ -291,5 +328,34 @@ mod tests {
         // Symbolic path should be very fast
         assert!(result.latency.symbolic_us < 1000); // <1ms
         assert!(result.latency.total_us >= result.latency.symbolic_us);
+    }
+
+    #[tokio::test]
+    async fn test_carbon_veto_blocks_action() {
+        use verimantle_treasury::carbon::{CarbonLedger, CarbonBudget};
+        use rust_decimal_macros::dec;
+
+        let ledger = CarbonLedger::new();
+        let agent_id = "agent-carbon".to_string();
+        
+        // Set a tiny budget
+        ledger.set_budget(
+            CarbonBudget::new(agent_id.clone())
+                .with_daily_limit(dec!(0.1))
+                .block_on_exceed()
+        );
+
+        let veto = CarbonVeto::new(ledger);
+        let engine = GateEngine::new().with_carbon_veto(veto);
+
+        let request = VerificationRequestBuilder::new(agent_id, "heavy_op")
+            .context("compute_type", "gpu")
+            .context("duration_ms", 60_000) // 1 minute @ GPU will exceed 0.1g
+            .build();
+
+        let result = engine.verify(request).await;
+        
+        assert!(!result.allowed);
+        assert!(result.reasoning.contains("Carbon budget exceeded"));
     }
 }

@@ -163,6 +163,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
 
+  /gate/attest:
+    post:
+      operationId: generate_attestation
+      summary: Generate hardware-level TEE attestation
+      tags: [Gate]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nonce]
+              properties:
+                nonce:
+                  type: string
+                  description: User-supplied nonce for the attestation quote
+      responses:
+        '200':
+          description: TEE Attestation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attestation'
+
+  /gate/carbon/budget/{agentId}:
+    get:
+      operationId: get_carbon_budget
+      summary: Get agent's carbon budget
+      tags: [Gate]
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: Carbon budget
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarbonBudget'
+    post:
+      operationId: set_carbon_budget
+      summary: Set agent's carbon budget
+      tags: [Gate]
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarbonBudget'
+      responses:
+        '200':
+          description: Budget updated
+
+  /gate/carbon/usage/{agentId}:
+    get:
+      operationId: get_carbon_usage
+      summary: Get agent's carbon usage summary
+      tags: [Gate]
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: Carbon usage summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarbonUsage'
+
   /gate/policies:
     get:
       operationId: list_policies
@@ -579,6 +648,50 @@ components:
             type: object
         enabled:
           type: boolean
+
+    Attestation:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [intel_tdx, amd_sev_snp, simulated]
+        quote:
+          type: string
+          description: Base64 encoded hardware quote
+        measurement:
+          type: string
+          description: Hex encoded enclave measurement
+        nonce:
+          type: string
+        timestamp:
+          type: integer
+
+    CarbonBudget:
+      type: object
+      required: [dailyLimitGrams]
+      properties:
+        dailyLimitGrams:
+          type: number
+        monthlyLimitGrams:
+          type: number
+        blockOnExceed:
+          type: boolean
+
+    CarbonUsage:
+      type: object
+      properties:
+        totalCo2Grams:
+          type: number
+        totalEnergyKwh:
+          type: number
+        actionCount:
+          type: integer
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
 
     # Synapse
     AgentState:

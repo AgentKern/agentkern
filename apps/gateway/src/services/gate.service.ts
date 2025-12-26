@@ -32,10 +32,35 @@ interface VerificationResult {
   latencyMs: number;
 }
 
+interface CarbonBudget {
+  dailyLimitGrams: number;
+  monthlyLimitGrams?: number;
+  blockOnExceed: boolean;
+}
+
+interface CarbonUsage {
+  totalCo2Grams: number;
+  totalEnergyKwh: number;
+  actionCount: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+interface Attestation {
+  platform: 'intel_tdx' | 'amd_sev_snp' | 'simulated';
+  quote: string;
+  measurement: string;
+  nonce: string;
+  timestamp: number;
+}
+
 @Injectable()
 export class GateService {
   // In-memory policy store (replace with Redis/database in production)
+  // In-memory store
   private readonly policies = new Map<string, Policy>();
+  private readonly carbonBudgets = new Map<string, CarbonBudget>();
+  private readonly carbonUsage = new Map<string, CarbonUsage>();
 
   async verify(
     agentId: string,
@@ -93,6 +118,39 @@ export class GateService {
 
   async getPolicies(): Promise<Policy[]> {
     return Array.from(this.policies.values());
+  }
+
+  async attest(nonce: string): Promise<Attestation> {
+    // In production, this calls the Rust TEE module via FFI/gRPC
+    return {
+      platform: 'simulated',
+      quote: Buffer.from(`simulated-quote-${nonce}`).toString('base64'),
+      measurement: 'f2d4e5a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9',
+      nonce,
+      timestamp: Date.now(),
+    };
+  }
+
+  async getCarbonBudget(agentId: string): Promise<CarbonBudget> {
+    return this.carbonBudgets.get(agentId) || {
+      dailyLimitGrams: 1000,
+      monthlyLimitGrams: 25000,
+      blockOnExceed: false,
+    };
+  }
+
+  async setCarbonBudget(agentId: string, budget: CarbonBudget): Promise<void> {
+    this.carbonBudgets.set(agentId, budget);
+  }
+
+  async getCarbonUsage(agentId: string): Promise<CarbonUsage> {
+    return this.carbonUsage.get(agentId) || {
+      totalCo2Grams: 0,
+      totalEnergyKwh: 0,
+      actionCount: 0,
+      periodStart: new Date().toISOString(),
+      periodEnd: new Date().toISOString(),
+    };
   }
 
   private evaluateRule(
