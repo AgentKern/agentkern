@@ -24,6 +24,9 @@ pub enum Protocol {
     /// Anthropic Model Context Protocol
     #[serde(rename = "mcp")]
     AnthropicMCP,
+    /// IBM Agent Communication Protocol
+    #[serde(rename = "acp")]
+    IbmACP,
     /// W3C Agent Network Protocol (DID-based)
     #[serde(rename = "anp")]
     W3cANP,
@@ -44,6 +47,7 @@ impl Protocol {
             Self::VeriMantle => "VeriMantle Native",
             Self::GoogleA2A => "Google A2A",
             Self::AnthropicMCP => "Anthropic MCP",
+            Self::IbmACP => "IBM ACP",
             Self::W3cANP => "W3C ANP",
             Self::EcmaNLIP => "ECMA NLIP",
             Self::NearAITP => "NEAR AITP",
@@ -249,6 +253,51 @@ pub struct Capability {
     pub output_modes: Vec<Modality>,
     /// Rate limit (requests per minute)
     pub rate_limit: Option<u32>,
+}
+
+/// Skill category for agent capabilities.
+/// Merged from arbiter/marketplace.rs during consolidation.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SkillCategory {
+    /// Text processing
+    TextProcessing,
+    /// Image processing
+    ImageProcessing,
+    /// Data analysis
+    DataAnalysis,
+    /// Code generation
+    CodeGeneration,
+    /// Research
+    Research,
+    /// Translation
+    Translation,
+    /// Summarization
+    Summarization,
+    /// Audio processing
+    AudioProcessing,
+    /// Video processing  
+    VideoProcessing,
+    /// Custom category
+    Custom(String),
+}
+
+impl SkillCategory {
+    /// Get human-readable name.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::TextProcessing => "Text Processing",
+            Self::ImageProcessing => "Image Processing",
+            Self::DataAnalysis => "Data Analysis",
+            Self::CodeGeneration => "Code Generation",
+            Self::Research => "Research",
+            Self::Translation => "Translation",
+            Self::Summarization => "Summarization",
+            Self::AudioProcessing => "Audio Processing",
+            Self::VideoProcessing => "Video Processing",
+            Self::Custom(s) => s,
+        }
+    }
 }
 
 #[cfg(test)]

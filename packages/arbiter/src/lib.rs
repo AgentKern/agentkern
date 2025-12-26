@@ -57,6 +57,9 @@ pub mod antifragile;       // Anti-Fragile Self-Healing Engine
 pub mod chaos;             // Chaos Testing / Fault Injection
 pub mod loop_prevention;   // Runaway Loop Prevention ($47k incident)
 
+// NOTE: gateway and marketplace moved to verimantle-nexus during consolidation
+// See: packages/nexus/src/agent_card.rs, protocols/, marketplace/
+
 
 // Re-exports
 pub use locks::LockManager;
@@ -71,5 +74,7 @@ pub use carbon::{CarbonScheduler, CarbonIntensity, CarbonRegion};
 pub use antifragile::{AntifragileEngine, Failure, FailureClass, RecoveryStrategy, CircuitBreaker, CircuitState};
 pub use chaos::{ChaosMonkey, ChaosConfig, ChaosError, ChaosResult, ChaosStats};
 pub use loop_prevention::{LoopPreventer, LoopPreventionConfig, TrackedMessage, LoopPreventionError};
+
+
 
 
