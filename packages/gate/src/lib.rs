@@ -43,6 +43,9 @@ pub mod fhir;              // FHIR R4 Healthcare Integration (Section 2)
 // MANDATE.md Section 6: Prompt Defense
 pub mod prompt_guard;      // Prompt injection detection
 
+// Roadmap modules
+pub mod explain;           // Explainability Engine
+
 #[cfg(feature = "wasm")]
 pub mod wasm;              // WASM Component Model
 
@@ -61,6 +64,7 @@ pub use takaful::{TakafulValidator, TakafulError, ComplianceResult};
 pub use mtls::{CertificateValidator, MtlsConfig, CertificateInfo};
 pub use hipaa::{HipaaValidator, HipaaError, PhiScanResult, HipaaRole};
 pub use pci::{PciValidator, PciError, CardToken, CardBrand};
+pub use explain::{ExplainabilityEngine, Explanation, ExplainContext, ExplanationMethod};
 
 
 

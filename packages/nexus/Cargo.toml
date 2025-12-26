@@ -1,0 +1,54 @@
+[package]
+name = "verimantle-nexus"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "VeriMantle Nexus: Universal Agent Protocol Gateway"
+repository = "https://github.com/verimantle/verimantle"
+keywords = ["ai-agents", "a2a", "mcp", "protocol-translation"]
+categories = ["network-programming", "api-bindings"]
+
+[features]
+default = ["a2a", "mcp"]
+a2a = []          # Google A2A Protocol
+mcp = []          # Anthropic MCP
+anp = []          # W3C Agent Network Protocol
+nlip = []         # ECMA NLIP
+aitp = []         # NEAR AITP
+grpc = ["tonic", "prost"]
+full = ["a2a", "mcp", "anp", "nlip", "aitp", "grpc"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.48", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP client/server
+reqwest = { version = "0.12", features = ["json", "stream"] }
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+
+# gRPC (optional)
+tonic = { version = "0.12", optional = true }
+prost = { version = "0.13", optional = true }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Crypto & identity
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+
+# Tracing
+tracing = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"

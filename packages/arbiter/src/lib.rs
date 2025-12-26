@@ -52,6 +52,10 @@ pub mod audit;             // Audit Ledger for compliance traceability
 pub mod killswitch;        // Kill Switch for agent termination (Section 6)
 pub mod carbon;            // Carbon-Aware Computing (Section 7)
 
+// Roadmap modules
+pub mod antifragile;       // Anti-Fragile Self-Healing Engine
+
+
 // Re-exports
 pub use locks::LockManager;
 pub use queue::PriorityQueue;
@@ -62,5 +66,6 @@ pub use thread_per_core::{ThreadPerCoreRuntime, ThreadPerCoreConfig};
 pub use audit::{AuditLedger, AuditRecord, AuditOutcome, AuditStatistics};
 pub use killswitch::{KillSwitch, KillReason, KillRecord, TerminationType};
 pub use carbon::{CarbonScheduler, CarbonIntensity, CarbonRegion};
+pub use antifragile::{AntifragileEngine, Failure, FailureClass, RecoveryStrategy, CircuitBreaker, CircuitState};
 
 
