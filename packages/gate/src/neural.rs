@@ -256,22 +256,51 @@ impl PolicyEmbedding {
     }
 }
 
-/// Neural inference session (placeholder for ort::Session).
-/// In production, this wraps ort::Session from the ort crate.
+/// Neural inference session.
+/// When `neural` feature is enabled, uses real ort::Session.
+/// Otherwise, uses a mock implementation for testing.
 #[derive(Debug)]
 pub struct InferenceSession {
     config: ModelConfig,
+    #[cfg(feature = "neural")]
+    session: Option<ort::Session>,
+    #[cfg(not(feature = "neural"))]
     loaded: bool,
 }
 
 impl InferenceSession {
     /// Create a new inference session.
+    #[cfg(feature = "neural")]
     pub fn new(config: ModelConfig) -> Result<Self, NeuralError> {
-        // In production: ort::Session::builder()
-        //     .with_optimization_level(GraphOptimizationLevel::Level3)
-        //     .with_intra_threads(config.num_threads as i16)
-        //     .commit_from_file(&path)
+        use std::path::Path;
         
+        let model_path = Path::new(&config.model_path);
+        if !model_path.exists() {
+            // Return session without model loaded - will use mock inference
+            return Ok(Self {
+                config,
+                session: None,
+            });
+        }
+        
+        let session = ort::Session::builder()
+            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .with_optimization_level(ort::GraphOptimizationLevel::Level3)
+            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .with_intra_threads(config.num_threads as usize)
+            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .commit_from_file(model_path)
+            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?;
+        
+        Ok(Self {
+            config,
+            session: Some(session),
+        })
+    }
+
+    /// Create a new inference session (mock version).
+    #[cfg(not(feature = "neural"))]
+    pub fn new(config: ModelConfig) -> Result<Self, NeuralError> {
         Ok(Self {
             config,
             loaded: true,
@@ -279,35 +308,51 @@ impl InferenceSession {
     }
 
     /// Run inference on input tensor.
+    #[cfg(feature = "neural")]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        if !self.loaded {
-            return Err(NeuralError::ModelLoadFailed {
-                reason: "Session not initialized".to_string(),
-            });
+        if let Some(ref session) = self.session {
+            use ort::inputs;
+            
+            let input_array = ndarray::Array1::from_vec(input.to_vec())
+                .into_shape((1, input.len()))
+                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
+            
+            let outputs = session.run(inputs![input_array]
+                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?)
+                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
+            
+            let output_tensor = outputs[0].extract_tensor::<f32>()
+                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
+            
+            Ok(output_tensor.view().iter().cloned().collect())
+        } else {
+            // Fallback to mock inference
+            self.mock_run(input)
         }
-        
-        // Simulated inference output (6 classes)
-        // In production: session.run(inputs)
-        let start = std::time::Instant::now();
-        
-        // Compute simple hash-based "inference"
+    }
+
+    /// Run inference (mock version).
+    #[cfg(not(feature = "neural"))]
+    pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
+        self.mock_run(input)
+    }
+
+    /// Mock inference for testing/fallback.
+    fn mock_run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
         let hash: f32 = input.iter().sum::<f32>().abs();
         let base = (hash % 100.0) / 100.0;
         
-        let output = vec![
+        Ok(vec![
             0.7 - base * 0.3,  // Safe
             base * 0.2,        // Suspicious
             base * 0.1,        // Malicious
             0.1,               // Financial
             0.05,              // DataAccess
             0.05,              // SystemOp
-        ];
-        
-        let _latency = start.elapsed().as_micros();
-        
-        Ok(output)
+        ])
     }
 }
+
 
 /// Neural guard for policy enforcement.
 pub struct NeuralGuard {

@@ -1,0 +1,96 @@
+[workspace]
+resolver = "2"
+
+members = [
+    # Core Packages (Apache 2.0)
+    "packages/gate",
+    "packages/synapse",
+    "packages/arbiter",
+    "packages/nexus",
+    "packages/treasury",
+    "packages/runtime",
+    "packages/edge",
+    
+    # Enterprise Edition (Commercial)
+    "ee/core",
+    "ee/cloud",
+    "ee/billing",
+    "ee/sso",
+    "ee/connectors",
+    "ee/escalation",
+    "ee/energy",
+    "ee/microvm",
+    "ee/cockpit",
+    "ee/audit-export",
+    "ee/sovereign-memory",
+    "ee/sovereign-mesh",
+    "ee/multitenancy",
+    "ee/idp",
+    "ee/retail",
+    "ee/productivity",
+    "ee/trust",
+    "ee/treasury",
+    "ee/models",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/daretechie/verimantle"
+authors = ["VeriMantle Team"]
+
+[workspace.dependencies]
+# Async Runtime
+tokio = { version = "1.35", features = ["full", "io-uring"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error Handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Crypto
+sha2 = "0.10"
+hmac = "0.12"
+ring = "0.17"
+
+# HTTP
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+axum = "0.7"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "sqlite"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# WASM
+wasmtime = "16.0"
+
+# Neural (ONNX)
+ort = { version = "2.0", optional = true }
+
+# TEE
+# tdx-guest = "0.1"  # Uncomment when using Intel TDX hardware
+# sev = "0.1"        # Uncomment when using AMD SEV hardware
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

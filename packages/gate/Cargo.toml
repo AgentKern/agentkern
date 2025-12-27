@@ -19,7 +19,7 @@ default = []
 # Using native Tokio io_uring (1.48.0+, unstable -> will stabilize)
 io_uring = ["tokio-uring"]       # Native Tokio io_uring runtime
 wasm = ["wasmtime"]              # WASM policy isolation
-neural = ["ort"]                 # ONNX neural inference
+neural = ["ort", "ndarray"]                 # ONNX neural inference
 actors = ["actix"]               # Actor supervision for hot-swap
 full = ["io_uring", "wasm", "neural", "actors"]
 
@@ -42,6 +42,7 @@ wasmtime = { version = "27", optional = true }
 
 # ONNX Runtime for Neural path (per ENGINEERING_STANDARD: Neuro-Symbolic)
 ort = { version = "2.0.0-rc.10", optional = true }
+ndarray = { version = "0.15", optional = true }
 
 # Actor framework for Dynamic Supervision (per ENGINEERING_STANDARD Section 1)
 actix = { version = "0.13", optional = true }
