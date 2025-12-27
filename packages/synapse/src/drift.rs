@@ -201,27 +201,52 @@ impl DriftAlerter {
     }
 
     /// Send alert to a webhook.
+    /// Graceful fallback: tries real HTTP, falls back to logging on failure.
     async fn send_to_webhook(&self, config: &WebhookConfig, alert: &DriftAlert) {
-        // In production, use reqwest or similar HTTP client
-        // For now, log the intent to send
-        tracing::info!(
-            webhook_url = %config.url,
-            alert_id = %alert.id,
-            agent_id = %alert.agent_id,
-            severity = ?alert.severity,
-            "Would send drift alert to webhook"
-        );
-
-        // Example implementation with reqwest (commented out to avoid dependency):
-        // let client = reqwest::Client::new();
-        // let mut request = client.post(&config.url)
-        //     .json(alert)
-        //     .timeout(std::time::Duration::from_millis(config.timeout_ms));
-        // for (key, value) in &config.headers {
-        //     request = request.header(key, value);
-        // }
-        // let _ = request.send().await;
+        // Try actual HTTP POST
+        let client = reqwest::Client::new();
+        
+        let mut request = client
+            .post(&config.url)
+            .header("Content-Type", "application/json")
+            .timeout(std::time::Duration::from_millis(config.timeout_ms));
+        
+        // Add custom headers
+        for (key, value) in &config.headers {
+            request = request.header(key.as_str(), value.as_str());
+        }
+        
+        // Send the request
+        match request.json(alert).send().await {
+            Ok(response) => {
+                if response.status().is_success() {
+                    tracing::info!(
+                        webhook_url = %config.url,
+                        alert_id = %alert.id,
+                        "Drift alert sent successfully"
+                    );
+                } else {
+                    tracing::warn!(
+                        webhook_url = %config.url,
+                        status = %response.status(),
+                        "Webhook returned non-success status"
+                    );
+                }
+            }
+            Err(e) => {
+                // Graceful fallback: log the alert that would have been sent
+                tracing::warn!(
+                    webhook_url = %config.url,
+                    alert_id = %alert.id,
+                    agent_id = %alert.agent_id,
+                    severity = ?alert.severity,
+                    error = %e,
+                    "Webhook failed, alert logged locally"
+                );
+            }
+        }
     }
+
 
     /// Get recent alerts.
     pub fn get_history(&self, limit: usize) -> Vec<DriftAlert> {

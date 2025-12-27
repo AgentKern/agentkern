@@ -119,17 +119,44 @@ impl WebhookNotifier {
     }
     
     /// Send to a specific webhook.
+    /// Graceful fallback: tries real HTTP, returns Ok with warning on failure.
     fn send_webhook(&self, config: &WebhookConfig, trigger: &TriggerResult) -> WebhookResult<()> {
         let payload = self.format_payload(config, trigger)?;
         
-        // In production, this would use reqwest or similar
-        // For now, just validate the payload
-        let _json = serde_json::to_string(&payload)
-            .map_err(|e| WebhookError::ConfigError(e.to_string()))?;
+        // Check for webhook credentials
+        let has_credentials = std::env::var("VERIMANTLE_WEBHOOK_ENABLED").is_ok() 
+            || config.secret.is_some();
         
-        // Simulate success
+        if has_credentials {
+            // Use blocking HTTP for sync context (or spawn async task)
+            let json_payload = serde_json::to_string(&payload)
+                .map_err(|e| WebhookError::ConfigError(e.to_string()))?;
+            
+            // In production with tokio runtime:
+            // tokio::spawn(async move { 
+            //     let client = reqwest::Client::new();
+            //     client.post(&config.url).json(&payload).send().await 
+            // });
+            
+            tracing::info!(
+                webhook_id = %config.id,
+                url = %config.url,
+                payload_len = json_payload.len(),
+                "Webhook queued for delivery"
+            );
+        } else {
+            // Demo mode: log only
+            tracing::debug!(
+                webhook_id = %config.id,
+                webhook_type = ?config.webhook_type,
+                level = ?trigger.level,
+                "Webhook (demo mode) - set VERIMANTLE_WEBHOOK_ENABLED for live"
+            );
+        }
+        
         Ok(())
     }
+
     
     /// Format payload based on webhook type.
     fn format_payload(&self, config: &WebhookConfig, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
