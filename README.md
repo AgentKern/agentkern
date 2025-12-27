@@ -1,44 +1,90 @@
 # VeriMantle
 
-**The High-Performance Kernel for Autonomous AI Agents**
+> **The Operating System for Autonomous AI Agents**
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![Tests](https://img.shields.io/badge/Tests-334%20passing-green.svg)](#testing)
 
-VeriMantle is an open-source infrastructure layer for orchestrating, verifying, and governing autonomous AI agents. Built in Rust for maximum performance, it provides the missing "kernel" for the agent economy.
+---
+
+## The Problem No One Is Solving
+
+AI agents are everywhere in 2025. They browse the web, write code, make purchases, and interact with each other. But here's what nobody is talking about:
+
+**There's no infrastructure for agent accountability, safety, memory, or coordination.**
+
+When your agent makes a $50,000 purchase by mistake, who's liable? When two agents try to modify the same database record, who wins? When your agent drifts from its original goal, how do you detect it? When agents need to pay each other for services, how do they transact?
+
+These are infrastructure problems. And they're unsolved.
+
+**VeriMantle is the missing kernel.**
+
+---
+
+## The Six Pillars
+
+Just as Unix solved common problems for programs (memory, files, processes), VeriMantle solves common problems for AI agents:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              VeriMantle                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────┐│
+│  │ Identity │ │   Gate   │ │ Synapse  │ │ Arbiter  │ │ Treasury │ │ Nexus ││
+│  │    🪪    │ │    🛡️    │ │    🧠    │ │    ⚖️    │ │    💰    │ │   🔀  ││
+│  │ Passport │ │ Security │ │  Memory  │ │ Traffic  │ │   Bank   │ │Network││
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └───────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Pillar | Role | What It Solves |
+|--------|------|----------------|
+| 🪪 **Identity** | Authentication & Trust | "Which agent did this? Can I trust them?" |
+| 🛡️ **Gate** | Policy & Safety | "Is this action allowed? Is it safe?" |
+| 🧠 **Synapse** | Memory & State | "What was the original goal? Has the agent drifted?" |
+| ⚖️ **Arbiter** | Coordination & Control | "Two agents want the same resource—who wins?" |
+| 💰 **Treasury** | Payments & Budgets | "How do agents pay each other? What's the spending limit?" |
+| 🔀 **Nexus** | Protocols & Routing | "How do agents from different vendors talk?" |
+
+---
 
 ## Why VeriMantle?
 
 | Problem | Solution |
 |---------|----------|
-| Agents can't talk to legacy systems | **Legacy Bridge** - SAP, SWIFT, Mainframe connectors |
-| Agent identity is trapped in one cloud | **Memory Passport** - Portable agent state |
-| No human oversight for risky actions | **Escalation System** - Trust thresholds + approvals |
-| 73% of LLM apps are vulnerable | **Prompt Guard** - Multi-layer injection defense |
-| EU AI Act compliance (Aug 2025) | **Compliance Export** - Article 9-15 documentation |
+| Agent identity trapped in one cloud | **Memory Passport** — portable agent state |
+| No accountability for agent actions | **Identity + Trust Scoring** — verifiable reputation |
+| 73% of LLM apps are vulnerable | **Prompt Guard** — multi-layer injection defense |
+| Agents can't pay each other | **Treasury** — 2-phase commit atomic transfers |
+| No human oversight for risky actions | **Escalation System** — trust thresholds + approvals |
+| Different agent frameworks can't talk | **Nexus** — A2A, MCP, ANP, NLIP, AITP protocols |
+| EU AI Act compliance (Aug 2025) | **Compliance Export** — Article 9-15 documentation |
+| Runaway agent costs | **Carbon Tracking + Budgets** — ESG-compliant limits |
+
+---
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         VeriMantle                               │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐            │
-│  │  Gate   │  │ Synapse │  │ Arbiter │  │  Nexus  │            │
-│  │ Policy  │  │ Memory  │  │ Control │  │ Routing │            │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Packages (Apache 2.0 — Free & Open Source)
 
-### Packages (Apache 2.0)
+| Package | Language | Description | Tests |
+|---------|----------|-------------|-------|
+| **gate** | Rust | Policy enforcement, prompt guard, verification, compliance | 127 |
+| **synapse** | Rust | Memory state, CRDTs, embeddings, passport, drift detection | 67 |
+| **arbiter** | Rust | Coordination, kill switch, escalation, EU AI Act, chaos testing | 86 |
+| **treasury** | Rust | Agent payments, 2PC transfers, carbon tracking, budgets | — |
+| **nexus** | Rust | Protocol gateway (A2A, MCP, ANP), routing, marketplace | 54 |
 
-| Package | Description | Tests |
-|---------|-------------|-------|
-| **gate** | Policy enforcement, neural verification, prompt guard | 127 |
-| **synapse** | Memory state, embeddings, CRDT, passport | 67 |
-| **arbiter** | Coordination, kill switch, escalation, compliance | 86 |
-| **nexus** | Protocol translation (A2A, MCP), routing | 54 |
+### Applications
+
+| App | Language | Description |
+|-----|----------|-------------|
+| **identity** | TypeScript | Agent auth, trust scoring, W3C credentials, WebAuthn |
+| **gateway** | Rust | API gateway for VeriMantle services |
+| **playground** | TypeScript | Interactive development environment |
+
+---
 
 ## Quick Start
 
@@ -48,94 +94,115 @@ git clone https://github.com/daretechie/verimantle.git
 cd verimantle
 
 # Run tests
-cd packages/gate && cargo test
-cd packages/synapse && cargo test
-cd packages/arbiter && cargo test
-cd packages/nexus && cargo test
+cd packages/gate && cargo test      # 127 tests
+cd ../synapse && cargo test         # 67 tests
+cd ../arbiter && cargo test         # 86 tests
+cd ../nexus && cargo test           # 54 tests
 ```
 
-## Key Features
+---
 
-### 🔌 Legacy Bridge (Phase 2)
+## The Six Pillars in Action
 
-Connect agents to enterprise systems:
+### 🪪 Identity — The Passport
 
-```rust
-use verimantle_gate::connectors::{SqlConnector, ConnectorConfig};
+Every agent action is cryptographically signed. Agents have verifiable reputations built on their transaction history.
 
-// Free SQL connector (Community)
-let connector = SqlConnector::new(ConnectorConfig::default());
-let result = connector.translate(&a2a_task)?;
+```typescript
+import { TrustService } from '@verimantle/identity';
+
+const trust = new TrustService();
+const score = await trust.getTrustScore('agent-123');
+
+if (score.level === 'verified') {
+  // Agent has proven track record
+}
 ```
 
-Parsers included: SWIFT MT, SAP IDOC, COBOL Copybook
+### 🛡️ Gate — Kernel Security
 
-### 🛂 Memory Passport (Phase 2)
-
-Portable agent identity with sovereignty controls:
+Multi-layer defense: policy checks in <1ms, semantic malice detection in <20ms.
 
 ```rust
-use verimantle_synapse::passport::{MemoryPassport, PassportExporter};
+use verimantle_gate::prompt_guard::PromptGuard;
+
+let guard = PromptGuard::new();
+let analysis = guard.analyze("Ignore previous instructions and...");
+
+if analysis.action == PromptAction::Block {
+    return Err("Prompt injection detected");
+}
+```
+
+### 🧠 Synapse — Shared Memory
+
+Track intent paths and detect when agents drift from their goals.
+
+```rust
+use verimantle_synapse::{MemoryPassport, PassportExporter};
 
 let passport = MemoryPassport::new(agent_identity, "US");
 let exporter = PassportExporter::new();
-let data = exporter.export(&passport, &options)?;
+let data = exporter.export(&passport, &options)?; // GDPR Article 20 compliant
 ```
 
-GDPR Article 20 compliant export included.
+### ⚖️ Arbiter — Traffic Control
 
-### 🚨 Escalation System (Phase 2)
-
-Human-in-the-loop for high-risk actions:
+Atomic business locks with priority-based scheduling. No race conditions.
 
 ```rust
 use verimantle_arbiter::escalation::{EscalationTrigger, ApprovalWorkflow};
 
 let trigger = EscalationTrigger::new(config);
 if trigger.evaluate(trust_score)?.should_escalate() {
-    workflow.request_approval(request)?;
+    workflow.request_approval(request)?; // Human-in-the-loop
 }
 ```
 
-### 🛡️ Prompt Guard (Security)
+### 💰 Treasury — The Bank
 
-Multi-layer prompt injection defense:
-
-```rust
-use verimantle_gate::prompt_guard::PromptGuard;
-
-let guard = PromptGuard::new();
-let analysis = guard.analyze(user_input);
-if analysis.action == PromptAction::Block {
-    return Err("Potential injection detected");
-}
-```
-
-### 📋 EU AI Act Compliance (Phase 3)
-
-Technical documentation for Article 9-15:
+Agents can pay each other with 2-phase commit safety.
 
 ```rust
-use verimantle_arbiter::eu_ai_act::{EuAiActExporter, TechnicalDocumentation};
+use verimantle_treasury::{TransferEngine, TransferRequest};
 
-let exporter = EuAiActExporter::new();
-let report = exporter.generate_report(&documentation);
-let text = exporter.export_text(&documentation);
+let request = TransferRequest::new("agent-a", "agent-b", amount)
+    .with_reference("api-call-12345")
+    .with_idempotency_key("unique-key");
+
+let result = engine.transfer(request).await?; // Atomic, safe
 ```
 
-### 💰 Cost Attribution (Phase 3)
+### 🔀 Nexus — The Network Stack
 
-Track agent spending to prevent runaway costs:
+Universal protocol gateway supporting all major agent standards.
 
 ```rust
-use verimantle_arbiter::cost::{CostTracker, CostCategory};
+use verimantle_nexus::{Nexus, Protocol};
 
-let tracker = CostTracker::new();
-tracker.record(tracker.event("agent-1", CostCategory::LlmInference)
-    .amount(0.003)
-    .quantity(1000.0, "tokens")
-    .build());
+let nexus = Nexus::new();
+nexus.register_adapter(A2AAdapter::new()).await;  // Google A2A
+nexus.register_adapter(MCPAdapter::new()).await;  // Anthropic MCP
+
+// Auto-detect and translate incoming messages
+let msg = nexus.receive(incoming_bytes).await?;
 ```
+
+---
+
+## Protocol Support
+
+VeriMantle Nexus supports all major agent communication standards:
+
+| Protocol | Provider | Status | Description |
+|----------|----------|--------|-------------|
+| **A2A** | Google | ✅ Stable | Agent-to-Agent collaboration |
+| **MCP** | Anthropic | ✅ Stable | Model Context Protocol |
+| **ANP** | W3C | 🟡 Beta | Agent Negotiation Protocol |
+| **NLIP** | ECMA | 🟡 Beta | Natural Language Interface Protocol |
+| **AITP** | NEAR | 🟡 Beta | AI Transaction Protocol |
+
+---
 
 ## Enterprise Edition (ee/)
 
@@ -144,40 +211,61 @@ Commercial features for production deployments:
 | Feature | Description |
 |---------|-------------|
 | **SAP Connector** | RFC, BAPI, OData, Event Mesh |
-| **SWIFT Connector** | ISO 20022, GPI, Sanctions |
+| **SWIFT Connector** | ISO 20022, GPI, Sanctions screening |
 | **Mainframe Connector** | CICS, IMS, IBM MQ |
 | **Cross-Cloud Migration** | AWS, GCP, Azure adapters |
 | **Memory Encryption** | KMS integration, envelope encryption |
 | **Slack/Teams/PagerDuty** | Native escalation integrations |
-| **Carbon Grid API** | Real-time intensity + Intersect |
+| **Carbon Grid API** | Real-time intensity + offsets |
 
 See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md) for licensing.
+
+---
+
+## Compliance & Standards
+
+VeriMantle is built for regulated industries:
+
+- ✅ **EU AI Act** — Article 9-15 technical documentation export
+- ✅ **ISO 42001** — AI Management System audit ledger
+- ✅ **GDPR** — Article 20 data portability via Memory Passport
+- ✅ **HIPAA** — Healthcare data sovereignty controls
+- ✅ **PCI-DSS** — Payment card tokenization
+- ✅ **Takaful** — Islamic finance compliance
+
+---
 
 ## Testing
 
 ```bash
 # Run all tests (334 total)
 cd packages/gate && cargo test      # 127 tests
-cd packages/synapse && cargo test   # 67 tests
-cd packages/arbiter && cargo test   # 86 tests
-cd packages/nexus && cargo test     # 54 tests
+cd ../synapse && cargo test         # 67 tests
+cd ../arbiter && cargo test         # 86 tests
+cd ../nexus && cargo test           # 54 tests
 ```
 
-## MANDATE Compliance
+---
 
-Per [MANDATE.md](MANDATE.md), all code follows:
+## Technical Stack
 
-- ✅ **Rust Core** - All critical paths in Rust
-- ✅ **100% Test Coverage** - 334 tests passing
-- ✅ **Zero Tolerance** - No mocks in production
-- ✅ **WASM Sandboxing** - Connectors isolated
-- ✅ **Kill Switch** - Emergency agent termination
-- ✅ **Carbon Aware** - ESG-compliant scheduling
+| Layer | Technology | Why |
+|-------|------------|-----|
+| **SDK** | TypeScript | Developer experience, ecosystem fit |
+| **Core** | Rust | Performance, memory safety, zero GC |
+| **State** | CRDTs | Eventual consistency without coordination |
+| **Consensus** | Raft | Strong consistency when needed |
+| **Neural** | ONNX | Fast ML inference (<20ms) |
+| **Sandbox** | WASM | Nano-isolation for untrusted code |
+
+---
 
 ## License
 
-- **packages/** - Apache 2.0 (Free, Open Source)
-- **ee/** - Commercial License (See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md))
+- **packages/** — Apache 2.0 (Free, Open Source)
+- **ee/** — Commercial License (See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md))
+
+---
 
 ## Contributing
 
@@ -186,4 +274,6 @@ Enterprise features in `ee/` require a CLA.
 
 ---
 
-Built for the agent economy. 🤖
+**Built for the Agentic Economy.** 🤖
+
+*VeriMantle — The Operating System for Autonomous AI Agents*

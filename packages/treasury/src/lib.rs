@@ -57,6 +57,7 @@ pub mod budget;
 pub mod micropayments;
 pub mod types;
 pub mod carbon;  // Innovation #8: Carbon Footprint Ledger
+pub mod lock;    // Per Code Quality Audit: Distributed locking
 
 // Re-exports
 pub use balance::{BalanceLedger, AgentBalance, Currency};
@@ -65,4 +66,4 @@ pub use budget::{BudgetManager, SpendingLimit, BudgetPeriod};
 pub use micropayments::{MicropaymentAggregator, PendingPayment};
 pub use types::{Amount, TransactionId, AgentId};
 pub use carbon::{CarbonLedger, CarbonFootprint, CarbonBudget, CarbonRegion, ComputeType, CarbonUsage};
-
+pub use lock::{LockManager, LockGuard, LockConfig, LockMode, LockError};
