@@ -13,11 +13,14 @@ pub mod detect;
 pub mod config;
 pub mod serve;
 pub mod isolation;
+pub mod fallback;
 
 pub use detect::{Environment, detect_environment};
 pub use config::{RuntimeConfig, auto_configure};
 pub use serve::{serve, Protocol};
 pub use isolation::{IsolationMode, IsolationConfig, detect_best_isolation};
+pub use fallback::{ServiceMode, GracefulFallback, FallbackResult};
+
 
 /// VeriMantle kernel version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
