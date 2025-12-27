@@ -1,6 +1,6 @@
-# Getting Started with VeriMantle
+# Getting Started with AgentKern
 
-This guide will have you up and running with VeriMantle in under 5 minutes.
+This guide will have you up and running with AgentKern in under 5 minutes.
 
 ---
 
@@ -15,17 +15,17 @@ This guide will have you up and running with VeriMantle in under 5 minutes.
 
 ### NPM
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 ```
 
 ### Yarn
 ```bash
-yarn add @verimantle/sdk
+yarn add @agentkern/sdk
 ```
 
 ### PNPM
 ```bash
-pnpm add @verimantle/sdk
+pnpm add @agentkern/sdk
 ```
 
 ---
@@ -37,22 +37,22 @@ pnpm add @verimantle/sdk
 For local development, you can start without an API key:
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
-const client = new VeriMantle({
+const client = new AgentKern({
   environment: 'local', // Uses local in-memory adapters
 });
 ```
 
-For production, [get an API key from the VeriMantle Dashboard](https://verimantle.io/dashboard).
+For production, [get an API key from the AgentKern Dashboard](https://agentkern.io/dashboard).
 
 ### 2. Configure Your Region
 
-VeriMantle supports data residency requirements out of the box:
+AgentKern supports data residency requirements out of the box:
 
 ```typescript
-const client = new VeriMantle({
-  apiKey: process.env.VERIMANTLE_API_KEY,
+const client = new AgentKern({
+  apiKey: process.env.AGENTKERN_API_KEY,
   region: 'eu', // 'us', 'eu', 'cn', 'sa', 'in', 'br', 'global'
 });
 ```
@@ -174,6 +174,6 @@ if (result.granted) {
 
 ## Need Help?
 
-- [GitHub Issues](https://github.com/daretechie/verimantle/issues)
-- [Discord Community](https://discord.gg/verimantle)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/verimantle)
+- [GitHub Issues](https://github.com/AgentKern/agentkern/issues)
+- [Discord Community](https://discord.gg/agentkern)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/agentkern)

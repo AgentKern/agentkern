@@ -13,7 +13,7 @@ mod adapter;
 mod a2a;
 mod mcp;
 mod nlip;       // ECMA-430 Natural Language Interaction Protocol (Dec 2025)
-mod verimantle;
+mod agentkern;
 mod translator;
 
 pub use adapter::{ProtocolAdapter, AdapterRegistry};
@@ -30,4 +30,4 @@ pub use mcp::MCPAdapter;
 #[cfg(feature = "nlip")]
 pub use nlip::{NLIPAdapter, NLIPEnvelope, NLIPContent};
 
-pub use verimantle::VeriMantleAdapter;
+pub use agentkern::AgentKernAdapter;

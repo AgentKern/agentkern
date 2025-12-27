@@ -1,5 +1,5 @@
 /**
- * VeriMantle E2E Integration Tests
+ * AgentKern E2E Integration Tests
  * 
  * Tests the complete flow across pillars to verify:
  * 1. Agent registration and discovery
@@ -14,7 +14,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 
-describe('VeriMantle E2E Integration', () => {
+describe('AgentKern E2E Integration', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -40,24 +40,24 @@ describe('VeriMantle E2E Integration', () => {
         .get('/.well-known/agent.json')
         .expect(200);
 
-      expect(response.body).toHaveProperty('id', 'verimantle-gateway');
-      expect(response.body).toHaveProperty('name', 'VeriMantle Gateway');
+      expect(response.body).toHaveProperty('id', 'agentkern-gateway');
+      expect(response.body).toHaveProperty('name', 'AgentKern Gateway');
       expect(response.body).toHaveProperty('protocols');
       expect(response.body.protocols).toContainEqual(
         expect.objectContaining({ name: 'a2a' })
       );
     });
 
-    it('should include VeriMantle extensions', async () => {
+    it('should include AgentKern extensions', async () => {
       const response = await request(app.getHttpServer())
         .get('/.well-known/agent.json')
         .expect(200);
 
-      expect(response.body.extensions).toHaveProperty('verimantle');
-      expect(response.body.extensions.verimantle.pillars).toEqual([
+      expect(response.body.extensions).toHaveProperty('agentkern');
+      expect(response.body.extensions.agentkern.pillars).toEqual([
         'identity', 'gate', 'synapse', 'arbiter', 'nexus', 'treasury'
       ]);
-      expect(response.body.extensions.verimantle.loopPrevention).toBe(true);
+      expect(response.body.extensions.agentkern.loopPrevention).toBe(true);
     });
   });
 
@@ -105,10 +105,10 @@ describe('VeriMantle E2E Integration', () => {
   // ============================================
 
   describe('/nexus/translate (Protocol Translation)', () => {
-    it('should translate A2A to VeriMantle', async () => {
+    it('should translate A2A to AgentKern', async () => {
       const a2aMessage = {
         sourceProtocol: 'a2a',
-        targetProtocol: 'verimantle',
+        targetProtocol: 'agentkern',
         message: {
           method: 'tasks/create',
           params: { task_id: 'test-task', message: 'Hello' },
@@ -199,13 +199,13 @@ describe('VeriMantle E2E Integration', () => {
 
 describe('Loop Prevention ($47k Scenario)', () => {
   /**
-   * This test demonstrates how VeriMantle would have prevented
+   * This test demonstrates how AgentKern would have prevented
    * the $47,000 runaway AI loop incident from March 2024.
    * 
    * The incident: Analysis and Verification agents entered an infinite
    * loop for 11 days, costing $47,000 in API calls.
    * 
-   * VeriMantle's solution: Hop limits, loop detection, cost ceilings.
+   * AgentKern's solution: Hop limits, loop detection, cost ceilings.
    */
   
   it('should detect and prevent agent loops', () => {
@@ -222,7 +222,7 @@ describe('Loop Prevention ($47k Scenario)', () => {
     const hasLoop = new Set(simulatedPath).size !== simulatedPath.length;
     expect(hasLoop).toBe(true);
     
-    // VeriMantle would have stopped at hop 2, saving $46,998
+    // AgentKern would have stopped at hop 2, saving $46,998
   });
 
   it('should enforce cost ceilings', () => {

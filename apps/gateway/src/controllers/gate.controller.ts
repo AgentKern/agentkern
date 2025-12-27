@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Gate Controller
+ * AgentKern Gateway - Gate Controller
  * 
  * REST API for guardrails and policy verification.
  * Endpoints:

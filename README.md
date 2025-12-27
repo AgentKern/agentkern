@@ -1,4 +1,4 @@
-# VeriMantle
+# AgentKern
 
 > **The Operating System for Autonomous AI Agents**
 
@@ -18,17 +18,17 @@ When your agent makes a $50,000 purchase by mistake, who's liable? When two agen
 
 These are infrastructure problems. And they're unsolved.
 
-**VeriMantle is the missing kernel.**
+**AgentKern is the missing kernel.**
 
 ---
 
 ## The Six Pillars
 
-Just as Unix solved common problems for programs (memory, files, processes), VeriMantle solves common problems for AI agents:
+Just as Unix solved common problems for programs (memory, files, processes), AgentKern solves common problems for AI agents:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              VeriMantle                                      │
+│                              AgentKern                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────┐│
 │  │ Identity │ │   Gate   │ │ Synapse  │ │ Arbiter  │ │ Treasury │ │ Nexus ││
@@ -49,7 +49,7 @@ Just as Unix solved common problems for programs (memory, files, processes), Ver
 
 ---
 
-## Why VeriMantle?
+## Why AgentKern?
 
 | Problem | Solution |
 |---------|----------|
@@ -81,7 +81,7 @@ Just as Unix solved common problems for programs (memory, files, processes), Ver
 | App | Language | Description |
 |-----|----------|-------------|
 | **identity** | TypeScript | Agent auth, trust scoring, W3C credentials, WebAuthn |
-| **gateway** | Rust | API gateway for VeriMantle services |
+| **gateway** | Rust | API gateway for AgentKern services |
 | **playground** | TypeScript | Interactive development environment |
 
 ---
@@ -90,8 +90,8 @@ Just as Unix solved common problems for programs (memory, files, processes), Ver
 
 ```bash
 # Clone repository
-git clone https://github.com/daretechie/verimantle.git
-cd verimantle
+git clone https://github.com/AgentKern/agentkern.git
+cd agentkern
 
 # Run tests
 cd packages/gate && cargo test      # 127 tests
@@ -109,7 +109,7 @@ cd ../nexus && cargo test           # 54 tests
 Every agent action is cryptographically signed. Agents have verifiable reputations built on their transaction history.
 
 ```typescript
-import { TrustService } from '@verimantle/identity';
+import { TrustService } from '@agentkern/identity';
 
 const trust = new TrustService();
 const score = await trust.getTrustScore('agent-123');
@@ -124,7 +124,7 @@ if (score.level === 'verified') {
 Multi-layer defense: policy checks in <1ms, semantic malice detection in <20ms.
 
 ```rust
-use verimantle_gate::prompt_guard::PromptGuard;
+use agentkern_gate::prompt_guard::PromptGuard;
 
 let guard = PromptGuard::new();
 let analysis = guard.analyze("Ignore previous instructions and...");
@@ -139,7 +139,7 @@ if analysis.action == PromptAction::Block {
 Track intent paths and detect when agents drift from their goals.
 
 ```rust
-use verimantle_synapse::{MemoryPassport, PassportExporter};
+use agentkern_synapse::{MemoryPassport, PassportExporter};
 
 let passport = MemoryPassport::new(agent_identity, "US");
 let exporter = PassportExporter::new();
@@ -151,7 +151,7 @@ let data = exporter.export(&passport, &options)?; // GDPR Article 20 compliant
 Atomic business locks with priority-based scheduling. No race conditions.
 
 ```rust
-use verimantle_arbiter::escalation::{EscalationTrigger, ApprovalWorkflow};
+use agentkern_arbiter::escalation::{EscalationTrigger, ApprovalWorkflow};
 
 let trigger = EscalationTrigger::new(config);
 if trigger.evaluate(trust_score)?.should_escalate() {
@@ -164,7 +164,7 @@ if trigger.evaluate(trust_score)?.should_escalate() {
 Agents can pay each other with 2-phase commit safety.
 
 ```rust
-use verimantle_treasury::{TransferEngine, TransferRequest};
+use agentkern_treasury::{TransferEngine, TransferRequest};
 
 let request = TransferRequest::new("agent-a", "agent-b", amount)
     .with_reference("api-call-12345")
@@ -178,7 +178,7 @@ let result = engine.transfer(request).await?; // Atomic, safe
 Universal protocol gateway supporting all major agent standards.
 
 ```rust
-use verimantle_nexus::{Nexus, Protocol};
+use agentkern_nexus::{Nexus, Protocol};
 
 let nexus = Nexus::new();
 nexus.register_adapter(A2AAdapter::new()).await;  // Google A2A
@@ -192,7 +192,7 @@ let msg = nexus.receive(incoming_bytes).await?;
 
 ## Protocol Support
 
-VeriMantle Nexus supports all major agent communication standards:
+AgentKern Nexus supports all major agent communication standards:
 
 | Protocol | Provider | Status | Description |
 |----------|----------|--------|-------------|
@@ -224,7 +224,7 @@ See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md) for licensing.
 
 ## Compliance & Standards
 
-VeriMantle is built for regulated industries:
+AgentKern is built for regulated industries:
 
 - ✅ **EU AI Act** — Article 9-15 technical documentation export
 - ✅ **ISO 42001** — AI Management System audit ledger
@@ -276,4 +276,4 @@ Enterprise features in `ee/` require a CLA.
 
 **Built for the Agentic Economy.** 🤖
 
-*VeriMantle — The Operating System for Autonomous AI Agents*
+*AgentKern — The Operating System for Autonomous AI Agents*

@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Arbiter Controller
+ * AgentKern Gateway - Arbiter Controller
  * 
  * REST API for coordination and traffic control.
  * Endpoints:

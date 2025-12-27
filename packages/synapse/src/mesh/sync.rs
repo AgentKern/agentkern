@@ -109,10 +109,10 @@ impl MeshSync {
     }
     
     /// Push data to a remote cell.
-    /// Graceful fallback: tries real HTTP if VERIMANTLE_MESH_API_KEY set, else logs only.
+    /// Graceful fallback: tries real HTTP if AGENTKERN_MESH_API_KEY set, else logs only.
     pub async fn push_to_cell(&self, endpoint: &str, data_id: &str, data: &[u8]) -> Result<(), SyncError> {
         // Check for mesh sync credentials
-        let api_key = std::env::var("VERIMANTLE_MESH_API_KEY").ok();
+        let api_key = std::env::var("AGENTKERN_MESH_API_KEY").ok();
         
         if let Some(key) = api_key {
             if !key.is_empty() {
@@ -136,7 +136,7 @@ impl MeshSync {
             endpoint = %endpoint, 
             data_id = %data_id,
             data_len = data.len(),
-            "Mesh sync (demo mode) - set VERIMANTLE_MESH_API_KEY for live"
+            "Mesh sync (demo mode) - set AGENTKERN_MESH_API_KEY for live"
         );
         Ok(())
     }

@@ -23,24 +23,24 @@ impl ConnectionMode {
     /// Detect mode from environment.
     pub fn detect(feature: &str) -> Self {
         // Check if explicitly disabled
-        let disabled_key = format!("VERIMANTLE_{}_DISABLED", feature.to_uppercase());
+        let disabled_key = format!("AGENTKERN_{}_DISABLED", feature.to_uppercase());
         if env::var(&disabled_key).is_ok() {
             return Self::Disabled;
         }
         
         // Check if demo mode forced
-        let demo_key = format!("VERIMANTLE_{}_DEMO", feature.to_uppercase());
+        let demo_key = format!("AGENTKERN_{}_DEMO", feature.to_uppercase());
         if env::var(&demo_key).is_ok() {
             return Self::Demo;
         }
         
         // Check if offline mode
-        if env::var("VERIMANTLE_OFFLINE").is_ok() {
+        if env::var("AGENTKERN_OFFLINE").is_ok() {
             return Self::Offline;
         }
         
         // Check for credentials
-        let cred_key = format!("VERIMANTLE_{}_API_KEY", feature.to_uppercase());
+        let cred_key = format!("AGENTKERN_{}_API_KEY", feature.to_uppercase());
         if env::var(&cred_key).is_ok() {
             return Self::Live;
         }
@@ -81,12 +81,12 @@ impl ConnectionStatus {
         let message = match mode {
             ConnectionMode::Live => "Connected to live API".to_string(),
             ConnectionMode::Demo => format!(
-                "Demo mode - set VERIMANTLE_{}_API_KEY for live", 
+                "Demo mode - set AGENTKERN_{}_API_KEY for live", 
                 feature.to_uppercase()
             ),
             ConnectionMode::Offline => "Offline mode - using cached data".to_string(),
             ConnectionMode::Disabled => format!(
-                "Disabled - unset VERIMANTLE_{}_DISABLED to enable",
+                "Disabled - unset AGENTKERN_{}_DISABLED to enable",
                 feature.to_uppercase()
             ),
         };

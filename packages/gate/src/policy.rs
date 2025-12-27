@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Policy Definition
+//! AgentKern-Gate: Policy Definition
 //!
 //! YAML-based policy DSL for defining guardrails.
 //!
@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::types::DataRegion;
 
-/// A VeriMantle policy definition.
+/// A AgentKern policy definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Policy {
     /// Unique policy identifier

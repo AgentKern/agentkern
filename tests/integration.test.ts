@@ -1,14 +1,14 @@
 /**
- * VeriMantle Integration Tests (TypeScript side)
+ * AgentKern Integration Tests (TypeScript side)
  * 
  * Tests SDK → Gateway → Rust roundtrip
  * 
- * Run with: npm test --workspace=@verimantle/sdk
+ * Run with: npm test --workspace=@agentkern/sdk
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-// Mock the SDK client (would import from @verimantle/sdk in production)
+// Mock the SDK client (would import from @agentkern/sdk in production)
 interface VerificationRequest {
   agentId: string;
   action: string;
@@ -48,8 +48,8 @@ function createGateClient(baseUrl: string): GateClient {
   };
 }
 
-describe('VeriMantle Integration Tests', () => {
-  const baseUrl = process.env.VERIMANTLE_API_URL || 'http://localhost:3000';
+describe('AgentKern Integration Tests', () => {
+  const baseUrl = process.env.AGENTKERN_API_URL || 'http://localhost:3000';
   let client: GateClient;
 
   beforeAll(() => {

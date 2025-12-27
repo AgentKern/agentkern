@@ -1,11 +1,11 @@
 [package]
-name = "verimantle-cloud"
+name = "agentkern-cloud"
 version = "0.1.0"
 edition = "2021"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: Multi-Cell Mesh Coordination"
-repository = "https://github.com/verimantle/verimantle"
-documentation = "https://docs.verimantle.com/enterprise/cloud"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: Multi-Cell Mesh Coordination"
+repository = "https://github.com/agentkern/agentkern"
+documentation = "https://docs.agentkern.com/enterprise/cloud"
 
 [dependencies]
 # Core (Dec 2025 - verified)

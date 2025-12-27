@@ -1,4 +1,4 @@
-# VeriMantle Competitive Landscape (2026)
+# AgentKern Competitive Landscape (2026)
 
 **"The Gap: Everyone is building Tools. No one is building the Kernel."**
 
@@ -8,7 +8,7 @@ Our deep dive into the 2025/2026 landscape reveals a crowded market of **Point S
 
 ## 1. The Landscape Matrix
 
-| Feature | **VeriMantle (The Kernel)** | **AutoGen / LangGraph** | **Guardrails AI / NeMo** | **Mem0 / Letta** |
+| Feature | **AgentKern (The Kernel)** | **AutoGen / LangGraph** | **Guardrails AI / NeMo** | **Mem0 / Letta** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Primary Focus** | **Infrastructure (OS)** | Orchestration (Framework) | Safety (Firewall) | Memory (Database) |
 | **Architecture** | **Rust/WASM (Bio-Digital)** | Python/Graph | Python Proxy | Vector/Graph DB |
@@ -28,31 +28,31 @@ Our deep dive into the 2025/2026 landscape reveals a crowded market of **Point S
 
 * **What they do:** Help developers script agent interactions ("Agent A talks to Agent B").
 * **The Gap:** They are **Application Frameworks**, not Infrastructure. They don't handle "Traffic Control," "Liability," or "High-Throughput State" at the secure kernel level. They run in Python, which is too slow for 10,000 concurrent agents.
-* **VeriMantle's Edge:** We are the **Server**. They are the *App* running on top of us.
+* **AgentKern's Edge:** We are the **Server**. They are the *App* running on top of us.
 
 ### B. The Guardrails (Guardrails AI, NVIDIA NeMo, Lakera)
 
 * **What they do:** Sit between the User and the LLM to check for bad words/PII.
 * **The Gap:** They are **"Sidecars"** or Proxies. They add latency to every call. They typically use Regex or simple Validators, lacking the "Neuro-Symbolic" understanding of *Intent*.
-* **VeriMantle's Edge:** Our logic is **Embedded** in the runtime (WASM/ONNX). It runs *with* the request, not *after* it.
+* **AgentKern's Edge:** Our logic is **Embedded** in the runtime (WASM/ONNX). It runs *with* the request, not *after* it.
 
 ### C. The Memory Stores (Mem0, Letta/MemGPT, Zep)
 
 * **What they do:** Give agents "Long Term Memory" via Vector Databases.
 * **The Gap:** They are just **Databases**. They store "Facts" but not "Intent Paths." They don't prevent an agent from drifting off-mission; they just help it remember the drift.
-* **VeriMantle's Edge:** `Synapse` links "Memory" to "Logic," ensuring the agent's history is used to *enforce its future*.
+* **AgentKern's Edge:** `Synapse` links "Memory" to "Logic," ensuring the agent's history is used to *enforce its future*.
 
 ### D. The Protocol Providers (Google A2A, Anthropic MCP)
 
 * **What they do:** Define communication standards for agents.
 * **The Gap:** They are **Single-Vendor Protocols**. Google's A2A only works natively with Google agents. Anthropic's MCP only works natively with Claude. There's no unified gateway.
-* **VeriMantle's Edge:** `Nexus` is the **Universal Translator** — supporting A2A, MCP, ANP, NLIP, and AITP in one gateway. Agents from any vendor can talk to each other through VeriMantle.
+* **AgentKern's Edge:** `Nexus` is the **Universal Translator** — supporting A2A, MCP, ANP, NLIP, and AITP in one gateway. Agents from any vendor can talk to each other through AgentKern.
 
 ### E. The Payment Attempts (Skyfire, Stripe Agent Toolkit)
 
 * **What they do:** Trying to enable AI agent payments.
 * **The Gap:** They are **External Integrations**, not native infrastructure. They don't have atomic 2-phase commit, spending budgets, or carbon tracking built-in.
-* **VeriMantle's Edge:** `Treasury` is **native** — atomic transfers, budgets, micropayment aggregation, and carbon footprint tracking all built into the kernel.
+* **AgentKern's Edge:** `Treasury` is **native** — atomic transfers, budgets, micropayment aggregation, and carbon footprint tracking all built into the kernel.
 
 ---
 
@@ -62,7 +62,7 @@ While the market is fighting over *who has the best Python Framework*, we are so
 
 > *"I have 1,000 AutoGen agents. How do I stop them from spending $1M in API credits, DDoSing my database, or leaking PII, without rewriting them all?"*
 
-**Answer:** You don't rewrite them. You run them on **VeriMantle**.
+**Answer:** You don't rewrite them. You run them on **AgentKern**.
 
 And now, we've solved problems **no one else has touched**:
 

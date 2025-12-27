@@ -29,8 +29,8 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/daretechie/verimantle"
-authors = ["VeriMantle Team"]
+repository = "https://github.com/AgentKern/agentkern"
+authors = ["AgentKern Team"]
 
 [workspace.dependencies]
 # Async Runtime (Dec 2025 - verified from crates.io)

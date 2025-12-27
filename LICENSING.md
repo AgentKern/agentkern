@@ -1,8 +1,8 @@
-# VeriMantle Licensing Strategy
+# AgentKern Licensing Strategy
 
 ## Open Core Model
 
-VeriMantle uses an **Open Core** licensing model:
+AgentKern uses an **Open Core** licensing model:
 
 | Tier | License | Features |
 |------|---------|----------|
@@ -29,7 +29,7 @@ VeriMantle uses an **Open Core** licensing model:
 
 - ✅ A2A Protocol support
 - ✅ MCP Protocol support  
-- ✅ VeriMantle native protocol
+- ✅ AgentKern native protocol
 - ✅ Agent Cards & discovery
 - ✅ In-memory agent registry
 - ✅ Skill-based task routing
@@ -108,7 +108,7 @@ Enterprise features are gated via:
 
 ```rust
 // Check for valid license
-if std::env::var("VERIMANTLE_LICENSE_KEY").is_err() {
+if std::env::var("AGENTKERN_LICENSE_KEY").is_err() {
     return Err(TreasuryError::LicenseRequired)
 }
 ```

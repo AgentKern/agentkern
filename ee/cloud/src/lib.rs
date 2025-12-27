@@ -1,11 +1,11 @@
-//! VeriMantle Enterprise: Multi-Cell Mesh Coordination
+//! AgentKern Enterprise: Multi-Cell Mesh Coordination
 //!
-//! Per LICENSING_STRATEGY.md: "VeriMantle Cloud (The Multi-Cell Mesh)"
+//! Per LICENSING_STRATEGY.md: "AgentKern Cloud (The Multi-Cell Mesh)"
 //!
 //! This module provides enterprise-only features for coordinating
-//! multiple VeriMantle cells across a global mesh.
+//! multiple AgentKern cells across a global mesh.
 //!
-//! **License**: VeriMantle Enterprise License (see ../LICENSE-ENTERPRISE.md)
+//! **License**: AgentKern Enterprise License (see ../LICENSE-ENTERPRISE.md)
 //!
 //! Features:
 //! - Multi-node coordination (100+ cells)
@@ -65,7 +65,7 @@ pub struct License {
 impl License {
     /// Create a new license from environment variable.
     pub fn from_env() -> Result<Self, LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -87,12 +87,12 @@ impl License {
     fn validate_jwt_offline(token: &str) -> Result<LicenseClaims, LicenseError> {
         use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
         
-        let secret = std::env::var("VERIMANTLE_LICENSE_SECRET")
-            .unwrap_or_else(|_| "verimantle-demo-2025".into());
+        let secret = std::env::var("AGENTKERN_LICENSE_SECRET")
+            .unwrap_or_else(|_| "agentkern-demo-2025".into());
         
         let key = DecodingKey::from_secret(secret.as_bytes());
         let mut validation = Validation::new(Algorithm::HS256);
-        validation.set_issuer(&["verimantle.com"]);
+        validation.set_issuer(&["agentkern.com"]);
         
         let data = decode::<LicenseClaims>(token, &key, &validation)
             .map_err(|e| LicenseError::InvalidLicense(e.to_string()))?;
@@ -167,7 +167,7 @@ pub struct MeshConfig {
 impl Default for MeshConfig {
     fn default() -> Self {
         Self {
-            cluster_name: "verimantle-mesh".to_string(),
+            cluster_name: "agentkern-mesh".to_string(),
             seed_nodes: vec![],
             replication_factor: 3,
             sync_interval_ms: 100,
@@ -452,22 +452,22 @@ mod tests {
 
     #[test]
     fn test_license_required() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_with_license() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license-key");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key");
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_ok());
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]
     fn test_mitosis_scale_up() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
         
@@ -484,12 +484,12 @@ mod tests {
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleUp(_)));
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]
     fn test_mitosis_scale_down() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
         
@@ -506,7 +506,7 @@ mod tests {
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleDown(_)));
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]

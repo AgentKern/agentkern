@@ -1,13 +1,13 @@
-//! VeriMantle CLI
+//! AgentKern CLI
 //!
 //! Single binary that runs anywhere.
 //!
 //! Usage:
-//!   verimantle run     # Start with auto-detection
-//!   verimantle detect  # Show detected environment
-//!   verimantle config  # Show auto-generated config
+//!   agentkern run     # Start with auto-detection
+//!   agentkern detect  # Show detected environment
+//!   agentkern config  # Show auto-generated config
 
-use verimantle_runtime::{detect_environment, auto_configure, VERSION};
+use agentkern_runtime::{detect_environment, auto_configure, VERSION};
 
 #[tokio::main]
 async fn main() {
@@ -19,11 +19,11 @@ async fn main() {
     
     match command {
         "run" => {
-            println!("VeriMantle v{}", VERSION);
+            println!("AgentKern v{}", VERSION);
             println!("The Universal AI Agent Kernel");
             println!();
             
-            if let Err(e) = verimantle_runtime::run().await {
+            if let Err(e) = agentkern_runtime::run().await {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
@@ -43,7 +43,7 @@ async fn main() {
         }
         
         "version" | "-v" | "--version" => {
-            println!("VeriMantle v{}", VERSION);
+            println!("AgentKern v{}", VERSION);
         }
         
         "help" | "-h" | "--help" => {
@@ -59,13 +59,13 @@ async fn main() {
 }
 
 fn print_help() {
-    println!("VeriMantle - The Universal AI Agent Kernel");
+    println!("AgentKern - The Universal AI Agent Kernel");
     println!();
     println!("USAGE:");
-    println!("  verimantle <COMMAND>");
+    println!("  agentkern <COMMAND>");
     println!();
     println!("COMMANDS:");
-    println!("  run      Start VeriMantle with auto-detection");
+    println!("  run      Start AgentKern with auto-detection");
     println!("  detect   Show detected environment");
     println!("  config   Show auto-generated configuration");
     println!("  version  Show version");
@@ -78,7 +78,7 @@ fn print_help() {
     println!("  DATABASE_URL     Database connection URL");
     println!("  CACHE_URL        Cache connection URL");
     println!();
-    println!("VeriMantle auto-detects:");
+    println!("AgentKern auto-detects:");
     println!("  - Container (Docker, Podman)");
     println!("  - Kubernetes");
     println!("  - Serverless");

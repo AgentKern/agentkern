@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: DSL Expression Parser
+//! AgentKern-Gate: DSL Expression Parser
 //!
 //! Simple expression language for policy conditions.
 //!

@@ -22,12 +22,12 @@ Without coordination:
 
 ---
 
-## Solution: VeriMantle Arbiter
+## Solution: AgentKern Arbiter
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
-const client = new VeriMantle({ environment: 'local' });
+const client = new AgentKern({ environment: 'local' });
 
 // Register our agent team
 async function registerAgents() {

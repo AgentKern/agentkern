@@ -124,7 +124,7 @@ impl WebhookNotifier {
         let payload = self.format_payload(config, trigger)?;
         
         // Check for webhook credentials
-        let has_credentials = std::env::var("VERIMANTLE_WEBHOOK_ENABLED").is_ok() 
+        let has_credentials = std::env::var("AGENTKERN_WEBHOOK_ENABLED").is_ok() 
             || config.secret.is_some();
         
         if has_credentials {
@@ -150,7 +150,7 @@ impl WebhookNotifier {
                 webhook_id = %config.id,
                 webhook_type = ?config.webhook_type,
                 level = ?trigger.level,
-                "Webhook (demo mode) - set VERIMANTLE_WEBHOOK_ENABLED for live"
+                "Webhook (demo mode) - set AGENTKERN_WEBHOOK_ENABLED for live"
             );
         }
         
@@ -197,7 +197,7 @@ impl WebhookNotifier {
                         "short": true
                     }
                 ],
-                "footer": "VeriMantle Arbiter",
+                "footer": "AgentKern Arbiter",
                 "ts": trigger.timestamp / 1000
             }]
         }))
@@ -246,7 +246,7 @@ impl WebhookNotifier {
                 "summary": trigger.reason,
                 "severity": severity,
                 "source": trigger.agent_id,
-                "component": "verimantle-arbiter",
+                "component": "agentkern-arbiter",
                 "custom_details": trigger.context
             }
         }))

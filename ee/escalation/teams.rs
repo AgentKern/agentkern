@@ -75,7 +75,7 @@ impl TeamsIntegration {
                 },
                 CardAction::ActionOpenUrl {
                     title: "View Details".into(),
-                    url: format!("https://dashboard.verimantle.com/escalations/{}", alert.request_id),
+                    url: format!("https://dashboard.agentkern.com/escalations/{}", alert.request_id),
                 },
             ],
         }

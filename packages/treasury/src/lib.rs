@@ -1,9 +1,9 @@
-//! VeriMantle-Treasury: Agent Payment Infrastructure
+//! AgentKern-Treasury: Agent Payment Infrastructure
 //!
 //! Per MANIFESTO.md: "Agents can pay each other for services via micropayment rails"
 //! Per Market Research: No one has solved agent-to-agent payments properly
 //!
-//! This is VeriMantle's "Blue Ocean" - the 5th Pillar.
+//! This is AgentKern's "Blue Ocean" - the 5th Pillar.
 //!
 //! Features:
 //! - Agent balance management
@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_treasury::{Treasury, TransferRequest};
+//! use agentkern_treasury::{Treasury, TransferRequest};
 //!
 //! let treasury = Treasury::new();
 //!
@@ -32,7 +32,7 @@
 //!
 //! ```text
 //! ┌─────────────────────────────────────────────────────────────┐
-//! │                    VeriMantle-Treasury                      │
+//! │                    AgentKern-Treasury                      │
 //! ├─────────────────────────────────────────────────────────────┤
 //! │  ┌─────────────────────────────────────────────────────┐   │
 //! │  │              Balance Ledger                         │   │

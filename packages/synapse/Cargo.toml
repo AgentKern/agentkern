@@ -1,12 +1,12 @@
 [package]
-name = "verimantle-synapse"
+name = "agentkern-synapse"
 version = "0.1.0"
 edition = "2021"
-description = "VeriMantle-Synapse: Graph-based State Ledger with CRDTs and Adaptive Query Execution"
+description = "AgentKern-Synapse: Graph-based State Ledger with CRDTs and Adaptive Query Execution"
 license = "MIT"
 
 [lib]
-name = "verimantle_synapse"
+name = "agentkern_synapse"
 path = "src/lib.rs"
 
 [[bin]]

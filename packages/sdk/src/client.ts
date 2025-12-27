@@ -1,14 +1,14 @@
 /**
- * VeriMantle SDK - Core Client
+ * AgentKern SDK - Core Client
  * 
- * The unified client for the VeriMantle Agentic Operating System.
+ * The unified client for the AgentKern Agentic Operating System.
  * Per MANIFESTO: "The Ghost" - The open-source SDK that developers install.
  * 
  * Usage:
  * ```typescript
- * import { VeriMantle } from '@verimantle/sdk';
+ * import { AgentKern } from '@agentkern/sdk';
  * 
- * const client = new VeriMantle({
+ * const client = new AgentKern({
  *   apiKey: 'your-api-key',
  *   region: 'eu', // For GDPR compliance
  * });
@@ -26,26 +26,26 @@
  * ```
  */
 
-import type { VeriMantleConfig, DataResidencyRegion } from './types';
+import type { AgentKernConfig, DataResidencyRegion } from './types';
 import type { IdentityPort, GatePort, SynapsePort, ArbiterPort, SovereignPort, TreasuryPort } from './ports';
 
 // ============================================================================
 // DEFAULT CONFIGURATION
 // ============================================================================
 
-const DEFAULT_CONFIG: Required<VeriMantleConfig> = {
-  endpoint: 'https://api.verimantle.io',
+const DEFAULT_CONFIG: Required<AgentKernConfig> = {
+  endpoint: 'https://api.agentkern.io',
   apiKey: '',
   region: 'global',
   debug: false,
 };
 
 // ============================================================================
-// VERIMANTLE CLIENT
+// AGENTKERN CLIENT
 // ============================================================================
 
 /**
- * VeriMantle - The Unified Agentic Operating System Client.
+ * AgentKern - The Unified Agentic Operating System Client.
  * 
  * Provides access to the Five Pillars:
  * - **Identity**: Agent authentication & liability
@@ -57,12 +57,12 @@ const DEFAULT_CONFIG: Required<VeriMantleConfig> = {
  * Plus:
  * - **Sovereign**: Data residency & compliance
  */
-export class VeriMantle {
+export class AgentKern {
   /** SDK Version */
   public static readonly VERSION = '0.1.0';
 
   /** Configuration */
-  private readonly config: Required<VeriMantleConfig>;
+  private readonly config: Required<AgentKernConfig>;
 
   /** Identity module */
   public readonly identity: IdentityPort;
@@ -83,17 +83,17 @@ export class VeriMantle {
   public readonly treasury: TreasuryPort;
 
   /**
-   * Create a new VeriMantle client instance.
+   * Create a new AgentKern client instance.
    * 
    * @param config - Configuration options
    */
-  constructor(config: VeriMantleConfig = {}) {
+  constructor(config: AgentKernConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     if (this.config.debug) {
-      console.log(`[VeriMantle] Initializing v${VeriMantle.VERSION}`);
-      console.log(`[VeriMantle] Region: ${this.config.region}`);
-      console.log(`[VeriMantle] Endpoint: ${this.config.endpoint}`);
+      console.log(`[AgentKern] Initializing v${AgentKern.VERSION}`);
+      console.log(`[AgentKern] Region: ${this.config.region}`);
+      console.log(`[AgentKern] Endpoint: ${this.config.endpoint}`);
     }
 
     // Initialize module adapters (will be replaced with real implementations)
@@ -111,13 +111,13 @@ export class VeriMantle {
 
   /**
    * Create the Identity adapter.
-   * In production, this connects to VeriMantle-Identity service.
+   * In production, this connects to AgentKern-Identity service.
    */
   private createIdentityAdapter(): IdentityPort {
     const config = this.config;
     return {
       async register(name, capabilities = []) {
-        // TODO: Connect to VeriMantle-Identity API
+        // TODO: Connect to AgentKern-Identity API
         return {
           id: crypto.randomUUID(),
           name,
@@ -128,11 +128,11 @@ export class VeriMantle {
         };
       },
       async getIdentity(agentId) {
-        // TODO: Connect to VeriMantle-Identity API
+        // TODO: Connect to AgentKern-Identity API
         return null;
       },
       async signAction(agentId, action, payload) {
-        // TODO: Connect to VeriMantle-Identity API
+        // TODO: Connect to AgentKern-Identity API
         return {
           action,
           agentId,
@@ -142,11 +142,11 @@ export class VeriMantle {
         };
       },
       async verifyProof(proof) {
-        // TODO: Connect to VeriMantle-Identity API
+        // TODO: Connect to AgentKern-Identity API
         return true;
       },
       async getTrustScore(agentId) {
-        // TODO: Connect to VeriMantle-Trust API
+        // TODO: Connect to AgentKern-Trust API
         return 100;
       },
     };
@@ -154,12 +154,12 @@ export class VeriMantle {
 
   /**
    * Create the Gate adapter.
-   * In production, this connects to VeriMantle-Gate service.
+   * In production, this connects to AgentKern-Gate service.
    */
   private createGateAdapter(): GatePort {
     return {
       async verify(agentId, action, context = {}) {
-        // TODO: Connect to VeriMantle-Gate API (Neuro-Symbolic verification)
+        // TODO: Connect to AgentKern-Gate API (Neuro-Symbolic verification)
         const startTime = Date.now();
         return {
           allowed: true,
@@ -169,14 +169,14 @@ export class VeriMantle {
         };
       },
       async registerPolicy(policy) {
-        // TODO: Connect to VeriMantle-Gate API
+        // TODO: Connect to AgentKern-Gate API
       },
       async getPolicies() {
-        // TODO: Connect to VeriMantle-Gate API
+        // TODO: Connect to AgentKern-Gate API
         return [];
       },
       async checkPolicy(policyId, action, context = {}) {
-        // TODO: Connect to VeriMantle-Gate API
+        // TODO: Connect to AgentKern-Gate API
         return true;
       },
     };
@@ -184,16 +184,16 @@ export class VeriMantle {
 
   /**
    * Create the Synapse adapter.
-   * In production, this connects to VeriMantle-Synapse service.
+   * In production, this connects to AgentKern-Synapse service.
    */
   private createSynapseAdapter(): SynapsePort {
     return {
       async getState(agentId) {
-        // TODO: Connect to VeriMantle-Synapse API
+        // TODO: Connect to AgentKern-Synapse API
         return null;
       },
       async setState(agentId, state) {
-        // TODO: Connect to VeriMantle-Synapse API (CRDT merge)
+        // TODO: Connect to AgentKern-Synapse API (CRDT merge)
         return {
           agentId,
           state,
@@ -202,7 +202,7 @@ export class VeriMantle {
         };
       },
       async startIntent(agentId, intent, expectedSteps) {
-        // TODO: Connect to VeriMantle-Synapse API
+        // TODO: Connect to AgentKern-Synapse API
         return {
           id: crypto.randomUUID(),
           originalIntent: intent,
@@ -214,7 +214,7 @@ export class VeriMantle {
         };
       },
       async recordStep(agentId, action, result) {
-        // TODO: Connect to VeriMantle-Synapse API
+        // TODO: Connect to AgentKern-Synapse API
         return {
           id: '',
           originalIntent: '',
@@ -226,7 +226,7 @@ export class VeriMantle {
         };
       },
       async checkDrift(agentId) {
-        // TODO: Connect to VeriMantle-Synapse API
+        // TODO: Connect to AgentKern-Synapse API
         return { drifted: false, score: 0 };
       },
     };
@@ -234,12 +234,12 @@ export class VeriMantle {
 
   /**
    * Create the Arbiter adapter.
-   * In production, this connects to VeriMantle-Arbiter service.
+   * In production, this connects to AgentKern-Arbiter service.
    */
   private createArbiterAdapter(): ArbiterPort {
     return {
       async requestCoordination(request) {
-        // TODO: Connect to VeriMantle-Arbiter API
+        // TODO: Connect to AgentKern-Arbiter API
         return {
           granted: true,
           lock: {
@@ -252,7 +252,7 @@ export class VeriMantle {
         };
       },
       async acquireLock(agentId, resource, priority = 0) {
-        // TODO: Connect to VeriMantle-Arbiter API (Raft consensus)
+        // TODO: Connect to AgentKern-Arbiter API (Raft consensus)
         return {
           resource,
           lockedBy: agentId,
@@ -262,15 +262,15 @@ export class VeriMantle {
         };
       },
       async releaseLock(agentId, resource) {
-        // TODO: Connect to VeriMantle-Arbiter API
+        // TODO: Connect to AgentKern-Arbiter API
         return true;
       },
       async getLockStatus(resource) {
-        // TODO: Connect to VeriMantle-Arbiter API
+        // TODO: Connect to AgentKern-Arbiter API
         return null;
       },
       async getQueuePosition(agentId, resource) {
-        // TODO: Connect to VeriMantle-Arbiter API
+        // TODO: Connect to AgentKern-Arbiter API
         return 0;
       },
     };
@@ -278,7 +278,7 @@ export class VeriMantle {
 
   /**
    * Create the Sovereign adapter.
-   * In production, this connects to VeriMantle-Sovereign service.
+   * In production, this connects to AgentKern-Sovereign service.
    */
   private createSovereignAdapter(): SovereignPort {
     const config = this.config;
@@ -295,11 +295,11 @@ export class VeriMantle {
         return true;
       },
       async getRequiredResidency(operation, jurisdiction) {
-        // TODO: Connect to VeriMantle-Sovereign API
+        // TODO: Connect to AgentKern-Sovereign API
         return jurisdiction;
       },
       async validateCompliance(operation, data, jurisdiction) {
-        // TODO: Connect to VeriMantle-Sovereign API
+        // TODO: Connect to AgentKern-Sovereign API
         return { compliant: true };
       },
     };
@@ -307,12 +307,12 @@ export class VeriMantle {
 
   /**
    * Create the Treasury adapter.
-   * In production, this connects to VeriMantle-Treasury service.
+   * In production, this connects to AgentKern-Treasury service.
    */
   private createTreasuryAdapter(): TreasuryPort {
     return {
       async getBalance(agentId) {
-        // TODO: Connect to VeriMantle-Treasury API
+        // TODO: Connect to AgentKern-Treasury API
         return {
           balance: 0,
           currency: 'VMC',
@@ -320,24 +320,24 @@ export class VeriMantle {
         };
       },
       async transfer(from, to, amount, reference) {
-        // TODO: Connect to VeriMantle-Treasury API
+        // TODO: Connect to AgentKern-Treasury API
         return {
           transactionId: crypto.randomUUID(),
           status: 'completed',
         };
       },
       async setSpendingLimit(agentId, limit, period) {
-        // TODO: Connect to VeriMantle-Treasury API
+        // TODO: Connect to AgentKern-Treasury API
       },
       async getRemainingBudget(agentId) {
-        // TODO: Connect to VeriMantle-Treasury API
+        // TODO: Connect to AgentKern-Treasury API
         return {
           remaining: Infinity,
           period: 'unlimited',
         };
       },
       async canSpend(agentId, amount) {
-        // TODO: Connect to VeriMantle-Treasury API
+        // TODO: Connect to AgentKern-Treasury API
         return true;
       },
     };
@@ -350,7 +350,7 @@ export class VeriMantle {
   /**
    * Get current configuration (excluding sensitive data).
    */
-  public getConfig(): Omit<Required<VeriMantleConfig>, 'apiKey'> {
+  public getConfig(): Omit<Required<AgentKernConfig>, 'apiKey'> {
     const { apiKey, ...publicConfig } = this.config;
     return publicConfig;
   }

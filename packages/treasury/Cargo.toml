@@ -1,12 +1,12 @@
 [package]
-name = "verimantle-treasury"
+name = "agentkern-treasury"
 version = "0.1.0"
 edition = "2021"
-description = "VeriMantle-Treasury: Agent Payment Infrastructure"
+description = "AgentKern-Treasury: Agent Payment Infrastructure"
 license = "MIT"
 
 [lib]
-name = "verimantle_treasury"
+name = "agentkern_treasury"
 path = "src/lib.rs"
 
 [[bin]]

@@ -1,5 +1,5 @@
 /**
- * VeriMantle SDK
+ * AgentKern SDK
  * 
  * The Operating System for the Agentic Economy.
  * 
@@ -7,11 +7,11 @@
  * 
  * @example
  * ```typescript
- * import { VeriMantle } from '@verimantle/sdk';
+ * import { AgentKern } from '@agentkern/sdk';
  * 
  * // Initialize the client
- * const client = new VeriMantle({
- *   apiKey: process.env.VERIMANTLE_API_KEY,
+ * const client = new AgentKern({
+ *   apiKey: process.env.AGENTKERN_API_KEY,
  *   region: 'eu',
  * });
  * 
@@ -35,7 +35,7 @@
  * 
  * ## The Four Pillars
  * 
- * VeriMantle provides four core modules:
+ * AgentKern provides four core modules:
  * 
  * 1. **Identity** - Agent authentication & liability proofs
  * 2. **Gate** - Pre-execution verification & guardrails
@@ -45,6 +45,6 @@
  * Plus **Sovereign** for data residency compliance (GDPR, PIPL, etc.)
  */
 
-export { VeriMantle } from './client';
+export { AgentKern } from './client';
 export * from './types';
 export * from './ports';

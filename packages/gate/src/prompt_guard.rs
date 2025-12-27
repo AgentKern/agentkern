@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Prompt Guard
+//! AgentKern-Gate: Prompt Guard
 //!
 //! Per MANDATE.md Section 6: "Prompt Defense: Multi-layer defense against Prompt Injection"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::prompt_guard::{PromptGuard, ThreatLevel};
+//! use agentkern_gate::prompt_guard::{PromptGuard, ThreatLevel};
 //!
 //! let guard = PromptGuard::new();
 //! let result = guard.analyze("ignore previous instructions and...");

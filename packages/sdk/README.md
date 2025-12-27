@@ -1,27 +1,27 @@
-# @verimantle/sdk
+# @agentkern/sdk
 
 **The Unified SDK for the Agentic Economy.**
 
-VeriMantle is the Operating System for autonomous AI agents. This SDK provides developers with a simple, type-safe interface to the Four Pillars of agentic infrastructure.
+AgentKern is the Operating System for autonomous AI agents. This SDK provides developers with a simple, type-safe interface to the Four Pillars of agentic infrastructure.
 
 ## Installation
 
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 # or
-pnpm add @verimantle/sdk
+pnpm add @agentkern/sdk
 # or
-yarn add @verimantle/sdk
+yarn add @agentkern/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
 // Initialize the client
-const client = new VeriMantle({
-  apiKey: process.env.VERIMANTLE_API_KEY,
+const client = new AgentKern({
+  apiKey: process.env.AGENTKERN_API_KEY,
   region: 'eu', // For GDPR compliance
 });
 
@@ -113,10 +113,10 @@ if (lock) {
 
 ## Data Residency (Sovereign)
 
-VeriMantle supports global data sovereignty requirements:
+AgentKern supports global data sovereignty requirements:
 
 ```typescript
-const client = new VeriMantle({ region: 'cn' }); // China (PIPL)
+const client = new AgentKern({ region: 'cn' }); // China (PIPL)
 
 // Check if data transfer is allowed
 const canTransfer = await client.sovereign.canTransfer('cn', 'us', 'personal_data');
@@ -137,4 +137,4 @@ MIT - Open Source. See [LICENSE](./LICENSE) for details.
 
 ---
 
-**VeriMantle** - *The Foundation for the Agentic Economy.*
+**AgentKern** - *The Foundation for the Agentic Economy.*

@@ -48,7 +48,7 @@ impl OutlookConnector for DemoProductivity {
             EmailMessage {
                 id: Some("demo-1".into()),
                 subject: "[Demo] Weekly Report".into(),
-                body: "This is demo data. Set VERIMANTLE_PRODUCTIVITY_API_KEY for live.".into(),
+                body: "This is demo data. Set AGENTKERN_PRODUCTIVITY_API_KEY for live.".into(),
                 body_type: BodyType::Text,
                 from: Some("demo@example.com".into()),
                 to: vec!["you@example.com".into()],
@@ -145,7 +145,7 @@ impl SharePointConnector for DemoProductivity {
     }
     
     async fn get_content(&self, _doc_id: &str) -> Result<String, SharePointError> {
-        Ok("[Demo Content] This is demo data. Set VERIMANTLE_M365_API_KEY for live content.".into())
+        Ok("[Demo Content] This is demo data. Set AGENTKERN_M365_API_KEY for live content.".into())
     }
     
     async fn list_folder(&self, folder_path: &str) -> Result<Vec<Document>, SharePointError> {

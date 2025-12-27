@@ -1,8 +1,8 @@
-# VERIMANTLE EXECUTION MANDATE (DECEMBER 2025)
+# AGENTKERN EXECUTION MANDATE (DECEMBER 2025)
 
 **Global Agentic Infrastructure – The "Disruptor" Standard**
 
-This mandate governs every action, decision, design, audit, and line of code executed by any AI agent or coding assistant working on VeriMantle. These rules are **Non-Negotiable**.
+This mandate governs every action, decision, design, audit, and line of code executed by any AI agent or coding assistant working on AgentKern. These rules are **Non-Negotiable**.
 
 ---
 
@@ -21,14 +21,14 @@ We do not copy; we innovate. We use a **Hybrid Architecture** to balance velocit
 
 ## 2. Global Compliance & "All-Region" Sovereignty
 
-VeriMantle is not just US-centric. It is a specific global infrastructure.
+AgentKern is not just US-centric. It is a specific global infrastructure.
 
 *   **Healthcare**: HIPAA, HITECH, EU MDR, HL7/FHIR.
 *   **Global Privacy**: GDPR (EU), CCPA (US), LGPD (Brazil), POPI (South Africa).
 *   **Financial/Insurance**:
     *   **Takaful (Islamic Insurance)**: Full support for compliant workflows.
     *   **PCI-DSS**: Automated compliance for financial transactions.
-*   **Rule**: If a regulation exists in *any* major region, VeriMantle supports it architecturally.
+*   **Rule**: If a regulation exists in *any* major region, AgentKern supports it architecturally.
 
 ---
 

@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-sovereign-mesh"
+name = "agentkern-sovereign-mesh"
 version = "0.1.0"
 edition = "2024"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: Sovereign Mesh Multi-Region Geo-Fencing"
-repository = "https://github.com/verimantle/verimantle"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: Sovereign Mesh Multi-Region Geo-Fencing"
+repository = "https://github.com/agentkern/agentkern"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

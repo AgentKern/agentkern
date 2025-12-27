@@ -1,4 +1,4 @@
-# VeriMantle: The Strategic Vision (2026)
+# AgentKern: The Strategic Vision (2026)
 
 > **"The Verifiable Foundation for the Agentic Economy"**
 
@@ -8,13 +8,13 @@ By 2026, the world will have plenty of "Agents." What it will lack is **Infrastr
 
 Right now, developers are building *how agents think* (LangChain, AutoGPT). No one is building the *plumbing they run on*.
 
-Instead of building disparate tools, VeriMantle is the **"Unified Agentic Operating System."** It turns a series of "cool ideas" into a Mission-Critical Platform.
+Instead of building disparate tools, AgentKern is the **"Unified Agentic Operating System."** It turns a series of "cool ideas" into a Mission-Critical Platform.
 
 ---
 
 ## 2. The 2026 "Unicorn" Problem
 
-Once every agent has an "Identity" (VeriMantle-Identity), the next crisis will be **Coordination, Conflict, Logic, Payments, and Interoperability**.
+Once every agent has an "Identity" (AgentKern-Identity), the next crisis will be **Coordination, Conflict, Logic, Payments, and Interoperability**.
 
 We are solving five "Blue Ocean" problems simultaneously:
 
@@ -28,11 +28,11 @@ We are solving five "Blue Ocean" problems simultaneously:
 
 ## 3. The "Disruptor" Innovation: The Polymorphic Logic Engine
 
-Most platforms are hardcoded for Western, US-centric models. VeriMantle is **Region-Aware & Sector-Polymorphic** by default.
+Most platforms are hardcoded for Western, US-centric models. AgentKern is **Region-Aware & Sector-Polymorphic** by default.
 
-The `VeriMantle-Gate` module dynamically switches its logic execution based on **Jurisdiction** and **Sector**:
+The `AgentKern-Gate` module dynamically switches its logic execution based on **Jurisdiction** and **Sector**:
 
-| Sector | Region A (e.g., US) | Region B (e.g., MENA/SEA/EU) | VeriMantle Action |
+| Sector | Region A (e.g., US) | Region B (e.g., MENA/SEA/EU) | AgentKern Action |
 | :--- | :--- | :--- | :--- |
 | **Finance** | Interest-based (Loans) | **Takaful/Islamic** (Risk Sharing) | Switches from *Debt Logic* to *Pool Logic* automatically. |
 | **Health** | HIPAA (Privacy) | **GDPR/National** (Sovereignty) | Switches data storage locality and consent flows. |
@@ -56,18 +56,18 @@ pub enum DataRegion {
 
 ---
 
-## 4. The Solution: The VeriMantle Six Pillars
+## 4. The Solution: The AgentKern Six Pillars
 
-We are keeping `AgentProof` (now `@verimantle/identity`) as the foundation and building around it.
+We are keeping `AgentProof` (now `@agentkern/identity`) as the foundation and building around it.
 
 | Pillar | Name | Role | Analogy | Tech Stack |
 | :--- | :--- | :--- | :--- | :--- |
-| 🪪 **Identity** | VeriMantle Identity | Authentication & Liability | The Passport | **TypeScript** (Node.js) |
-| 🛡️ **Gate** | VeriMantle Gate | Logic & Permissions | Kernel Permissions | **Rust** (Neuro-Symbolic) |
-| 🧠 **Synapse** | VeriMantle Synapse | State & Intent | Shared RAM | **Rust** (Graph/CRDT) |
-| ⚖️ **Arbiter** | VeriMantle Arbiter | Conflict Resolution | Traffic Control | **Rust** (Raft/Atomic) |
-| 💰 **Treasury** | VeriMantle Treasury | Agent Payments | The Bank | **Rust** (2-Phase Commit) |
-| 🔀 **Nexus** | VeriMantle Nexus | Protocol Gateway | Network Stack | **Rust** (A2A/MCP/ANP) |
+| 🪪 **Identity** | AgentKern Identity | Authentication & Liability | The Passport | **TypeScript** (Node.js) |
+| 🛡️ **Gate** | AgentKern Gate | Logic & Permissions | Kernel Permissions | **Rust** (Neuro-Symbolic) |
+| 🧠 **Synapse** | AgentKern Synapse | State & Intent | Shared RAM | **Rust** (Graph/CRDT) |
+| ⚖️ **Arbiter** | AgentKern Arbiter | Conflict Resolution | Traffic Control | **Rust** (Raft/Atomic) |
+| 💰 **Treasury** | AgentKern Treasury | Agent Payments | The Bank | **Rust** (2-Phase Commit) |
+| 🔀 **Nexus** | AgentKern Nexus | Protocol Gateway | Network Stack | **Rust** (A2A/MCP/ANP) |
 
 ---
 
@@ -80,7 +80,7 @@ We balance "Developer Velocity" with "System Reliability."
 
 ### Protocol Strategy
 
-VeriMantle Nexus supports all major agent communication standards (Dec 2025):
+AgentKern Nexus supports all major agent communication standards (Dec 2025):
 
 | Protocol | Provider | Status | Standards Body |
 |----------|----------|--------|----------------|
@@ -90,7 +90,7 @@ VeriMantle Nexus supports all major agent communication standards (Dec 2025):
 | **ANP** | W3C | 🟡 Beta | W3C |
 | **AITP** | NEAR | 🟡 Beta | NEAR Foundation |
 
-This positions VeriMantle as the **only platform with unified multi-protocol support**.
+This positions AgentKern as the **only platform with unified multi-protocol support**.
 
 ---
 
@@ -98,12 +98,12 @@ This positions VeriMantle as the **only platform with unified multi-protocol sup
 
 We selected **TypeScript + Rust** after evaluating all major alternatives.
 
-| Language | Verdict | Why we rejected it for VeriMantle |
+| Language | Verdict | Why we rejected it for AgentKern |
 | :--- | :--- | :--- |
 | **Go** | ❌ Rejected | **Garbage Collection (GC) Pauses.** For `Arbiter` (Traffic Control), even small GC pauses can cause "Micro-Jitter" in high-frequency agent negotiation. Rust has no GC. |
 | **Java** | ❌ Rejected | **Cold Start & footprint.** Integrating a JVM based agent-system is too heavy for modern "Sidecar" architectures. Agents need to spin up/down in milliseconds. |
 | **Python** | ❌ Rejected | **Global Interpreter Lock (GIL).** Python is great for *building* agents (AI models), but terrible for the *infrastructure* that coordinates 1,000 of them concurrently. |
-| **C / C++** | ❌ Rejected | **Memory Safety.** VeriMantle is a **Security** product. We cannot risk buffer overflows or pointer errors. Rust provides C++ speed with mathematical memory safety. |
+| **C / C++** | ❌ Rejected | **Memory Safety.** AgentKern is a **Security** product. We cannot risk buffer overflows or pointer errors. Rust provides C++ speed with mathematical memory safety. |
 | **Rust** | ✅ **Selected** | **Perfect Fit.** It offers the speed of C++, the safety of Java, and the concurrency needed for the "Agentic Economy." |
 
 *Our motto: "Python for the Brain (The Agent), Rust for the Body (The Infrastructure)."*
@@ -112,7 +112,7 @@ We selected **TypeScript + Rust** after evaluating all major alternatives.
 
 ## 7. Competitive Moats
 
-VeriMantle has multiple defensible advantages:
+AgentKern has multiple defensible advantages:
 
 1. **Only platform with native agent payments (Treasury)** — Visa, Stripe, Coinbase are all chasing this
 2. **Only platform with unified protocol support (Nexus)** — A2A + MCP + ANP in one gateway
@@ -122,4 +122,4 @@ VeriMantle has multiple defensible advantages:
 
 ---
 
-*This document serves as the "North Star" for the VeriMantle project.*
+*This document serves as the "North Star" for the AgentKern project.*

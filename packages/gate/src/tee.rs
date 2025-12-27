@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: TEE Confidential Computing
+//! AgentKern-Gate: TEE Confidential Computing
 //!
 //! Per COMPETITIVE_LANDSCAPE.md: "Native Identity (Signatures)"
 //! Per ARCHITECTURE.md: "Hardware Enclaves (TDX/SEV)"

@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-runtime"
+name = "agentkern-runtime"
 version = "0.1.0"
 edition = "2021"
-description = "VeriMantle Universal Runtime - runs anywhere"
+description = "AgentKern Universal Runtime - runs anywhere"
 license = "Apache-2.0"
-repository = "https://github.com/verimantle/verimantle"
+repository = "https://github.com/agentkern/agentkern"
 keywords = ["ai", "agents", "runtime", "universal"]
 categories = ["asynchronous", "web-programming"]
 
@@ -17,5 +17,5 @@ thiserror = "1"
 tokio-test = "0.4"
 
 [[bin]]
-name = "verimantle"
+name = "agentkern"
 path = "src/bin/main.rs"

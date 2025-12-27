@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Sovereign Data Module
+//! AgentKern-Gate: Sovereign Data Module
 //!
 //! Per GLOBAL_GAPS.md §1: Data Sovereignty / Geo-Fenced Cells
 //!
@@ -10,8 +10,8 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::sovereign::{SovereignController, DataTransfer};
-//! use verimantle_gate::types::DataRegion;
+//! use agentkern_gate::sovereign::{SovereignController, DataTransfer};
+//! use agentkern_gate::types::DataRegion;
 //!
 //! let controller = SovereignController::new();
 //!

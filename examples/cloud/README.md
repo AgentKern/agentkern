@@ -1,8 +1,8 @@
 # Cloud Deployment Examples
 
-These are **optional** examples, not core VeriMantle.
+These are **optional** examples, not core AgentKern.
 
-VeriMantle runs anywhere with `verimantle run` - no cloud-specific code required.
+AgentKern runs anywhere with `agentkern run` - no cloud-specific code required.
 
 ## Available Examples
 
@@ -15,6 +15,6 @@ VeriMantle runs anywhere with `verimantle run` - no cloud-specific code required
 
 ## Note
 
-These examples are for convenience only. VeriMantle's core is cloud-agnostic.
+These examples are for convenience only. AgentKern's core is cloud-agnostic.
 
 The kernel auto-detects its environment and configures itself.

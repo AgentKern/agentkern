@@ -177,12 +177,12 @@ mod tests {
             dedup_key: "agent-1-task-1".into(),
             summary: "High risk agent action".into(),
             severity: PagerDutySeverity::Critical,
-            source: "VeriMantle".into(),
+            source: "AgentKern".into(),
             component: Some("Arbiter".into()),
             group: Some("Production".into()),
             class: Some("Escalation".into()),
             custom_details: serde_json::json!({"agent_id": "agent-1"}),
-            links: vec![("Dashboard".into(), "https://dashboard.verimantle.com".into())],
+            links: vec![("Dashboard".into(), "https://dashboard.agentkern.com".into())],
         };
         
         assert_eq!(event.severity, PagerDutySeverity::Critical);

@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Neuro-Symbolic Verification Engine
+//! AgentKern-Gate: Neuro-Symbolic Verification Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"
 //! Per ENGINEERING_STANDARD.md: "Bio-Digital Pragmatism"

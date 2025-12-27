@@ -1,4 +1,4 @@
-//! VeriMantle Integration Tests
+//! AgentKern Integration Tests
 //!
 //! Tests the full stack: Rust → TypeScript Gateway → SDK
 //!

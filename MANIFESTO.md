@@ -42,9 +42,9 @@ We believe it's time for an **Agentic Operating System**.
 
 ---
 
-## Introducing VeriMantle
+## Introducing AgentKern
 
-**VeriMantle** is the foundational layer for autonomous AI agents.
+**AgentKern** is the foundational layer for autonomous AI agents.
 
 We provide six universal primitives — the **Six Pillars** — that every agent needs:
 
@@ -70,7 +70,7 @@ The **universal protocol gateway**. Agents from different vendors — Google (A2
 
 ## The Technical Stack
 
-We're not building toys. VeriMantle is engineered for production:
+We're not building toys. AgentKern is engineered for production:
 
 | Layer | Technology | Why |
 |-------|------------|-----|
@@ -88,25 +88,25 @@ Our verification engine processes **10,000+ requests per second** on a single no
 
 ## Open Core Philosophy
 
-VeriMantle is **open source at the foundation**:
+AgentKern is **open source at the foundation**:
 
 **Apache 2.0 Licensed (Free Forever)**:
-- `@verimantle/sdk` — TypeScript client
-- `verimantle-identity` — Agent authentication & trust
-- `verimantle-gate` — Policy verification & prompt guard
-- `verimantle-synapse` — State management & memory
-- `verimantle-arbiter` — Coordination & compliance
-- `verimantle-treasury` — Agent payments & carbon
-- `verimantle-nexus` — Protocol gateway & marketplace
+- `@agentkern/sdk` — TypeScript client
+- `agentkern-identity` — Agent authentication & trust
+- `agentkern-gate` — Policy verification & prompt guard
+- `agentkern-synapse` — State management & memory
+- `agentkern-arbiter` — Coordination & compliance
+- `agentkern-treasury` — Agent payments & carbon
+- `agentkern-nexus` — Protocol gateway & marketplace
 
-**Commercial (VeriMantle Enterprise)**:
+**Commercial (AgentKern Enterprise)**:
 - Multi-node orchestration
 - Global state synchronization  
 - SAP, SWIFT, Mainframe connectors
 - Compliance UI and audit logs
 - Enterprise SLAs
 
-We want VeriMantle to be the *default* infrastructure for agents. The SDK will always be free.
+We want AgentKern to be the *default* infrastructure for agents. The SDK will always be free.
 
 ---
 
@@ -114,16 +114,16 @@ We want VeriMantle to be the *default* infrastructure for agents. The SDK will a
 
 AI agents don't respect borders. A US-built agent might process data for an EU customer stored in Singapore. Regulations like GDPR, PIPL, and DPDP create a compliance nightmare.
 
-VeriMantle handles this with **data residency awareness** built into every API:
+AgentKern handles this with **data residency awareness** built into every API:
 
 ```typescript
-const client = new VeriMantle({ region: 'eu' });
+const client = new AgentKern({ region: 'eu' });
 // All data stays in the EU. Cross-border transfers are blocked automatically.
 ```
 
 And **sector-aware compliance** that adapts to local regulations:
 
-| Sector | US | EU/MENA | VeriMantle Action |
+| Sector | US | EU/MENA | AgentKern Action |
 |--------|----|---------|--------------------|
 | Finance | Interest-based | Takaful/Islamic | Switches from debt logic to pool logic |
 | Health | HIPAA | GDPR | Switches data locality and consent flows |
@@ -135,7 +135,7 @@ And **sector-aware compliance** that adapts to local regulations:
 
 We're not just building infrastructure. We're enabling a new economy.
 
-With VeriMantle, agents can:
+With AgentKern, agents can:
 - Have **verifiable reputations** built on their transaction history *(Identity + Trust Scoring)*
 - **Pay each other** for services via micropayment rails *(Treasury)*
 - **Talk to any other agent** regardless of vendor *(Nexus)*
@@ -143,35 +143,35 @@ With VeriMantle, agents can:
 - Be **legally incorporated** as LLCs, shielding developers from liability
 - Humans maintain **oversight and control** through escalation workflows
 
-This is the **Agentic Economy**. And VeriMantle is its operating system.
+This is the **Agentic Economy**. And AgentKern is its operating system.
 
 ---
 
 ## Get Started Today
 
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 ```
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
-const client = new VeriMantle();
+const client = new AgentKern();
 const agent = await client.identity.register('my-first-agent');
 
 console.log('Welcome to the future.');
 ```
 
 **Links:**
-- [GitHub Repository](https://github.com/daretechie/verimantle)
-- [Documentation](https://github.com/daretechie/verimantle/tree/main/docs)
-- [Playground](https://github.com/daretechie/verimantle/tree/main/apps/playground)
+- [GitHub Repository](https://github.com/AgentKern/agentkern)
+- [Documentation](https://github.com/AgentKern/agentkern/tree/main/docs)
+- [Playground](https://github.com/AgentKern/agentkern/tree/main/apps/playground)
 
 ---
 
 ## Join Us
 
-VeriMantle is building the infrastructure layer for the next decade of AI. If you're excited about:
+AgentKern is building the infrastructure layer for the next decade of AI. If you're excited about:
 
 - Rust/TypeScript systems programming
 - Distributed systems and CRDTs

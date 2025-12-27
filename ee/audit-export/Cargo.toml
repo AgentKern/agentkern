@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-audit-export"
+name = "agentkern-audit-export"
 version = "0.1.0"
 edition = "2024"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: ISO 42001 Compliance Export"
-repository = "https://github.com/verimantle/verimantle"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: ISO 42001 Compliance Export"
+repository = "https://github.com/agentkern/agentkern"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

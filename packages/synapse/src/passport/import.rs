@@ -228,7 +228,7 @@ mod tests {
 
     fn sample_passport() -> MemoryPassport {
         let identity = AgentIdentity {
-            did: "did:verimantle:test-001".into(),
+            did: "did:agentkern:test-001".into(),
             public_key: "base64key".into(),
             algorithm: "Ed25519".into(),
             created_at: 1700000000000,
@@ -237,7 +237,7 @@ mod tests {
         
         let mut passport = MemoryPassport::new(identity, "US");
         passport.provenance.signatures.push(ProvenanceSignature {
-            signer: "did:verimantle:signer".into(),
+            signer: "did:agentkern:signer".into(),
             signature: "sig".into(),
             timestamp: 1700000000000,
             prev_hash: "0".into(),

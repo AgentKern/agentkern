@@ -70,10 +70,10 @@ impl IdentityBridge for DemoIdentity {
                 object_id: agent_id.to_string(),
                 app_id: format!("app-{}", agent_id),
                 sp_id: format!("sp-{}", agent_id),
-                did: format!("did:verimantle:{}", agent_id),
+                did: format!("did:agentkern:{}", agent_id),
             },
             display_name: "[Demo] Test Agent".into(),
-            description: Some("Demo agent - set VERIMANTLE_IDENTITY_API_KEY for live".into()),
+            description: Some("Demo agent - set AGENTKERN_IDENTITY_API_KEY for live".into()),
             owner: "demo@example.com".into(),
             agent_type: AgentType::Custom,
             lifecycle_status: LifecycleStatus::Active,
@@ -130,7 +130,7 @@ mod tests {
     async fn test_demo_register_agent() {
         let identity = DemoIdentity::new();
         let registration = AgentRegistration {
-            did: "did:verimantle:test".into(),
+            did: "did:agentkern:test".into(),
             display_name: "Test".into(),
             description: None,
             owner: "test@example.com".into(),

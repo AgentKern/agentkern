@@ -1,7 +1,7 @@
 //! Geo-Fence Policy Engine
 //!
 //! Enforces data residency rules during mesh sync.
-//! Per GLOBAL_GAPS.md: "VeriMantle-Sovereign"
+//! Per GLOBAL_GAPS.md: "AgentKern-Sovereign"
 
 use super::DataRegion;
 use serde::{Deserialize, Serialize};

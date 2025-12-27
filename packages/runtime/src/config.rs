@@ -1,6 +1,6 @@
 //! Auto-Configuration
 //!
-//! Configures VeriMantle based on detected environment.
+//! Configures AgentKern based on detected environment.
 //! No vendor-specific settings - just universal parameters.
 
 use crate::detect::Environment;

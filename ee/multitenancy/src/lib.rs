@@ -1,8 +1,8 @@
-//! VeriMantle Enterprise: Multi-Tenancy
+//! AgentKern Enterprise: Multi-Tenancy
 //!
 //! Per Deep Analysis: "No multi-tenant isolation"
 //!
-//! **License**: VeriMantle Enterprise License
+//! **License**: AgentKern Enterprise License
 //!
 //! Features:
 //! - Tenant context propagation
@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_multitenancy::{TenantContext, TenantIsolator};
+//! use agentkern_multitenancy::{TenantContext, TenantIsolator};
 //!
 //! let ctx = TenantContext::new("org-123");
 //! let isolator = TenantIsolator::new();
@@ -32,7 +32,7 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -388,14 +388,14 @@ mod tests {
 
     #[test]
     fn test_tenant_isolator_requires_license() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
         let result = TenantIsolator::new(IsolationLevel::Logical);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_tenant_isolator_with_license() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         
         let mut isolator = TenantIsolator::new(IsolationLevel::Schema).unwrap();
         isolator.register_tenant("org-123", PlanTier::Pro);
@@ -403,7 +403,7 @@ mod tests {
         let ctx = TenantContext::new("org-123").with_plan(PlanTier::Pro);
         assert!(isolator.can_proceed(&ctx).unwrap());
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]

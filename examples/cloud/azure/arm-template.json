@@ -2,12 +2,12 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "metadata": {
-    "description": "VeriMantle - The Kernel for Verified AI Agents. Deploy to Azure Container Apps."
+    "description": "AgentKern - The Kernel for Verified AI Agents. Deploy to Azure Container Apps."
   },
   "parameters": {
     "environmentName": {
       "type": "string",
-      "defaultValue": "verimantle",
+      "defaultValue": "agentkern",
       "metadata": {
         "description": "Name of the Container Apps environment"
       }
@@ -21,14 +21,14 @@
     },
     "gatewayImage": {
       "type": "string",
-      "defaultValue": "ghcr.io/verimantle/gateway:latest",
+      "defaultValue": "ghcr.io/agentkern/gateway:latest",
       "metadata": {
         "description": "Gateway container image"
       }
     },
     "identityImage": {
       "type": "string",
-      "defaultValue": "ghcr.io/verimantle/identity:latest",
+      "defaultValue": "ghcr.io/agentkern/identity:latest",
       "metadata": {
         "description": "Identity service container image"
       }
@@ -78,7 +78,7 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
-      "name": "verimantle-gateway",
+      "name": "agentkern-gateway",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppsEnvName'))]"
@@ -138,7 +138,7 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
-      "name": "verimantle-identity",
+      "name": "agentkern-identity",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppsEnvName'))]"
@@ -180,7 +180,7 @@
   "outputs": {
     "gatewayUrl": {
       "type": "string",
-      "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', 'verimantle-gateway')).configuration.ingress.fqdn)]"
+      "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', 'agentkern-gateway')).configuration.ingress.fqdn)]"
     }
   }
 }

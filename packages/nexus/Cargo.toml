@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-nexus"
+name = "agentkern-nexus"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-description = "VeriMantle Nexus: Universal Agent Protocol Gateway"
-repository = "https://github.com/verimantle/verimantle"
+description = "AgentKern Nexus: Universal Agent Protocol Gateway"
+repository = "https://github.com/AgentKern/agentkern"
 keywords = ["ai-agents", "a2a", "mcp", "protocol-translation"]
 categories = ["network-programming", "api-bindings"]
 

@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Synapse DTOs
+ * AgentKern Gateway - Synapse DTOs
  */
 
 export class SetStateDto {

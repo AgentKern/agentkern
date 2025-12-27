@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: VeriMantle API
+  title: AgentKern API
   description: |
-    VeriMantle - The Kernel for Verified AI Agents
+    AgentKern - The Kernel for Verified AI Agents
     
-    This API provides access to all VeriMantle pillars:
+    This API provides access to all AgentKern pillars:
     - Identity: Agent registration and signing
     - Gate: Policy verification and guardrails
     - Synapse: State and memory management
@@ -13,8 +13,8 @@ info:
     - Treasury: Agent-to-agent payments
   version: 1.0.0
   contact:
-    name: VeriMantle Team
-    url: https://verimantle.dev
+    name: AgentKern Team
+    url: https://agentkern.dev
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -22,7 +22,7 @@ info:
 servers:
   - url: http://localhost:3000/api/v1
     description: Local development
-  - url: https://api.verimantle.dev/v1
+  - url: https://api.agentkern.dev/v1
     description: Production
 
 tags:

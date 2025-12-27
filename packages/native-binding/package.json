@@ -1,12 +1,12 @@
 {
-  "name": "@verimantle/native",
+  "name": "@agentkern/native",
   "version": "0.1.0",
-  "description": "Native Node.js bindings for VeriMantle Rust core",
+  "description": "Native Node.js bindings for AgentKern Rust core",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "Apache-2.0",
   "napi": {
-    "name": "verimantle-native",
+    "name": "agentkern-native",
     "triples": {
       "defaults": true,
       "additional": [

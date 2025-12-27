@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Priority Queue
+//! AgentKern-Arbiter: Priority Queue
 //!
 //! Manages waiting requests when resources are locked.
 

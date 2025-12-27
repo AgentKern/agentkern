@@ -15,7 +15,7 @@ use crate::types::{Amount, AgentId};
 pub enum Currency {
     /// US Dollars (2 decimals)
     USD,
-    /// VeriMantle Credits (internal, 6 decimals)
+    /// AgentKern Credits (internal, 6 decimals)
     VMC,
     /// Bitcoin (8 decimals)
     BTC,

@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Core Types
+//! AgentKern-Arbiter: Core Types
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

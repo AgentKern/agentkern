@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: CRDT (Conflict-Free Replicated Data Types)
+//! AgentKern-Synapse: CRDT (Conflict-Free Replicated Data Types)
 //!
 //! Per COMPETITIVE_LANDSCAPE.md: "Local-First (CRDTs)"
 //!
@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_synapse::crdt::{GCounter, PNCounter, LwwRegister};
+//! use agentkern_synapse::crdt::{GCounter, PNCounter, LwwRegister};
 //!
 //! let mut counter = GCounter::new("node-1");
 //! counter.increment(5);

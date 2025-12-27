@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Agent Budget and Gas Limits
+//! AgentKern-Gate: Agent Budget and Gas Limits
 //!
 //! Per EXECUTION_MANDATE.md §6: "Strict Gas Limits for tokens, API calls, and cloud costs"
 //!
@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::budget::{AgentBudget, BudgetConfig};
+//! use agentkern_gate::budget::{AgentBudget, BudgetConfig};
 //!
 //! let mut budget = AgentBudget::new("agent-123", BudgetConfig::default());
 //! budget.consume_tokens(1000)?;

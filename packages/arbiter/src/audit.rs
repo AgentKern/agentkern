@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: ISO 42001 Audit Ledger
+//! AgentKern-Arbiter: ISO 42001 Audit Ledger
 //!
 //! Per GLOBAL_GAPS.md §3: ISO/IEC 42001 (AIMS) Compliance
 //!
@@ -10,7 +10,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_arbiter::audit::{AuditLedger, AuditRecord};
+//! use agentkern_arbiter::audit::{AuditLedger, AuditRecord};
 //!
 //! let mut ledger = AuditLedger::new();
 //! ledger.record(AuditRecord::new(

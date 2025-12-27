@@ -1,5 +1,5 @@
 /**
- * VeriMantle SDK - Ports (Hexagonal Architecture)
+ * AgentKern SDK - Ports (Hexagonal Architecture)
  * 
  * Per MANIFESTO Part I: Control Plane uses Hexagonal (Ports & Adapters).
  * These are the abstract interfaces that define how the SDK interacts with external systems.
@@ -18,7 +18,7 @@ import type {
 } from './types';
 
 // ============================================================================
-// IDENTITY PORT (VeriMantle-Identity)
+// IDENTITY PORT (AgentKern-Identity)
 // ============================================================================
 
 /**
@@ -52,7 +52,7 @@ export interface IdentityPort {
 }
 
 // ============================================================================
-// GATE PORT (VeriMantle-Gate) - Logic & Guardrails
+// GATE PORT (AgentKern-Gate) - Logic & Guardrails
 // ============================================================================
 
 /**
@@ -82,7 +82,7 @@ export interface GatePort {
 }
 
 // ============================================================================
-// SYNAPSE PORT (VeriMantle-Synapse) - Memory & State
+// SYNAPSE PORT (AgentKern-Synapse) - Memory & State
 // ============================================================================
 
 /**
@@ -117,7 +117,7 @@ export interface SynapsePort {
 }
 
 // ============================================================================
-// ARBITER PORT (VeriMantle-Arbiter) - Coordination & Traffic Control
+// ARBITER PORT (AgentKern-Arbiter) - Coordination & Traffic Control
 // ============================================================================
 
 /**
@@ -152,7 +152,7 @@ export interface ArbiterPort {
 }
 
 // ============================================================================
-// SOVEREIGN PORT (VeriMantle-Sovereign) - Data Residency
+// SOVEREIGN PORT (AgentKern-Sovereign) - Data Residency
 // ============================================================================
 
 /**
@@ -177,7 +177,7 @@ export interface SovereignPort {
 }
 
 // ============================================================================
-// TREASURY PORT (VeriMantle-Treasury) - Agent Payments
+// TREASURY PORT (AgentKern-Treasury) - Agent Payments
 // ============================================================================
 
 /**

@@ -1,4 +1,4 @@
-//! VeriMantle-Gate Server
+//! AgentKern-Gate Server
 //!
 //! HTTP server for the Gate verification engine.
 //! Uses Axum for high-performance HTTP handling.
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use verimantle_gate::{
+use agentkern_gate::{
     GateEngine,
     Policy,
     VerificationRequest,
@@ -64,7 +64,7 @@ async fn main() {
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".to_string());
     let addr = format!("0.0.0.0:{}", port);
     
-    tracing::info!("🚀 VeriMantle-Gate server running on http://{}", addr);
+    tracing::info!("🚀 AgentKern-Gate server running on http://{}", addr);
     
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -81,7 +81,7 @@ async fn verify(
     State(state): State<Arc<AppState>>,
     Json(req): Json<VerifyRequest>,
 ) -> Result<Json<VerificationResult>, StatusCode> {
-    use verimantle_gate::engine::VerificationRequestBuilder;
+    use agentkern_gate::engine::VerificationRequestBuilder;
     
     let mut builder = VerificationRequestBuilder::new(req.agent_id, req.action);
     for (key, value) in req.context {

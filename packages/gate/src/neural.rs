@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Production ONNX Neural Inference
+//! AgentKern-Gate: Production ONNX Neural Inference
 //!
 //! Per COMPETITIVE_LANDSCAPE.md: "Neuro-Symbolic (Embedded)"
 //! Per ENGINEERING_STANDARD.md: "Bio-Digital Pragmatism"
@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::neural::{NeuralGuard, InferenceResult};
+//! use agentkern_gate::neural::{NeuralGuard, InferenceResult};
 //!
 //! let guard = NeuralGuard::new()?;
 //! let result = guard.classify_intent("transfer $10000")?;

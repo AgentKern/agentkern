@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Arbiter DTOs
+ * AgentKern Gateway - Arbiter DTOs
  */
 
 export class CoordinateDto {

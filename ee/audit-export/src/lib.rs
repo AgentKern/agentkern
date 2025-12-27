@@ -1,11 +1,11 @@
-//! VeriMantle Enterprise: ISO 42001 Compliance Export
+//! AgentKern Enterprise: ISO 42001 Compliance Export
 //!
 //! Per GLOBAL_GAPS.md §3: ISO/IEC 42001 (AIMS) Compliance
 //!
 //! This module provides enterprise-only features for exporting
 //! audit data in formats required by ISO 42001 auditors.
 //!
-//! **License**: VeriMantle Enterprise License (see ../LICENSE-ENTERPRISE.md)
+//! **License**: AgentKern Enterprise License (see ../LICENSE-ENTERPRISE.md)
 //!
 //! Features:
 //! - ISO 42001 JSON/XML export
@@ -26,7 +26,7 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_export_requires_license() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
         let result = export_iso42001(
             "Test Org",
             "ai-system-1",
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_export_with_license() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         let result = export_iso42001(
             "Test Org",
             "ai-system-1",
@@ -181,6 +181,6 @@ mod tests {
             vec![],
         );
         assert!(result.is_ok());
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 }

@@ -1,4 +1,4 @@
-//! VeriMantle Universal Runtime
+//! AgentKern Universal Runtime
 //!
 //! Single binary that runs anywhere:
 //! - WASM Components (Primary) - Nano-Light isolation per ARCHITECTURE.md
@@ -22,10 +22,10 @@ pub use isolation::{IsolationMode, IsolationConfig, detect_best_isolation};
 pub use fallback::{ServiceMode, GracefulFallback, FallbackResult};
 
 
-/// VeriMantle kernel version.
+/// AgentKern kernel version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Run VeriMantle with auto-detection.
+/// Run AgentKern with auto-detection.
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Detect environment
     let env = detect_environment();

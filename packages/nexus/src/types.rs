@@ -16,8 +16,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Protocol {
-    /// VeriMantle native protocol
-    VeriMantle,
+    /// AgentKern native protocol
+    AgentKern,
     /// Google A2A Protocol (Agent-to-Agent)
     #[serde(rename = "a2a")]
     GoogleA2A,
@@ -44,7 +44,7 @@ impl Protocol {
     /// Get human-readable name.
     pub fn name(&self) -> &'static str {
         match self {
-            Self::VeriMantle => "VeriMantle Native",
+            Self::AgentKern => "AgentKern Native",
             Self::GoogleA2A => "Google A2A",
             Self::AnthropicMCP => "Anthropic MCP",
             Self::IbmACP => "IBM ACP",
@@ -96,7 +96,7 @@ impl NexusMessage {
             id: Uuid::new_v4().to_string(),
             method: method.into(),
             params,
-            source_protocol: Protocol::VeriMantle,
+            source_protocol: Protocol::AgentKern,
             source_agent: None,
             target_agent: None,
             correlation_id: None,

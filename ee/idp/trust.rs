@@ -1,6 +1,6 @@
 //! Trust Score Provider for Entra
 //!
-//! Provides VeriMantle trust scores to Microsoft Entra for Conditional Access
+//! Provides AgentKern trust scores to Microsoft Entra for Conditional Access
 
 use serde::{Deserialize, Serialize};
 

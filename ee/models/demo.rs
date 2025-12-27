@@ -20,7 +20,7 @@ impl DemoModel {
         
         let config = ModelConfig {
             model_id: format!("demo-{:?}", family).to_lowercase(),
-            endpoint: "https://demo.verimantle.dev/v1".into(),
+            endpoint: "https://demo.agentkern.dev/v1".into(),
             api_key_ref: String::new(),
             temperature: 0.7,
             max_tokens: 1000,
@@ -47,7 +47,7 @@ impl DemoModel {
         
         format!(
             "[Demo Mode] This is a simulated response to: \"{}\". \
-            Set VERIMANTLE_MODELS_API_KEY for live responses.",
+            Set AGENTKERN_MODELS_API_KEY for live responses.",
             user_msg.chars().take(50).collect::<String>()
         )
     }

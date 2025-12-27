@@ -1,4 +1,4 @@
-//! VeriMantle Runtime: Graceful Fallback Infrastructure
+//! AgentKern Runtime: Graceful Fallback Infrastructure
 //!
 //! Production-ready pattern: works with credentials, graceful fallback without.
 //! NEVER crashes due to missing credentials or external services.
@@ -6,7 +6,7 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use verimantle_runtime::fallback::{ServiceMode, GracefulFallback};
+//! use agentkern_runtime::fallback::{ServiceMode, GracefulFallback};
 //!
 //! struct MyEmbedder {
 //!     mode: ServiceMode,
@@ -45,37 +45,37 @@ impl ServiceMode {
     /// Detect mode from environment variables.
     ///
     /// Order of precedence:
-    /// 1. `VERIMANTLE_{FEATURE}_DISABLED=1` -> Disabled
-    /// 2. `VERIMANTLE_{FEATURE}_DEMO=1` -> Demo
-    /// 3. `VERIMANTLE_OFFLINE=1` -> Offline
-    /// 4. `VERIMANTLE_{FEATURE}_API_KEY` or `{FEATURE}_API_KEY` set -> Live
+    /// 1. `AGENTKERN_{FEATURE}_DISABLED=1` -> Disabled
+    /// 2. `AGENTKERN_{FEATURE}_DEMO=1` -> Demo
+    /// 3. `AGENTKERN_OFFLINE=1` -> Offline
+    /// 4. `AGENTKERN_{FEATURE}_API_KEY` or `{FEATURE}_API_KEY` set -> Live
     /// 5. Default -> Demo (graceful fallback)
     pub fn detect(feature: &str) -> Self {
         let feature_upper = feature.to_uppercase();
         
         // Check if explicitly disabled
-        if env::var(format!("VERIMANTLE_{}_DISABLED", feature_upper)).is_ok() {
+        if env::var(format!("AGENTKERN_{}_DISABLED", feature_upper)).is_ok() {
             tracing::info!(feature = %feature, "Feature explicitly disabled");
             return Self::Disabled;
         }
         
         // Check if demo mode forced
-        if env::var(format!("VERIMANTLE_{}_DEMO", feature_upper)).is_ok() {
+        if env::var(format!("AGENTKERN_{}_DEMO", feature_upper)).is_ok() {
             tracing::debug!(feature = %feature, "Demo mode forced via env");
             return Self::Demo;
         }
         
         // Check if global offline mode
-        if env::var("VERIMANTLE_OFFLINE").is_ok() {
+        if env::var("AGENTKERN_OFFLINE").is_ok() {
             tracing::debug!(feature = %feature, "Offline mode active");
             return Self::Offline;
         }
         
         // Check for API credentials (multiple patterns)
         let api_key_patterns = [
-            format!("VERIMANTLE_{}_API_KEY", feature_upper),
+            format!("AGENTKERN_{}_API_KEY", feature_upper),
             format!("{}_API_KEY", feature_upper),
-            format!("VERIMANTLE_{}_KEY", feature_upper),
+            format!("AGENTKERN_{}_KEY", feature_upper),
         ];
         
         for pattern in &api_key_patterns {
@@ -116,12 +116,12 @@ impl ServiceMode {
         match self {
             Self::Live => "✓ Connected to live API".to_string(),
             Self::Demo => format!(
-                "⚠ Demo mode - set VERIMANTLE_{}_API_KEY for live",
+                "⚠ Demo mode - set AGENTKERN_{}_API_KEY for live",
                 feature.to_uppercase()
             ),
             Self::Offline => "⚠ Offline mode - using cached data".to_string(),
             Self::Disabled => format!(
-                "✗ Disabled - unset VERIMANTLE_{}_DISABLED to enable",
+                "✗ Disabled - unset AGENTKERN_{}_DISABLED to enable",
                 feature.to_uppercase()
             ),
         }
@@ -192,9 +192,9 @@ mod tests {
     #[test]
     fn test_service_mode_default_demo() {
         // Without any env vars, should default to demo
-        std::env::remove_var("VERIMANTLE_TEST_API_KEY");
-        std::env::remove_var("VERIMANTLE_TEST_DISABLED");
-        std::env::remove_var("VERIMANTLE_OFFLINE");
+        std::env::remove_var("AGENTKERN_TEST_API_KEY");
+        std::env::remove_var("AGENTKERN_TEST_DISABLED");
+        std::env::remove_var("AGENTKERN_OFFLINE");
         
         let mode = ServiceMode::detect("test");
         assert_eq!(mode, ServiceMode::Demo);
@@ -204,20 +204,20 @@ mod tests {
 
     #[test]
     fn test_service_mode_live_with_key() {
-        std::env::set_var("VERIMANTLE_LIVETEST_API_KEY", "sk-test-123");
+        std::env::set_var("AGENTKERN_LIVETEST_API_KEY", "sk-test-123");
         let mode = ServiceMode::detect("livetest");
         assert_eq!(mode, ServiceMode::Live);
         assert!(!mode.use_fallback());
-        std::env::remove_var("VERIMANTLE_LIVETEST_API_KEY");
+        std::env::remove_var("AGENTKERN_LIVETEST_API_KEY");
     }
 
     #[test]
     fn test_service_mode_disabled() {
-        std::env::set_var("VERIMANTLE_DISTEST_DISABLED", "1");
+        std::env::set_var("AGENTKERN_DISTEST_DISABLED", "1");
         let mode = ServiceMode::detect("distest");
         assert_eq!(mode, ServiceMode::Disabled);
         assert!(!mode.is_operational());
-        std::env::remove_var("VERIMANTLE_DISTEST_DISABLED");
+        std::env::remove_var("AGENTKERN_DISTEST_DISABLED");
     }
 
     #[test]

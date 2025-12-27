@@ -22,7 +22,7 @@ impl DemoRetailPlatform {
             platform,
             seller_id: "DEMO_SELLER".into(),
             marketplace_id: Some("DEMO_MARKET".into()),
-            endpoint: "https://demo.verimantle.dev/retail".into(),
+            endpoint: "https://demo.agentkern.dev/retail".into(),
             auth: AuthConfig::ApiKey { key_ref: String::new() },
             rate_limit: None,
         };
@@ -57,7 +57,7 @@ impl RetailPlatform for DemoRetailPlatform {
             product_id: format!("DEMO_{}", sku),
             product_id_type: super::listings::ProductIdType::Sku,
             title: format!("[Demo] Product {}", sku),
-            description: Some("This is demo data. Set VERIMANTLE_RETAIL_API_KEY for live.".into()),
+            description: Some("This is demo data. Set AGENTKERN_RETAIL_API_KEY for live.".into()),
             bullet_points: vec!["Demo feature 1".into()],
             price: super::listings::Price {
                 amount: 29.99,

@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Carbon-Aware Computing
+//! AgentKern-Arbiter: Carbon-Aware Computing
 //!
 //! Per EXECUTION_MANDATE.md §7: "Carbon-Aware & Sustainable Computing"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_arbiter::carbon::{CarbonScheduler, Region};
+//! use agentkern_arbiter::carbon::{CarbonScheduler, Region};
 //!
 //! let scheduler = CarbonScheduler::new();
 //! let best_region = scheduler.select_greenest_region(&["us-east-1", "eu-west-1"]);

@@ -450,13 +450,13 @@ mod tests {
     fn sample_documentation() -> TechnicalDocumentation {
         TechnicalDocumentation {
             description: SystemDescription {
-                name: "VeriMantle Agent".into(),
+                name: "AgentKern Agent".into(),
                 purpose: "AI agent orchestration and verification".into(),
                 version: "1.0.0".into(),
                 provider: ProviderInfo {
-                    name: "VeriMantle Inc".into(),
+                    name: "AgentKern Inc".into(),
                     address: "123 AI Street".into(),
-                    contact_email: "compliance@verimantle.com".into(),
+                    contact_email: "compliance@agentkern.com".into(),
                     eu_representative: Some("EU Rep Ltd".into()),
                 },
                 deployment_date: Some("2025-01-01".into()),
@@ -573,7 +573,7 @@ mod tests {
         
         let report = exporter.generate_report(&doc);
         
-        assert_eq!(report.system_name, "VeriMantle Agent");
+        assert_eq!(report.system_name, "AgentKern Agent");
         assert_eq!(report.risk_level, RiskLevel::HighRisk);
         assert!(report.requires_fria);
     }
@@ -596,7 +596,7 @@ mod tests {
         
         let json = exporter.export_json(&doc).unwrap();
         
-        assert!(json.contains("VeriMantle Agent"));
+        assert!(json.contains("AgentKern Agent"));
         assert!(json.contains("high_risk"));
     }
 
@@ -608,7 +608,7 @@ mod tests {
         let text = exporter.export_text(&doc);
         
         assert!(text.contains("EU AI ACT COMPLIANCE REPORT"));
-        assert!(text.contains("VeriMantle Agent"));
+        assert!(text.contains("AgentKern Agent"));
     }
 
     #[test]

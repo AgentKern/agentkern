@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter Server
+//! AgentKern-Arbiter Server
 
 use std::sync::Arc;
 use axum::{
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use verimantle_arbiter::{
+use agentkern_arbiter::{
     Coordinator,
     CoordinationRequest,
     CoordinationResult,
@@ -78,7 +78,7 @@ async fn main() {
     let port = std::env::var("PORT").unwrap_or_else(|_| "3003".to_string());
     let addr = format!("0.0.0.0:{}", port);
     
-    tracing::info!("⚖️ VeriMantle-Arbiter server running on http://{}", addr);
+    tracing::info!("⚖️ AgentKern-Arbiter server running on http://{}", addr);
     
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

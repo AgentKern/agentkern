@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Synapse Module
+ * AgentKern Gateway - Synapse Module
  * 
  * The "Memory" - Cross-agent state & intent tracking.
  * Per ARCHITECTURE: Uses CRDTs for eventual consistency.

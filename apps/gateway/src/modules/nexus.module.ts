@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Nexus Module
+ * AgentKern Gateway - Nexus Module
  * 
  * Protocol translation and agent discovery module.
  * Part of the 6-Pillar Architecture.

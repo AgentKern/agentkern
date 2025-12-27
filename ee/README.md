@@ -1,8 +1,8 @@
-# VeriMantle Enterprise Edition
+# AgentKern Enterprise Edition
 
-> **"You can run VeriMantle on your laptop for free. But if you want to run 10,000 agents safely, you need VeriMantle Cloud."**
+> **"You can run AgentKern on your laptop for free. But if you want to run 10,000 agents safely, you need AgentKern Cloud."**
 
-This directory contains VeriMantle Enterprise features, licensed under the [Enterprise License](./LICENSE-ENTERPRISE.md).
+This directory contains AgentKern Enterprise features, licensed under the [Enterprise License](./LICENSE-ENTERPRISE.md).
 
 ## Enterprise Modules
 
@@ -28,13 +28,13 @@ This directory contains VeriMantle Enterprise features, licensed under the [Ente
 ## Getting Started
 
 1. **Evaluation**: Test enterprise features for 30 days free
-2. **Purchase**: Visit https://verimantle.com/pricing
+2. **Purchase**: Visit https://agentkern.com/pricing
 3. **License Key**: Add to your environment:
    ```bash
-   export VERIMANTLE_LICENSE_KEY="your-license-key"
+   export AGENTKERN_LICENSE_KEY="your-license-key"
    ```
 
 ## Contact
 
-- **Sales**: enterprise@verimantle.com
-- **Support**: support@verimantle.com
+- **Sales**: enterprise@agentkern.com
+- **Support**: support@agentkern.com

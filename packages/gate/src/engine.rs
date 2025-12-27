@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Core Verification Engine
+//! AgentKern-Gate: Core Verification Engine
 //!
 //! The heart of the Neuro-Symbolic verification system.
 //!
@@ -20,9 +20,9 @@ use crate::policy::{Policy, PolicyAction};
 use crate::types::{
     DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
-use verimantle_treasury::carbon::{ComputeType};
+use agentkern_treasury::carbon::{ComputeType};
 
-/// The VeriMantle Gate Engine.
+/// The AgentKern Gate Engine.
 /// 
 /// Evaluates agent actions against registered policies using a
 /// two-phase Neuro-Symbolic approach.
@@ -332,7 +332,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_carbon_veto_blocks_action() {
-        use verimantle_treasury::carbon::{CarbonLedger, CarbonBudget};
+        use agentkern_treasury::carbon::{CarbonLedger, CarbonBudget};
         use rust_decimal_macros::dec;
 
         let ledger = CarbonLedger::new();

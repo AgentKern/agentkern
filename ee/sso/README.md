@@ -1,8 +1,8 @@
-# VeriMantle SSO (Enterprise Authentication)
+# AgentKern SSO (Enterprise Authentication)
 
 > **Coming Soon**
 
-Enterprise authentication integrations for VeriMantle.
+Enterprise authentication integrations for AgentKern.
 
 ## Planned Features
 
@@ -13,9 +13,9 @@ Enterprise authentication integrations for VeriMantle.
 
 ## License
 
-This module requires a VeriMantle Enterprise subscription.
+This module requires a AgentKern Enterprise subscription.
 See [LICENSE-ENTERPRISE.md](../LICENSE-ENTERPRISE.md) for details.
 
 ## Contact
 
-For early access, contact: enterprise@verimantle.com
+For early access, contact: enterprise@agentkern.com

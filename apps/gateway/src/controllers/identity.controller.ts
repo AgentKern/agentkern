@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Identity Controller
+ * AgentKern Gateway - Identity Controller
  * 
  * REST API for agent identity operations.
  * Endpoints:

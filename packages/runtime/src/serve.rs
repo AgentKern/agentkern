@@ -1,16 +1,16 @@
 //! Universal Server
 //!
-//! Serves VeriMantle on any environment.
+//! Serves AgentKern on any environment.
 //! Uses standard protocols (HTTP, gRPC, WebSocket).
 
 use crate::config::{RuntimeConfig, Protocol};
 use std::net::SocketAddr;
 
-/// Serve VeriMantle with the given configuration.
+/// Serve AgentKern with the given configuration.
 pub async fn serve(config: &RuntimeConfig) -> Result<(), ServeError> {
     let addr = SocketAddr::new(config.bind_address, config.http_port);
     
-    tracing::info!("VeriMantle starting on {}", addr);
+    tracing::info!("AgentKern starting on {}", addr);
     tracing::info!("Protocols: {:?}", config.protocols);
     tracing::info!("Resource mode: {:?}", config.resource_mode);
     
@@ -32,7 +32,7 @@ pub async fn serve(config: &RuntimeConfig) -> Result<(), ServeError> {
     // In a full implementation, we would start the actual servers here
     // For now, this is the interface contract
     
-    tracing::info!("VeriMantle running. Press Ctrl+C to stop.");
+    tracing::info!("AgentKern running. Press Ctrl+C to stop.");
     
     // Wait for shutdown signal
     tokio::signal::ctrl_c().await.map_err(|e| ServeError::Signal(e.to_string()))?;

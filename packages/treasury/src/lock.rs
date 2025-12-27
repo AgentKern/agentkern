@@ -12,7 +12,7 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use verimantle_treasury::lock::{LockManager, LockGuard};
+//! use agentkern_treasury::lock::{LockManager, LockGuard};
 //!
 //! let manager = LockManager::new_auto();
 //! let guard = manager.acquire("transfer:agent-1:agent-2").await?;

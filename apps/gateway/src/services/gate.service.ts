@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Gate Service
+ * AgentKern Gateway - Gate Service
  * 
  * Business logic for policy verification (Guardrails).
  * Per ENGINEERING_STANDARD: Neuro-Symbolic Guards (Code + AI).

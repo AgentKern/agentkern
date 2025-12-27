@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Identity Service
+ * AgentKern Gateway - Identity Service
  * 
  * Business logic for agent identity operations.
  * Per MANDATE: Every agent request is signed.

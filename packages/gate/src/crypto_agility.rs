@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Crypto-Agility Module
+//! AgentKern-Gate: Crypto-Agility Module
 //!
 //! Per EXECUTION_MANDATE.md §3: "Quantum-Safe Cryptography"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::crypto_agility::{CryptoProvider, CryptoMode};
+//! use agentkern_gate::crypto_agility::{CryptoProvider, CryptoMode};
 //!
 //! let provider = CryptoProvider::new(CryptoMode::Hybrid);
 //! let signature = provider.sign(b"message")?;

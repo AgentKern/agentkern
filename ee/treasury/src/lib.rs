@@ -1,8 +1,8 @@
-//! VeriMantle Enterprise: Cross-Agent Payment Rails (Treasury)
+//! AgentKern Enterprise: Cross-Agent Payment Rails (Treasury)
 //!
 //! Per Gap Analysis: "Cross-Agent Payment Rails - No one is solving this yet"
 //!
-//! **License**: VeriMantle Enterprise License
+//! **License**: AgentKern Enterprise License
 //!
 //! Features:
 //! - Agent-to-Agent micropayments
@@ -14,7 +14,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_treasury::{Treasury, PaymentRequest};
+//! use agentkern_treasury::{Treasury, PaymentRequest};
 //!
 //! let treasury = Treasury::new("org-123")?;
 //! treasury.pay_agent("agent-A", "agent-B", 0.001)?;
@@ -33,7 +33,7 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -80,7 +80,7 @@ pub enum Currency {
     Usdc,
     /// USDT Stablecoin
     Usdt,
-    /// VeriMantle Credits (internal)
+    /// AgentKern Credits (internal)
     Credits,
 }
 
@@ -1110,7 +1110,7 @@ mod tests {
     #[test]
     fn test_treasury_requires_license() {
         // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::remove_var("VERIMANTLE_LICENSE_KEY") };
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY") };
         let result = Treasury::new("org-123");
         assert!(result.is_err());
     }
@@ -1118,7 +1118,7 @@ mod tests {
     #[test]
     fn test_treasury_payments() {
         // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license") };
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license") };
         
         let mut treasury = Treasury::new("org-123").unwrap();
         
@@ -1134,7 +1134,7 @@ mod tests {
         assert_eq!(treasury.balance("agent-B", Currency::Credits).unwrap(), 25.0);
         
         // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::remove_var("VERIMANTLE_LICENSE_KEY") };
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY") };
     }
 
     #[test]
@@ -1204,7 +1204,7 @@ mod tests {
             CoverageType::TransactionProtection,
             50_000.0,
             500.0,
-            "VeriMantle Insurance"
+            "AgentKern Insurance"
         );
         
         let verification = policy.verify_coverage("high_value_transfer", 10_000.0);

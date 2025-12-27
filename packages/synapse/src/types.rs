@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Core Types
+//! AgentKern-Synapse: Core Types
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

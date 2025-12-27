@@ -1,6 +1,6 @@
 //! Explainability Engine
 //!
-//! Per Roadmap: "Explainability Engine - Native explainability for every VeriMantle action"
+//! Per Roadmap: "Explainability Engine - Native explainability for every AgentKern action"
 //! Per MANDATE.md: "Audit Mindset: Every line of code is a liability until proven otherwise"
 //!
 //! Provides human-readable explanations for AI agent decisions.

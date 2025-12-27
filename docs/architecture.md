@@ -1,12 +1,12 @@
-# VeriMantle Architecture
+# AgentKern Architecture
 
-> A deep dive into how VeriMantle is built.
+> A deep dive into how AgentKern is built.
 
 ---
 
 ## Design Philosophy
 
-VeriMantle follows three core principles:
+AgentKern follows three core principles:
 
 1. **Hybrid Stack** — TypeScript for interfaces, Rust for performance-critical paths
 2. **Hexagonal Architecture** — Core logic isolated from I/O
@@ -23,7 +23,7 @@ VeriMantle follows three core principles:
                                       │
                                       ▼
                     ┌─────────────────────────────────────┐
-                    │         @verimantle/sdk             │
+                    │         @agentkern/sdk             │
                     │          (TypeScript)               │
                     └─────────────────────────────────────┘
                                       │
@@ -150,7 +150,7 @@ Agent C requests lock on "resource-1" (priority: 10)
 
 ## Data Flow Example
 
-Here's how a typical agent action flows through VeriMantle:
+Here's how a typical agent action flows through AgentKern:
 
 ```
 1. Agent calls sdk.gate.verify("transfer_funds", {amount: 5000})

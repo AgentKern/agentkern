@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: PCI-DSS Compliance Module
+//! AgentKern-Gate: PCI-DSS Compliance Module
 //!
 //! Per EXECUTION_MANDATE.md §2: "PCI-DSS: Automated compliance for financial transactions"
 //!
@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::pci::{PciValidator, CardData};
+//! use agentkern_gate::pci::{PciValidator, CardData};
 //!
 //! let validator = PciValidator::new();
 //! validator.scan_for_card_data(&text)?;

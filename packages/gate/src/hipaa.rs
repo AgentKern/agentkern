@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: HIPAA Compliance Module
+//! AgentKern-Gate: HIPAA Compliance Module
 //!
 //! Per EXECUTION_MANDATE.md §2: "Healthcare: HIPAA, HITECH, EU MDR, HL7/FHIR"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::hipaa::{HipaaValidator, DataType};
+//! use agentkern_gate::hipaa::{HipaaValidator, DataType};
 //!
 //! let validator = HipaaValidator::new();
 //! validator.check_phi(&data)?;

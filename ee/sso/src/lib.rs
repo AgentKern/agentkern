@@ -1,8 +1,8 @@
-//! VeriMantle Enterprise: SSO Integration
+//! AgentKern Enterprise: SSO Integration
 //!
 //! Per LICENSING_STRATEGY.md: "Team Management / SSO"
 //!
-//! **License**: VeriMantle Enterprise License
+//! **License**: AgentKern Enterprise License
 //!
 //! Features:
 //! - SAML 2.0 integration
@@ -21,7 +21,7 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -422,29 +422,29 @@ mod tests {
 
     #[test]
     fn test_sso_requires_license() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
         let result = SsoService::new("org-123", SsoProvider::Saml);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_sso_with_license() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         let result = SsoService::new("org-123", SsoProvider::Okta);
         assert!(result.is_ok());
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]
     fn test_oidc_auth_url() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         let service = SsoService::new("org-123", SsoProvider::Oidc).unwrap();
         
         let config = OidcConfig {
             issuer: "https://auth.example.com".to_string(),
             client_id: "client-123".to_string(),
             client_secret: "secret".to_string(),
-            redirect_uri: "https://app.verimantle.com/callback".to_string(),
+            redirect_uri: "https://app.agentkern.com/callback".to_string(),
             scopes: vec!["openid".to_string(), "profile".to_string(), "email".to_string()],
             token_auth_method: TokenAuthMethod::ClientSecretBasic,
         };
@@ -453,7 +453,7 @@ mod tests {
         assert!(url.contains("authorize"));
         assert!(url.contains("client_id=client-123"));
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]

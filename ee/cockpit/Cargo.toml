@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-cockpit"
+name = "agentkern-cockpit"
 version = "0.1.0"
 edition = "2024"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: Cockpit Dashboard"
-repository = "https://github.com/verimantle/verimantle"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: Cockpit Dashboard"
+repository = "https://github.com/agentkern/agentkern"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

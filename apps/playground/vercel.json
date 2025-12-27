@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "verimantle-playground",
+  "name": "agentkern-playground",
   "builds": [
     {
       "src": "package.json",

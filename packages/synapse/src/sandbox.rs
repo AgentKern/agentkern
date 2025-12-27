@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Digital Twin Sandbox
+//! AgentKern-Synapse: Digital Twin Sandbox
 //!
 //! Per FUTURE_INNOVATION_ROADMAP.md Innovation #10:
 //! Simulated environment for safe agent testing.

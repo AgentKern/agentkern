@@ -1,8 +1,8 @@
 [package]
-name = "verimantle-native"
+name = "agentkern-native"
 version = "0.1.0"
 edition = "2021"
-description = "Native Node.js bindings for VeriMantle Rust core"
+description = "Native Node.js bindings for AgentKern Rust core"
 license = "Apache-2.0"
 
 [lib]
@@ -14,11 +14,11 @@ napi = { version = "3.7", features = ["async", "serde-json"] }
 napi-derive = "3.0"
 
 
-# VeriMantle core packages
-verimantle-gate = { path = "../gate" }
-verimantle-synapse = { path = "../synapse" }
-verimantle-arbiter = { path = "../arbiter" }
-verimantle-treasury = { path = "../treasury" }
+# AgentKern core packages
+agentkern-gate = { path = "../gate" }
+agentkern-synapse = { path = "../synapse" }
+agentkern-arbiter = { path = "../arbiter" }
+agentkern-treasury = { path = "../treasury" }
 
 # Async runtime
 tokio = { version = "1.42", features = ["rt-multi-thread", "macros"] }

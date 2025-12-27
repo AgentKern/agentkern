@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse Server
+//! AgentKern-Synapse Server
 //!
 //! HTTP server for the Synapse state store.
 
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use verimantle_synapse::{StateStore, StateUpdate, IntentPath};
+use agentkern_synapse::{StateStore, StateUpdate, IntentPath};
 
 /// Application state
 struct AppState {
@@ -64,7 +64,7 @@ async fn main() {
     let port = std::env::var("PORT").unwrap_or_else(|_| "3002".to_string());
     let addr = format!("0.0.0.0:{}", port);
     
-    tracing::info!("🧠 VeriMantle-Synapse server running on http://{}", addr);
+    tracing::info!("🧠 AgentKern-Synapse server running on http://{}", addr);
     
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -80,7 +80,7 @@ async fn health() -> Json<HealthResponse> {
 async fn get_state(
     State(state): State<Arc<AppState>>,
     Path(agent_id): Path<String>,
-) -> Result<Json<verimantle_synapse::AgentState>, StatusCode> {
+) -> Result<Json<agentkern_synapse::AgentState>, StatusCode> {
     state.store.get_state(&agent_id).await
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
@@ -90,7 +90,7 @@ async fn update_state(
     State(state): State<Arc<AppState>>,
     Path(agent_id): Path<String>,
     Json(updates): Json<std::collections::HashMap<String, serde_json::Value>>,
-) -> Json<verimantle_synapse::AgentState> {
+) -> Json<agentkern_synapse::AgentState> {
     let update = StateUpdate {
         agent_id,
         updates,

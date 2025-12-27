@@ -1,7 +1,7 @@
 //! Protocol Translator
 //!
 //! Central translation engine for converting between agent protocols.
-//! Supports: A2A, MCP, VeriMantle, ANP, NLIP, AITP
+//! Supports: A2A, MCP, AgentKern, ANP, NLIP, AITP
 
 use crate::types::{NexusMessage, Protocol, Task, TaskStatus};
 use crate::protocols::adapter::{AdapterRegistry, ProtocolAdapter};
@@ -236,7 +236,7 @@ mod tests {
             id: "test-1".to_string(),
             method: "execute".to_string(),
             params: serde_json::json!({"action": "test"}),
-            source_protocol: Protocol::VeriMantle,
+            source_protocol: Protocol::AgentKern,
             source_agent: Some("agent-1".to_string()),
             target_agent: Some("agent-2".to_string()),
             correlation_id: None,
@@ -244,7 +244,7 @@ mod tests {
             metadata: HashMap::new(),
         };
         
-        let result = translator.translate_message(message, Protocol::VeriMantle).unwrap();
+        let result = translator.translate_message(message, Protocol::AgentKern).unwrap();
         
         assert_eq!(result.confidence, 100);
         assert!(result.lost_fields.is_empty());

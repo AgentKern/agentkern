@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Synapse Controller
+ * AgentKern Gateway - Synapse Controller
  * 
  * REST API for agent memory and intent tracking.
  * Endpoints:

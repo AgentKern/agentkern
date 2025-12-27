@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ===========================================
-  # VeriMantle Gate - Verification Engine
+  # AgentKern Gate - Verification Engine
   # ===========================================
   gate:
     build:
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
   # ===========================================
-  # VeriMantle Synapse - State & Intent
+  # AgentKern Synapse - State & Intent
   # ===========================================
   synapse:
     build:
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
 
   # ===========================================
-  # VeriMantle Arbiter - Coordination
+  # AgentKern Arbiter - Coordination
   # ===========================================
   arbiter:
     build:
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
 
   # ===========================================
-  # VeriMantle Gateway (Optional - NestJS)
+  # AgentKern Gateway (Optional - NestJS)
   # ===========================================
   # gateway:
   #   build:
@@ -79,4 +79,4 @@ services:
 
 networks:
   default:
-    name: verimantle-network
+    name: agentkern-network

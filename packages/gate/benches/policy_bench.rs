@@ -1,4 +1,4 @@
-//! VeriMantle Gate Benchmarks
+//! AgentKern Gate Benchmarks
 //!
 //! Per Deep Analysis: "No benchmarks published"
 //!

@@ -1,6 +1,6 @@
 # Creating Policies
 
-Define guardrails for your agents using VeriMantle's YAML-based Policy DSL.
+Define guardrails for your agents using AgentKern's YAML-based Policy DSL.
 
 ---
 
@@ -188,7 +188,7 @@ await client.gate.registerPolicy({
 ### Via API
 
 ```bash
-curl -X POST https://api.verimantle.io/v1/gate/policies \
+curl -X POST https://api.agentkern.io/v1/gate/policies \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d @policy.json

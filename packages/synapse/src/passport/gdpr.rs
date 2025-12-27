@@ -148,7 +148,7 @@ impl GdprExporter {
             restriction: true,
             portability: true,
             object: true,
-            contact_email: "privacy@verimantle.com".to_string(),
+            contact_email: "privacy@agentkern.com".to_string(),
         };
         
         let data = self.to_json_ld(passport)?;
@@ -225,20 +225,20 @@ impl GdprExporter {
         Ok(serde_json::json!({
             "@context": {
                 "@vocab": "https://schema.org/",
-                "verimantle": "https://verimantle.com/schema/"
+                "agentkern": "https://agentkern.com/schema/"
             },
-            "@type": "verimantle:AgentData",
+            "@type": "agentkern:AgentData",
             "@id": passport.identity.did,
             "dateCreated": passport.identity.created_at,
             "dateModified": passport.identity.updated_at,
-            "verimantle:originRegion": passport.sovereignty.origin_region,
-            "verimantle:memory": {
+            "agentkern:originRegion": passport.sovereignty.origin_region,
+            "agentkern:memory": {
                 "episodicCount": passport.memory.episodic.entries.len(),
                 "semanticCount": passport.memory.semantic.facts.len(),
                 "skillCount": passport.memory.skills.skills.len(),
                 "preferenceCount": passport.memory.preferences.items.len()
             },
-            "verimantle:fullData": passport.memory
+            "agentkern:fullData": passport.memory
         }))
     }
     
@@ -295,7 +295,7 @@ mod tests {
 
     fn sample_passport() -> MemoryPassport {
         let identity = AgentIdentity {
-            did: "did:verimantle:test-001".into(),
+            did: "did:agentkern:test-001".into(),
             public_key: "base64key".into(),
             algorithm: "Ed25519".into(),
             created_at: 1700000000000,
@@ -304,7 +304,7 @@ mod tests {
         
         let mut passport = MemoryPassport::new(identity, "US");
         passport.provenance.signatures.push(ProvenanceSignature {
-            signer: "did:verimantle:signer".into(),
+            signer: "did:agentkern:signer".into(),
             signature: "sig".into(),
             timestamp: 1700000000000,
             prev_hash: "0".into(),
@@ -319,7 +319,7 @@ mod tests {
         
         let export = exporter.export(&passport).unwrap();
         
-        assert_eq!(export.subject_id, "did:verimantle:test-001");
+        assert_eq!(export.subject_id, "did:agentkern:test-001");
         assert!(!export.categories.is_empty());
         assert!(export.rights_info.portability);
     }
@@ -355,7 +355,7 @@ mod tests {
         let text = exporter.export_text(&passport).unwrap();
         
         assert!(text.contains("GDPR DATA EXPORT"));
-        assert!(text.contains("did:verimantle:test-001"));
+        assert!(text.contains("did:agentkern:test-001"));
         assert!(text.contains("YOUR RIGHTS"));
     }
 

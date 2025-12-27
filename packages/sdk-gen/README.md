@@ -1,4 +1,4 @@
-# VeriMantle SDK Generator
+# AgentKern SDK Generator
 
 Polyglot SDK generation from a single OpenAPI specification.
 
@@ -16,20 +16,20 @@ npm run generate:all
 
 | Language | Output Directory | Package Name |
 |----------|------------------|--------------|
-| C# (.NET 8) | `./csharp` | `VeriMantle.Client` |
-| Python | `./python` | `verimantle_client` |
-| Go | `./go` | `verimantle` |
-| Java | `./java` | `dev.verimantle:verimantle-client` |
-| TypeScript | `./typescript` | `@verimantle/client` |
+| C# (.NET 8) | `./csharp` | `AgentKern.Client` |
+| Python | `./python` | `agentkern_client` |
+| Go | `./go` | `agentkern` |
+| Java | `./java` | `dev.agentkern:agentkern-client` |
+| TypeScript | `./typescript` | `@agentkern/client` |
 
 ## Usage
 
 ### C# / .NET
 
 ```csharp
-using VeriMantle.Client;
+using AgentKern.Client;
 
-var config = new Configuration { BasePath = "https://api.verimantle.dev/v1" };
+var config = new Configuration { BasePath = "https://api.agentkern.dev/v1" };
 var identityApi = new IdentityApi(config);
 
 var agent = await identityApi.RegisterAgentAsync(new RegisterRequest { Name = "MyAgent" });
@@ -38,7 +38,7 @@ var agent = await identityApi.RegisterAgentAsync(new RegisterRequest { Name = "M
 ### Python
 
 ```python
-from verimantle_client import ApiClient, IdentityApi
+from agentkern_client import ApiClient, IdentityApi
 
 client = ApiClient()
 identity_api = IdentityApi(client)
@@ -49,9 +49,9 @@ agent = identity_api.register_agent({"name": "MyAgent"})
 ### Go
 
 ```go
-import "github.com/verimantle/sdk-gen/go"
+import "github.com/agentkern/sdk-gen/go"
 
-client := verimantle.NewAPIClient(verimantle.NewConfiguration())
+client := agentkern.NewAPIClient(agentkern.NewConfiguration())
 agent, _, _ := client.IdentityApi.RegisterAgent(context.Background()).Execute()
 ```
 
@@ -60,7 +60,7 @@ agent, _, _ := client.IdentityApi.RegisterAgent(context.Background()).Execute()
 The C# SDK can be used with Microsoft Semantic Kernel:
 
 ```csharp
-// VeriMantle.SK/VeriMantlePlugin.cs
+// AgentKern.SK/AgentKernPlugin.cs
 [KernelFunction]
 public async Task<bool> VerifyAction(string agentId, string action)
 {

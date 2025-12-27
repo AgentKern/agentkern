@@ -1,6 +1,6 @@
 //! Identity Provider Bridge
 //!
-//! Maps VeriMantle DIDs to enterprise identity provider agent IDs
+//! Maps AgentKern DIDs to enterprise identity provider agent IDs
 //! Supports: Entra, Okta, Auth0, Ping Identity, etc.
 
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,7 @@ pub trait IdentityBridge: Send + Sync {
     /// Register agent in identity provider.
     async fn register_agent(&self, registration: &AgentRegistration) -> Result<ProviderAgentId, IdentityError>;
     
-    /// Map VeriMantle DID to provider agent ID.
+    /// Map AgentKern DID to provider agent ID.
     async fn map_did_to_provider(&self, did: &str) -> Result<ProviderAgentId, IdentityError>;
     
     /// Get agent by ID.
@@ -55,7 +55,7 @@ pub trait IdentityBridge: Send + Sync {
 /// Agent registration request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentRegistration {
-    /// VeriMantle DID
+    /// AgentKern DID
     pub did: String,
     /// Display name
     pub display_name: String,
@@ -91,7 +91,7 @@ pub struct ProviderAgentId {
     pub app_id: String,
     /// Service principal ID
     pub sp_id: String,
-    /// VeriMantle DID (linked)
+    /// AgentKern DID (linked)
     pub did: String,
 }
 
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn test_agent_registration() {
         let reg = AgentRegistration {
-            did: "did:verimantle:agent-1".into(),
+            did: "did:agentkern:agent-1".into(),
             display_name: "Test Agent".into(),
             description: None,
             owner: "admin@example.com".into(),

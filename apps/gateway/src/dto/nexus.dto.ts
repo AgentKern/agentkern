@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Nexus DTOs
+ * AgentKern Gateway - Nexus DTOs
  * 
  * Data Transfer Objects for Nexus API.
  */
@@ -7,7 +7,7 @@
 import { IsString, IsOptional, IsArray, IsUrl, IsObject, IsIn } from 'class-validator';
 
 // Supported protocols
-export type Protocol = 'a2a' | 'mcp' | 'verimantle' | 'anp' | 'nlip' | 'aitp';
+export type Protocol = 'a2a' | 'mcp' | 'agentkern' | 'anp' | 'nlip' | 'aitp';
 
 /**
  * Skill definition.
@@ -132,10 +132,10 @@ export class RouteTaskDto {
  * Translate message DTO.
  */
 export class TranslateMessageDto {
-  @IsIn(['a2a', 'mcp', 'verimantle', 'anp', 'nlip', 'aitp'])
+  @IsIn(['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'])
   sourceProtocol: Protocol;
 
-  @IsIn(['a2a', 'mcp', 'verimantle', 'anp', 'nlip', 'aitp'])
+  @IsIn(['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'])
   targetProtocol: Protocol;
 
   @IsObject()

@@ -1,14 +1,14 @@
-# VeriMantle Enterprise License
+# AgentKern Enterprise License
 
-Copyright (c) 2025-2026 VeriMantle Inc. All Rights Reserved.
+Copyright (c) 2025-2026 AgentKern Inc. All Rights Reserved.
 
 ## Enterprise Edition Terms
 
-This directory (`ee/`) and all its contents constitute the "VeriMantle Enterprise Edition" (the "Enterprise Software").
+This directory (`ee/`) and all its contents constitute the "AgentKern Enterprise Edition" (the "Enterprise Software").
 
 ### License Grant
 
-Subject to the terms of this License and upon payment of applicable subscription fees, VeriMantle Inc. grants you a limited, non-exclusive, non-transferable license to:
+Subject to the terms of this License and upon payment of applicable subscription fees, AgentKern Inc. grants you a limited, non-exclusive, non-transferable license to:
 
 1. **Use** the Enterprise Software in production environments
 2. **Modify** the Enterprise Software for internal business purposes
@@ -25,7 +25,7 @@ You may NOT:
 
 ### Subscription Required
 
-Production use of the Enterprise Software requires a valid VeriMantle Enterprise subscription. Visit https://verimantle.com/pricing for licensing options.
+Production use of the Enterprise Software requires a valid AgentKern Enterprise subscription. Visit https://agentkern.com/pricing for licensing options.
 
 ### Evaluation
 
@@ -37,8 +37,8 @@ THE ENTERPRISE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 
 ### Contact
 
-For licensing inquiries: enterprise@verimantle.com
+For licensing inquiries: enterprise@agentkern.com
 
 ---
 
-**Note:** The core VeriMantle packages in `packages/` are licensed under the MIT License and are free to use without restriction.
+**Note:** The core AgentKern packages in `packages/` are licensed under the MIT License and are free to use without restriction.

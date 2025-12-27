@@ -1,8 +1,8 @@
-# VeriMantle Global Gap Analysis (2026)
+# AgentKern Global Gap Analysis (2026)
 
 **"Beyond the Western Bubble"**
 
-To be a truly "Global Operating System," VeriMantle must address the fragmented reality of 2026 Internet Sovereignty.
+To be a truly "Global Operating System," AgentKern must address the fragmented reality of 2026 Internet Sovereignty.
 
 ---
 
@@ -16,8 +16,8 @@ To be a truly "Global Operating System," VeriMantle must address the fragmented 
 **The Gap:**
 A naive "Global Graph" (`Synapse`) violates local laws immediately. We cannot just replicate data everywhere.
 
-**The Fix: "VeriMantle-Sovereign" (New Module)**
-*   **Geo-Fenced Cells:** A VeriMantle Cell in Frankfurt *refuses* to sync PII to a Cell in Virginia.
+**The Fix: "AgentKern-Sovereign" (New Module)**
+*   **Geo-Fenced Cells:** A AgentKern Cell in Frankfurt *refuses* to sync PII to a Cell in Virginia.
 *   **Residency Controller:** A policy engine in `Gate` that checks `(Data.Origin == 'CN' && Target.Region != 'CN') -> BLOCK`.
 
 ## 2. The Polyglot Challenge
@@ -36,12 +36,12 @@ ISO 42001 is the "ISO 27001 for AI." By 2026, Enterprise Buyers (Fortune 500) wi
 *   **Requirement:** Traceability, Risk Management, and "Human Oversight" records for every autonomous action.
 
 **The Fix: "Compliance-as-Code"**
-*   **Audit Ledger:** VeriMantle-Arbiter must log not just *what* happened, but *why* (The Policy ID, The Model Version, The Risk Score) to satisfy ISO auditors.
+*   **Audit Ledger:** AgentKern-Arbiter must log not just *what* happened, but *why* (The Policy ID, The Model Version, The Risk Score) to satisfy ISO auditors.
 
 ## 4. The Sovereign Infrastructure
 **The Issue:**
 Nations are building "Sovereign AI Clouds" (Saudi's GPU Farms, France's Mistral Cloud).
-*   **Risk:** VeriMantle cannot assume AWS/Azure ubiquity. It must run on "Bare Metal" sovereign clouds.
+*   **Risk:** AgentKern cannot assume AWS/Azure ubiquity. It must run on "Bare Metal" sovereign clouds.
 
 **The Fix: "Bring Your Own Cloud" (BYOC)**
 *   Our Rust binaries must be deployable to *Air-Gapped* Sovereign Clouds without phoning home.
@@ -89,7 +89,7 @@ pub enum DataRegion {
 ---
 
 **Summary of Additions:**
-1.  **VeriMantle-Sovereign**: Data Residency & Geo-Fencing via `DataRegion` enum.
+1.  **AgentKern-Sovereign**: Data Residency & Geo-Fencing via `DataRegion` enum.
 2.  **Polyglot Embeddings**: Native language support in `Synapse` (roadmap).
 3.  **ISO 42001 Logging**: Automated compliance trails (roadmap).
 

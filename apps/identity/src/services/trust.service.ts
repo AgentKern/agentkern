@@ -1,5 +1,5 @@
 /**
- * VeriMantle Identity - Trust Scoring Service
+ * AgentKern Identity - Trust Scoring Service
  *
  * Per MANIFESTO.md: "Agents have verifiable reputations built on their transaction history"
  * Per Market Research: No one has solved agent-to-agent trust properly
@@ -444,14 +444,14 @@ export class TrustService {
     const credential: VerifiableCredential = {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
-        'https://verimantle.io/credentials/v1',
+        'https://agentkern.io/credentials/v1',
       ],
       id: `urn:uuid:${uuidv4()}`,
       type: ['VerifiableCredential', credentialType],
-      issuer: 'did:web:verimantle.io',
+      issuer: 'did:web:agentkern.io',
       issuanceDate: new Date().toISOString(),
       credentialSubject: {
-        id: `did:verimantle:${agentId}`,
+        id: `did:agentkern:${agentId}`,
         trustScore: score.score,
         trustLevel: score.level,
         transactionSuccessRate: score.factors.transactionSuccess,
@@ -484,8 +484,8 @@ export class TrustService {
       return false;
     }
 
-    // Check issuer is VeriMantle
-    if (credential.issuer !== 'did:web:verimantle.io') {
+    // Check issuer is AgentKern
+    if (credential.issuer !== 'did:web:agentkern.io') {
       this.logger.warn(`Unknown credential issuer: ${credential.issuer}`);
       return false;
     }

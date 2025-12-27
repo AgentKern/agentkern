@@ -192,20 +192,20 @@ impl ObservabilityPlane {
     pub fn prometheus_metrics(&self) -> String {
         let m = self.metrics.get_metrics();
         format!(
-            r#"# HELP verimantle_gate_requests_total Total number of requests
-# TYPE verimantle_gate_requests_total counter
-verimantle_gate_requests_total{{status="allowed"}} {}
-verimantle_gate_requests_total{{status="denied"}} {}
+            r#"# HELP agentkern_gate_requests_total Total number of requests
+# TYPE agentkern_gate_requests_total counter
+agentkern_gate_requests_total{{status="allowed"}} {}
+agentkern_gate_requests_total{{status="denied"}} {}
 
-# HELP verimantle_gate_latency_us Request latency in microseconds
-# TYPE verimantle_gate_latency_us gauge
-verimantle_gate_latency_us{{path="symbolic"}} {}
-verimantle_gate_latency_us{{path="neural"}} {}
-verimantle_gate_latency_us{{quantile="0.99"}} {}
+# HELP agentkern_gate_latency_us Request latency in microseconds
+# TYPE agentkern_gate_latency_us gauge
+agentkern_gate_latency_us{{path="symbolic"}} {}
+agentkern_gate_latency_us{{path="neural"}} {}
+agentkern_gate_latency_us{{quantile="0.99"}} {}
 
-# HELP verimantle_gate_policies_evaluated Total policies evaluated
-# TYPE verimantle_gate_policies_evaluated counter
-verimantle_gate_policies_evaluated {}
+# HELP agentkern_gate_policies_evaluated Total policies evaluated
+# TYPE agentkern_gate_policies_evaluated counter
+agentkern_gate_policies_evaluated {}
 "#,
             m.allowed_requests,
             m.denied_requests,
@@ -266,6 +266,6 @@ mod tests {
         plane.metrics().record_request(true, 500, 0);
         
         let prom = plane.prometheus_metrics();
-        assert!(prom.contains("verimantle_gate_requests_total"));
+        assert!(prom.contains("agentkern_gate_requests_total"));
     }
 }

@@ -1,4 +1,4 @@
-app = "verimantle-synapse"
+app = "agentkern-synapse"
 primary_region = "iad"
 
 [build]

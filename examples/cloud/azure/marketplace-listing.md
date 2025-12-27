@@ -1,8 +1,8 @@
-# VeriMantle - Azure Marketplace Listing
+# AgentKern - Azure Marketplace Listing
 
 ## Summary
 
-**VeriMantle** is the kernel for verified AI agents, providing enterprise-grade infrastructure for autonomous agent operations.
+**AgentKern** is the kernel for verified AI agents, providing enterprise-grade infrastructure for autonomous agent operations.
 
 ## Short Description
 
@@ -10,9 +10,9 @@ The trust layer for autonomous AI agents. Policy enforcement, liability tracking
 
 ## Full Description
 
-### What is VeriMantle?
+### What is AgentKern?
 
-VeriMantle provides the critical infrastructure layer for AI agents in enterprise environments:
+AgentKern provides the critical infrastructure layer for AI agents in enterprise environments:
 
 - **Identity & Liability**: Every agent action is signed and verifiable. Complete audit trail for compliance.
 - **Policy Enforcement**: Neuro-symbolic guardrails that prevent unauthorized actions before they happen.
@@ -20,7 +20,7 @@ VeriMantle provides the critical infrastructure layer for AI agents in enterpris
 - **Treasury**: Native agent-to-agent payments with spending limits and budget controls.
 - **Data Sovereignty**: GDPR/PIPL compliant data residency with cross-region controls.
 
-### Why Azure + VeriMantle?
+### Why Azure + AgentKern?
 
 | Feature | Benefit |
 |---------|---------|
@@ -34,7 +34,7 @@ VeriMantle provides the critical infrastructure layer for AI agents in enterpris
 ```
 Your Copilot Agent
        ↓
-  VeriMantle Gateway (Azure Container Apps)
+  AgentKern Gateway (Azure Container Apps)
        ↓
   ┌─────────────────────────────────────┐
   │ Identity │ Gate │ Arbiter │ Treasury │
@@ -56,14 +56,14 @@ Your Copilot Agent
 # Deploy with Azure CLI
 az deployment group create \
   --resource-group myResourceGroup \
-  --template-uri https://raw.githubusercontent.com/verimantle/verimantle/main/.azure/arm-template.json
+  --template-uri https://raw.githubusercontent.com/agentkern/agentkern/main/.azure/arm-template.json
 ```
 
 ### Support
 
-- Documentation: https://docs.verimantle.dev
-- GitHub: https://github.com/verimantle/verimantle
-- Enterprise Support: enterprise@verimantle.dev
+- Documentation: https://docs.agentkern.dev
+- GitHub: https://github.com/agentkern/agentkern
+- Enterprise Support: enterprise@agentkern.dev
 
 ## Categories
 

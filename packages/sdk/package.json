@@ -1,11 +1,11 @@
 {
-  "name": "@verimantle/sdk",
+  "name": "@agentkern/sdk",
   "version": "0.1.0",
-  "description": "The Unified SDK for VeriMantle - The Operating System for the Agentic Economy",
+  "description": "The Unified SDK for AgentKern - The Operating System for the Agentic Economy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
-  "homepage": "https://github.com/daretechie/verimantle#readme",
+  "homepage": "https://github.com/AgentKern/agentkern#readme",
   "publishConfig": {
     "access": "public"
   },
@@ -23,18 +23,18 @@
     "identity",
     "guardrails",
     "orchestration",
-    "verimantle",
+    "agentkern",
     "llm",
     "autonomous"
   ],
-  "author": "VeriMantle",
+  "author": "AgentKern",
   "repository": {
     "type": "git",
-    "url": "https://github.com/daretechie/verimantle.git",
+    "url": "https://github.com/AgentKern/agentkern.git",
     "directory": "packages/sdk"
   },
   "bugs": {
-    "url": "https://github.com/daretechie/verimantle/issues"
+    "url": "https://github.com/AgentKern/agentkern/issues"
   },
   "files": [
     "dist",

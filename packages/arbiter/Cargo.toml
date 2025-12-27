@@ -1,12 +1,12 @@
 [package]
-name = "verimantle-arbiter"
+name = "agentkern-arbiter"
 version = "0.1.0"
 edition = "2021"
-description = "VeriMantle-Arbiter: Conflict Resolution & Coordination Engine with Raft Consensus"
+description = "AgentKern-Arbiter: Conflict Resolution & Coordination Engine with Raft Consensus"
 license = "MIT"
 
 [lib]
-name = "verimantle_arbiter"
+name = "agentkern_arbiter"
 path = "src/lib.rs"
 
 [[bin]]

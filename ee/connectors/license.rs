@@ -8,7 +8,7 @@ use thiserror::Error;
 /// License errors.
 #[derive(Debug, Error)]
 pub enum LicenseError {
-    #[error("Enterprise license required. Set VERIMANTLE_LICENSE_KEY.")]
+    #[error("Enterprise license required. Set AGENTKERN_LICENSE_KEY.")]
     LicenseRequired,
     
     #[error("Invalid license key")]
@@ -23,7 +23,7 @@ pub enum LicenseError {
 
 /// Check if valid enterprise license is present.
 pub fn check_license() -> Result<(), LicenseError> {
-    let key = env::var("VERIMANTLE_LICENSE_KEY")
+    let key = env::var("AGENTKERN_LICENSE_KEY")
         .map_err(|_| LicenseError::LicenseRequired)?;
     
     // Validate key format (production would verify with license server)
@@ -50,7 +50,7 @@ pub fn check_feature_license(feature: &str) -> Result<(), LicenseError> {
 
 /// Get license tier.
 pub fn get_license_tier() -> Option<LicenseTier> {
-    let key = env::var("VERIMANTLE_LICENSE_KEY").ok()?;
+    let key = env::var("AGENTKERN_LICENSE_KEY").ok()?;
     
     // Parse tier from key (simplified)
     if key.contains("ENTERPRISE") || key.starts_with("ENT-") {
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_no_license() {
-        env::remove_var("VERIMANTLE_LICENSE_KEY");
+        env::remove_var("AGENTKERN_LICENSE_KEY");
         assert!(check_license().is_err());
     }
 

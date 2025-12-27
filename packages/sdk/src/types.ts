@@ -1,7 +1,7 @@
 /**
- * VeriMantle SDK - Types
+ * AgentKern SDK - Types
  * 
- * Core type definitions for the VeriMantle Agentic Operating System.
+ * Core type definitions for the AgentKern Agentic Operating System.
  * Per MANIFESTO: Universal Sovereignty - supports any jurisdiction's regulations.
  */
 
@@ -10,10 +10,10 @@
 // ============================================================================
 
 /**
- * Configuration for initializing the VeriMantle client.
+ * Configuration for initializing the AgentKern client.
  */
-export interface VeriMantleConfig {
-  /** API endpoint for VeriMantle services */
+export interface AgentKernConfig {
+  /** API endpoint for AgentKern services */
   endpoint?: string;
   /** API key for authentication */
   apiKey?: string;
@@ -37,7 +37,7 @@ export type DataResidencyRegion =
   | 'global'; // Default (no specific residency)
 
 // ============================================================================
-// IDENTITY TYPES (VeriMantle-Identity)
+// IDENTITY TYPES (AgentKern-Identity)
 // ============================================================================
 
 /**
@@ -89,7 +89,7 @@ export interface LiabilityProof {
 }
 
 // ============================================================================
-// GATE TYPES (VeriMantle-Gate) - Logic & Guardrails
+// GATE TYPES (AgentKern-Gate) - Logic & Guardrails
 // ============================================================================
 
 /**
@@ -144,7 +144,7 @@ export interface VerificationResult {
 }
 
 // ============================================================================
-// SYNAPSE TYPES (VeriMantle-Synapse) - Memory & State
+// SYNAPSE TYPES (AgentKern-Synapse) - Memory & State
 // ============================================================================
 
 /**
@@ -199,7 +199,7 @@ export interface AgentState {
 }
 
 // ============================================================================
-// ARBITER TYPES (VeriMantle-Arbiter) - Coordination & Traffic Control
+// ARBITER TYPES (AgentKern-Arbiter) - Coordination & Traffic Control
 // ============================================================================
 
 /**
@@ -250,7 +250,7 @@ export interface CoordinationResult {
 }
 
 // ============================================================================
-// NEXUS TYPES (VeriMantle-Nexus) - Protocol Translation & Agent Discovery
+// NEXUS TYPES (AgentKern-Nexus) - Protocol Translation & Agent Discovery
 // ============================================================================
 
 /**
@@ -259,7 +259,7 @@ export interface CoordinationResult {
 export type AgentProtocol = 
   | 'a2a'        // Google Agent-to-Agent
   | 'mcp'        // Anthropic Model Context Protocol
-  | 'verimantle' // VeriMantle Native
+  | 'agentkern' // AgentKern Native
   | 'anp'        // W3C Agent Network Protocol
   | 'nlip'       // ECMA NLIP
   | 'aitp';      // NEAR AITP

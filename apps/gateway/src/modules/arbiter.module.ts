@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Arbiter Module
+ * AgentKern Gateway - Arbiter Module
  * 
  * The "Traffic Control" - Conflict resolution & coordination.
  * Per ARCHITECTURE: Implements Atomic Business Locks via Raft.

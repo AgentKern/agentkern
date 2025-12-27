@@ -1,12 +1,12 @@
 [package]
-name = "verimantle-gate"
+name = "agentkern-gate"
 version = "0.1.0"
 edition = "2021"
-description = "VeriMantle-Gate: Neuro-Symbolic Verification Engine"
+description = "AgentKern-Gate: Neuro-Symbolic Verification Engine"
 license = "MIT"
 
 [lib]
-name = "verimantle_gate"
+name = "agentkern_gate"
 path = "src/lib.rs"
 
 [[bin]]
@@ -74,7 +74,7 @@ ml-kem = { version = "0.2", optional = true }
 ml-dsa = { version = "0.1", optional = true }
 
 # Internal dependencies
-verimantle-treasury = { path = "../treasury" }
+agentkern-treasury = { path = "../treasury" }
 
 # UUID for policy IDs
 uuid = { version = "1.11", features = ["v4", "serde"] }

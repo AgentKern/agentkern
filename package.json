@@ -1,5 +1,5 @@
 {
-  "name": "verimantle-monorepo",
+  "name": "agentkern-monorepo",
   "private": true,
   "scripts": {
     "build": "turbo run build",

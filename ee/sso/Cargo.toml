@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-sso"
+name = "agentkern-sso"
 version = "0.1.0"
 edition = "2021"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: SSO Integration (SAML/OIDC)"
-repository = "https://github.com/verimantle/verimantle"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: SSO Integration (SAML/OIDC)"
+repository = "https://github.com/agentkern/agentkern"
 
 [features]
 default = []

@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-billing"
+name = "agentkern-billing"
 version = "0.1.0"
 edition = "2021"
-license = "LicenseRef-VeriMantle-Enterprise"
-description = "VeriMantle Enterprise: Usage-Based Billing & Metering"
-repository = "https://github.com/verimantle/verimantle"
+license = "LicenseRef-AgentKern-Enterprise"
+description = "AgentKern Enterprise: Usage-Based Billing & Metering"
+repository = "https://github.com/agentkern/agentkern"
 
 [dependencies]
 # Core (Dec 2025 - verified)

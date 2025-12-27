@@ -1,8 +1,8 @@
-# VeriMantle Cockpit (Enterprise Dashboard)
+# AgentKern Cockpit (Enterprise Dashboard)
 
 > **Coming Soon**
 
-The VeriMantle Cockpit provides a Mission Control dashboard for enterprise customers.
+The AgentKern Cockpit provides a Mission Control dashboard for enterprise customers.
 
 ## Planned Features
 
@@ -14,14 +14,14 @@ The VeriMantle Cockpit provides a Mission Control dashboard for enterprise custo
 
 ## License
 
-This module requires a VeriMantle Enterprise subscription.
+This module requires a AgentKern Enterprise subscription.
 See [LICENSE-ENTERPRISE.md](../LICENSE-ENTERPRISE.md) for details.
 
 ## Screenshot (Mockup)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  VeriMantle Cockpit                          [user@org] ▼       │
+│  AgentKern Cockpit                          [user@org] ▼       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
@@ -42,4 +42,4 @@ See [LICENSE-ENTERPRISE.md](../LICENSE-ENTERPRISE.md) for details.
 
 ## Contact
 
-For early access, contact: enterprise@verimantle.com
+For early access, contact: enterprise@agentkern.com

@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Kill Switch
+//! AgentKern-Arbiter: Kill Switch
 //!
 //! Per EXECUTION_MANDATE.md §6: "Hardware-level Red Button to terminate rogue agent swarms"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_arbiter::killswitch::{KillSwitch, KillReason};
+//! use agentkern_arbiter::killswitch::{KillSwitch, KillReason};
 //!
 //! let mut ks = KillSwitch::new();
 //! ks.terminate_agent("agent-123", KillReason::PolicyViolation);

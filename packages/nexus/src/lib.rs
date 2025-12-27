@@ -1,9 +1,9 @@
-//! VeriMantle Nexus: Universal Agent Protocol Gateway
+//! AgentKern Nexus: Universal Agent Protocol Gateway
 //!
 //! Per MANDATE.md Section 1: "We do not copy; we innovate."
 //! Per Roadmap: "A2A Protocol Gateway - make agents from different vendors talk"
 //!
-//! Nexus is the protocol translation layer that allows VeriMantle to communicate
+//! Nexus is the protocol translation layer that allows AgentKern to communicate
 //! with agents using ANY protocol - current or future.
 //!
 //! # Supported Protocols
@@ -34,13 +34,13 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_nexus::{Nexus, Protocol, AgentCard};
+//! use agentkern_nexus::{Nexus, Protocol, AgentCard};
 //!
 //! let nexus = Nexus::new();
 //! nexus.register_adapter(A2AAdapter::new())?;
 //! nexus.register_adapter(MCPAdapter::new())?;
 //!
-//! // Incoming A2A message auto-translates to VeriMantle native
+//! // Incoming A2A message auto-translates to AgentKern native
 //! let msg = nexus.receive(incoming_bytes).await?;
 //! ```
 

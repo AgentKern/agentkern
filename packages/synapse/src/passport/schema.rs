@@ -59,7 +59,7 @@ pub enum PassportError {
 /// Agent identity using W3C DID format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentIdentity {
-    /// DID URI (e.g., "did:verimantle:agent-123")
+    /// DID URI (e.g., "did:agentkern:agent-123")
     pub did: String,
     /// Public key for verification (base64)
     pub public_key: String,
@@ -264,7 +264,7 @@ mod tests {
 
     fn sample_identity() -> AgentIdentity {
         AgentIdentity {
-            did: "did:verimantle:agent-test-001".to_string(),
+            did: "did:agentkern:agent-test-001".to_string(),
             public_key: "base64pubkey".to_string(),
             algorithm: "Ed25519".to_string(),
             created_at: 1700000000000,
@@ -288,7 +288,7 @@ mod tests {
         
         assert_eq!(passport.version, PassportVersion::CURRENT);
         assert_eq!(passport.sovereignty.origin_region, "US");
-        assert_eq!(passport.identity.did, "did:verimantle:agent-test-001");
+        assert_eq!(passport.identity.did, "did:agentkern:agent-test-001");
     }
 
     #[test]
@@ -325,7 +325,7 @@ mod tests {
     fn test_provenance_chain() {
         let mut chain = ProvenanceChain::new();
         chain.signatures.push(ProvenanceSignature {
-            signer: "did:verimantle:signer-1".into(),
+            signer: "did:agentkern:signer-1".into(),
             signature: "base64sig".into(),
             timestamp: 1700000000000,
             prev_hash: "0000000000".into(),

@@ -3,7 +3,7 @@
 //! Per ENGINEERING_STANDARD.md: Fast Path <1ms, Safety Path <20ms
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use verimantle_gate::{GateEngine, Policy, engine::VerificationRequestBuilder};
+use agentkern_gate::{GateEngine, Policy, engine::VerificationRequestBuilder};
 
 fn create_test_engine() -> GateEngine {
     let mut engine = GateEngine::new();

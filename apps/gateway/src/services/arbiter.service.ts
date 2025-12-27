@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Arbiter Service
+ * AgentKern Gateway - Arbiter Service
  * 
  * Business logic for coordination and traffic control.
  * Per ARCHITECTURE: Implements Atomic Business Locks.

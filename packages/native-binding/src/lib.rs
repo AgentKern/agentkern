@@ -1,4 +1,4 @@
-//! VeriMantle Native Binding
+//! AgentKern Native Binding
 //!
 //! NAPI-RS bindings exposing Rust core to Node.js Gateway.
 //! This replaces the TypeScript simulation with real Rust execution.
@@ -59,7 +59,7 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
         serde_json::from_str(&request.context).unwrap_or_default();
     
     // Build verification request for Rust core
-    let rust_request = verimantle_gate::types::VerificationRequest {
+    let rust_request = agentkern_gate::types::VerificationRequest {
         agent_id: request.agent_id.clone(),
         action: request.action.clone(),
         resource: context.get("resource").and_then(|v| v.as_str()).unwrap_or("").to_string(),
@@ -71,7 +71,7 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
     };
     
     // Create Gate engine and verify
-    let engine = verimantle_gate::engine::GateEngine::new();
+    let engine = agentkern_gate::engine::GateEngine::new();
     let result = engine.verify(&rust_request).await;
     
     let latency_ms = start.elapsed().as_millis() as u32;
@@ -99,7 +99,7 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
 /// Get TEE attestation proof.
 #[napi]
 pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
-    use verimantle_gate::tee::{TeeRuntime, TeePlatform};
+    use agentkern_gate::tee::{TeeRuntime, TeePlatform};
     
     let runtime = TeeRuntime::detect();
     
@@ -126,7 +126,7 @@ pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
 #[napi]
 pub fn check_carbon_budget(agent_id: String, estimated_grams: f64) -> Result<bool> {
     // Use treasury carbon ledger
-    let ledger = verimantle_treasury::carbon::CarbonLedger::new();
+    let ledger = agentkern_treasury::carbon::CarbonLedger::new();
     
     match ledger.get_budget(&agent_id) {
         Ok(budget) => {
@@ -138,11 +138,11 @@ pub fn check_carbon_budget(agent_id: String, estimated_grams: f64) -> Result<boo
     }
 }
 
-/// Initialize the VeriMantle native runtime.
+/// Initialize the AgentKern native runtime.
 #[napi]
 pub fn init_runtime() -> Result<String> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
     
-    Ok("VeriMantle Native Runtime initialized".to_string())
+    Ok("AgentKern Native Runtime initialized".to_string())
 }

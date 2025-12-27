@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Takaful (Islamic Insurance) Compliance
+//! AgentKern-Gate: Takaful (Islamic Insurance) Compliance
 //!
 //! Per EXECUTION_MANDATE.md §2: "Takaful (Islamic Insurance): Full support for compliant workflows"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::takaful::{TakafulValidator, TransactionType};
+//! use agentkern_gate::takaful::{TakafulValidator, TransactionType};
 //!
 //! let validator = TakafulValidator::new();
 //! let result = validator.validate_transaction(TransactionType::Insurance)?;

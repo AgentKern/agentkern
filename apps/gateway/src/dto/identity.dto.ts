@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Identity DTOs
+ * AgentKern Gateway - Identity DTOs
  */
 
 export class RegisterAgentDto {

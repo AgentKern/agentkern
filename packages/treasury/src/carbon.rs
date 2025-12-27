@@ -1,4 +1,4 @@
-//! VeriMantle-Treasury: Carbon Footprint Ledger
+//! AgentKern-Treasury: Carbon Footprint Ledger
 //!
 //! Per FUTURE_INNOVATION_ROADMAP.md Innovation #8:
 //! - Per-action carbon tracking (CO2, energy, water)
@@ -7,7 +7,7 @@
 //! - Carbon-aware scheduling
 //! - Offset integration
 //!
-//! This addresses ESG requirements and positions VeriMantle
+//! This addresses ESG requirements and positions AgentKern
 //! as the only agent platform with native sustainability tracking.
 
 use chrono::{DateTime, Utc, Duration};

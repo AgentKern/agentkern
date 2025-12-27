@@ -2,7 +2,7 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "metadata": {
-    "description": "VeriMantle extension for Azure AI Foundry / Semantic Kernel"
+    "description": "AgentKern extension for Azure AI Foundry / Semantic Kernel"
   },
   "parameters": {
     "aiHubName": {
@@ -11,16 +11,16 @@
         "description": "Azure AI Foundry Hub name"
       }
     },
-    "verimantleEndpoint": {
+    "agentkernEndpoint": {
       "type": "string",
       "metadata": {
-        "description": "VeriMantle API endpoint URL"
+        "description": "AgentKern API endpoint URL"
       }
     },
-    "verimantleApiKey": {
+    "agentkernApiKey": {
       "type": "securestring",
       "metadata": {
-        "description": "VeriMantle API key for authentication"
+        "description": "AgentKern API key for authentication"
       }
     }
   },
@@ -28,16 +28,16 @@
     {
       "type": "Microsoft.MachineLearningServices/workspaces/connections",
       "apiVersion": "2024-01-01-preview",
-      "name": "[concat(parameters('aiHubName'), '/verimantle')]",
+      "name": "[concat(parameters('aiHubName'), '/agentkern')]",
       "properties": {
         "category": "CustomKeys",
         "authType": "ApiKey",
         "credentials": {
-          "key": "[parameters('verimantleApiKey')]"
+          "key": "[parameters('agentkernApiKey')]"
         },
-        "target": "[parameters('verimantleEndpoint')]",
+        "target": "[parameters('agentkernEndpoint')]",
         "metadata": {
-          "displayName": "VeriMantle Agent Kernel",
+          "displayName": "AgentKern Agent Kernel",
           "description": "Verified AI Agent infrastructure with policy enforcement, liability tracking, and agent-to-agent payments"
         }
       }
@@ -46,7 +46,7 @@
   "outputs": {
     "connectionId": {
       "type": "string",
-      "value": "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('aiHubName'), 'verimantle')]"
+      "value": "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('aiHubName'), 'agentkern')]"
     }
   }
 }

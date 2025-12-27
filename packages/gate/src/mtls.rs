@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Zero-Trust mTLS Module
+//! AgentKern-Gate: Zero-Trust mTLS Module
 //!
 //! Per EXECUTION_MANDATE.md §5: "Zero-Trust Security & Agent Identity"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::mtls::{MtlsConfig, CertificateValidator};
+//! use agentkern_gate::mtls::{MtlsConfig, CertificateValidator};
 //!
 //! let validator = CertificateValidator::new(MtlsConfig::strict());
 //! validator.validate_certificate(&cert)?;
@@ -76,8 +76,8 @@ impl MtlsConfig {
         Self {
             require_client_cert: true,
             trusted_ca_certs: vec![],
-            crl_url: Some("https://crl.verimantle.com/crl.pem".to_string()),
-            ocsp_url: Some("https://ocsp.verimantle.com".to_string()),
+            crl_url: Some("https://crl.agentkern.com/crl.pem".to_string()),
+            ocsp_url: Some("https://ocsp.agentkern.com".to_string()),
             max_cert_validity_days: 90,
             allow_self_signed: false,
         }
@@ -315,7 +315,7 @@ mod tests {
         
         CertificateInfo {
             subject: "CN=agent-123".to_string(),
-            issuer: "CN=VeriMantle CA".to_string(),
+            issuer: "CN=AgentKern CA".to_string(),
             serial: "SN-12345".to_string(),
             not_before: now - 86400,
             not_after: now + 86400 * 30,

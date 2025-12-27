@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Gate DTOs
+ * AgentKern Gateway - Gate DTOs
  */
 
 export class VerifyActionDto {

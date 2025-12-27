@@ -19,7 +19,7 @@
 //! - Verification agent issued new instructions
 //! - Loop repeated endlessly → $47,000 API bill
 //!
-//! VeriMantle prevents this with multiple layers of protection.
+//! AgentKern prevents this with multiple layers of protection.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -396,13 +396,13 @@ mod tests {
         let mut msg = TrackedMessage::new("msg-1", "analysis-agent");
         
         // Verification requests clarification → Analysis responds → repeat
-        // With VeriMantle, this would be caught on the 2nd round-trip
+        // With AgentKern, this would be caught on the 2nd round-trip
         msg.add_hop("verification-agent", 1.0);
         msg.add_hop("analysis-agent", 1.0); // Loop detected!
 
         let result = preventer.check(&msg);
         
-        // VeriMantle catches the loop immediately
+        // AgentKern catches the loop immediately
         assert!(matches!(result, Err(LoopPreventionError::LoopDetected { .. })));
         
         // The $47k would have been $2 instead

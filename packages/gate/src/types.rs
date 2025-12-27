@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: Core Types
+//! AgentKern-Gate: Core Types
 //!
 //! Domain types for the verification engine.
 

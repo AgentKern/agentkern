@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Conflict Resolution & Coordination Engine
+//! AgentKern-Arbiter: Conflict Resolution & Coordination Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"
 //!
@@ -14,7 +14,7 @@
 //!
 //! ```text
 //! ┌─────────────────────────────────────────────────────────────┐
-//! │                    VeriMantle-Arbiter                       │
+//! │                    AgentKern-Arbiter                       │
 //! ├─────────────────────────────────────────────────────────────┤
 //! │         Thread-per-Core Runtime (Hyper-Loop)                │
 //! │  ┌─────────┐    ┌─────────┐    ┌─────────┐                 │
@@ -65,7 +65,7 @@ pub mod escalation;        // Escalation triggers, webhooks, approval workflow
 pub mod eu_ai_act;         // EU AI Act (Aug 2025) compliance export
 pub mod cost;              // Cost attribution dashboard
 
-// NOTE: gateway and marketplace moved to verimantle-nexus during consolidation
+// NOTE: gateway and marketplace moved to agentkern-nexus during consolidation
 // See: packages/nexus/src/agent_card.rs, protocols/, marketplace/
 
 

@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - SSE Streaming Controller
+ * AgentKern Gateway - SSE Streaming Controller
  * 
  * Server-Sent Events for real-time task updates.
  * Per A2A spec: SSE is the recommended transport for streaming.

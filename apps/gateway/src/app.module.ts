@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - App Module
+ * AgentKern Gateway - App Module
  * 
  * Root module that imports all Six Pillars modules.
  * Per MANDATE: Hexagonal Architecture - Core logic isolated from I/O.

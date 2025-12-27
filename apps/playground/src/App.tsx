@@ -23,7 +23,7 @@ interface IntentPath {
   driftScore: number;
 }
 
-// Simulated VeriMantle Client
+// Simulated AgentKern Client
 const simulateRegister = async (name: string): Promise<Agent> => {
   await new Promise(r => setTimeout(r, 500));
   return {
@@ -110,10 +110,10 @@ export default function App() {
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          <span>VeriMantle Playground</span>
+          <span>AgentKern Playground</span>
         </div>
         <nav className="nav">
-          <a href="https://github.com/daretechie/verimantle" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/daretechie/agentkern" target="_blank" rel="noopener noreferrer">
             GitHub
           </a>
           <a href="../docs/" target="_blank" rel="noopener noreferrer">

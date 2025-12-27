@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Graph-based State Ledger with CRDTs
+//! AgentKern-Synapse: Graph-based State Ledger with CRDTs
 //!
 //! Per ARCHITECTURE.md Section 3: "The Speed of Light"
 //! Per ENGINEERING_STANDARD.md Section 2: "Adaptive Execution"
@@ -14,7 +14,7 @@
 //!
 //! ```text
 //! ┌─────────────────────────────────────────────────────────────┐
-//! │                    VeriMantle-Synapse                       │
+//! │                    AgentKern-Synapse                       │
 //! ├─────────────────────────────────────────────────────────────┤
 //! │  ┌─────────────────────────────────────────────────────┐   │
 //! │  │           Graph Vector Database                      │   │
@@ -61,7 +61,7 @@ pub use crdt::{GCounter, PNCounter, LwwRegister, OrSet, LwwMap, AgentStateCrdt};
 pub use mesh::{GlobalMesh, MeshCell, DataRegion, MeshSync, GeoFence};
 pub use polyglot::{Language, PolyglotMemory};
 
-// NOTE: Antifragile moved to verimantle-arbiter during consolidation
+// NOTE: Antifragile moved to agentkern-arbiter during consolidation
 // See: packages/arbiter/src/antifragile.rs
 
 // Innovation #10: Digital Twin Sandbox

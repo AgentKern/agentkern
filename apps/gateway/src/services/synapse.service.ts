@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Synapse Service
+ * AgentKern Gateway - Synapse Service
  * 
  * Business logic for agent memory and intent tracking.
  * Per ARCHITECTURE: Uses CRDTs for eventual consistency.

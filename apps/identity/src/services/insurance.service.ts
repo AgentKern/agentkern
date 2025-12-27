@@ -1,4 +1,4 @@
-//! VeriMantle: Agent Liability Insurance API
+//! AgentKern: Agent Liability Insurance API
 //!
 //! Per FUTURE_INNOVATION_ROADMAP.md Innovation #2:
 //! Native integration with insurance providers for AI agent liability.
@@ -392,7 +392,7 @@ export class InsuranceService {
     const policy: InsurancePolicy = {
       id: uuidv4(),
       agentId: quote.agentId,
-      providerId: 'verimantle-underwrite',
+      providerId: 'agentkern-underwrite',
       coverageType: quote.coverageType,
       coverageLimit: quote.coverageLimit,
       deductible: quote.deductible,

@@ -1,4 +1,4 @@
-# The VeriMantle Engineering Standard (2026)
+# The AgentKern Engineering Standard (2026)
 
 **"Bio-Digital Pragmatism: Advanced Runtimes, Not Magic"**
 
@@ -15,14 +15,14 @@ Instead, we build **Adaptive Systems** using proven, high-performance technologi
 
 ### Runtime: Native Tokio io_uring
 
-| Alternative | Status | VeriMantle Choice |
+| Alternative | Status | AgentKern Choice |
 |-------------|--------|-------------------|
 | **tokio-uring** | v0.5.0, io_uring being merged into Tokio core | ✅ **Selected** |
 | glommio | Datadog-proven, thread-per-core | ❌ Separate ecosystem |
 | monoio | ByteDance, highest perf | ❌ Requires nightly Rust |
 
 **Rationale**: Tokio 1.48.0+ is actively integrating io_uring into core (Dec 2025 commits for `fs::read`).
-Since VeriMantle is built on Tokio (Axum, tracing), native tokio-uring ensures ecosystem compatibility
+Since AgentKern is built on Tokio (Axum, tracing), native tokio-uring ensures ecosystem compatibility
 and long-term stability as features stabilize.
 
 ### Neural Inference: ONNX Runtime (ort)
@@ -110,7 +110,7 @@ We reject "LLM-as-OS" (Too slow/unpredictable).
 
 ## Summary of the "Pragmatic Mantle"
 
-| Concept | The Hype (Theoretical) | The VeriMantle Reality (Buildable) |
+| Concept | The Hype (Theoretical) | The AgentKern Reality (Buildable) |
 | :--- | :--- | :--- |
 | **Topology** | AI Rewiring Infrastructure | **WASM Hot-Swapping** (Actix Supervision) |
 | **Optimization** | LLM Writing Code | **Adaptive Query Execution** (Polars) |

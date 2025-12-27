@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Intent Path Tracking
+//! AgentKern-Synapse: Intent Path Tracking
 //!
 //! Tracks the agent's goal progression to prevent "Intent Drift".
 //!

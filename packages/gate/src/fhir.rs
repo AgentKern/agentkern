@@ -1,4 +1,4 @@
-//! VeriMantle-Gate: FHIR Healthcare Integration
+//! AgentKern-Gate: FHIR Healthcare Integration
 //!
 //! Per EXECUTION_MANDATE.md §2: "Healthcare: HIPAA, HITECH, EU MDR, HL7/FHIR"
 //!
@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_gate::fhir::{FhirClient, Patient};
+//! use agentkern_gate::fhir::{FhirClient, Patient};
 //!
 //! let client = FhirClient::new("https://fhir.example.com");
 //! let patient = client.get_patient("12345")?;
@@ -303,8 +303,8 @@ impl FhirClient {
             }],
             source: AuditSource {
                 observer: Reference {
-                    reference: Some("Device/verimantle-gate".to_string()),
-                    display: Some("VeriMantle Gate".to_string()),
+                    reference: Some("Device/agentkern-gate".to_string()),
+                    display: Some("AgentKern Gate".to_string()),
                 },
             },
             entity: vec![AuditEntity {

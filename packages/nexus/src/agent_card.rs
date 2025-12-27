@@ -5,7 +5,7 @@
 //! This module provides a unified Agent Card format compatible with:
 //! - Google A2A Agent Cards
 //! - OpenAPI-style capability descriptions
-//! - VeriMantle extensions
+//! - AgentKern extensions
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -61,7 +61,7 @@ pub struct AgentCard {
     #[serde(default)]
     pub protocols: Vec<ProtocolSupport>,
     
-    /// VeriMantle-specific extensions
+    /// AgentKern-specific extensions
     #[serde(default)]
     pub extensions: HashMap<String, serde_json::Value>,
 }
@@ -345,12 +345,12 @@ mod tests {
     fn test_provider_info() {
         let mut card = AgentCard::new("corp-agent", "Corp Agent", "https://corp.example.com");
         card.provider = Some(Provider {
-            organization: "VeriMantle Inc.".into(),
-            url: Some("https://verimantle.io".into()),
+            organization: "AgentKern Inc.".into(),
+            url: Some("https://agentkern.io".into()),
         });
         
         let json = card.to_json().unwrap();
-        assert!(json.contains("VeriMantle Inc."));
+        assert!(json.contains("AgentKern Inc."));
     }
 
     #[test]

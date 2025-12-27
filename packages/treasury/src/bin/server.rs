@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 async fn main() {
     tracing_subscriber::fmt::init();
     
-    tracing::info!("VeriMantle-Treasury starting...");
+    tracing::info!("AgentKern-Treasury starting...");
 
     let app = Router::new()
         .route("/health", get(|| async { "OK" }));

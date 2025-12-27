@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Nexus Controller
+ * AgentKern Gateway - Nexus Controller
  * 
  * REST API for protocol translation and agent discovery.
  * 
@@ -113,7 +113,7 @@ export class NexusController {
 
   /**
    * Translate a message between protocols.
-   * Supports: a2a, mcp, verimantle
+   * Supports: a2a, mcp, agentkern
    */
   @Post('translate')
   @HttpCode(HttpStatus.OK)
@@ -141,8 +141,8 @@ export class NexusController {
           status: 'stable',
         },
         {
-          name: 'verimantle',
-          fullName: 'VeriMantle Native Protocol',
+          name: 'agentkern',
+          fullName: 'AgentKern Native Protocol',
           version: '1.0',
           status: 'stable',
         },
@@ -197,14 +197,14 @@ export class WellKnownController {
   @Get('agent.json')
   async getAgentCard() {
     return {
-      id: 'verimantle-gateway',
-      name: 'VeriMantle Gateway',
+      id: 'agentkern-gateway',
+      name: 'AgentKern Gateway',
       description: 'Universal Agent Protocol Gateway - The Agentic Operating System',
       url: process.env.GATEWAY_URL || 'http://localhost:3000',
       version: '1.0.0',
       provider: {
-        organization: 'VeriMantle',
-        url: 'https://verimantle.io',
+        organization: 'AgentKern',
+        url: 'https://agentkern.io',
       },
       capabilities: [
         {
@@ -227,7 +227,7 @@ export class WellKnownController {
         {
           id: 'translate',
           name: 'Protocol Translation',
-          description: 'Translate messages between A2A, MCP, and VeriMantle protocols',
+          description: 'Translate messages between A2A, MCP, and AgentKern protocols',
           tags: ['translation', 'a2a', 'mcp'],
         },
         {
@@ -251,10 +251,10 @@ export class WellKnownController {
       protocols: [
         { name: 'a2a', version: '0.3' },
         { name: 'mcp', version: '2025-06-18' },
-        { name: 'verimantle', version: '1.0' },
+        { name: 'agentkern', version: '1.0' },
       ],
       extensions: {
-        verimantle: {
+        agentkern: {
           pillars: ['identity', 'gate', 'synapse', 'arbiter', 'nexus', 'treasury'],
           loopPrevention: true,
           explainability: true,

@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Polyglot Embedding Configuration
+//! AgentKern-Synapse: Polyglot Embedding Configuration
 //!
 //! Per GLOBAL_GAPS.md §2: Native language support in Synapse
 //!
@@ -10,7 +10,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use verimantle_synapse::embeddings::{EmbeddingConfig, EmbeddingProvider};
+//! use agentkern_synapse::embeddings::{EmbeddingConfig, EmbeddingProvider};
 //!
 //! let config = EmbeddingConfig::new()
 //!     .with_provider(DataRegion::Mena, EmbeddingProvider::Jais)
@@ -191,14 +191,14 @@ impl PolyglotEmbedder {
 
     /// Generate embeddings for text in a specific region.
     /// 
-    /// Graceful fallback: Uses real API if VERIMANTLE_EMBEDDINGS_API_KEY set,
+    /// Graceful fallback: Uses real API if AGENTKERN_EMBEDDINGS_API_KEY set,
     /// otherwise returns zero vector for demo/development.
     pub async fn embed(&self, text: &str, region: SynapseRegion) -> Vec<f32> {
         let provider = self.provider_for(region);
         let dimension = provider.dimension();
         
         // Check for API key (graceful fallback pattern)
-        let api_key = std::env::var("VERIMANTLE_EMBEDDINGS_API_KEY")
+        let api_key = std::env::var("AGENTKERN_EMBEDDINGS_API_KEY")
             .or_else(|_| std::env::var("OPENAI_API_KEY"))
             .ok();
         

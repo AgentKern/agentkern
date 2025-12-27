@@ -1,7 +1,7 @@
 //! WASM Isolation Layer
 //!
 //! Per ARCHITECTURE.md: "Nano-Isolation"
-//! VeriMantle uses WASM Components (Nano-Light), NOT Docker (Heavy)
+//! AgentKern uses WASM Components (Nano-Light), NOT Docker (Heavy)
 //!
 //! Priority: WASM > Container > Process
 

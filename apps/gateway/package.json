@@ -1,7 +1,7 @@
 {
-  "name": "@verimantle/gateway",
+  "name": "@agentkern/gateway",
   "version": "0.1.0",
-  "description": "VeriMantle Internal Gateway - Router for the Four Pillars",
+  "description": "AgentKern Internal Gateway - Router for the Six Pillars",
   "private": true,
   "scripts": {
     "build": "nest build",
@@ -16,7 +16,7 @@
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-fastify": "^10.0.0",
-    "@verimantle/sdk": "workspace:*",
+    "@agentkern/sdk": "workspace:*",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
   },

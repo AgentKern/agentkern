@@ -1,8 +1,8 @@
-//! VeriMantle Enterprise: Cockpit Dashboard Backend
+//! AgentKern Enterprise: Cockpit Dashboard Backend
 //!
 //! Mission Control for enterprise deployments.
 //!
-//! **License**: VeriMantle Enterprise License
+//! **License**: AgentKern Enterprise License
 //!
 //! Features:
 //! - Real-time agent monitoring
@@ -21,7 +21,7 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("VERIMANTLE_LICENSE_KEY")
+        let key = std::env::var("AGENTKERN_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
         if key.is_empty() {
@@ -305,14 +305,14 @@ mod tests {
 
     #[test]
     fn test_cockpit_requires_license() {
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
         let result = CockpitService::new("org-123");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_cockpit_with_license() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         let result = CockpitService::new("org-123");
         assert!(result.is_ok());
         
@@ -320,18 +320,18 @@ mod tests {
         let stats = service.get_stats();
         assert!(stats.active_agents > 0);
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 
     #[test]
     fn test_compliance_status() {
-        std::env::set_var("VERIMANTLE_LICENSE_KEY", "test-license");
+        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         let service = CockpitService::new("org-123").unwrap();
         
         let status = service.get_compliance_status();
         assert!(!status.is_empty());
         assert!(status.iter().any(|s| s.framework == "HIPAA"));
         
-        std::env::remove_var("VERIMANTLE_LICENSE_KEY");
+        std::env::remove_var("AGENTKERN_LICENSE_KEY");
     }
 }

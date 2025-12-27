@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Nexus Service
+ * AgentKern Gateway - Nexus Service
  * 
  * Business logic for protocol translation and agent discovery.
  * In production, this would call the Rust Nexus crate via FFI or HTTP.
@@ -34,7 +34,7 @@ export class NexusService {
       version: dto.version || '1.0.0',
       capabilities: dto.capabilities || [],
       skills: dto.skills || [],
-      protocols: dto.protocols || ['verimantle'],
+      protocols: dto.protocols || ['agentkern'],
       registeredAt: new Date().toISOString(),
     };
 
@@ -209,7 +209,7 @@ export class NexusService {
           params: message.params || {},
         };
 
-      case 'verimantle':
+      case 'agentkern':
       default:
         return {
           ...base,
@@ -240,11 +240,11 @@ export class NexusService {
           targetProtocol: 'mcp',
         } as any;
 
-      case 'verimantle':
+      case 'agentkern':
       default:
         return {
           ...msg,
-          targetProtocol: 'verimantle',
+          targetProtocol: 'agentkern',
         };
     }
   }

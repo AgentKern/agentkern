@@ -1,4 +1,4 @@
-//! VeriMantle: Agent Legal Entity Framework
+//! AgentKern: Agent Legal Entity Framework
 //!
 //! Per FUTURE_INNOVATION_ROADMAP.md Innovation #3:
 //! Legal incorporation of AI agents as LLCs/DAOs.

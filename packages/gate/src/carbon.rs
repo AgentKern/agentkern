@@ -1,11 +1,11 @@
-//! VeriMantle-Gate: Energy-Aware Veto
+//! AgentKern-Gate: Energy-Aware Veto
 //!
 //! Per FAANG_GAPS.md: "Energy-Aware Veto Integration"
 //! Connects Carbon Ledger to Gate policy engine for kernel-level "stop"
 //! before execution based on ESG budgets.
 
 use serde::{Deserialize, Serialize};
-use verimantle_treasury::carbon::{CarbonLedger, CarbonRegion, ComputeType, CarbonError};
+use agentkern_treasury::carbon::{CarbonLedger, CarbonRegion, ComputeType, CarbonError};
 use crate::types::{AgentId, VerificationResult};
 
 /// Results of a carbon check.
@@ -99,7 +99,7 @@ impl CarbonVeto {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use verimantle_treasury::carbon::CarbonBudget;
+    use agentkern_treasury::carbon::CarbonBudget;
     use rust_decimal_macros::dec;
 
     #[test]

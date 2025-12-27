@@ -1,6 +1,6 @@
-//! VeriMantle Edge - Minimal Kernel for IoT/Edge Devices
+//! AgentKern Edge - Minimal Kernel for IoT/Edge Devices
 //!
-//! A lightweight version of VeriMantle for constrained environments:
+//! A lightweight version of AgentKern for constrained environments:
 //! - ARM embedded devices
 //! - Warehouse robots
 //! - Drones

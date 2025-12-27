@@ -1,8 +1,8 @@
 /**
- * VeriMantle Gateway - Identity Module
+ * AgentKern Gateway - Identity Module
  * 
  * The "Passport" - Agent authentication & liability tracking.
- * Per MANIFESTO: Every agent request is signed (VeriMantle-Identity).
+ * Per MANIFESTO: Every agent request is signed (AgentKern-Identity).
  */
 
 import { Module } from '@nestjs/common';

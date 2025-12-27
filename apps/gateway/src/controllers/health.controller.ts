@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Health Controller
+ * AgentKern Gateway - Health Controller
  * 
  * Basic health check endpoint for load balancers and monitoring.
  */

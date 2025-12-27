@@ -1,5 +1,5 @@
 /**
- * VeriMantle Gateway - Gate Module
+ * AgentKern Gateway - Gate Module
  * 
  * The "Guardrails" - Pre-execution verification & policy enforcement.
  * Per ENGINEERING_STANDARD: Neuro-Symbolic Guards (Code + AI).

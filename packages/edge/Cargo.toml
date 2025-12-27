@@ -1,10 +1,10 @@
 [package]
-name = "verimantle-edge"
+name = "agentkern-edge"
 version = "0.1.0"
 edition = "2021"
-description = "Minimal VeriMantle kernel for edge/IoT devices"
+description = "Minimal AgentKern kernel for edge/IoT devices"
 license = "Apache-2.0"
-authors = ["VeriMantle Team"]
+authors = ["AgentKern Team"]
 
 [features]
 default = ["std"]

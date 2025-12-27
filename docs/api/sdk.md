@@ -1,31 +1,31 @@
 # SDK API Reference
 
-Complete reference for `@verimantle/sdk`.
+Complete reference for `@agentkern/sdk`.
 
 ---
 
 ## Installation
 
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 ```
 
 ---
 
-## VeriMantle Client
+## AgentKern Client
 
 ### Constructor
 
 ```typescript
-new VeriMantle(config?: VeriMantleConfig)
+new AgentKern(config?: AgentKernConfig)
 ```
 
-#### VeriMantleConfig
+#### AgentKernConfig
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `apiKey` | `string` | - | API key for authentication |
-| `endpoint` | `string` | `https://api.verimantle.io` | API endpoint |
+| `endpoint` | `string` | `https://api.agentkern.io` | API endpoint |
 | `region` | `DataRegion` | `'global'` | Data residency region |
 | `environment` | `string` | `'production'` | `'local'`, `'staging'`, `'production'` |
 | `timeout` | `number` | `30000` | Request timeout in ms |
@@ -254,12 +254,12 @@ const result = await client.sovereign.validateCompliance('agent-id', ['eu', 'us'
 ## Error Handling
 
 ```typescript
-import { VeriMantleError } from '@verimantle/sdk';
+import { AgentKernError } from '@agentkern/sdk';
 
 try {
   await client.gate.verify('agent', 'action');
 } catch (error) {
-  if (error instanceof VeriMantleError) {
+  if (error instanceof AgentKernError) {
     console.error('Code:', error.code);
     console.error('Message:', error.message);
   }

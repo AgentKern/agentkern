@@ -1,4 +1,4 @@
-app = "verimantle-arbiter"
+app = "agentkern-arbiter"
 primary_region = "iad"
 
 [build]

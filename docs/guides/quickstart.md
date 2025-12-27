@@ -1,13 +1,13 @@
 # Quick Start Guide
 
-Build your first VeriMantle-powered agent in 5 minutes.
+Build your first AgentKern-powered agent in 5 minutes.
 
 ---
 
 ## What We'll Build
 
 A simple order-processing agent that:
-1. Registers with VeriMantle Identity
+1. Registers with AgentKern Identity
 2. Gets verified by Gate before processing
 3. Tracks its intent via Synapse
 4. Coordinates with other agents via Arbiter
@@ -17,7 +17,7 @@ A simple order-processing agent that:
 ## Prerequisites
 
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 ```
 
 ---
@@ -25,9 +25,9 @@ npm install @verimantle/sdk
 ## Step 1: Initialize the Client
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
-const client = new VeriMantle({
+const client = new AgentKern({
   environment: 'local', // Use local adapters for development
 });
 ```
@@ -140,7 +140,7 @@ async function executeOrder(agentId: string, order: Order) {
 ## Full Example
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
 interface Order {
   orderId: string;
@@ -148,7 +148,7 @@ interface Order {
   customer: string;
 }
 
-const client = new VeriMantle({ environment: 'local' });
+const client = new AgentKern({ environment: 'local' });
 
 async function main() {
   // 1. Register agent

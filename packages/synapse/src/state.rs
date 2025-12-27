@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: State Store
+//! AgentKern-Synapse: State Store
 //!
 //! In-memory state storage with CRDT-like merge semantics.
 //!

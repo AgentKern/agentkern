@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Coordinator
+//! AgentKern-Arbiter: Coordinator
 //!
 //! High-level coordination API combining locks and queues.
 

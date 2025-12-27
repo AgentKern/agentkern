@@ -1,4 +1,4 @@
-//! VeriMantle-Synapse: Drift Detection & Alerting
+//! AgentKern-Synapse: Drift Detection & Alerting
 //!
 //! Detects when an agent has drifted from its original intent
 //! and sends alerts via webhooks or callbacks.

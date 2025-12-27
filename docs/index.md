@@ -1,22 +1,22 @@
-# VeriMantle Documentation
+# AgentKern Documentation
 
 > **The Operating System for the Agentic Economy**
 
-Welcome to VeriMantle — the unified infrastructure layer for autonomous AI agents. VeriMantle provides the **Four Pillars** every agent needs: Identity, Safety, Memory, and Coordination.
+Welcome to AgentKern — the unified infrastructure layer for autonomous AI agents. AgentKern provides the **Four Pillars** every agent needs: Identity, Safety, Memory, and Coordination.
 
 ---
 
 ## Quick Start
 
 ```bash
-npm install @verimantle/sdk
+npm install @agentkern/sdk
 ```
 
 ```typescript
-import { VeriMantle } from '@verimantle/sdk';
+import { AgentKern } from '@agentkern/sdk';
 
-const client = new VeriMantle({
-  apiKey: process.env.VERIMANTLE_API_KEY,
+const client = new AgentKern({
+  apiKey: process.env.AGENTKERN_API_KEY,
   region: 'us', // or 'eu', 'cn' for data residency
 });
 
@@ -44,10 +44,10 @@ if (result.allowed) {
 
 | Pillar | Module | Purpose |
 |--------|--------|---------|
-| 🪪 **Identity** | `verimantle-identity` | Authentication & liability tracking |
-| 🛡️ **Gate** | `verimantle-gate` | Pre-execution verification & guardrails |
-| 🧠 **Synapse** | `verimantle-synapse` | State management & intent tracking |
-| ⚖️ **Arbiter** | `verimantle-arbiter` | Coordination & conflict resolution |
+| 🪪 **Identity** | `agentkern-identity` | Authentication & liability tracking |
+| 🛡️ **Gate** | `agentkern-gate` | Pre-execution verification & guardrails |
+| 🧠 **Synapse** | `agentkern-synapse` | State management & intent tracking |
+| ⚖️ **Arbiter** | `agentkern-arbiter` | Coordination & conflict resolution |
 
 ---
 
@@ -79,7 +79,7 @@ if (result.allowed) {
 
 ---
 
-## Why VeriMantle?
+## Why AgentKern?
 
 ### The Problem
 
@@ -92,13 +92,13 @@ AI agents are becoming autonomous. They can browse the web, write code, make pur
 
 ### The Solution
 
-VeriMantle provides a unified, open-source foundation that any agent framework can plug into. We handle the infrastructure so you can focus on building intelligent agents.
+AgentKern provides a unified, open-source foundation that any agent framework can plug into. We handle the infrastructure so you can focus on building intelligent agents.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Your Agent Logic                        │
 ├─────────────────────────────────────────────────────────────┤
-│                    @verimantle/sdk                          │
+│                    @agentkern/sdk                          │
 ├─────────────────────────────────────────────────────────────┤
 │  Identity  │   Gate    │  Synapse  │  Arbiter  │ Sovereign  │
 └─────────────────────────────────────────────────────────────┘
@@ -108,17 +108,17 @@ VeriMantle provides a unified, open-source foundation that any agent framework c
 
 ## Open Source
 
-VeriMantle is **open-core**:
+AgentKern is **open-core**:
 
 - **MIT License**: SDK, Identity, Single-Node Runtime
 - **Commercial**: Multi-Node Orchestration, Global Sync, Compliance UI
 
-[View on GitHub →](https://github.com/daretechie/verimantle)
+[View on GitHub →](https://github.com/AgentKern/agentkern)
 
 ---
 
 ## Community
 
-- [GitHub Discussions](https://github.com/daretechie/verimantle/discussions)
-- [Discord](https://discord.gg/verimantle)
-- [Twitter](https://twitter.com/verimantle)
+- [GitHub Discussions](https://github.com/AgentKern/agentkern/discussions)
+- [Discord](https://discord.gg/agentkern)
+- [Twitter](https://twitter.com/agentkern)

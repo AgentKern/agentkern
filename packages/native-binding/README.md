@@ -1,11 +1,11 @@
-# VeriMantle Native Binding
+# AgentKern Native Binding
 
-Native Node.js bindings for VeriMantle Rust core using NAPI-RS.
+Native Node.js bindings for AgentKern Rust core using NAPI-RS.
 
 ## Usage
 
 ```typescript
-import { verifyAction, getAttestation, checkCarbonBudget } from '@verimantle/native';
+import { verifyAction, getAttestation, checkCarbonBudget } from '@agentkern/native';
 
 // Verify an agent action
 const result = await verifyAction({
@@ -40,6 +40,6 @@ npm run build
 
 This package uses NAPI-RS to expose Rust functions to Node.js:
 
-- `verifyAction()` → `verimantle-gate::engine::GateEngine::verify()`
-- `getAttestation()` → `verimantle-gate::tee::TeeRuntime::get_attestation()`
-- `checkCarbonBudget()` → `verimantle-treasury::carbon::CarbonLedger`
+- `verifyAction()` → `agentkern-gate::engine::GateEngine::verify()`
+- `getAttestation()` → `agentkern-gate::tee::TeeRuntime::get_attestation()`
+- `checkCarbonBudget()` → `agentkern-treasury::carbon::CarbonLedger`

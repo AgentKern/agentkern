@@ -1,48 +1,48 @@
 /**
- * VeriMantle SDK - Unit Tests
+ * AgentKern SDK - Unit Tests
  * 
  * Per MANDATE: 100% Coverage (Zero Tolerance)
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VeriMantle } from './client';
-import type { VeriMantleConfig } from './types';
+import { AgentKern } from './client';
+import type { AgentKernConfig } from './types';
 
-describe('VeriMantle SDK', () => {
+describe('AgentKern SDK', () => {
   describe('Client Initialization', () => {
     it('should create a client with default config', () => {
-      const client = new VeriMantle();
+      const client = new AgentKern();
       
       expect(client).toBeDefined();
-      expect(VeriMantle.VERSION).toBe('0.1.0');
+      expect(AgentKern.VERSION).toBe('0.1.0');
     });
 
     it('should accept custom configuration', () => {
-      const config: VeriMantleConfig = {
-        endpoint: 'https://custom.api.verimantle.io',
+      const config: AgentKernConfig = {
+        endpoint: 'https://custom.api.agentkern.io',
         apiKey: 'test-key',
         region: 'eu',
         debug: true,
       };
       
-      const client = new VeriMantle(config);
+      const client = new AgentKern(config);
       const publicConfig = client.getConfig();
       
-      expect(publicConfig.endpoint).toBe('https://custom.api.verimantle.io');
+      expect(publicConfig.endpoint).toBe('https://custom.api.agentkern.io');
       expect(publicConfig.region).toBe('eu');
       expect(publicConfig.debug).toBe(true);
     });
 
     it('should not expose API key in public config', () => {
-      const client = new VeriMantle({ apiKey: 'secret-key' });
+      const client = new AgentKern({ apiKey: 'secret-key' });
       const publicConfig = client.getConfig();
       
       expect((publicConfig as any).apiKey).toBeUndefined();
     });
 
     it('should check region correctly', () => {
-      const euClient = new VeriMantle({ region: 'eu' });
-      const usClient = new VeriMantle({ region: 'us' });
+      const euClient = new AgentKern({ region: 'eu' });
+      const usClient = new AgentKern({ region: 'us' });
       
       expect(euClient.isRegion('eu')).toBe(true);
       expect(euClient.isRegion('us')).toBe(false);
@@ -51,10 +51,10 @@ describe('VeriMantle SDK', () => {
   });
 
   describe('Identity Module', () => {
-    let client: VeriMantle;
+    let client: AgentKern;
 
     beforeEach(() => {
-      client = new VeriMantle({ region: 'eu' });
+      client = new AgentKern({ region: 'eu' });
     });
 
     it('should register a new agent', async () => {
@@ -97,10 +97,10 @@ describe('VeriMantle SDK', () => {
   });
 
   describe('Gate Module (Guardrails)', () => {
-    let client: VeriMantle;
+    let client: AgentKern;
 
     beforeEach(() => {
-      client = new VeriMantle();
+      client = new AgentKern();
     });
 
     it('should verify an action', async () => {
@@ -127,10 +127,10 @@ describe('VeriMantle SDK', () => {
   });
 
   describe('Synapse Module (Memory)', () => {
-    let client: VeriMantle;
+    let client: AgentKern;
 
     beforeEach(() => {
-      client = new VeriMantle();
+      client = new AgentKern();
     });
 
     it('should start an intent path', async () => {
@@ -168,10 +168,10 @@ describe('VeriMantle SDK', () => {
   });
 
   describe('Arbiter Module (Coordination)', () => {
-    let client: VeriMantle;
+    let client: AgentKern;
 
     beforeEach(() => {
-      client = new VeriMantle();
+      client = new AgentKern();
     });
 
     it('should acquire a lock', async () => {
@@ -205,10 +205,10 @@ describe('VeriMantle SDK', () => {
   });
 
   describe('Sovereign Module (Data Residency)', () => {
-    let client: VeriMantle;
+    let client: AgentKern;
 
     beforeEach(() => {
-      client = new VeriMantle({ region: 'eu' });
+      client = new AgentKern({ region: 'eu' });
     });
 
     it('should block transfer from China to outside China (PIPL)', async () => {

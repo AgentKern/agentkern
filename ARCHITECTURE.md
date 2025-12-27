@@ -1,4 +1,4 @@
-# VeriMantle Hyper-Architecture (2026)
+# AgentKern Hyper-Architecture (2026)
 
 **"The Disruptor Standard: Speed, Safety, Sovereignty, Interoperability."**
 
@@ -8,11 +8,11 @@ This architecture is designed to outperform traditional FAANG stacks by leveragi
 
 ## The Six Pillars
 
-VeriMantle provides six universal primitives for autonomous AI agents:
+AgentKern provides six universal primitives for autonomous AI agents:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│                              VeriMantle                                         │
+│                              AgentKern                                         │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐│
 │  │ Identity │ │   Gate   │ │ Synapse  │ │ Arbiter  │ │ Treasury │ │  Nexus   ││
@@ -44,7 +44,7 @@ VeriMantle provides six universal primitives for autonomous AI agents:
     * **Startup:** Microseconds vs Milliseconds (Firecracker).
     * **Security:** Capability-based security model.
     * **Portability:** Truly universal binaries.
-* **Usage:** `VeriMantle-Gate` compiled policies run as hot-swappable WASM modules.
+* **Usage:** `AgentKern-Gate` compiled policies run as hot-swappable WASM modules.
 
 ---
 
@@ -82,7 +82,7 @@ VeriMantle provides six universal primitives for autonomous AI agents:
 
 **Objective:** Enable agents from any vendor to communicate seamlessly.
 
-* **Technology:** **VeriMantle Nexus** — Universal Protocol Gateway.
+* **Technology:** **AgentKern Nexus** — Universal Protocol Gateway.
 * **Supported Protocols:**
 
 | Protocol | Provider | Transport | Status |
@@ -93,7 +93,7 @@ VeriMantle provides six universal primitives for autonomous AI agents:
 | **ANP** | W3C | TBD | 🟡 Beta |
 | **AITP** | NEAR | TBD | 🟡 Beta |
 
-* **Usage:** Nexus auto-detects incoming protocol and translates to VeriMantle native format.
+* **Usage:** Nexus auto-detects incoming protocol and translates to AgentKern native format.
 
 ---
 
@@ -106,7 +106,7 @@ graph TD
     end
 
     subgraph "The Core (Rust/Hyper-Loop)"
-        Nexus --> |Translated| Gateway[VeriMantle Gateway]
+        Nexus --> |Translated| Gateway[AgentKern Gateway]
         Gateway --> |Zero-Copy| Arbiter[Arbiter (Traffic Control)]
         Gateway --> |WASM| Gate[Gate (Logic & Policy)]
         Gateway --> |Atomic| Treasury[Treasury (Payments)]
@@ -132,7 +132,7 @@ graph TD
 
 ## Summary for Investors/Engineers
 
-| Feature | Traditional Stack | VeriMantle Hyper-Stack |
+| Feature | Traditional Stack | AgentKern Hyper-Stack |
 | :--- | :--- | :--- |
 | **Language** | Python / Go (GC Pauses) | **Rust** (Zero GC, Deterministic) |
 | **I/O** | Epoll (Standard) | **io_uring** (Async Ring Buffer) |

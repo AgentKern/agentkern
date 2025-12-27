@@ -1,4 +1,4 @@
-//! VeriMantle-Arbiter: Lock Manager
+//! AgentKern-Arbiter: Lock Manager
 //!
 //! Manages business locks with TTL and priority-based preemption.
 //!

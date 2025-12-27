@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying VeriMantle to production.
+This guide covers deploying AgentKern to production.
 
 ---
 
@@ -90,17 +90,17 @@ npm publish --access public
 ```bash
 # Gate
 cd packages/gate
-fly launch --name verimantle-gate
+fly launch --name agentkern-gate
 fly deploy
 
 # Synapse
 cd packages/synapse
-fly launch --name verimantle-synapse
+fly launch --name agentkern-synapse
 fly deploy
 
 # Arbiter
 cd packages/arbiter
-fly launch --name verimantle-arbiter
+fly launch --name agentkern-arbiter
 fly deploy
 ```
 
@@ -108,14 +108,14 @@ fly deploy
 
 ```bash
 # Build all images
-docker build -t verimantle-gate packages/gate
-docker build -t verimantle-synapse packages/synapse
-docker build -t verimantle-arbiter packages/arbiter
+docker build -t agentkern-gate packages/gate
+docker build -t agentkern-synapse packages/synapse
+docker build -t agentkern-arbiter packages/arbiter
 
 # Run locally
-docker run -p 3001:3001 verimantle-gate
-docker run -p 3002:3002 verimantle-synapse
-docker run -p 3003:3003 verimantle-arbiter
+docker run -p 3001:3001 agentkern-gate
+docker run -p 3002:3002 agentkern-synapse
+docker run -p 3003:3003 agentkern-arbiter
 ```
 
 ### Using Docker Compose
@@ -182,7 +182,7 @@ curl http://localhost:3003/health  # Arbiter
 
 | Service | Local | Fly.io |
 |---------|-------|--------|
-| Gate | http://localhost:3001 | https://verimantle-gate.fly.dev |
-| Synapse | http://localhost:3002 | https://verimantle-synapse.fly.dev |
-| Arbiter | http://localhost:3003 | https://verimantle-arbiter.fly.dev |
-| Playground | http://localhost:5173 | https://verimantle-playground.vercel.app |
+| Gate | http://localhost:3001 | https://agentkern-gate.fly.dev |
+| Synapse | http://localhost:3002 | https://agentkern-synapse.fly.dev |
+| Arbiter | http://localhost:3003 | https://agentkern-arbiter.fly.dev |
+| Playground | http://localhost:5173 | https://agentkern-playground.vercel.app |
