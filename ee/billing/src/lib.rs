@@ -407,23 +407,27 @@ pub enum AlertType {
     ProjectedSpendThreshold,
 }
 
-/// Stripe Meter integration (wrapper).
+/// Stripe Meter integration.
+/// Uses reqwest to call Stripe Billing Meter API v2024-12-18.
 #[derive(Debug)]
 pub struct StripeMeterSync {
     /// Stripe API key
     api_key: String,
     /// Meter ID in Stripe
     meter_id: String,
+    /// HTTP client
+    client: reqwest::Client,
     /// Events pending sync
     pending_events: Vec<UsageEvent>,
 }
 
 impl StripeMeterSync {
-    /// Create a new Stripe sync (requires Stripe API key).
+    /// Create a new Stripe sync.
     pub fn new(api_key: impl Into<String>, meter_id: impl Into<String>) -> Self {
         Self {
             api_key: api_key.into(),
             meter_id: meter_id.into(),
+            client: reqwest::Client::new(),
             pending_events: Vec::new(),
         }
     }
@@ -433,23 +437,54 @@ impl StripeMeterSync {
         self.pending_events.push(event);
     }
 
-    /// Sync pending events to Stripe.
+    /// Sync pending events to Stripe Billing Meter API.
     pub async fn sync(&mut self) -> Result<usize, BillingError> {
         let count = self.pending_events.len();
         
-        // In production, this would call Stripe API:
-        // POST /v1/billing/meters/{meter_id}/events
-        // 
-        // for event in &self.pending_events {
-        //     stripe_client.billing().meters().events()
-        //         .create(&self.meter_id, event)
-        //         .await?;
-        // }
+        if count == 0 {
+            return Ok(0);
+        }
+        
+        // Build events payload for Stripe API
+        let events: Vec<_> = self.pending_events.iter().map(|e| {
+            serde_json::json!({
+                "event_name": format!("{}_{}", e.metric.unit_name(), e.tenant_id),
+                "payload": {
+                    "stripe_customer_id": e.tenant_id,
+                    "value": e.quantity.to_string(),
+                    "timestamp": e.timestamp.timestamp()
+                }
+            })
+        }).collect();
+        
+        // POST to Stripe Billing Meter Events API
+        let response = self.client
+            .post(format!(
+                "https://api.stripe.com/v1/billing/meters/{}/events",
+                self.meter_id
+            ))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Stripe-Version", "2024-12-18")
+            .form(&[("events", serde_json::to_string(&events).unwrap_or_default())])
+            .send()
+            .await
+            .map_err(|e| BillingError::StripeError { 
+                message: format!("HTTP error: {}", e) 
+            })?;
+        
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(BillingError::StripeError {
+                message: format!("Stripe API error {}: {}", status, body),
+            });
+        }
         
         tracing::info!(
             meter_id = %self.meter_id,
             count = count,
-            "Synced events to Stripe"
+            "Synced events to Stripe Billing Meter API"
         );
         
         self.pending_events.clear();
@@ -461,6 +496,7 @@ impl StripeMeterSync {
         self.pending_events.len()
     }
 }
+
 
 /// Billing errors.
 #[derive(Debug, thiserror::Error)]
