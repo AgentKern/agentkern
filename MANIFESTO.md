@@ -18,9 +18,9 @@ They browse the web, write code, make purchases, send emails, and interact with 
 
 But here's the problem nobody is talking about:
 
-**There's no infrastructure for agent accountability, safety, memory, or coordination.**
+**There's no infrastructure for agent accountability, safety, memory, coordination, payments, or interoperability.**
 
-When your agent makes a $50,000 purchase by mistake, who's liable? When two agents try to modify the same database record, who wins? When your agent drifts from its original goal, how do you detect it?
+When your agent makes a $50,000 purchase by mistake, who's liable? When two agents try to modify the same database record, who wins? When your agent drifts from its original goal, how do you detect it? When agents need to pay each other for services, how do they transact? When an AutoGen agent needs to talk to a Claude agent, what protocol do they use?
 
 These are infrastructure problems. And they're unsolved.
 
@@ -35,6 +35,8 @@ AI agents are in the same position today. Every framework is reinventing:
 - Safety guardrails
 - State management
 - Resource coordination
+- Payment rails
+- Protocol translation
 
 We believe it's time for an **Agentic Operating System**.
 
@@ -44,22 +46,25 @@ We believe it's time for an **Agentic Operating System**.
 
 **VeriMantle** is the foundational layer for autonomous AI agents.
 
-We provide five universal primitives — the **Five Pillars** — that every agent needs:
+We provide six universal primitives — the **Six Pillars** — that every agent needs:
 
 ### 🪪 Identity
-Every agent action is cryptographically signed. When something goes wrong, you know *exactly* which agent did what and when. Liability is traceable. Agents have **verifiable reputations** built on their transaction history.
+Every agent action is cryptographically signed. When something goes wrong, you know *exactly* which agent did what and when. Liability is traceable. Agents have **verifiable reputations** built on their transaction history via W3C Verifiable Credentials.
 
 ### 🛡️ Gate  
-Before any action executes, it passes through our **Neuro-Symbolic Verification Engine**. Deterministic policy checks in under 1ms. Semantic malice detection (prompt injection, social engineering) in under 20ms.
+Before any action executes, it passes through our **Neuro-Symbolic Verification Engine**. Deterministic policy checks in under 1ms. Semantic malice detection (prompt injection, social engineering) in under 20ms. Multi-layer defense against the 73% of LLM apps that are vulnerable.
 
 ### 🧠 Synapse
-Agents have goals, not just actions. Synapse tracks **Intent Paths** — the progression from goal to completion. When an agent starts taking more steps than expected, we detect **drift** before it becomes a problem. Automatic alerting via webhooks.
+Agents have goals, not just actions. Synapse tracks **Intent Paths** — the progression from goal to completion. When an agent starts taking more steps than expected, we detect **drift** before it becomes a problem. CRDTs enable global sync without coordination. Automatic alerting via webhooks.
 
 ### ⚖️ Arbiter
-When multiple agents need the same resource, Arbiter provides **Atomic Business Locks** with priority-based scheduling. No race conditions. No double-spending. No chaos.
+When multiple agents need the same resource, Arbiter provides **Atomic Business Locks** with priority-based scheduling. Raft consensus for strong consistency. Kill switch for emergency termination. No race conditions. No double-spending. No chaos.
 
-### 💰 Treasury *(New)*
-Agents can **pay each other** for services. Treasury provides atomic transfers with 2-phase commit, spending budgets, and micropayment aggregation. The missing infrastructure for the **Agentic Economy**.
+### 💰 Treasury
+Agents can **pay each other** for services. Treasury provides atomic transfers with 2-phase commit, spending budgets, micropayment aggregation, and **carbon footprint tracking**. The missing infrastructure for the **Agentic Economy**.
+
+### 🔀 Nexus
+The **universal protocol gateway**. Agents from different vendors — Google (A2A), Anthropic (MCP), W3C (ANP), ECMA (NLIP), NEAR (AITP) — can now talk to each other. Nexus provides protocol translation, agent discovery, task routing, and a **marketplace** for agent services.
 
 ---
 
@@ -70,10 +75,12 @@ We're not building toys. VeriMantle is engineered for production:
 | Layer | Technology | Why |
 |-------|------------|-----|
 | SDK | TypeScript | Developer experience, ecosystem fit |
-| Core | Rust | Performance, memory safety, concurrency |
+| Core | Rust | Performance, memory safety, zero GC |
 | State | CRDTs | Eventual consistency without coordination |
 | Consensus | Raft | Strong consistency when needed |
 | Neural | ONNX | Fast ML inference (<20ms) |
+| Sandbox | WASM | Nano-isolation for untrusted code |
+| Protocols | A2A, MCP, ANP | Industry-standard agent communication |
 
 Our verification engine processes **10,000+ requests per second** on a single node.
 
@@ -83,17 +90,19 @@ Our verification engine processes **10,000+ requests per second** on a single no
 
 VeriMantle is **open source at the foundation**:
 
-**MIT Licensed (Free Forever)**:
+**Apache 2.0 Licensed (Free Forever)**:
 - `@verimantle/sdk` — TypeScript client
-- `verimantle-identity` — Agent authentication
-- `verimantle-gate` — Policy verification
-- `verimantle-synapse` — State management
-- `verimantle-arbiter` — Coordination
-- `verimantle-treasury` — Agent payments
+- `verimantle-identity` — Agent authentication & trust
+- `verimantle-gate` — Policy verification & prompt guard
+- `verimantle-synapse` — State management & memory
+- `verimantle-arbiter` — Coordination & compliance
+- `verimantle-treasury` — Agent payments & carbon
+- `verimantle-nexus` — Protocol gateway & marketplace
 
-**Commercial (VeriMantle Cloud)**:
+**Commercial (VeriMantle Enterprise)**:
 - Multi-node orchestration
 - Global state synchronization  
+- SAP, SWIFT, Mainframe connectors
 - Compliance UI and audit logs
 - Enterprise SLAs
 
@@ -112,6 +121,14 @@ const client = new VeriMantle({ region: 'eu' });
 // All data stays in the EU. Cross-border transfers are blocked automatically.
 ```
 
+And **sector-aware compliance** that adapts to local regulations:
+
+| Sector | US | EU/MENA | VeriMantle Action |
+|--------|----|---------|--------------------|
+| Finance | Interest-based | Takaful/Islamic | Switches from debt logic to pool logic |
+| Health | HIPAA | GDPR | Switches data locality and consent flows |
+| Commerce | Sales Tax | VAT | Switches tax calculation & invoicing |
+
 ---
 
 ## The Bigger Picture
@@ -121,8 +138,10 @@ We're not just building infrastructure. We're enabling a new economy.
 With VeriMantle, agents can:
 - Have **verifiable reputations** built on their transaction history *(Identity + Trust Scoring)*
 - **Pay each other** for services via micropayment rails *(Treasury)*
+- **Talk to any other agent** regardless of vendor *(Nexus)*
+- Track their **carbon footprint** for ESG compliance *(Treasury + Carbon Ledger)*
 - Be **legally incorporated** as LLCs, shielding developers from liability
-- Humans maintain **oversight and control** through a Mission Control UI
+- Humans maintain **oversight and control** through escalation workflows
 
 This is the **Agentic Economy**. And VeriMantle is its operating system.
 
@@ -157,6 +176,7 @@ VeriMantle is building the infrastructure layer for the next decade of AI. If yo
 - Rust/TypeScript systems programming
 - Distributed systems and CRDTs
 - AI safety and alignment
+- Protocol design (A2A, MCP)
 - Developer experience
 
 We want to hear from you.

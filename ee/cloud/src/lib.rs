@@ -23,16 +23,43 @@ pub enum LicenseError {
     LicenseRequired,
     #[error("License expired on {expiry}")]
     LicenseExpired { expiry: String },
-    #[error("Invalid license key")]
-    InvalidLicense,
+    #[error("Invalid license key: {0}")]
+    InvalidLicense(String),
     #[error("Feature not included in license: {feature}")]
     FeatureNotLicensed { feature: String },
+    #[error("License server error: {0}")]
+    ServerError(String),
 }
 
+/// License claims from JWT token.
+#[derive(Debug, Clone, Deserialize)]
+pub struct LicenseClaims {
+    /// Subject (organization ID)
+    pub sub: String,
+    /// Issuer
+    pub iss: String,
+    /// Expiration timestamp
+    pub exp: u64,
+    /// Issued at
+    pub iat: u64,
+    /// Licensed features
+    #[serde(default)]
+    pub features: Vec<String>,
+    /// License tier (enterprise, growth, etc.)
+    #[serde(default = "default_tier")]
+    pub tier: String,
+}
+
+fn default_tier() -> String { "demo".to_string() }
+
 /// Enterprise license validation.
+/// 
+/// Supports two modes:
+/// 1. **Offline**: JWT-based license token validated locally
+/// 2. **Online**: HTTP validation against license server
 pub struct License {
     key: String,
-    valid: bool,
+    claims: Option<LicenseClaims>,
 }
 
 impl License {
@@ -41,32 +68,88 @@ impl License {
         let key = std::env::var("VERIMANTLE_LICENSE_KEY")
             .map_err(|_| LicenseError::LicenseRequired)?;
         
-        // In production, this would validate against a license server
-        // For now, accept any non-empty key for development
         if key.is_empty() {
-            return Err(LicenseError::InvalidLicense);
+            return Err(LicenseError::InvalidLicense("Empty key".into()));
         }
-
-        Ok(Self { key, valid: true })
+        
+        // Try JWT offline validation
+        if let Ok(claims) = Self::validate_jwt_offline(&key) {
+            tracing::info!(org = %claims.sub, tier = %claims.tier, "License validated (JWT)");
+            return Ok(Self { key, claims: Some(claims) });
+        }
+        
+        // Fallback: demo mode
+        tracing::warn!("License not JWT format, running in demo mode");
+        Ok(Self { key, claims: None })
+    }
+    
+    /// Validate JWT license token offline.
+    fn validate_jwt_offline(token: &str) -> Result<LicenseClaims, LicenseError> {
+        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+        
+        let secret = std::env::var("VERIMANTLE_LICENSE_SECRET")
+            .unwrap_or_else(|_| "verimantle-demo-2025".into());
+        
+        let key = DecodingKey::from_secret(secret.as_bytes());
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_issuer(&["verimantle.com"]);
+        
+        let data = decode::<LicenseClaims>(token, &key, &validation)
+            .map_err(|e| LicenseError::InvalidLicense(e.to_string()))?;
+        
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        
+        if data.claims.exp < now {
+            return Err(LicenseError::LicenseExpired { 
+                expiry: chrono::DateTime::from_timestamp(data.claims.exp as i64, 0)
+                    .map(|dt| dt.to_string())
+                    .unwrap_or_default()
+            });
+        }
+        
+        Ok(data.claims)
+    }
+    
+    /// Validate license with HTTP server (async).
+    pub async fn validate_with_server(&self, server_url: &str) -> Result<LicenseClaims, LicenseError> {
+        let client = reqwest::Client::new();
+        let resp = client.post(format!("{}/v1/validate", server_url))
+            .header("Authorization", format!("Bearer {}", self.key))
+            .send().await
+            .map_err(|e| LicenseError::ServerError(e.to_string()))?;
+        
+        if !resp.status().is_success() {
+            return Err(LicenseError::InvalidLicense(resp.text().await.unwrap_or_default()));
+        }
+        
+        resp.json().await.map_err(|e| LicenseError::ServerError(e.to_string()))
     }
 
     /// Check if a feature is licensed.
     pub fn require(&self, feature: &str) -> Result<(), LicenseError> {
-        if !self.valid {
-            return Err(LicenseError::LicenseRequired);
+        if let Some(ref claims) = self.claims {
+            if claims.tier == "enterprise" || claims.features.contains(&feature.to_string()) {
+                return Ok(());
+            }
+            return Err(LicenseError::FeatureNotLicensed { feature: feature.into() });
         }
-        
-        // In production, check feature against license claims
-        tracing::debug!(feature = %feature, "Enterprise feature accessed");
+        // Demo mode: allow with warning
+        tracing::warn!(feature = %feature, "Demo mode - feature access");
         Ok(())
+    }
+    
+    /// Get license tier.
+    pub fn tier(&self) -> &str {
+        self.claims.as_ref().map(|c| c.tier.as_str()).unwrap_or("demo")
     }
 }
 
 /// Require an enterprise license for a feature.
 pub fn require_license(feature: &str) -> Result<(), LicenseError> {
-    let license = License::from_env()?;
-    license.require(feature)
+    License::from_env()?.require(feature)
 }
+
 
 /// Multi-cell mesh configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]

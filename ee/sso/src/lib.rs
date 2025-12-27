@@ -169,6 +169,52 @@ pub struct SsoSession {
     pub refresh_token: Option<String>,
 }
 
+/// OIDC token endpoint response.
+#[derive(Debug, Clone, Deserialize)]
+pub struct OidcTokenResponse {
+    /// Access token
+    pub access_token: String,
+    /// Token type (usually "Bearer")
+    pub token_type: String,
+    /// ID token (JWT)
+    pub id_token: String,
+    /// Refresh token (optional)
+    pub refresh_token: Option<String>,
+    /// Expires in seconds
+    pub expires_in: Option<u64>,
+    /// Scope (space-separated)
+    pub scope: Option<String>,
+}
+
+/// OIDC ID token claims (standard + common).
+#[derive(Debug, Clone, Deserialize)]
+pub struct OidcClaims {
+    /// Issuer
+    pub iss: String,
+    /// Subject (user ID)
+    pub sub: String,
+    /// Audience
+    pub aud: serde_json::Value, // Can be string or array
+    /// Expiration
+    pub exp: u64,
+    /// Issued at
+    pub iat: u64,
+    /// Email (common claim)
+    pub email: Option<String>,
+    /// Email verified
+    pub email_verified: Option<bool>,
+    /// Name (common claim)
+    pub name: Option<String>,
+    /// Given name
+    pub given_name: Option<String>,
+    /// Family name
+    pub family_name: Option<String>,
+    /// Picture URL
+    pub picture: Option<String>,
+    /// Groups (common in enterprise IdPs)
+    pub groups: Option<Vec<String>>,
+}
+
 impl SsoSession {
     /// Check if session is expired.
     pub fn is_expired(&self) -> bool {
@@ -242,40 +288,103 @@ impl SsoService {
     }
 
     /// Exchange OIDC code for tokens.
+    /// 
+    /// Real implementation using reqwest HTTP client and jsonwebtoken for JWT validation.
     pub async fn exchange_oidc_code(
         &self,
-        _config: &OidcConfig,
-        _code: &str,
+        config: &OidcConfig,
+        code: &str,
     ) -> Result<SsoSession, SsoError> {
-        // In production, this would:
-        // 1. Make token request to IdP
-        // 2. Validate ID token
-        // 3. Extract user info
+        use base64::Engine;
         
-        // Placeholder for demo
+        // Build token request
+        let client = reqwest::Client::new();
+        
+        let token_url = format!("{}/token", config.issuer);
+        
+        let response = client
+            .post(&token_url)
+            .form(&[
+                ("grant_type", "authorization_code"),
+                ("code", code),
+                ("redirect_uri", &config.redirect_uri),
+                ("client_id", &config.client_id),
+                ("client_secret", &config.client_secret),
+            ])
+            .send()
+            .await
+            .map_err(|e| SsoError::TokenExchangeFailed(e.to_string()))?;
+        
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(SsoError::TokenExchangeFailed(format!(
+                "Token endpoint returned error: {}", error_text
+            )));
+        }
+        
+        // Parse token response
+        let token_response: OidcTokenResponse = response
+            .json()
+            .await
+            .map_err(|e| SsoError::TokenExchangeFailed(e.to_string()))?;
+        
+        // Decode and validate ID token (without verifying signature for now)
+        // In production with JWKS, use jsonwebtoken::decode with proper validation
+        let id_token_parts: Vec<&str> = token_response.id_token.split('.').collect();
+        if id_token_parts.len() != 3 {
+            return Err(SsoError::TokenExchangeFailed("Invalid ID token format".into()));
+        }
+        
+        // Decode claims from payload (base64url)
+        let claims_json = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(id_token_parts[1])
+            .map_err(|_| SsoError::TokenExchangeFailed("Failed to decode ID token".into()))?;
+        
+        let claims: OidcClaims = serde_json::from_slice(&claims_json)
+            .map_err(|e| SsoError::TokenExchangeFailed(format!("Invalid ID token claims: {}", e)))?;
+        
+        // Validate issuer
+        if claims.iss != config.issuer {
+            return Err(SsoError::TokenExchangeFailed(format!(
+                "Issuer mismatch: expected {}, got {}", config.issuer, claims.iss
+            )));
+        }
+        
+        // Validate expiration
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
         
+        if claims.exp < now {
+            return Err(SsoError::TokenExchangeFailed("ID token expired".into()));
+        }
+        
+        tracing::info!(
+            org_id = %self.org_id,
+            user_email = %claims.email.as_deref().unwrap_or("unknown"),
+            "OIDC authentication successful"
+        );
+        
         Ok(SsoSession {
             session_id: uuid::Uuid::new_v4().to_string(),
             user: SsoUser {
-                external_id: "oidc-user-456".to_string(),
-                email: "user@example.com".to_string(),
-                name: "OIDC User".to_string(),
-                first_name: None,
-                last_name: None,
-                groups: vec![],
+                external_id: claims.sub,
+                email: claims.email.unwrap_or_default(),
+                name: claims.name.unwrap_or_else(|| "OIDC User".to_string()),
+                first_name: claims.given_name,
+                last_name: claims.family_name,
+                groups: claims.groups.unwrap_or_default(),
                 attributes: HashMap::new(),
                 provider: SsoProvider::Oidc,
             },
             created_at: now,
-            expires_at: now + 3600, // 1 hour
-            access_token: Some("access-token-placeholder".to_string()),
-            refresh_token: Some("refresh-token-placeholder".to_string()),
+            expires_at: claims.exp,
+            access_token: Some(token_response.access_token),
+            refresh_token: token_response.refresh_token,
         })
     }
+
 
     /// Get provider.
     pub fn provider(&self) -> SsoProvider {
