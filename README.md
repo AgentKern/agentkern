@@ -198,8 +198,8 @@ VeriMantle Nexus supports all major agent communication standards:
 |----------|----------|--------|-------------|
 | **A2A** | Google | ✅ Stable | Agent-to-Agent collaboration |
 | **MCP** | Anthropic | ✅ Stable | Model Context Protocol |
+| **NLIP** | ECMA | ✅ Stable | Natural Language Interface Protocol (ECMA-430, Dec 2025) |
 | **ANP** | W3C | 🟡 Beta | Agent Negotiation Protocol |
-| **NLIP** | ECMA | 🟡 Beta | Natural Language Interface Protocol |
 | **AITP** | NEAR | 🟡 Beta | AI Transaction Protocol |
 
 ---

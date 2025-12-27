@@ -86,8 +86,8 @@ VeriMantle Nexus supports all major agent communication standards (Dec 2025):
 |----------|----------|--------|----------------|
 | **A2A** | Google | ✅ Stable | Linux Foundation |
 | **MCP** | Anthropic | ✅ Stable | Linux Foundation |
+| **NLIP** | ECMA | ✅ Stable | ECMA (Dec 2025) |
 | **ANP** | W3C | 🟡 Beta | W3C |
-| **NLIP** | ECMA | 🟡 Beta | ECMA |
 | **AITP** | NEAR | 🟡 Beta | NEAR Foundation |
 
 This positions VeriMantle as the **only platform with unified multi-protocol support**.

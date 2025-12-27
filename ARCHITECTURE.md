@@ -89,8 +89,8 @@ VeriMantle provides six universal primitives for autonomous AI agents:
 |----------|----------|-----------|--------|
 | **A2A** | Google | HTTPS/JSON-RPC | ✅ Stable |
 | **MCP** | Anthropic | JSON-RPC 2.0 | ✅ Stable |
+| **NLIP** | ECMA | HTTP, WebSocket, AMQP | ✅ Stable |
 | **ANP** | W3C | TBD | 🟡 Beta |
-| **NLIP** | ECMA | TBD | 🟡 Beta |
 | **AITP** | NEAR | TBD | 🟡 Beta |
 
 * **Usage:** Nexus auto-detects incoming protocol and translates to VeriMantle native format.
