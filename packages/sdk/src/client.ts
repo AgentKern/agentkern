@@ -131,7 +131,7 @@ export class AgentKern {
         // TODO: Connect to AgentKern-Identity API
         return null;
       },
-      async signAction(_agentId, action, _payload) {
+      async signAction(agentId, action, _payload) {
         // TODO: Connect to AgentKern-Identity API
         return {
           action,
@@ -192,7 +192,7 @@ export class AgentKern {
         // TODO: Connect to AgentKern-Synapse API
         return null;
       },
-      async setState(_agentId, state) {
+      async setState(agentId, state) {
         // TODO: Connect to AgentKern-Synapse API (CRDT merge)
         return {
           agentId,
@@ -238,7 +238,7 @@ export class AgentKern {
    */
   private createArbiterAdapter(): ArbiterPort {
     return {
-      async requestCoordination(_request) {
+      async requestCoordination(request) {
         // TODO: Connect to AgentKern-Arbiter API
         return {
           granted: true,

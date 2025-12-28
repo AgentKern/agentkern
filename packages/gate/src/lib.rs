@@ -75,7 +75,9 @@ pub use observability::{GateMetrics, ObservabilityPlane};
 pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
+pub use shariah_compliance::{
+    ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
+};
 pub use sovereign::{DataTransfer, SovereignController, TransferDecision};
-pub use shariah_compliance::{ComplianceResult, ShariahComplianceError, ShariahComplianceValidator};
 pub use tee::Enclave;
 pub use types::{DataRegion, VerificationRequest, VerificationResult};

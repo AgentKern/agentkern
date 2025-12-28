@@ -131,7 +131,10 @@ impl ShariahComplianceValidator {
     }
 
     /// Validate a transaction for Shariah compliance.
-    pub fn validate(&self, details: &TransactionDetails) -> Result<ComplianceResult, ShariahComplianceError> {
+    pub fn validate(
+        &self,
+        details: &TransactionDetails,
+    ) -> Result<ComplianceResult, ShariahComplianceError> {
         let mut result = ComplianceResult {
             compliant: true,
             score: 100,
