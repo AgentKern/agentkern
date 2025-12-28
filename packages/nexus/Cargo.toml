@@ -28,17 +28,17 @@ futures = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# HTTP client/server
+# HTTP client/server (updated Dec 2025)
 reqwest = { version = "0.12", features = ["json", "stream"] }
-axum = { version = "0.7", features = ["ws"] }
-tower = "0.4"
+axum = { version = "0.8.8", features = ["ws"] }
+tower = "0.5"
 
 # gRPC (optional)
 tonic = { version = "0.12", optional = true }
 prost = { version = "0.13", optional = true }
 
 # Error handling
-thiserror = "1"
+thiserror = "2.0"
 anyhow = "1"
 
 # Crypto & identity
