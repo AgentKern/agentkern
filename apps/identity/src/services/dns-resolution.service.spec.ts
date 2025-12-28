@@ -1,5 +1,6 @@
 /**
  * DNS Resolution Service Tests
+ * Updated to work with async TypeORM-based service
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -8,26 +9,57 @@ import { DnsResolutionService } from './dns-resolution.service';
 import { AuditLoggerService } from './audit-logger.service';
 import { TrustRecordEntity } from '../entities/trust-record.entity';
 
-// Mock repository factory
-const createMockRepository = () => ({
-  find: jest.fn().mockResolvedValue([]),
-  findOne: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockImplementation(entity => Promise.resolve({ id: 'mock-id', ...entity })),
-  create: jest.fn().mockImplementation(entity => entity),
-  delete: jest.fn().mockResolvedValue({ affected: 1 }),
-});
-
 describe('DnsResolutionService', () => {
   let service: DnsResolutionService;
+  let mockRepository: any;
+
+  // Sample trust record for testing
+  const createMockRecord = (agentId: string, principalId: string) => ({
+    id: `${agentId}-${principalId}`,
+    agentId,
+    principalId,
+    trusted: true,
+    revoked: false,
+    trustScore: 500,
+    verificationCount: 0,
+    failureCount: 0,
+    registeredAt: new Date(),
+    lastVerifiedAt: new Date(),
+  });
 
   beforeEach(async () => {
+    // Create a stateful mock repository
+    const records = new Map<string, any>();
+    
+    mockRepository = {
+      find: jest.fn().mockImplementation(({ where }) => {
+        if (where?.principalId) {
+          return Promise.resolve(
+            Array.from(records.values()).filter(r => r.principalId === where.principalId)
+          );
+        }
+        return Promise.resolve(Array.from(records.values()));
+      }),
+      findOne: jest.fn().mockImplementation(({ where }) => {
+        const key = `${where.agentId}-${where.principalId}`;
+        return Promise.resolve(records.get(key) || null);
+      }),
+      save: jest.fn().mockImplementation(entity => {
+        const key = `${entity.agentId}-${entity.principalId}`;
+        records.set(key, { ...entity, id: key });
+        return Promise.resolve(records.get(key));
+      }),
+      create: jest.fn().mockImplementation(entity => entity),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DnsResolutionService,
         AuditLoggerService,
         {
           provide: getRepositoryToken(TrustRecordEntity),
-          useValue: createMockRepository(),
+          useValue: mockRepository,
         },
       ],
     }).compile();
@@ -36,8 +68,8 @@ describe('DnsResolutionService', () => {
   });
 
   describe('registerTrust', () => {
-    it('should register new trust relationship', () => {
-      const result = service.registerTrust('agent-1', 'principal-1', {
+    it('should register new trust relationship', async () => {
+      const result = await service.registerTrust('agent-1', 'principal-1', {
         agentName: 'Test Agent',
         agentVersion: '1.0.0',
       });
@@ -48,23 +80,23 @@ describe('DnsResolutionService', () => {
       expect(result.revoked).toBe(false);
     });
 
-    it('should return existing record if already exists', () => {
-      service.registerTrust('agent-1', 'principal-1');
-      const result = service.registerTrust('agent-1', 'principal-1');
+    it('should create record with default values', async () => {
+      const result = await service.registerTrust('agent-2', 'principal-2');
       expect(result).toBeDefined();
+      expect(result.trustScore).toBe(500);
     });
   });
 
   describe('resolve', () => {
     it('should resolve existing trust', async () => {
-      service.registerTrust('agent-1', 'principal-1');
+      await service.registerTrust('agent-1', 'principal-1');
       const resolution = await service.resolve({ agentId: 'agent-1', principalId: 'principal-1' });
       
       expect(resolution.trusted).toBe(true);
       expect(resolution.trustScore).toBeGreaterThan(0);
     });
 
-    it('should return low trust for unknown agent', async () => {
+    it('should create and return trust for unknown agent', async () => {
       const resolution = await service.resolve({ agentId: 'unknown-agent', principalId: 'principal-1' });
       expect(resolution.trusted).toBe(true); // New records start trusted
       expect(resolution.trustScore).toBe(500); // Default score
@@ -73,25 +105,25 @@ describe('DnsResolutionService', () => {
 
   describe('revokeTrust', () => {
     it('should revoke existing trust', async () => {
-      service.registerTrust('agent-1', 'principal-1');
-      const result = service.revokeTrust('agent-1', 'principal-1', 'Compromised');
+      await service.registerTrust('agent-1', 'principal-1');
+      const result = await service.revokeTrust('agent-1', 'principal-1', 'Compromised');
       
       expect(result).toBeDefined();
       expect(result?.revoked).toBe(true);
       expect(result?.trusted).toBe(false);
     });
 
-    it('should return null for non-existent trust', () => {
-      const result = service.revokeTrust('fake', 'fake', 'reason');
+    it('should return null for non-existent trust', async () => {
+      const result = await service.revokeTrust('fake', 'fake', 'reason');
       expect(result).toBeNull();
     });
   });
 
   describe('reinstateTrust', () => {
-    it('should reinstate revoked trust', () => {
-      service.registerTrust('agent-1', 'principal-1');
-      service.revokeTrust('agent-1', 'principal-1', 'Temporary');
-      const result = service.reinstateTrust('agent-1', 'principal-1');
+    it('should reinstate revoked trust', async () => {
+      await service.registerTrust('agent-1', 'principal-1');
+      await service.revokeTrust('agent-1', 'principal-1', 'Temporary');
+      const result = await service.reinstateTrust('agent-1', 'principal-1');
       
       expect(result).toBeDefined();
       expect(result?.revoked).toBe(false);
@@ -99,40 +131,38 @@ describe('DnsResolutionService', () => {
   });
 
   describe('recordVerificationSuccess', () => {
-    it('should increment verification count', () => {
-      service.registerTrust('agent-1', 'principal-1');
-      service.recordVerificationSuccess('agent-1', 'principal-1');
+    it('should increment verification count', async () => {
+      await service.registerTrust('agent-1', 'principal-1');
+      const result = await service.recordVerificationSuccess('agent-1', 'principal-1');
       
-      const record = service.getTrustRecord('agent-1', 'principal-1');
-      expect(record?.verificationCount).toBe(1);
+      expect(result?.verificationCount).toBe(1);
     });
   });
 
   describe('recordVerificationFailure', () => {
-    it('should increment failure count', () => {
-      service.registerTrust('agent-1', 'principal-1');
-      service.recordVerificationFailure('agent-1', 'principal-1');
+    it('should increment failure count', async () => {
+      await service.registerTrust('agent-1', 'principal-1');
+      const result = await service.recordVerificationFailure('agent-1', 'principal-1');
       
-      const record = service.getTrustRecord('agent-1', 'principal-1');
-      expect(record?.failureCount).toBe(1);
+      expect(result?.failureCount).toBe(1);
     });
   });
 
   describe('getTrustRecordsForPrincipal', () => {
-    it('should return all records for principal', () => {
-      service.registerTrust('agent-1', 'principal-1');
-      service.registerTrust('agent-2', 'principal-1');
-      service.registerTrust('agent-3', 'principal-2');
+    it('should return all records for principal', async () => {
+      await service.registerTrust('agent-1', 'principal-1');
+      await service.registerTrust('agent-2', 'principal-1');
+      await service.registerTrust('agent-3', 'principal-2');
       
-      const records = service.getTrustRecordsForPrincipal('principal-1');
+      const records = await service.getTrustRecordsForPrincipal('principal-1');
       expect(records.length).toBe(2);
     });
   });
 
   describe('resolveBatch', () => {
     it('should resolve multiple queries', async () => {
-      service.registerTrust('agent-1', 'principal-1');
-      service.registerTrust('agent-2', 'principal-1');
+      await service.registerTrust('agent-1', 'principal-1');
+      await service.registerTrust('agent-2', 'principal-1');
       
       const results = await service.resolveBatch([
         { agentId: 'agent-1', principalId: 'principal-1' },
@@ -143,6 +173,21 @@ describe('DnsResolutionService', () => {
       expect(results.length).toBe(3);
       expect(results[0].trusted).toBe(true);
       expect(results[1].trusted).toBe(true);
+    });
+  });
+
+  describe('getTrustRecord', () => {
+    it('should return specific trust record', async () => {
+      await service.registerTrust('agent-1', 'principal-1');
+      const record = await service.getTrustRecord('agent-1', 'principal-1');
+      
+      expect(record).toBeDefined();
+      expect(record?.agentId).toBe('agent-1');
+    });
+
+    it('should return null for non-existent record', async () => {
+      const record = await service.getTrustRecord('fake', 'fake');
+      expect(record).toBeNull();
     });
   });
 });

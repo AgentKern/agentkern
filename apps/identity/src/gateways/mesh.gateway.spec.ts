@@ -3,6 +3,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { MeshGateway } from './mesh.gateway';
 import { MeshMessageType, MeshNodeType } from '../domain/mesh.entity';
 
@@ -13,8 +14,17 @@ describe('MeshGateway Comprehensive', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        ThrottlerModule.forRoot([{
+          ttl: 60000,
+          limit: 100,
+        }]),
+      ],
       providers: [MeshGateway],
-    }).compile();
+    })
+    .overrideGuard(ThrottlerGuard)
+    .useValue({ canActivate: () => true })
+    .compile();
 
     gateway = module.get<MeshGateway>(MeshGateway);
     

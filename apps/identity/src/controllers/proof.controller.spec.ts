@@ -7,6 +7,7 @@ import { ProofController } from './proof.controller';
 import { ProofVerificationService } from '../services/proof-verification.service';
 import { ProofSigningService } from '../services/proof-signing.service';
 import { AuditLoggerService } from '../services/audit-logger.service';
+import { AgentSandboxService } from '../services/agent-sandbox.service';
 
 describe('ProofController', () => {
   let controller: ProofController;
@@ -56,6 +57,14 @@ describe('ProofController', () => {
             logSecurityEvent: jest.fn(),
             log: jest.fn(),
             getAuditTrailForPrincipal: jest.fn().mockReturnValue([]),
+          },
+        },
+        {
+          provide: AgentSandboxService,
+          useValue: {
+            checkAction: jest.fn().mockResolvedValue({ allowed: true, agentStatus: 'ACTIVE' }),
+            recordSuccess: jest.fn(),
+            recordFailure: jest.fn(),
           },
         },
       ],

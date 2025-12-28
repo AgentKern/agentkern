@@ -3,19 +3,28 @@ import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import {
   AgentSandboxService,
-  AgentStatus,
 } from './agent-sandbox.service';
 import { AuditLoggerService } from './audit-logger.service';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
+import { AgentStatus } from '../domain/agent.entity';
 
-// Mock repository factory
-const createMockRepository = () => ({
-  find: jest.fn().mockResolvedValue([]),
-  findOne: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockImplementation(entity => Promise.resolve({ id: 'mock-id', ...entity })),
-  create: jest.fn().mockImplementation(entity => entity),
-  delete: jest.fn().mockResolvedValue({ affected: 1 }),
-});
+// Re-export for test assertions
+export { AgentStatus };
+
+// Mock repository factory with stateful data
+const createMockRepository = () => {
+  const records = new Map<string, any>();
+  return {
+    find: jest.fn().mockImplementation(() => Promise.resolve(Array.from(records.values()))),
+    findOne: jest.fn().mockImplementation(({ where }) => Promise.resolve(records.get(where.id) || null)),
+    save: jest.fn().mockImplementation(entity => {
+      records.set(entity.id, entity);
+      return Promise.resolve(entity);
+    }),
+    create: jest.fn().mockImplementation(entity => entity),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
+  };
+};
 
 describe('AgentSandboxService', () => {
   let service: AgentSandboxService;
@@ -50,8 +59,8 @@ describe('AgentSandboxService', () => {
   });
 
   describe('agent registration', () => {
-    it('should register a new agent', () => {
-      const agent = service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should register a new agent', async () => {
+      const agent = await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
       expect(agent).toBeDefined();
       expect(agent.id).toBe('agent-1');
@@ -61,16 +70,16 @@ describe('AgentSandboxService', () => {
       expect(agent.reputation.score).toBe(500); // Neutral starting score
     });
 
-    it('should return existing agent on duplicate registration', () => {
-      const first = service.registerAgent('agent-1', 'TestAgent', '1.0.0');
-      const second = service.registerAgent('agent-1', 'DifferentName', '2.0.0');
+    it('should return existing agent on duplicate registration', async () => {
+      const first = await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      const second = await service.registerAgent('agent-1', 'DifferentName', '2.0.0');
 
       expect(first).toBe(second);
       expect(second.name).toBe('TestAgent'); // Original name retained
     });
 
-    it('should register agent with custom budget', () => {
-      const agent = service.registerAgent('agent-2', 'TestAgent', '1.0.0', {
+    it('should register agent with custom budget', async () => {
+      const agent = await service.registerAgent('agent-2', 'TestAgent', '1.0.0', {
         maxTokens: 500000,
         maxApiCalls: 5000,
       });
@@ -82,7 +91,7 @@ describe('AgentSandboxService', () => {
 
   describe('action checking', () => {
     it('should allow valid action', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
       const result = await service.checkAction({
         agentId: 'agent-1',
@@ -107,8 +116,8 @@ describe('AgentSandboxService', () => {
     });
 
     it('should block suspended agent', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
-      service.suspendAgent('agent-1', 'Test suspension');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.suspendAgent('agent-1', 'Test suspension');
 
       const result = await service.checkAction({
         agentId: 'agent-1',
@@ -121,8 +130,8 @@ describe('AgentSandboxService', () => {
     });
 
     it('should block terminated agent', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
-      service.terminateAgent('agent-1', 'Test termination');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.terminateAgent('agent-1', 'Test termination');
 
       const result = await service.checkAction({
         agentId: 'agent-1',
@@ -137,7 +146,7 @@ describe('AgentSandboxService', () => {
 
   describe('budget enforcement', () => {
     it('should block when token budget exceeded', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0', {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0', {
         maxTokens: 100,
         periodSeconds: 86400,
       });
@@ -154,7 +163,7 @@ describe('AgentSandboxService', () => {
     });
 
     it('should track remaining budget', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0', {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0', {
         maxTokens: 1000,
         maxApiCalls: 100,
         maxCostUsd: 10,
@@ -175,42 +184,42 @@ describe('AgentSandboxService', () => {
   });
 
   describe('reputation management', () => {
-    it('should increase reputation on success', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should increase reputation on success', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
       const initialScore = service.getAgentReputation('agent-1')!.score;
 
-      service.recordSuccess('agent-1', 100, 0.01);
+      await service.recordSuccess('agent-1', 100, 0.01);
 
       const newScore = service.getAgentReputation('agent-1')!.score;
       expect(newScore).toBeGreaterThan(initialScore);
     });
 
-    it('should decrease reputation on failure', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should decrease reputation on failure', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
       const initialScore = service.getAgentReputation('agent-1')!.score;
 
-      service.recordFailure('agent-1', 'Test failure');
+      await service.recordFailure('agent-1', 'Test failure');
 
       const newScore = service.getAgentReputation('agent-1')!.score;
       expect(newScore).toBeLessThan(initialScore);
     });
 
-    it('should severely decrease reputation on violation', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should severely decrease reputation on violation', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
       const initialScore = service.getAgentReputation('agent-1')!.score;
 
-      service.recordViolation('agent-1', 'Security violation');
+      await service.recordViolation('agent-1', 'Security violation');
 
       const newScore = service.getAgentReputation('agent-1')!.score;
       expect(newScore).toBeLessThan(initialScore - 50); // At least 100 point penalty
     });
 
-    it('should auto-suspend after multiple violations', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should auto-suspend after multiple violations', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
-      service.recordViolation('agent-1', 'Violation 1');
-      service.recordViolation('agent-1', 'Violation 2');
-      service.recordViolation('agent-1', 'Violation 3');
+      await service.recordViolation('agent-1', 'Violation 1');
+      await service.recordViolation('agent-1', 'Violation 2');
+      await service.recordViolation('agent-1', 'Violation 3');
 
       const agent = service.getAgentStatus('agent-1');
       expect(agent?.status).toBe(AgentStatus.SUSPENDED);
@@ -218,10 +227,10 @@ describe('AgentSandboxService', () => {
   });
 
   describe('kill switch', () => {
-    it('should terminate individual agent', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should terminate individual agent', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
-      const result = service.terminateAgent('agent-1', 'Manual termination');
+      const result = await service.terminateAgent('agent-1', 'Manual termination');
 
       expect(result).toBe(true);
       const agent = service.getAgentStatus('agent-1');
@@ -230,8 +239,8 @@ describe('AgentSandboxService', () => {
     });
 
     it('should activate global kill switch', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
-      service.registerAgent('agent-2', 'TestAgent2', '1.0.0');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.registerAgent('agent-2', 'TestAgent2', '1.0.0');
 
       service.activateGlobalKillSwitch('Emergency');
 
@@ -246,12 +255,12 @@ describe('AgentSandboxService', () => {
     });
 
     it('should deactivate global kill switch', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
       service.activateGlobalKillSwitch('Emergency');
       service.deactivateGlobalKillSwitch();
 
-      // Agent was terminated by kill switch, need to reactivate
-      service.registerAgent('agent-new', 'NewAgent', '1.0.0');
+      // Agent was terminated by kill switch, need to register new one
+      await service.registerAgent('agent-new', 'NewAgent', '1.0.0');
 
       const result = await service.checkAction({
         agentId: 'agent-new',
@@ -264,29 +273,29 @@ describe('AgentSandboxService', () => {
   });
 
   describe('agent lifecycle', () => {
-    it('should suspend and reactivate agent', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+    it('should suspend and reactivate agent', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
-      service.suspendAgent('agent-1', 'Temporary suspension');
+      await service.suspendAgent('agent-1', 'Temporary suspension');
       expect(service.getAgentStatus('agent-1')?.status).toBe(AgentStatus.SUSPENDED);
 
-      service.reactivateAgent('agent-1');
+      await service.reactivateAgent('agent-1');
       expect(service.getAgentStatus('agent-1')?.status).toBe(AgentStatus.ACTIVE);
     });
 
-    it('should not reactivate terminated agent', () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
-      service.terminateAgent('agent-1', 'Permanent termination');
+    it('should not reactivate terminated agent', async () => {
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.terminateAgent('agent-1', 'Permanent termination');
 
-      const result = service.reactivateAgent('agent-1');
+      const result = await service.reactivateAgent('agent-1');
 
       expect(result).toBe(false);
       expect(service.getAgentStatus('agent-1')?.status).toBe(AgentStatus.TERMINATED);
     });
 
-    it('should get all agents', () => {
-      service.registerAgent('agent-1', 'TestAgent1', '1.0.0');
-      service.registerAgent('agent-2', 'TestAgent2', '1.0.0');
+    it('should get all agents', async () => {
+      await service.registerAgent('agent-1', 'TestAgent1', '1.0.0');
+      await service.registerAgent('agent-2', 'TestAgent2', '1.0.0');
 
       const agents = service.getAllAgents();
 
@@ -296,7 +305,7 @@ describe('AgentSandboxService', () => {
 
   describe('rate limiting', () => {
     it('should rate limit excessive requests', async () => {
-      service.registerAgent('agent-1', 'TestAgent', '1.0.0');
+      await service.registerAgent('agent-1', 'TestAgent', '1.0.0');
 
       // Make 101 requests (limit is 100 per minute)
       for (let i = 0; i < 100; i++) {

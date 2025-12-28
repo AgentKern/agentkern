@@ -1,15 +1,19 @@
 /**
  * AgentKernIdentity Performance Benchmarks
  * 
- * Run: npm run build && node dist/test/benchmarks/performance.benchmark.js
- * Or simpler: npm run test -- --testPathPattern="benchmark" --testTimeout=60000
+ * These are integration benchmarks that require a database connection.
+ * Skip in CI, run manually with:
+ *   npm run test -- --testPathPattern="benchmark" --testTimeout=60000
+ * 
+ * To run locally, ensure DATABASE_URL is configured.
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from './app.module';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { DnsResolutionService } from './services/dns-resolution.service';
 import { PolicyService } from './services/policy.service';
 import { AuditLoggerService } from './services/audit-logger.service';
+import { TrustRecordEntity } from './entities/trust-record.entity';
 
 interface BenchmarkResult {
   name: string;
@@ -44,6 +48,32 @@ async function benchmark<T>(
   };
 }
 
+// Mock repository factory with stateful data for benchmarks
+const createMockRepository = () => {
+  const records = new Map<string, any>();
+  return {
+    find: jest.fn().mockImplementation(({ where }) => {
+      if (where?.principalId) {
+        return Promise.resolve(
+          Array.from(records.values()).filter(r => r.principalId === where.principalId)
+        );
+      }
+      return Promise.resolve(Array.from(records.values()));
+    }),
+    findOne: jest.fn().mockImplementation(({ where }) => {
+      const key = `${where.agentId}-${where.principalId}`;
+      return Promise.resolve(records.get(key) || null);
+    }),
+    save: jest.fn().mockImplementation(entity => {
+      const key = `${entity.agentId}-${entity.principalId}`;
+      records.set(key, { ...entity, id: key });
+      return Promise.resolve(records.get(key));
+    }),
+    create: jest.fn().mockImplementation(entity => entity),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
+  };
+};
+
 describe('Performance Benchmarks', () => {
   let dnsService: DnsResolutionService;
   let policyService: PolicyService;
@@ -51,7 +81,15 @@ describe('Performance Benchmarks', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      providers: [
+        DnsResolutionService,
+        PolicyService,
+        AuditLoggerService,
+        {
+          provide: getRepositoryToken(TrustRecordEntity),
+          useValue: createMockRepository(),
+        },
+      ],
     }).compile();
 
     dnsService = module.get<DnsResolutionService>(DnsResolutionService);
@@ -60,7 +98,7 @@ describe('Performance Benchmarks', () => {
   });
 
   it('DNS Resolve benchmark', async () => {
-    dnsService.registerTrust('bench-agent-1', 'bench-principal-1');
+    await dnsService.registerTrust('bench-agent-1', 'bench-principal-1');
 
     const result = await benchmark(
       'DNS Resolve (cached)',
