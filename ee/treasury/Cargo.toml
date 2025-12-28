@@ -2,7 +2,7 @@
 name = "agentkern-treasury-ee"
 
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 license = "LicenseRef-AgentKern-Enterprise"
 description = "AgentKern Enterprise: Cross-Agent Payment Rails"
 repository = "https://github.com/agentkern/agentkern"
