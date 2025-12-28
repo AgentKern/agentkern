@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   NODE_VERSION: '20'
   RUST_VERSION: 'stable'
+  PNPM_VERSION: '9'
 
 jobs:
   # ============================================
@@ -22,24 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: packages/sdk/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
       
       - name: Install dependencies
-        working-directory: packages/sdk
-        run: npm ci
+        run: pnpm install
       
-      - name: Run tests
+      - name: Run SDK tests
         working-directory: packages/sdk
-        run: npm test
+        run: pnpm test
       
-      - name: Build
+      - name: Build SDK
         working-directory: packages/sdk
-        run: npm run build
+        run: pnpm build
 
   # ============================================
   # Rust Gate Tests
@@ -65,92 +70,20 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            packages/gate/target/
-          key: ${{ runner.os }}-cargo-gate-${{ hashFiles('packages/gate/Cargo.lock') }}
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
       
       - name: Check formatting
-        working-directory: packages/gate
-        run: cargo fmt --check
+        run: cargo fmt --all --check
       
       - name: Clippy
-        working-directory: packages/gate
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --workspace -- -D warnings
       
       - name: Run tests
-        working-directory: packages/gate
-        run: cargo test
+        run: cargo test --workspace -- --test-threads=1
       
       - name: Build release
-        working-directory: packages/gate
-        run: cargo build --release
-
-  # ============================================
-  # Rust Synapse Tests
-  # ============================================
-  synapse-test:
-    name: Synapse Tests (Rust)
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            packages/synapse/target/
-          key: ${{ runner.os }}-cargo-synapse-${{ hashFiles('packages/synapse/Cargo.lock') }}
-      
-      - name: Run tests
-        working-directory: packages/synapse
-        run: cargo test
-      
-      - name: Build release
-        working-directory: packages/synapse
-        run: cargo build --release
-
-  # ============================================
-  # Rust Arbiter Tests
-  # ============================================
-  arbiter-test:
-    name: Arbiter Tests (Rust)
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            packages/arbiter/target/
-          key: ${{ runner.os }}-cargo-arbiter-${{ hashFiles('packages/arbiter/Cargo.lock') }}
-      
-      - name: Run tests
-        working-directory: packages/arbiter
-        run: cargo test
-      
-      - name: Build release
-        working-directory: packages/arbiter
-        run: cargo build --release
+        run: cargo build --release --workspace
 
   # ============================================
   # Build Playground
@@ -162,18 +95,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
       
       - name: Install dependencies
-        working-directory: apps/playground
-        run: npm install
+        run: pnpm install
       
-      - name: Build
+      - name: Build Playground
         working-directory: apps/playground
-        run: npm run build
+        run: pnpm build
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4

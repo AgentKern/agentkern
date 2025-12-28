@@ -104,6 +104,8 @@ jobs:
     needs: [build-gate, build-synapse, build-arbiter]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     
     steps:
       - uses: actions/checkout@v4
@@ -112,22 +114,16 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
       
       - name: Deploy Gate
-        if: ${{ secrets.FLY_API_TOKEN != '' }}
+        if: env.FLY_API_TOKEN != ''
         working-directory: packages/gate
         run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       
       - name: Deploy Synapse
-        if: ${{ secrets.FLY_API_TOKEN != '' }}
+        if: env.FLY_API_TOKEN != ''
         working-directory: packages/synapse
         run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       
       - name: Deploy Arbiter
-        if: ${{ secrets.FLY_API_TOKEN != '' }}
+        if: env.FLY_API_TOKEN != ''
         working-directory: packages/arbiter
         run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
