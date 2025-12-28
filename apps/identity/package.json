@@ -1,8 +1,8 @@
 {
   "name": "@agentkern/identity",
   "version": "1.0.0",
-  "description": "Liability Infrastructure for the Agentic Economy",
-  "author": "AgentProof",
+  "description": "AgentKern Identity Pillar - Liability Infrastructure for the Agentic Economy",
+  "author": "AgentKern",
   "private": false,
   "license": "MIT",
   "scripts": {

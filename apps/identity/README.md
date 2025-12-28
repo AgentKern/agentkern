@@ -1,4 +1,4 @@
-# AgentProof
+# AgentKern Identity
 
 **Liability Infrastructure for the Agentic Economy**
 
@@ -22,7 +22,7 @@ Current solutions (Visa TAP, Mastercard Agent Pay) authenticate agents but don't
 
 ## The Solution
 
-AgentProof provides **Liability Proofs** – cryptographic attestations that prove:
+AgentKern Identity provides **Liability Proofs** – cryptographic attestations that prove:
 
 1. ✅ A specific human authorized a specific action
 2. ✅ Authorization was made via hardware-bound Passkey (unforgeable)
@@ -71,14 +71,14 @@ AgentProof provides **Liability Proofs** – cryptographic attestations that pro
 
 ### Installation
 ```bash
-npm install @agentproof/sdk
+npm install @agentkern/identity-sdk
 ```
 
 ### Create a Liability Proof
 ```typescript
-import { AgentProof } from '@agentproof/sdk';
+import { AgentKernIdentity } from '@agentkern/identity-sdk';
 
-const proof = await AgentProof.createProof({
+const proof = await AgentKernIdentity.createProof({
   intent: {
     action: 'transfer',
     target: { service: 'api.bank.com', endpoint: '/v1/transfers' },
@@ -100,9 +100,9 @@ fetch('https://api.bank.com/v1/transfers', {
 
 ### Verify a Proof (Target Service)
 ```typescript
-import { AgentProof } from '@agentproof/sdk';
+import { AgentKernIdentity } from '@agentkern/identity-sdk';
 
-const result = await AgentProof.verify(req.headers['x-agentproof']);
+const result = await AgentKernIdentity.verify(req.headers['x-agentkern-proof']);
 
 if (result.valid) {
   // Proceed – liability is on the authorizer
@@ -131,8 +131,8 @@ if (result.valid) {
 ### Docker (Recommended)
 ```bash
 # Clone repository
-git clone https://github.com/your-org/agentproof.git
-cd agentproof
+git clone https://github.com/AgentKern/agentkern.git
+cd agentkern/apps/identity
 
 # Start with Docker Compose
 docker compose -f docker-compose.staging.yml up -d --build
@@ -171,7 +171,7 @@ npm run test -- --coverage
 
 ## Comparison
 
-| Aspect | Visa TAP | AgentProof |
+| Aspect | Visa TAP | AgentKern Identity |
 |--------|----------|------------|
 | **Focus** | Authentication | Liability |
 | **Scope** | Payments only | Universal |
@@ -187,5 +187,5 @@ MIT
 
 ---
 
-**AgentProof** – *Prove it. Own it. Trust it.*
+**AgentKern Identity** – *Prove it. Own it. Trust it.*
 
