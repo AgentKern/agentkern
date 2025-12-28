@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Trust Record Entity
+ * AgentKernIdentity - Trust Record Entity
  * 
  * Represents an agent's trust status in the Intent DNS system.
  * Used for caching and resolving trust lookups.

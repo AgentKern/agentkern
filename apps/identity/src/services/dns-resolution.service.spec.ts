@@ -3,15 +3,33 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { DnsResolutionService } from './dns-resolution.service';
 import { AuditLoggerService } from './audit-logger.service';
+import { TrustRecordEntity } from '../entities/trust-record.entity';
+
+// Mock repository factory
+const createMockRepository = () => ({
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
+  save: jest.fn().mockImplementation(entity => Promise.resolve({ id: 'mock-id', ...entity })),
+  create: jest.fn().mockImplementation(entity => entity),
+  delete: jest.fn().mockResolvedValue({ affected: 1 }),
+});
 
 describe('DnsResolutionService', () => {
   let service: DnsResolutionService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [DnsResolutionService, AuditLoggerService],
+      providers: [
+        DnsResolutionService,
+        AuditLoggerService,
+        {
+          provide: getRepositoryToken(TrustRecordEntity),
+          useValue: createMockRepository(),
+        },
+      ],
     }).compile();
 
     service = module.get<DnsResolutionService>(DnsResolutionService);

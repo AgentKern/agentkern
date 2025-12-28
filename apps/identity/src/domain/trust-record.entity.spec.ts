@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Trust Record Entity Tests
+ * AgentKernIdentity - Trust Record Entity Tests
  * 
  * Unit tests for trust scoring and resolution functions.
  */

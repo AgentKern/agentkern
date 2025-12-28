@@ -1,14 +1,14 @@
 /**
- * AgentKern Identity SDK - TypeScript Client
+ * AgentKernIdentity SDK - TypeScript Client
  * 
  * Zero-config embedded verification for AI agents.
  * Install: npm install @agentkern/sdk
  * 
  * Usage:
  * ```typescript
- * import { AgentKern Identity } from '@agentkern/sdk';
+ * import { AgentKernIdentity } from '@agentkern/sdk';
  * 
- * const proof = await AgentKern Identity.createProof({
+ * const proof = await AgentKernIdentity.createProof({
  *   principal: { id: 'user-123', credentialId: 'cred-456' },
  *   agent: { id: 'my-agent', name: 'My Agent', version: '1.0.0' },
  *   intent: { action: 'transfer', target: { service: 'api.bank.com', endpoint: '/transfer', method: 'POST' } }
@@ -16,7 +16,7 @@
  * 
  * // Add to request
  * const response = await fetch(url, {
- *   headers: { 'X-AgentKern Identity': proof.header }
+ *   headers: { 'X-AgentKernIdentity': proof.header }
  * });
  * ```
  */
@@ -85,25 +85,25 @@ export interface TrustResolution {
   revoked: boolean;
 }
 
-export interface AgentKern IdentityConfig {
+export interface AgentKernIdentityConfig {
   serverUrl?: string;
   timeout?: number;
   retries?: number;
 }
 
-const DEFAULT_CONFIG: AgentKern IdentityConfig = {
+const DEFAULT_CONFIG: AgentKernIdentityConfig = {
   serverUrl: 'http://localhost:5002',
   timeout: 5000,
   retries: 3,
 };
 
 /**
- * AgentKern Identity SDK Client
+ * AgentKernIdentity SDK Client
  */
 export class AgentKernIdentityClient {
-  private config: AgentKern IdentityConfig;
+  private config: AgentKernIdentityConfig;
 
-  constructor(config: Partial<AgentKern IdentityConfig> = {}) {
+  constructor(config: Partial<AgentKernIdentityConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -204,12 +204,12 @@ export class AgentKernIdentityClient {
 /**
  * Default singleton instance
  */
-export const AgentKern Identity = new AgentKernIdentityClient();
+export const AgentKernIdentity = new AgentKernIdentityClient();
 
 /**
  * Create a new client with custom config
  */
-export function createAgentKernIdentityClient(config: Partial<AgentKern IdentityConfig> = {}): AgentKernIdentityClient {
+export function createAgentKernIdentityClient(config: Partial<AgentKernIdentityConfig> = {}): AgentKernIdentityClient {
   return new AgentKernIdentityClient(config);
 }
 
@@ -217,7 +217,7 @@ export function createAgentKernIdentityClient(config: Partial<AgentKern Identity
  * Middleware for Express/NestJS to verify incoming requests
  */
 export function agentProofMiddleware(options: { required?: boolean; client?: AgentKernIdentityClient } = {}) {
-  const client = options.client || AgentKern Identity;
+  const client = options.client || AgentKernIdentity;
   const required = options.required ?? true;
 
   return async (req: any, res: any, next: any) => {
@@ -225,7 +225,7 @@ export function agentProofMiddleware(options: { required?: boolean; client?: Age
 
     if (!header) {
       if (required) {
-        return res.status(401).json({ error: 'Missing X-AgentKern Identity header' });
+        return res.status(401).json({ error: 'Missing X-AgentKernIdentity header' });
       }
       return next();
     }
@@ -256,7 +256,7 @@ export function agentProofMiddleware(options: { required?: boolean; client?: Age
 /**
  * Decorator for NestJS controllers
  */
-export function RequireAgentKern Identity() {
+export function RequireAgentKernIdentity() {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
@@ -264,10 +264,10 @@ export function RequireAgentKern Identity() {
       const request = args.find(arg => arg?.headers);
       
       if (!request?.headers?.['x-agentkern-identity']) {
-        throw new Error('Missing X-AgentKern Identity header');
+        throw new Error('Missing X-AgentKernIdentity header');
       }
 
-      const result = await AgentKern Identity.verifyProof(request.headers['x-agentkern-identity']);
+      const result = await AgentKernIdentity.verifyProof(request.headers['x-agentkern-identity']);
       
       if (!result.valid) {
         throw new Error(`Invalid proof: ${result.errors?.join(', ')}`);

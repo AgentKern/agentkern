@@ -183,10 +183,9 @@ describe('CryptoAgilityService', () => {
     });
 
     it('should recommend quantum-safe algorithm when available', () => {
-      // PQC not available in test, should fall back to classical
       const recommended = service.getRecommendedAlgorithm({ quantumSafe: true });
-      // Falls back to Ed25519 for performance since PQC not available
-      expect([CryptoAlgorithm.Ed25519, CryptoAlgorithm.ES256]).toContain(recommended);
+      // Should return DILITHIUM3 if PQC is available, or fall back to Ed25519/ES256
+      expect([CryptoAlgorithm.DILITHIUM3, CryptoAlgorithm.Ed25519, CryptoAlgorithm.ES256]).toContain(recommended);
     });
   });
 

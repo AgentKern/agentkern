@@ -3,16 +3,43 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { MeshNodeService } from './mesh-node.service';
 import { AuditLoggerService } from './audit-logger.service';
 import { MeshMessageType, MeshNodeType } from '../domain/mesh.entity';
+import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity';
+
+// Mock repository factory
+const createMockRepository = () => ({
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
+  save: jest.fn().mockImplementation(entity => Promise.resolve({ id: 'mock-id', ...entity })),
+  create: jest.fn().mockImplementation(entity => entity),
+  delete: jest.fn().mockResolvedValue({ affected: 1 }),
+});
 
 describe('MeshNodeService Full Coverage', () => {
   let service: MeshNodeService;
+  let mockPeerRepository: ReturnType<typeof createMockRepository>;
+  let mockIdentityRepository: ReturnType<typeof createMockRepository>;
 
   beforeEach(async () => {
+    mockPeerRepository = createMockRepository();
+    mockIdentityRepository = createMockRepository();
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MeshNodeService, AuditLoggerService],
+      providers: [
+        MeshNodeService,
+        AuditLoggerService,
+        {
+          provide: getRepositoryToken(MeshPeerEntity),
+          useValue: mockPeerRepository,
+        },
+        {
+          provide: getRepositoryToken(NodeIdentityEntity),
+          useValue: mockIdentityRepository,
+        },
+      ],
     }).compile();
 
     service = module.get<MeshNodeService>(MeshNodeService);

@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - License Service
+ * AgentKernIdentity - License Service
  * 
  * Gates enterprise features behind license validation.
  * 

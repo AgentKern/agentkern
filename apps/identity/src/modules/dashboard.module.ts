@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Dashboard Module
+ * AgentKernIdentity - Dashboard Module
  * 
  * Enterprise dashboard and policy management.
  */

@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - License Guard
+ * AgentKernIdentity - License Guard
  * 
  * Guard that checks if the current license allows access to a feature.
  */

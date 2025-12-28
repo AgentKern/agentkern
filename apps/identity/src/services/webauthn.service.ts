@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - WebAuthn/Passkey Service
+ * AgentKernIdentity - WebAuthn/Passkey Service
  * 
  * Implements WebAuthn for passwordless authentication and Passkey binding.
  * This enables principals to bind their Passkeys to their identity.
@@ -60,7 +60,7 @@ export class WebAuthnService {
   private principals: Map<string, PrincipalCredentials> = new Map();
 
   constructor(private readonly configService: ConfigService) {
-    this.rpName = this.configService.get('WEBAUTHN_RP_NAME', 'AgentKern Identity');
+    this.rpName = this.configService.get('WEBAUTHN_RP_NAME', 'AgentKernIdentity');
     this.rpID = this.configService.get('WEBAUTHN_RP_ID', 'localhost');
     this.origin = this.configService.get('WEBAUTHN_ORIGIN', 'http://localhost:5004');
     

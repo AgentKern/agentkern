@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Proof Controller
+ * AgentKernIdentity - Proof Controller
  * 
  * REST API endpoints for Liability Proof operations.
  * Follows mandate: validation, error handling, logging, documentation.
@@ -120,10 +120,10 @@ export class ProofController {
   @UseGuards(PromptInjectionGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Verify proof from X-AgentKern Identity header',
-    description: 'Extracts and verifies the Liability Proof from the X-AgentKern Identity header.',
+    summary: 'Verify proof from X-AgentKernIdentity header',
+    description: 'Extracts and verifies the Liability Proof from the X-AgentKernIdentity header.',
   })
-  @ApiHeader({ name: 'X-AgentKern Identity', description: 'The Liability Proof header', required: true })
+  @ApiHeader({ name: 'X-AgentKernIdentity', description: 'The Liability Proof header', required: true })
   @ApiResponse({ status: 200, description: 'Verification result', type: VerifyProofResponseDto })
   @ApiResponse({ status: 401, description: 'Missing or invalid proof' })
   async verifyFromHeader(
@@ -134,11 +134,11 @@ export class ProofController {
     if (!proofHeader) {
       this.auditLogger.logSecurityEvent(
         AuditEventType.INVALID_INPUT,
-        'Missing X-AgentKern Identity header',
+        'Missing X-AgentKernIdentity header',
         {},
         { ipAddress, userAgent },
       );
-      throw new UnauthorizedException('Missing X-AgentKern Identity header');
+      throw new UnauthorizedException('Missing X-AgentKernIdentity header');
     }
 
     return this.verifyProof({ proof: proofHeader }, ipAddress, userAgent);

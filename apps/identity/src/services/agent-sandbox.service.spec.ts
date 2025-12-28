@@ -1,10 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import {
   AgentSandboxService,
   AgentStatus,
 } from './agent-sandbox.service';
 import { AuditLoggerService } from './audit-logger.service';
+import { AgentRecordEntity } from '../entities/agent-record.entity';
+
+// Mock repository factory
+const createMockRepository = () => ({
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
+  save: jest.fn().mockImplementation(entity => Promise.resolve({ id: 'mock-id', ...entity })),
+  create: jest.fn().mockImplementation(entity => entity),
+  delete: jest.fn().mockResolvedValue({ affected: 1 }),
+});
 
 describe('AgentSandboxService', () => {
   let service: AgentSandboxService;
@@ -25,6 +36,10 @@ describe('AgentSandboxService', () => {
           useValue: {
             logSecurityEvent: jest.fn(),
           },
+        },
+        {
+          provide: getRepositoryToken(AgentRecordEntity),
+          useValue: createMockRepository(),
         },
       ],
     }).compile();

@@ -1,37 +1,37 @@
 /**
- * AgentKern Identity SDK Tests
+ * AgentKernIdentity SDK Tests
  * Using mocked fetch
  */
 
 import {
-  AgentKern IdentityClient,
-  createAgentKern IdentityClient,
+  AgentKernIdentityClient,
+  createAgentKernIdentityClient,
   agentProofMiddleware,
-  RequireAgentKern Identity,
-  AgentKern Identity,
+  RequireAgentKernIdentity,
+  AgentKernIdentity,
 } from './index';
 
 // Mock global fetch
 const mockFetch = jest.fn();
 globalThis.fetch = mockFetch;
 
-describe('AgentKern Identity SDK', () => {
-  let client: AgentKern IdentityClient;
+describe('AgentKernIdentity SDK', () => {
+  let client: AgentKernIdentityClient;
 
   beforeEach(() => {
-    client = new AgentKern IdentityClient({ serverUrl: 'http://test-server:3000' });
+    client = new AgentKernIdentityClient({ serverUrl: 'http://test-server:3000' });
     mockFetch.mockClear();
   });
 
-  describe('AgentKern IdentityClient', () => {
+  describe('AgentKernIdentityClient', () => {
     describe('constructor', () => {
       it('should create client with default config', () => {
-        const defaultClient = new AgentKern IdentityClient();
+        const defaultClient = new AgentKernIdentityClient();
         expect(defaultClient).toBeDefined();
       });
 
       it('should create client with custom config', () => {
-        const customClient = new AgentKern IdentityClient({
+        const customClient = new AgentKernIdentityClient({
           serverUrl: 'http://custom:8080',
           timeout: 10000,
           retries: 5,
@@ -202,16 +202,16 @@ describe('AgentKern Identity SDK', () => {
     });
   });
 
-  describe('createAgentKern IdentityClient', () => {
+  describe('createAgentKernIdentityClient', () => {
     it('should create a new client instance', () => {
-      const newClient = createAgentKern IdentityClient({ serverUrl: 'http://other:4000' });
-      expect(newClient).toBeInstanceOf(AgentKern IdentityClient);
+      const newClient = createAgentKernIdentityClient({ serverUrl: 'http://other:4000' });
+      expect(newClient).toBeInstanceOf(AgentKernIdentityClient);
     });
   });
 
-  describe('AgentKern Identity singleton', () => {
+  describe('AgentKernIdentity singleton', () => {
     it('should be a default client instance', () => {
-      expect(AgentKern Identity).toBeInstanceOf(AgentKern IdentityClient);
+      expect(AgentKernIdentity).toBeInstanceOf(AgentKernIdentityClient);
     });
   });
 
@@ -298,10 +298,10 @@ describe('AgentKern Identity SDK', () => {
     });
   });
 
-  describe('RequireAgentKern Identity decorator', () => {
+  describe('RequireAgentKernIdentity decorator', () => {
     it('should throw if header is missing', async () => {
       class TestController {
-        @RequireAgentKern Identity()
+        @RequireAgentKernIdentity()
         async testMethod(request: any) {
           return 'success';
         }
@@ -310,7 +310,7 @@ describe('AgentKern Identity SDK', () => {
       const controller = new TestController();
       const request = { headers: {} };
 
-      await expect(controller.testMethod(request)).rejects.toThrow('Missing X-AgentKern Identity header');
+      await expect(controller.testMethod(request)).rejects.toThrow('Missing X-AgentKernIdentity header');
     });
 
     it('should throw if proof is invalid', async () => {
@@ -320,7 +320,7 @@ describe('AgentKern Identity SDK', () => {
       });
 
       class TestController {
-        @RequireAgentKern Identity()
+        @RequireAgentKernIdentity()
         async testMethod(request: any) {
           return 'success';
         }
@@ -339,7 +339,7 @@ describe('AgentKern Identity SDK', () => {
       });
 
       class TestController {
-        @RequireAgentKern Identity()
+        @RequireAgentKernIdentity()
         async testMethod(request: any) {
           return 'success';
         }

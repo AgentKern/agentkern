@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Trust Scoring Service
+ * AgentKernIdentity - Trust Scoring Service
  *
  * Per MANIFESTO.md: "Agents have verifiable reputations built on their transaction history"
  * Per Market Research: No one has solved agent-to-agent trust properly

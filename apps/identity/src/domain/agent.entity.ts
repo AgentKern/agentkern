@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Agent Domain Entities
+ * AgentKernIdentity - Agent Domain Entities
  */
 
 export enum AgentStatus {

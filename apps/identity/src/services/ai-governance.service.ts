@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - AI Governance Service
+ * AgentKernIdentity - AI Governance Service
  *
  * Implements requirements for the EU AI Act and AI security governance.
  * Handles risk classification, bias auditing, and model documentation.

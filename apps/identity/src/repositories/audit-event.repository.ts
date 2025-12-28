@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Audit Event Repository
+ * AgentKernIdentity - Audit Event Repository
  * 
  * PostgreSQL repository for Audit Events.
  */

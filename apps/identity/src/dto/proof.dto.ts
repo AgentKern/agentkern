@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - API DTOs with Validation
+ * AgentKernIdentity - API DTOs with Validation
  * 
  * Data Transfer Objects with comprehensive validation.
  * Follows mandate: input validation, no shortcuts.
@@ -140,7 +140,7 @@ export class ConstraintsDto {
 // ============ Request DTOs ============
 
 export class VerifyProofRequestDto {
-  @ApiProperty({ description: 'X-AgentKern Identity header value' })
+  @ApiProperty({ description: 'X-AgentKernIdentity header value' })
   @IsString()
   @IsNotEmpty()
   proof: string;
@@ -224,7 +224,7 @@ export class VerifyProofResponseDto {
 }
 
 export class CreateProofResponseDto {
-  @ApiProperty({ description: 'The X-AgentKern Identity header value' })
+  @ApiProperty({ description: 'The X-AgentKernIdentity header value' })
   header: string;
 
   @ApiProperty({ description: 'Proof ID for tracking' })

@@ -81,7 +81,9 @@ agentkern-treasury = { path = "../treasury" }
 agentkern-multitenancy = { path = "../../ee/multitenancy" }
 
 # Database (Dec 2025 - via workspace)
-sqlx = { workspace = true, optional = true, features = ["runtime-tokio", "tls-rustls", "any", "postgres", "mysql", "sqlite"] }
+# NOTE: MySQL disabled to avoid RSA Marvin Attack vulnerability (RUSTSEC-2023-0071)
+# We use PostgreSQL for production deployments
+sqlx = { workspace = true, optional = true, features = ["runtime-tokio", "tls-rustls", "any", "postgres", "sqlite"] }
 
 # UUID for policy IDs
 uuid = { version = "1.11", features = ["v4", "serde"] }

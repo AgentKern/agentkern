@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Proof Module
+ * AgentKernIdentity - Proof Module
  * 
  * Main module for Liability Proof operations.
  * Wires together all services, controllers, and dependencies.

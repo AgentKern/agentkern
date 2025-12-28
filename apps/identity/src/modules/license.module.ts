@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - License Module
+ * AgentKernIdentity - License Module
  * 
  * Provides license validation and feature gating.
  */

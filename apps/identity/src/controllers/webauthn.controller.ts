@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - WebAuthn Controller
+ * AgentKernIdentity - WebAuthn Controller
  * 
  * API endpoints for Passkey registration and authentication.
  */

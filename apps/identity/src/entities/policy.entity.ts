@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Policy Entity (TypeORM)
+ * AgentKernIdentity - Policy Entity (TypeORM)
  * 
  * PostgreSQL entity for enterprise policies.
  */

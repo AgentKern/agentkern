@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Dashboard Controller
+ * AgentKernIdentity - Dashboard Controller
  * 
  * Enterprise dashboard API for monitoring, policy management, and compliance.
  * 🔒 Enterprise-only features - requires LICENSE_KEY
@@ -52,7 +52,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Dashboard root', description: 'Lists available dashboard endpoints.' })
   getRoot() {
     return {
-      name: 'AgentKern Identity Dashboard API',
+      name: 'AgentKernIdentity Dashboard API',
       endpoints: {
         stats: 'GET /api/v1/dashboard/stats',
         trends: 'GET /api/v1/dashboard/trends',

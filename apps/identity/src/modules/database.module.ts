@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Database Module
+ * AgentKernIdentity - Database Module
  * 
  * TypeORM configuration for PostgreSQL.
  */

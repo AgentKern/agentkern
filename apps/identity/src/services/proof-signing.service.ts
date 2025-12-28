@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Proof Signing Service
+ * AgentKernIdentity - Proof Signing Service
  * 
  * Creates signed Liability Proofs using ES256 (ECDSA P-256).
  * In production, signing happens on the client device via WebAuthn.

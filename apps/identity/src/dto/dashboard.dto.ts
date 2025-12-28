@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Dashboard DTOs
+ * AgentKernIdentity - Dashboard DTOs
  * 
  * Data Transfer Objects for enterprise dashboard.
  */

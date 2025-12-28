@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - DNS Resolution Service
+ * AgentKernIdentity - DNS Resolution Service
  * 
  * Provides global, cacheable trust resolution for AI agents.
  * Implements the Intent DNS protocol.

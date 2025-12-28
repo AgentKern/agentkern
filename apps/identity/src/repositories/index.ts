@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Repositories Index
+ * AgentKernIdentity - Repositories Index
  */
 
 export * from './trust-record.repository';

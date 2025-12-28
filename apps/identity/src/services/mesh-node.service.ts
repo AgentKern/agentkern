@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Mesh Node Service
+ * AgentKernIdentity - Mesh Node Service
  * 
  * Manages the local Trust Mesh node, peer connections,
  * and message propagation to the decentralized network.

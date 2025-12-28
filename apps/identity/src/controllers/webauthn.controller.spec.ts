@@ -21,7 +21,7 @@ describe('WebAuthnController', () => {
           useValue: {
             get: jest.fn((key: string, defaultValue?: any) => {
               const config: Record<string, any> = {
-                'WEBAUTHN_RP_NAME': 'AgentKern Identity',
+                'WEBAUTHN_RP_NAME': 'AgentKernIdentity',
                 'WEBAUTHN_RP_ID': 'localhost',
                 'WEBAUTHN_ORIGIN': 'http://localhost:3000',
               };

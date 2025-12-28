@@ -7,7 +7,7 @@ export class AppController {
   @Get()
   getRoot() {
     return {
-      name: 'AgentKern Identity API',
+      name: 'AgentKernIdentity API',
       description: 'Liability Infrastructure for the Agentic Economy',
       version: '1.0.0',
       docs: '/docs',

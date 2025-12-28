@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Liability Proof Domain Entity
+ * AgentKernIdentity - Liability Proof Domain Entity
  * 
  * A Liability Proof is a cryptographic attestation that proves:
  * 1. A specific human authorized a specific action
@@ -65,7 +65,7 @@ export interface LiabilityProof {
 }
 
 /**
- * Parse a Liability Proof from X-AgentKern Identity header
+ * Parse a Liability Proof from X-AgentKernIdentity header
  */
 export function parseProofHeader(header: string): LiabilityProof | null {
   try {
@@ -83,7 +83,7 @@ export function parseProofHeader(header: string): LiabilityProof | null {
 }
 
 /**
- * Serialize a Liability Proof to X-AgentKern Identity header format
+ * Serialize a Liability Proof to X-AgentKernIdentity header format
  */
 export function serializeProofHeader(proof: LiabilityProof): string {
   const payloadJson = JSON.stringify(proof.payload);

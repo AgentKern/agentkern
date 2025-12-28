@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Trust Mesh Entities
+ * AgentKernIdentity - Trust Mesh Entities
  * 
  * Domain entities for the decentralized Trust Mesh network.
  */

@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Prompt Injection Guard
+ * AgentKernIdentity - Prompt Injection Guard
  *
  * Multi-layer defense against prompt injection attacks from AI agents.
  * Scans all incoming requests for known injection patterns and suspicious content.

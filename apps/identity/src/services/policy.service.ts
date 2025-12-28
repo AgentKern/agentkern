@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Policy Service
+ * AgentKernIdentity - Policy Service
  * 
  * Enterprise policy management for controlling agent actions.
  */

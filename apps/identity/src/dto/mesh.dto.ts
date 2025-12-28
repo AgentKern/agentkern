@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Mesh DTOs
+ * AgentKernIdentity - Mesh DTOs
  * 
  * Data Transfer Objects for Mesh endpoints.
  */

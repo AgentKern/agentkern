@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - WebAuthn DTOs
+ * AgentKernIdentity - WebAuthn DTOs
  * 
  * Data Transfer Objects for WebAuthn endpoints.
  */

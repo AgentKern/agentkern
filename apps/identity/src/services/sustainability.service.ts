@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Sustainability Service
+ * AgentKernIdentity - Sustainability Service
  *
  * Tracks the carbon footprint and energy efficiency of the application.
  * Implements recommendation from the sustainability audit.

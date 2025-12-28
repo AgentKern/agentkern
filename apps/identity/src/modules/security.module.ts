@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Security Module
+ * AgentKernIdentity - Security Module
  *
  * Central module for all security services and guards.
  * Provides AI agent security infrastructure including:

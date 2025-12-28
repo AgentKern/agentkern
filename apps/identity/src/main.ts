@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Main Entry Point
+ * AgentKernIdentity - Main Entry Point
  * 
  * Bootstrap the NestJS application with:
  * - Swagger documentation
@@ -31,17 +31,17 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.CORS_ORIGINS?.split(',') || '*', // Restrict CORS origins to authorized domains from env
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-AgentKern Identity'],
-    exposedHeaders: ['X-AgentKern Identity'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-AgentKernIdentity'],
+    exposedHeaders: ['X-AgentKernIdentity'],
   });
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('AgentKern Identity API')
+    .setTitle('AgentKernIdentity API')
     .setDescription(
       `**Liability Infrastructure for the Agentic Economy**
 
-AgentKern Identity provides cryptographic Liability Proofs that prove:
+AgentKernIdentity provides cryptographic Liability Proofs that prove:
 - A specific human authorized a specific AI agent action
 - The authorization was made via a hardware-bound Passkey
 - The authorizer explicitly accepts liability
@@ -53,10 +53,10 @@ AgentKern Identity provides cryptographic Liability Proofs that prove:
 - **Universal**: Works for payments, data access, cloud ops, anything
 
 ## Authentication
-Include the \`X-AgentKern Identity\` header with your liability proof token.`,
+Include the \`X-AgentKernIdentity\` header with your liability proof token.`,
     )
     .setVersion('1.0')
-    .setContact('AgentKern Identity Team', 'https://agentkern-identity.dev', 'support@agentkern-identity.dev')
+    .setContact('AgentKernIdentity Team', 'https://agentkern-identity.dev', 'support@agentkern-identity.dev')
     .setLicense('MIT', 'https://opensource.org/licenses/MIT')
     .setExternalDoc('Protocol Specification', '/docs/PROTOCOL_SPEC.md')
     .addTag('Proof', 'Create and verify liability proofs')
@@ -66,8 +66,8 @@ Include the \`X-AgentKern Identity\` header with your liability proof token.`,
     .addTag('WebAuthn', 'Passkey registration and authentication')
     .addTag('Health', 'System health and status')
     .addApiKey(
-      { type: 'apiKey', name: 'X-AgentKern Identity', in: 'header', description: 'Liability proof token' },
-      'AgentKern Identity',
+      { type: 'apiKey', name: 'X-AgentKernIdentity', in: 'header', description: 'Liability proof token' },
+      'AgentKernIdentity',
     )
     .addServer('http://localhost:3000', 'Local Development')
     .addServer('https://api.agentkern-identity.dev', 'Production')
@@ -81,7 +81,7 @@ Include the \`X-AgentKern Identity\` header with your liability proof token.`,
       filter: true,
       showRequestDuration: true,
     },
-    customSiteTitle: 'AgentKern Identity API Documentation',
+    customSiteTitle: 'AgentKernIdentity API Documentation',
     customCss: '.swagger-ui .topbar { display: none }',
   });
 
@@ -89,7 +89,7 @@ Include the \`X-AgentKern Identity\` header with your liability proof token.`,
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  logger.log(`🚀 AgentKern Identity API running on: http://localhost:${port}`);
+  logger.log(`🚀 AgentKernIdentity API running on: http://localhost:${port}`);
   logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
   logger.log(`🔒 Liability Infrastructure for the Agentic Economy`);
 }

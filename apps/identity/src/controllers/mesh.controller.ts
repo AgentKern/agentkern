@@ -1,5 +1,5 @@
 /**
- * AgentKern Identity - Mesh Controller
+ * AgentKernIdentity - Mesh Controller
  * 
  * REST API endpoints for Trust Mesh management.
  */
