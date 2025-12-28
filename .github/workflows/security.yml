@@ -136,17 +136,6 @@ jobs:
       - name: Install cargo-deny
         run: cargo install cargo-deny
       
-      - name: Check Gate licenses
-        working-directory: packages/gate
+      - name: Check licenses (workspace)
         run: cargo deny check licenses
-        continue-on-error: true
-      
-      - name: Check Synapse licenses
-        working-directory: packages/synapse
-        run: cargo deny check licenses
-        continue-on-error: true
-      
-      - name: Check Arbiter licenses
-        working-directory: packages/arbiter
-        run: cargo deny check licenses
-        continue-on-error: true
+

@@ -1,0 +1,11 @@
+# https://rustsec.org/advisories/
+[advisories]
+ignore = [
+    # RSA Marvin Attack - no fix available, used by sqlx-mysql
+    # Waiting for upstream fix: https://github.com/RustCrypto/RSA/issues/19
+    "RUSTSEC-2023-0071",
+    
+    # async-std discontinued - used by redis crate
+    # Will be resolved when redis updates their dependencies
+    "RUSTSEC-2025-0052",
+]
