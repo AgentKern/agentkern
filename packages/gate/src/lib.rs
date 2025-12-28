@@ -43,7 +43,7 @@ pub mod fhir;
 pub mod hipaa; // HIPAA Healthcare Compliance (Section 2)
 pub mod mtls; // Zero-Trust mTLS (Section 5)
 pub mod pci; // PCI-DSS Payment Compliance (Section 2)
-pub mod takaful; // Takaful Compliance (Section 2) // FHIR R4 Healthcare Integration (Section 2)
+pub mod shariah_compliance; // Shariah (Islamic Finance) Compliance (Section 2) // FHIR R4 Healthcare Integration (Section 2)
 
 // MANDATE.md Section 6: Prompt Defense
 pub mod carbon;
@@ -76,6 +76,6 @@ pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
 pub use sovereign::{DataTransfer, SovereignController, TransferDecision};
-pub use takaful::{ComplianceResult, TakafulError, TakafulValidator};
+pub use shariah_compliance::{ComplianceResult, ShariahComplianceError, ShariahComplianceValidator};
 pub use tee::Enclave;
 pub use types::{DataRegion, VerificationRequest, VerificationResult};

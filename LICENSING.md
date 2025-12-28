@@ -40,7 +40,7 @@ AgentKern uses an **Open Core** licensing model:
 - ✅ Carbon scheduling
 - ✅ Kill switch
 - ✅ Raft consensus locks
-- ✅ HIPAA, PCI, Takaful compliance
+- ✅ HIPAA, PCI, Shariah (Islamic Finance) compliance
 - ✅ Quantum-safe crypto (hybrid)
 - ✅ TEE attestation (simulated)
 

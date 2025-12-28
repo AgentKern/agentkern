@@ -1,4 +1,4 @@
-//! AgentKern-Gate: Takaful (Islamic Insurance) Compliance
+//! AgentKern-Gate: Islamic Finance & Shariah Compliance
 //!
 //! Per EXECUTION_MANDATE.md §2: "Takaful (Islamic Insurance): Full support for compliant workflows"
 //!
@@ -11,9 +11,9 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use agentkern_gate::takaful::{TakafulValidator, TransactionType};
+//! use agentkern_gate::shariah_compliance::{ShariahComplianceValidator, TransactionType};
 //!
-//! let validator = TakafulValidator::new();
+//! let validator = ShariahComplianceValidator::new();
 //! let result = validator.validate_transaction(TransactionType::Insurance)?;
 //! ```
 
@@ -22,7 +22,7 @@ use thiserror::Error;
 
 /// Takaful compliance error.
 #[derive(Debug, Error)]
-pub enum TakafulError {
+pub enum ShariahComplianceError {
     #[error("Riba (interest) detected in transaction")]
     RibaDetected,
     #[error("Gharar (excessive uncertainty) detected")]
@@ -114,12 +114,12 @@ impl Default for TransactionDetails {
 
 /// Takaful compliance validator.
 #[derive(Debug, Default)]
-pub struct TakafulValidator {
+pub struct ShariahComplianceValidator {
     /// Strict mode (reject any non-compliant transaction)
     strict_mode: bool,
 }
 
-impl TakafulValidator {
+impl ShariahComplianceValidator {
     /// Create a new validator.
     pub fn new() -> Self {
         Self { strict_mode: false }
@@ -131,7 +131,7 @@ impl TakafulValidator {
     }
 
     /// Validate a transaction for Shariah compliance.
-    pub fn validate(&self, details: &TransactionDetails) -> Result<ComplianceResult, TakafulError> {
+    pub fn validate(&self, details: &TransactionDetails) -> Result<ComplianceResult, ShariahComplianceError> {
         let mut result = ComplianceResult {
             compliant: true,
             score: 100,
@@ -152,7 +152,7 @@ impl TakafulValidator {
                 );
 
                 if self.strict_mode {
-                    return Err(TakafulError::RibaDetected);
+                    return Err(ShariahComplianceError::RibaDetected);
                 }
             }
         }
@@ -175,7 +175,7 @@ impl TakafulValidator {
                 .push("Convert to Takaful model with mutual risk sharing".to_string());
 
             if self.strict_mode {
-                return Err(TakafulError::MaysirDetected);
+                return Err(ShariahComplianceError::MaysirDetected);
             }
         }
 
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_riba_detection() {
-        let validator = TakafulValidator::new();
+        let validator = ShariahComplianceValidator::new();
         let details = TransactionDetails {
             transaction_type: TransactionType::Loan,
             interest_rate: Some(5.0),
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_takaful_compliance() {
-        let validator = TakafulValidator::new();
+        let validator = ShariahComplianceValidator::new();
         let details = TransactionDetails {
             transaction_type: TransactionType::Takaful,
             amount: 10000.0,
@@ -272,19 +272,19 @@ mod tests {
 
     #[test]
     fn test_strict_mode() {
-        let validator = TakafulValidator::strict();
+        let validator = ShariahComplianceValidator::strict();
         let details = TransactionDetails {
             interest_rate: Some(5.0),
             ..Default::default()
         };
 
         let result = validator.validate(&details);
-        assert!(matches!(result, Err(TakafulError::RibaDetected)));
+        assert!(matches!(result, Err(ShariahComplianceError::RibaDetected)));
     }
 
     #[test]
     fn test_convert_to_takaful() {
-        let validator = TakafulValidator::new();
+        let validator = ShariahComplianceValidator::new();
         let conventional = TransactionDetails {
             transaction_type: TransactionType::Insurance,
             amount: 5000.0,
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn test_compliant_types() {
-        let validator = TakafulValidator::new();
+        let validator = ShariahComplianceValidator::new();
 
         assert!(validator.is_compliant_type(TransactionType::Takaful));
         assert!(validator.is_compliant_type(TransactionType::Murabaha));

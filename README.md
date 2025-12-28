@@ -231,7 +231,7 @@ AgentKern is built for regulated industries:
 - ✅ **GDPR** — Article 20 data portability via Memory Passport
 - ✅ **HIPAA** — Healthcare data sovereignty controls
 - ✅ **PCI-DSS** — Payment card tokenization
-- ✅ **Takaful** — Islamic finance compliance
+- ✅ **Shariah** — Islamic finance compliance (Takaful, Murabaha, Musharakah, Ijara)
 
 ---
 
