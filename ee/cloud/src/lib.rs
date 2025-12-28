@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern Enterprise: Multi-Cell Mesh Coordination
 //!
 //! Per LICENSING_STRATEGY.md: "AgentKern Cloud (The Multi-Cell Mesh)"
@@ -452,22 +454,22 @@ mod tests {
 
     #[test]
     fn test_license_required() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_with_license() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key"); }
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_ok());
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]
     fn test_mitosis_scale_up() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
         
@@ -484,12 +486,12 @@ mod tests {
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleUp(_)));
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]
     fn test_mitosis_scale_down() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
         
@@ -506,7 +508,7 @@ mod tests {
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleDown(_)));
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]

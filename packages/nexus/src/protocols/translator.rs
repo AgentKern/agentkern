@@ -3,8 +3,8 @@
 //! Central translation engine for converting between agent protocols.
 //! Supports: A2A, MCP, AgentKern, ANP, NLIP, AITP
 
-use crate::types::{NexusMessage, Protocol, Task, TaskStatus};
-use crate::protocols::adapter::{AdapterRegistry, ProtocolAdapter};
+use crate::types::{NexusMessage, Protocol, TaskStatus};
+use crate::protocols::adapter::AdapterRegistry;
 use crate::error::NexusError;
 use std::collections::HashMap;
 
@@ -112,9 +112,9 @@ impl ProtocolTranslator {
     /// For auto-detection, use the Nexus gateway which has the AdapterRegistry.
     pub fn translate_raw(
         &self,
-        source_protocol: Protocol,
+        _source_protocol: Protocol,
         _raw: &[u8],
-        target_protocol: Protocol,
+        _target_protocol: Protocol,
     ) -> Result<TranslationResult, NexusError> {
         // In production, parse raw bytes using the adapter
         // For now, return an error indicating raw translation requires adapters
@@ -167,7 +167,7 @@ impl ProtocolTranslator {
         source: &Protocol,
         target: &Protocol,
     ) -> (NexusMessage, Vec<String>) {
-        let mut lost_fields = vec![];
+        let lost_fields = vec![];
         
         // Update protocol marker
         message.source_protocol = *target;

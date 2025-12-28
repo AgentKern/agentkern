@@ -8,7 +8,6 @@
 //! Per Strategic Roadmap: ISO 20022 migration completes Nov 2025
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// SWIFT field extracted from message.
 #[derive(Debug, Clone, Serialize, Deserialize)]

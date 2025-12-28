@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused)]
 //! AgentKern Edge - Minimal Kernel for IoT/Edge Devices
 //!
 //! A lightweight version of AgentKern for constrained environments:

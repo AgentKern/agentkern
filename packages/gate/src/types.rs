@@ -142,3 +142,4 @@ impl Default for DataRegion {
 }
 
 
+pub type AgentId = String;

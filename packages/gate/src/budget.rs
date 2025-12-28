@@ -21,7 +21,7 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use thiserror::Error;
 
 /// Budget exceeded error.

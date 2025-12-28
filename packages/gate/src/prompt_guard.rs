@@ -20,6 +20,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use unicode_normalization::UnicodeNormalization;
+use deunicode::deunicode;
 
 // ============================================================================
 // TYPES
@@ -244,7 +246,13 @@ impl PromptGuard {
     /// Analyze a prompt for potential attacks.
     pub fn analyze(&self, prompt: &str) -> PromptAnalysis {
         let start = std::time::Instant::now();
-        let lower = prompt.to_lowercase();
+        
+        // P0 Fix: Robust Normalization
+        // 1. NFC Normalization (canonical decomposition then composition)
+        // 2. De-unicoding (transliterate to ASCII where possible)
+        // 3. Lowercasing
+        let nfc_normalized = prompt.nfc().collect::<String>();
+        let lower = deunicode(&nfc_normalized).to_lowercase();
         
         let mut attacks = Vec::new();
         let mut matched_patterns = Vec::new();
@@ -308,7 +316,7 @@ impl PromptGuard {
         }
 
         // Additional heuristics
-        threat_score += self.check_heuristics(&lower);
+        threat_score += self.check_heuristics(&nfc_normalized);
 
         // Deduplicate attacks
         attacks.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
@@ -372,8 +380,14 @@ impl PromptGuard {
         }
 
         // Unicode lookalikes (homoglyph attacks)
-        if text.chars().any(|c| (c as u32) > 0x2000 && (c as u32) < 0x2100) {
-            score += 20;
+        // P0 Enhancement: Check for mixed scripts or specific homoglyph ranges
+        if text.chars().any(|c| {
+            let u = c as u32;
+            (u >= 0x0400 && u <= 0x04FF) || // Cyrillic
+            (u >= 0xFF00 && u <= 0xFFEF) || // Fullwidth
+            (u >= 0x2000 && u <= 0x206F)    // General Punctuation (invisible chars)
+        }) {
+            score += 30;
         }
 
         score

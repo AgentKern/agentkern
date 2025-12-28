@@ -98,8 +98,8 @@ impl Attestation {
     pub fn new(platform: TeePlatform, measurement: &[u8], user_data: Vec<u8>) -> Self {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
         
         Self {
             platform,
@@ -146,8 +146,8 @@ impl TdxReport {
         Ok(Self {
             report_type: bytes[0],
             version: bytes[1],
-            td_attributes: bytes[2..10].try_into().unwrap(),
-            xfam: bytes[10..18].try_into().unwrap(),
+            td_attributes: bytes[2..10].try_into().map_err(|_| TeeError::AttestationFailed { reason: "Invalid attributes length".to_string() })?,
+            xfam: bytes[10..18].try_into().map_err(|_| TeeError::AttestationFailed { reason: "Invalid xfam length".to_string() })?,
             mrtd: bytes[64..112].to_vec(),
             report_data: bytes[112..176].to_vec(),
         })
@@ -323,7 +323,8 @@ impl TeeRuntime {
     /// Store a secret in protected memory.
     pub fn store_secret(&mut self, name: &str, secret: &[u8]) -> Result<(), TeeError> {
         let sealed = self.seal(secret, SealingPolicy::SealToMeasurement)?;
-        self.secrets.insert(name.to_string(), serde_json::to_vec(&sealed).unwrap());
+        let sealed_bytes = serde_json::to_vec(&sealed).map_err(|e| TeeError::SealingFailed { reason: e.to_string() })?;
+        self.secrets.insert(name.to_string(), sealed_bytes);
         Ok(())
     }
 

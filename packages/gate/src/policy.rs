@@ -29,7 +29,6 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use crate::types::DataRegion;
 
 /// A AgentKern policy definition.

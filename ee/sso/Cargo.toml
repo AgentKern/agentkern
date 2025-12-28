@@ -9,7 +9,6 @@ repository = "https://github.com/agentkern/agentkern"
 [features]
 default = []
 # Full SAML with xmlsec (requires system libs: libxml2, xmlsec1)
-saml-full = ["samael/xmlsec"]
 
 [dependencies]
 # Core (Dec 2025 - verified)
@@ -31,18 +30,14 @@ reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
 # REAL SSO IMPLEMENTATION (Dec 2025)
 # ============================================================
 
-# SAML 2.0 support (samael 0.0.19 - May 2025)
-# - Serialize/deserialize SAML messages
-# - IdP and SP-initiated SSO
-# - Assertion validation
-samael = "0.0.19"
 
 # JWT validation for OIDC (jsonwebtoken 9.3 - Dec 2025)
-# - Encode/decode JWTs
-# - RS256, HS256, ES256 algorithms
-# - Claims validation (exp, iss, aud)
 jsonwebtoken = "9.3"
 
 # Base64/URL encoding for SAML
 base64 = "0.22"
 urlencoding = "2.1"
+
+# Manual SAML impl (for robustness)
+quick-xml = { version = "0.31", features = ["serialize"] }
+flate2 = "1.0"

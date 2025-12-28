@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern Enterprise: Cross-Agent Payment Rails (Treasury)
 //!
 //! Per Gap Analysis: "Cross-Agent Payment Rails - No one is solving this yet"
@@ -459,7 +461,7 @@ impl Escrow {
 
 /// L402 Response for payment-required APIs.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct L402Response {
+pub struct L402Result {
     /// HTTP 402 Payment Required
     pub status: u16,
     /// WWW-Authenticate header value
@@ -472,7 +474,7 @@ pub struct L402Response {
     pub macaroon: Option<String>,
 }
 
-impl L402Response {
+impl L402Result {
     /// Create a new L402 response.
     pub fn new(invoice: &str, price_sats: u64) -> Self {
         Self {
@@ -1157,7 +1159,7 @@ mod tests {
 
     #[test]
     fn test_l402_response() {
-        let response = L402Response::new("lnbc1000n1...", 1000);
+        let response = L402Result::new("lnbc1000n1...", 1000);
         
         assert_eq!(response.status, 402);
         assert!(response.www_authenticate.contains("L402"));

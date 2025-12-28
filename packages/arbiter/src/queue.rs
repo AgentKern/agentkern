@@ -2,10 +2,9 @@
 //!
 //! Manages waiting requests when resources are locked.
 
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::HashMap;
 use std::cmp::Ordering;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use crate::types::CoordinationRequest;
 

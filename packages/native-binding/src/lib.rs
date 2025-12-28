@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Native Binding
 //!
 //! NAPI-RS bindings exposing Rust core to Node.js Gateway.
@@ -6,6 +7,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Verification request from Gateway.
 #[napi(object)]
@@ -55,45 +57,34 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
     let start = Instant::now();
     
     // Parse context
-    let context: std::collections::HashMap<String, serde_json::Value> = 
+    let context_data: HashMap<String, serde_json::Value> = 
         serde_json::from_str(&request.context).unwrap_or_default();
     
     // Build verification request for Rust core
     let rust_request = agentkern_gate::types::VerificationRequest {
+        request_id: uuid::Uuid::new_v4(),
         agent_id: request.agent_id.clone(),
         action: request.action.clone(),
-        resource: context.get("resource").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        parameters: context.iter()
-            .map(|(k, v)| (k.clone(), v.to_string()))
-            .collect(),
+        context: agentkern_gate::types::VerificationContext {
+            data: context_data,
+        },
         timestamp: chrono::Utc::now(),
-        session_id: None,
     };
     
     // Create Gate engine and verify
     let engine = agentkern_gate::engine::GateEngine::new();
-    let result = engine.verify(&rust_request).await;
+    let verification = engine.verify(rust_request).await;
     
     let latency_ms = start.elapsed().as_millis() as u32;
     
-    match result {
-        Ok(verification) => Ok(VerifyResult {
-            allowed: verification.allowed,
-            evaluated_policies: verification.evaluated_policies,
-            blocking_policies: verification.blocking_policies,
-            risk_score: verification.risk_score as u32,
-            reasoning: verification.reasoning,
-            latency_ms,
-        }),
-        Err(e) => Ok(VerifyResult {
-            allowed: false,
-            evaluated_policies: vec![],
-            blocking_policies: vec!["error".to_string()],
-            risk_score: 100,
-            reasoning: Some(format!("Verification error: {}", e)),
-            latency_ms,
-        }),
-    }
+    Ok(VerifyResult {
+        allowed: verification.allowed,
+        evaluated_policies: verification.evaluated_policies,
+        blocking_policies: verification.blocking_policies,
+        risk_score: verification.final_risk_score as u32,
+        reasoning: Some(verification.reasoning),
+        latency_ms,
+    })
 }
 
 /// Get TEE attestation proof.
@@ -101,11 +92,14 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
 pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
     use agentkern_gate::tee::{TeeRuntime, TeePlatform};
     
-    let runtime = TeeRuntime::detect();
+    let runtime = TeeRuntime::detect()
+        .map_err(|e| napi::Error::from_reason(format!("TEE detection failed: {}", e)))?;
     
     let platform_str = match runtime.platform() {
         TeePlatform::IntelTdx => "intel_tdx",
         TeePlatform::AmdSevSnp => "amd_sev_snp",
+        TeePlatform::IntelSgx => "intel_sgx",
+        TeePlatform::ArmCca => "arm_cca",
         TeePlatform::Simulated => "simulated",
     };
     
@@ -115,7 +109,7 @@ pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
     
     Ok(AttestationResult {
         platform: platform_str.to_string(),
-        quote: base64::encode(&attestation.quote),
+        quote: base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &attestation.quote),
         measurement: hex::encode(&attestation.measurement),
         nonce,
         timestamp: chrono::Utc::now().timestamp_millis(),
@@ -125,16 +119,20 @@ pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
 /// Check carbon budget for an agent.
 #[napi]
 pub fn check_carbon_budget(agent_id: String, estimated_grams: f64) -> Result<bool> {
+    use rust_decimal::prelude::ToPrimitive;
+    
     // Use treasury carbon ledger
     let ledger = agentkern_treasury::carbon::CarbonLedger::new();
     
     match ledger.get_budget(&agent_id) {
-        Ok(budget) => {
-            let usage = ledger.get_usage(&agent_id).unwrap_or_default();
-            let would_exceed = usage.total_grams + estimated_grams > budget.daily_limit_grams;
+        Some(budget) => {
+            let usage = ledger.get_daily_usage(&agent_id);
+            let current_usage = usage.total_co2_grams.to_f64().unwrap_or(0.0);
+            let limit = budget.daily_limit_grams.to_f64().unwrap_or(f64::MAX);
+            let would_exceed = current_usage + estimated_grams > limit;
             Ok(!would_exceed || !budget.block_on_exceed)
         }
-        Err(_) => Ok(true), // No budget = allowed
+        None => Ok(true), // No budget = allowed
     }
 }
 

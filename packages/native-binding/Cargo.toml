@@ -13,7 +13,6 @@ crate-type = ["cdylib"]
 napi = { version = "3.7", features = ["async", "serde-json"] }
 napi-derive = "3.0"
 
-
 # AgentKern core packages
 agentkern-gate = { path = "../gate" }
 agentkern-synapse = { path = "../synapse" }
@@ -31,6 +30,12 @@ serde_json = "1.0"
 base64 = "0.22"
 hex = "0.4"
 
+# UUID
+uuid = { version = "1.11", features = ["v4"] }
+
+# Decimal for carbon calculations
+rust_decimal = "1.39"
+
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
@@ -39,5 +44,5 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 
-[profile.release]
-lto = true
+[build-dependencies]
+napi-build = "2"

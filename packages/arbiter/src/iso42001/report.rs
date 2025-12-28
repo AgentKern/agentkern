@@ -2,7 +2,7 @@
 //!
 //! Generates audit reports in various formats.
 
-use super::{AuditReport as AuditReportData, ComplianceFinding, FindingSeverity};
+use super::{ComplianceFinding, FindingSeverity};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

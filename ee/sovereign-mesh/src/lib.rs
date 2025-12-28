@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Enterprise: Sovereign Mesh
 //!
 //! Per GLOBAL_GAPS.md §1: Multi-Region Geo-Fencing
@@ -151,14 +152,14 @@ mod tests {
 
     #[test]
     fn test_requires_license() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = SovereignMesh::new();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_sync_blocking() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut mesh = SovereignMesh::new().unwrap();
         
@@ -181,6 +182,6 @@ mod tests {
         let decision = mesh.can_sync("cell-eu", "cell-cn");
         assert!(!decision.allowed);
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 }

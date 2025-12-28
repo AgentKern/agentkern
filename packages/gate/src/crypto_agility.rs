@@ -18,6 +18,7 @@
 //! provider.verify(b"message", &signature)?;
 //! ```
 
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -198,7 +199,7 @@ impl CryptoProvider {
         let key_id = uuid::Uuid::new_v4().to_string();
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| CryptoError::KeyGeneration(e.to_string()))?
             .as_secs();
         
         // Generate Ed25519 key pair (classical)
@@ -426,7 +427,9 @@ mod tests {
         let keypair = provider.generate_keypair().unwrap();
         
         let message = b"Hello, quantum-safe world!";
-        let signature = provider.sign(message, &keypair).unwrap();
+        let signature = provider.sign(message, &keypair)
+            .map_err(|e| format!("Signing failed: {}", e))
+            .expect("Signing failed in test");
         
         assert!(signature.classical_component.is_some());
         assert!(signature.pq_component.is_some());

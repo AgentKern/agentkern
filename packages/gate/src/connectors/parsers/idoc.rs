@@ -218,7 +218,7 @@ impl IDocParser {
     pub fn parse_xml(&self, xml: &str) -> Result<IDocMessage, IDocParseError> {
         // Simplified XML parsing - in production use proper XML parser
         let mut fields: HashMap<String, String> = HashMap::new();
-        let mut segments = Vec::new();
+        let segments = Vec::new();
         
         // Extract IDOC type from root element
         let idoc_type = if let Some(start) = xml.find("<IDOC BEGIN=\"1\"") {

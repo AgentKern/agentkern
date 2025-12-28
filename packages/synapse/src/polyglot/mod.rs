@@ -128,7 +128,7 @@ impl PolyglotMemory {
         let embedding = self.embed(text).await;
         
         let mut index = self.index.write();
-        index.push((id.to_string(), embedding.embedding, text.to_string(), language));
+        index.push((id.to_string(), embedding.vector, text.to_string(), language));
         
         tracing::debug!(id = %id, language = ?language, "Stored document in polyglot memory");
     }
@@ -144,7 +144,7 @@ impl PolyglotMemory {
         if let Some(ref _qdrant_url) = self.qdrant_url {
             // In production with qdrant-client:
             // let client = QdrantClient::new(&qdrant_url).await?;
-            // let results = client.search("polyglot", query_embedding.embedding, top_k).await?;
+            // let results = client.search("polyglot", query_embedding.vector, top_k).await?;
             tracing::debug!("Qdrant configured, would search remote vector store");
         }
         
@@ -157,7 +157,7 @@ impl PolyglotMemory {
         let mut scored: Vec<(f32, &String, &String, &Language)> = index
             .iter()
             .map(|(id, emb, text, lang)| {
-                let score = cosine_similarity(&query_embedding.embedding, emb);
+                let score = cosine_similarity(&query_embedding.vector, emb);
                 (score, id, text, lang)
             })
             .collect();

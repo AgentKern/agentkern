@@ -5,7 +5,6 @@
 use crate::agent_card::AgentCard;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 /// Load balancing strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

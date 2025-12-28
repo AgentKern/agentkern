@@ -490,7 +490,7 @@ mod tests {
     #[test]
     fn test_carbon_calculation() {
         let footprint = CarbonFootprint::calculate(
-            AgentId::new("agent-1"),
+            "agent-1".to_string(),
             "inference",
             ComputeType::Gpu,
             60_000, // 1 minute
@@ -514,7 +514,7 @@ mod tests {
         let ledger = CarbonLedger::new();
         
         let result = ledger.record_compute(
-            AgentId::new("agent-1"),
+            "agent-1".to_string(),
             "test_action",
             ComputeType::Cpu,
             1000,
@@ -523,7 +523,7 @@ mod tests {
         
         assert!(result.is_ok());
         
-        let usage = ledger.get_daily_usage(&AgentId::new("agent-1"));
+        let usage = ledger.get_daily_usage(&"agent-1".to_string());
         assert!(usage.total_co2_grams > dec!(0));
         assert_eq!(usage.action_count, 1);
     }
@@ -534,14 +534,14 @@ mod tests {
         
         // Set a very low budget
         ledger.set_budget(
-            CarbonBudget::new(AgentId::new("agent-1"))
+            CarbonBudget::new("agent-1".to_string())
                 .with_daily_limit(dec!(0.001))
                 .block_on_exceed()
         );
 
         // First small action should work
         let _ = ledger.record_compute(
-            AgentId::new("agent-1"),
+            "agent-1".to_string(),
             "small",
             ComputeType::Storage,
             1,
@@ -550,7 +550,7 @@ mod tests {
 
         // Large action should be blocked
         let result = ledger.record_compute(
-            AgentId::new("agent-1"),
+            "agent-1".to_string(),
             "large",
             ComputeType::Gpu,
             3600_000, // 1 hour
@@ -566,7 +566,7 @@ mod tests {
         
         for i in 0..5 {
             let _ = ledger.record_compute(
-                AgentId::new(&format!("agent-{}", i)),
+                format!("agent-{}", i),
                 "action",
                 ComputeType::Cpu,
                 1000,

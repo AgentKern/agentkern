@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern Nexus: Universal Agent Protocol Gateway
 //!
 //! Per MANDATE.md Section 1: "We do not copy; we innovate."

@@ -11,8 +11,6 @@
 //! 4. Task Execution → Agent performs work
 //! 5. Settlement → Payment released
 
-use crate::types::{Task, TaskStatus};
-use crate::agent_card::AgentCard;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};

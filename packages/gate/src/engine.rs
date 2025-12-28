@@ -14,7 +14,7 @@ use uuid::Uuid;
 use chrono::Utc;
 
 use crate::dsl::{evaluate, EvalContext};
-use crate::carbon::{CarbonCheckResult, CarbonVeto};
+use crate::carbon::CarbonVeto;
 use crate::neural::NeuralScorer;
 use crate::policy::{Policy, PolicyAction};
 use crate::types::{
@@ -148,7 +148,6 @@ impl GateEngine {
         let carbon_allowed = carbon_result.as_ref().map(|r| r.allowed).unwrap_or(true);
         let allowed = blocking.is_empty() && final_risk < 80 && carbon_allowed;
 
-        // Generate reasoning
         let reasoning = if !carbon_allowed {
             carbon_result.as_ref().and_then(|r| r.message.clone())
                 .unwrap_or_else(|| "Blocked by carbon budget".to_string())
@@ -160,7 +159,7 @@ impl GateEngine {
             "All policies passed".to_string()
         };
 
-        VerificationResult {
+        let result = VerificationResult {
             request_id: request.request_id,
             allowed,
             evaluated_policies: evaluated,
@@ -174,7 +173,22 @@ impl GateEngine {
                 symbolic_us,
                 neural_us: neural_result.map(|(_, us)| us),
             },
-        }
+        };
+
+        // P1 Fix: ISO 42001 Ready Structured Audit Logging
+        tracing::info!(
+            request_id = %result.request_id,
+            agent_id = %request.agent_id,
+            action = %request.action,
+            allowed = result.allowed,
+            final_risk = result.final_risk_score,
+            symbolic_risk = result.symbolic_risk_score,
+            neural_risk = ?result.neural_risk_score,
+            latency_us = result.latency.total_us,
+            "Verification complete"
+        );
+
+        result
     }
 
     /// Evaluate policies using the symbolic (deterministic) path.

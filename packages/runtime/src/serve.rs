@@ -3,7 +3,7 @@
 //! Serves AgentKern on any environment.
 //! Uses standard protocols (HTTP, gRPC, WebSocket).
 
-use crate::config::{RuntimeConfig, Protocol};
+use crate::config::RuntimeConfig;
 use std::net::SocketAddr;
 
 /// Serve AgentKern with the given configuration.

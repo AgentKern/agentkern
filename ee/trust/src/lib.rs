@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Enterprise: Trust & Reputation System
 //!
 //! Per LICENSING_STRATEGY.md: "AgentKern-Trust (Reputation)"
@@ -382,14 +383,14 @@ mod tests {
 
     #[test]
     fn test_trust_network_requires_license() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = TrustNetwork::new();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_reputation_events() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut network = TrustNetwork::new().unwrap();
         network.register_agent("agent-1", "org-1");
@@ -405,12 +406,12 @@ mod tests {
         
         assert!(network.get_reputation("agent-1").unwrap().score > 500);
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]
     fn test_blacklisting() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut network = TrustNetwork::new().unwrap();
         network.register_agent("bad-agent", "org-1");
@@ -420,6 +421,6 @@ mod tests {
         assert!(!network.can_perform_high_risk("bad-agent"));
         assert_eq!(network.get_trust_tier("bad-agent"), TrustTier::Blacklisted);
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 }

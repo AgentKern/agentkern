@@ -12,15 +12,17 @@ use axum::{
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
+use axum::error_handling::HandleErrorLayer;
 use tower_http::trace::TraceLayer;
+use tower::{ServiceBuilder, BoxError, buffer::BufferLayer, limit::RateLimitLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use agentkern_gate::{
     GateEngine,
     Policy,
-    VerificationRequest,
     VerificationResult,
 };
+use agentkern_multitenancy::{TenantContext, PlanTier};
 
 /// Application state
 struct AppState {
@@ -59,6 +61,22 @@ async fn main() {
         .route("/verify", post(verify))
         .route("/policies", get(list_policies).post(register_policy))
         .layer(TraceLayer::new_for_http())
+        // P0: Rate Limiting Enforcement (100 RPM default)
+        // Note: RateLimit requires Buffer to be cloneable for Axum, 
+        // and HandleErrorLayer to map errors to Infallible
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled internal error: {}", err),
+                    )
+                }))
+                .layer(BufferLayer::new(1024))
+                .layer(RateLimitLayer::new(100, std::time::Duration::from_secs(60)))
+        )
+        // P2: Authentication Middleware (simple implementation)
+        .layer(axum::middleware::from_fn(auth_middleware))
         .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".to_string());
@@ -68,6 +86,39 @@ async fn main() {
     
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+/// P2: Authentication Middleware
+async fn auth_middleware(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Result<axum::response::Response, StatusCode> {
+    // Skip auth for health check
+    if req.uri().path() == "/health" {
+        return Ok(next.run(req).await);
+    }
+
+    let auth_header = req.headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok());
+
+    match auth_header {
+        Some(auth) if auth.starts_with("Bearer ") || auth.starts_with("ApiKey ") => {
+            // In production: Validate JWT or check API key against DB/TEE
+            // Here we accept any non-empty token for simulation
+            let token = &auth[7..];
+            if token.is_empty() {
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+            
+            tracing::debug!("Authenticated request with token: [REDACTED]");
+            Ok(next.run(req).await)
+        }
+        _ => {
+            tracing::warn!("Unauthorized access attempt to {}", req.uri().path());
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    }
 }
 
 async fn health() -> Json<HealthResponse> {

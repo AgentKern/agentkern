@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern-Synapse: Graph-based State Ledger with CRDTs
 //!
 //! Per ARCHITECTURE.md Section 3: "The Speed of Light"

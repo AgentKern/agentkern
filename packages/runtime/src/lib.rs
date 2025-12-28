@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused)]
 //! AgentKern Universal Runtime
 //!
 //! Single binary that runs anywhere:

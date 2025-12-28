@@ -213,6 +213,7 @@ pub struct LegacyMessage {
 /// 
 /// All connectors are designed to run in WASM isolation.
 /// They must not use any system calls directly.
+#[async_trait::async_trait]
 pub trait LegacyConnector: Send + Sync {
     /// Get connector name.
     fn name(&self) -> &str;
@@ -224,7 +225,7 @@ pub trait LegacyConnector: Send + Sync {
     fn config(&self) -> &ConnectorConfig;
     
     /// Check connector health.
-    fn health_check(&self) -> ConnectorResult<ConnectorHealth>;
+    async fn health_check(&self) -> ConnectorResult<ConnectorHealth>;
     
     /// Translate A2A task to legacy message.
     fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage>;
@@ -233,7 +234,7 @@ pub trait LegacyConnector: Send + Sync {
     fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload>;
     
     /// Execute a query/operation on the legacy system.
-    fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage>;
+    async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage>;
 }
 
 // ============================================================================

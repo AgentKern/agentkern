@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern-Gate: Neuro-Symbolic Verification Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"

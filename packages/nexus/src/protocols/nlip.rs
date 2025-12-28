@@ -180,7 +180,7 @@ pub struct NLIPHeader {
     pub intent: Option<String>,
     /// Additional metadata
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<std::collections::HashMap<String, String>>,
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 /// NLIP Payload (multimodal content).

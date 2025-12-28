@@ -42,6 +42,7 @@ impl MockConnector {
     }
 }
 
+#[async_trait::async_trait]
 impl LegacyConnector for MockConnector {
     fn name(&self) -> &str {
         &self.config.name
@@ -55,9 +56,9 @@ impl LegacyConnector for MockConnector {
         &self.config
     }
     
-    fn health_check(&self) -> ConnectorResult<ConnectorHealth> {
+    async fn health_check(&self) -> ConnectorResult<ConnectorHealth> {
         if self.should_fail {
-            Ok(ConnectorHealth::unhealthy("Mock failure enabled"))
+             Ok(ConnectorHealth::unhealthy("Mock failure enabled"))
         } else {
             let mut health = ConnectorHealth::healthy();
             health.latency_ms = Some(self.latency_ms);
@@ -91,14 +92,14 @@ impl LegacyConnector for MockConnector {
             .map_err(|e| ConnectorError::ParseError(e.to_string()))
     }
     
-    fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
+    async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
         if self.should_fail {
             return Err(ConnectorError::ConnectionFailed("Mock failure".into()));
         }
         
         // Simulate latency
         if self.latency_ms > 0 {
-            std::thread::sleep(std::time::Duration::from_millis(self.latency_ms));
+            tokio::time::sleep(tokio::time::Duration::from_millis(self.latency_ms)).await;
         }
         
         // Echo back with RESPONSE prefix
@@ -125,17 +126,17 @@ mod tests {
         assert_eq!(connector.protocol(), ConnectorProtocol::Sql);
     }
 
-    #[test]
-    fn test_mock_connector_health() {
+    #[tokio::test]
+    async fn test_mock_connector_health() {
         let connector = MockConnector::new("test");
-        let health = connector.health_check().unwrap();
+        let health = connector.health_check().await.unwrap();
         assert!(health.healthy);
     }
 
-    #[test]
-    fn test_mock_connector_failure_mode() {
+    #[tokio::test]
+    async fn test_mock_connector_failure_mode() {
         let connector = MockConnector::new("test").with_failure(true);
-        let health = connector.health_check().unwrap();
+        let health = connector.health_check().await.unwrap();
         assert!(!health.healthy);
     }
 
@@ -154,8 +155,8 @@ mod tests {
         assert_eq!(msg.message_type, "MOCK_QUERY");
     }
 
-    #[test]
-    fn test_mock_execute() {
+    #[tokio::test]
+    async fn test_mock_execute() {
         let connector = MockConnector::new("test");
         let msg = LegacyMessage {
             data: b"test data".to_vec(),
@@ -163,7 +164,7 @@ mod tests {
             metadata: HashMap::new(),
         };
         
-        let response = connector.execute(&msg).unwrap();
+        let response = connector.execute(&msg).await.unwrap();
         assert_eq!(response.message_type, "RESPONSE_TEST");
     }
 }

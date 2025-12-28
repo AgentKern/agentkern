@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Enterprise: ISO 42001 Compliance Export
 //!
 //! Per GLOBAL_GAPS.md §3: ISO/IEC 42001 (AIMS) Compliance
@@ -17,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 mod license {
-    use super::*;
+    
     
     #[derive(Debug, thiserror::Error)]
     pub enum LicenseError {
@@ -159,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_export_requires_license() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = export_iso42001(
             "Test Org",
             "ai-system-1",
@@ -172,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_export_with_license() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         let result = export_iso42001(
             "Test Org",
             "ai-system-1",
@@ -181,6 +182,6 @@ mod tests {
             vec![],
         );
         assert!(result.is_ok());
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 }

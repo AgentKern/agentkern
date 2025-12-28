@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Enterprise: Usage-Based Billing & Metering
 //!
 //! Per Deep Analysis: "No billing/metering for usage-based pricing"
@@ -530,14 +531,14 @@ mod tests {
 
     #[test]
     fn test_meter_requires_license() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = Meter::new("org-123");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_meter_with_license() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut meter = Meter::new("org-123").unwrap();
         
@@ -547,12 +548,12 @@ mod tests {
         let usage = meter.current_usage();
         assert_eq!(usage.get(&MetricType::ApiCalls), Some(&1));
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]
     fn test_invoice_generation() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut meter = Meter::new("org-123").unwrap();
         
@@ -565,7 +566,7 @@ mod tests {
         assert!(!invoice.line_items.is_empty());
         assert!(invoice.total_cents > 0.0);
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]

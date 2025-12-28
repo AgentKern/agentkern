@@ -1,3 +1,5 @@
+#![allow(unused)]
+#![allow(dead_code)]
 //! AgentKern-Arbiter: Conflict Resolution & Coordination Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"

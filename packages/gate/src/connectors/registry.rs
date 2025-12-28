@@ -98,16 +98,23 @@ impl ConnectorRegistry {
     }
     
     /// Get health status of all connectors.
-    pub fn health_all(&self) -> HashMap<String, ConnectorHealth> {
-        let connectors = self.connectors.read();
-        connectors
-            .iter()
-            .map(|(id, reg)| {
-                let health = reg.connector.health_check()
-                    .unwrap_or_else(|e| ConnectorHealth::unhealthy(e.to_string()));
-                (id.clone(), health)
-            })
-            .collect()
+    pub async fn health_all(&self) -> HashMap<String, ConnectorHealth> {
+        // Collect connectors first to release lock
+        let connectors: Vec<(String, Arc<dyn LegacyConnector>)> = {
+            let lock = self.connectors.read();
+            lock.iter()
+                .map(|(k, v)| (k.clone(), v.connector.clone()))
+                .collect()
+        };
+
+        // Iterate securely
+        let mut results = HashMap::new();
+        for (id, connector) in connectors {
+            let health = connector.health_check().await
+                .unwrap_or_else(|e| ConnectorHealth::unhealthy(e.to_string()));
+            results.insert(id, health);
+        }
+        results
     }
     
     /// Enable a connector.

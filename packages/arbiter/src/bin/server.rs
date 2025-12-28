@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use axum::{
     Router,
-    routing::{get, post, delete},
+    routing::{get, post},
     extract::{State, Path, Query},
     Json,
     http::StatusCode,

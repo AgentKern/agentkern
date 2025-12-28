@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! AgentKern Enterprise: Multi-Tenancy
 //!
 //! Per Deep Analysis: "No multi-tenant isolation"
@@ -22,7 +23,6 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 mod license {
     #[derive(Debug, thiserror::Error)]
@@ -388,14 +388,14 @@ mod tests {
 
     #[test]
     fn test_tenant_isolator_requires_license() {
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
         let result = TenantIsolator::new(IsolationLevel::Logical);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_tenant_isolator_with_license() {
-        std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
         
         let mut isolator = TenantIsolator::new(IsolationLevel::Schema).unwrap();
         isolator.register_tenant("org-123", PlanTier::Pro);
@@ -403,7 +403,7 @@ mod tests {
         let ctx = TenantContext::new("org-123").with_plan(PlanTier::Pro);
         assert!(isolator.can_proceed(&ctx).unwrap());
         
-        std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
     }
 
     #[test]

@@ -18,7 +18,6 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// FHIR resource types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

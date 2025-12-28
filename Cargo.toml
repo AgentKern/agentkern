@@ -64,6 +64,10 @@ tracing-subscriber = { version = "0.3.19", features = ["json"] }
 # Time
 chrono = { version = "0.4.39", features = ["serde"] }
 
+# Decimal for financial and carbon calculations
+rust_decimal = { version = "1.36", features = ["serde"] }
+rust_decimal_macros = "1.36"
+
 # UUID
 uuid = { version = "1.11", features = ["v4", "serde"] }
 

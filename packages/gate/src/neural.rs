@@ -25,6 +25,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 use crate::types::VerificationContext;
+use unicode_normalization::UnicodeNormalization;
+use deunicode::deunicode;
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -192,8 +194,20 @@ impl SimpleTokenizer {
 
     /// Tokenize text to token IDs.
     pub fn tokenize(&self, text: &str) -> Vec<i64> {
-        let lowered = text.to_lowercase();
-        let words: Vec<&str> = lowered.split_whitespace().collect();
+        // P0 Fix: Adversarial Robustness
+        // 1. NFC Normalization
+        // 2. De-unicoding (ASCII transliteration)
+        // 3. Lowercasing
+        let nfc_normalized = text.nfc().collect::<String>();
+        let lowered = deunicode(&nfc_normalized).to_lowercase();
+        
+        // Clean special characters but keep spaces
+        let cleaned: String = lowered
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c.is_whitespace() { c } else { ' ' })
+            .collect();
+
+        let words: Vec<&str> = cleaned.split_whitespace().collect();
         
         let mut tokens: Vec<i64> = words
             .iter()

@@ -5,8 +5,8 @@
 //! before execution based on ESG budgets.
 
 use serde::{Deserialize, Serialize};
-use agentkern_treasury::carbon::{CarbonLedger, CarbonRegion, ComputeType, CarbonError};
-use crate::types::{AgentId, VerificationResult};
+use agentkern_treasury::carbon::{CarbonLedger, CarbonRegion, ComputeType};
+use crate::types::AgentId;
 
 /// Results of a carbon check.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ impl CarbonVeto {
     pub fn evaluate(
         &self,
         agent_id: &AgentId,
-        action: &str,
+        _action: &str,
         compute_estimate: ComputeType,
         duration_ms: u64,
     ) -> CarbonCheckResult {
