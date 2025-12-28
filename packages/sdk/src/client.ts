@@ -281,7 +281,7 @@ export class AgentKern {
    * In production, this connects to AgentKern-Sovereign service.
    */
   private createSovereignAdapter(): SovereignPort {
-    const config = this.config;
+    // TODO: Use this.config.endpoint for Sovereign API in production
     return {
       async canTransfer(fromRegion, toRegion, _dataType) {
         // Per GLOBAL_GAPS.md: Implement geo-fencing rules
