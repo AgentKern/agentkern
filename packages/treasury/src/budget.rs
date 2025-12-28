@@ -128,7 +128,7 @@ impl BudgetManager {
     /// Set a spending limit for an agent.
     pub fn set_limit(&self, agent_id: &str, limit: SpendingLimit) {
         let mut limits = self.limits.write();
-        let agent_limits = limits.entry(agent_id.to_string()).or_insert_with(Vec::new);
+        let agent_limits = limits.entry(agent_id.to_string()).or_default();
 
         // Remove existing limit for same period
         agent_limits.retain(|l| l.period != limit.period);

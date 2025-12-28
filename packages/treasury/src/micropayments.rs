@@ -102,7 +102,7 @@ impl MicropaymentAggregator {
         }
 
         let mut pending = self.pending.write();
-        let receiver_payments = pending.entry(payment.to.clone()).or_insert_with(Vec::new);
+        let receiver_payments = pending.entry(payment.to.clone()).or_default();
         receiver_payments.push(payment.clone());
 
         // Check if we should batch

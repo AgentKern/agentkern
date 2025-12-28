@@ -25,9 +25,10 @@ use crate::types::AgentId;
 // ============================================================================
 
 /// Carbon intensity by region (gCO2/kWh).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum CarbonRegion {
     /// US Average (~400 gCO2/kWh)
+    #[default]
     UsAverage,
     /// US West (cleaner, ~250 gCO2/kWh)
     UsWest,
@@ -84,12 +85,6 @@ impl CarbonRegion {
             CarbonRegion::India => "India",
             CarbonRegion::Custom(_) => "Custom",
         }
-    }
-}
-
-impl Default for CarbonRegion {
-    fn default() -> Self {
-        CarbonRegion::UsAverage
     }
 }
 

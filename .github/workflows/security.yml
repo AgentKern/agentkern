@@ -75,9 +75,9 @@ jobs:
       
       - name: Sign SBOMs with Cosign (keyless)
         run: |
-          cosign sign-blob sbom/gate-sbom.json --output-signature sbom/gate-sbom.sig
-          cosign sign-blob sbom/synapse-sbom.json --output-signature sbom/synapse-sbom.sig
-          cosign sign-blob sbom/arbiter-sbom.json --output-signature sbom/arbiter-sbom.sig
+          cosign sign-blob sbom/packages/gate/gate-sbom.json --output-signature sbom/packages/gate/gate-sbom.sig
+          cosign sign-blob sbom/packages/synapse/synapse-sbom.json --output-signature sbom/packages/synapse/synapse-sbom.sig
+          cosign sign-blob sbom/packages/arbiter/arbiter-sbom.json --output-signature sbom/packages/arbiter/arbiter-sbom.sig
       
       - name: Upload signed artifacts
         uses: actions/upload-artifact@v4
