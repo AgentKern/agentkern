@@ -66,10 +66,7 @@ impl PriorityQueue {
             inserted_at: Utc::now(),
         };
 
-        let queue = self
-            .queues
-            .entry(request.resource.clone())
-            .or_insert_with(Vec::new);
+        let queue = self.queues.entry(request.resource.clone()).or_default();
 
         // Check if already in queue
         if queue.iter().any(|e| e.request.agent_id == request.agent_id) {

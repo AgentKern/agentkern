@@ -251,9 +251,7 @@ impl TrustNetwork {
     pub fn record_event(&mut self, agent_id: &str, event: ReputationEvent) {
         if let Some(record) = self.agents.get_mut(agent_id) {
             let impact = event.impact();
-            let new_score = (record.reputation.score as i32 + impact as i32)
-                .max(0)
-                .min(1000) as u16;
+            let new_score = (record.reputation.score as i32 + impact as i32).clamp(0, 1000) as u16;
 
             record.reputation.score = new_score;
             record.reputation.tier = TrustTier::from_score(new_score);
@@ -320,7 +318,7 @@ impl TrustNetwork {
     pub fn add_trust(&mut self, from_agent: &str, to_agent: &str) {
         self.trust_graph
             .entry(from_agent.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(to_agent.to_string());
     }
 

@@ -64,7 +64,7 @@ impl AuditReport {
 
         md.push_str("---\n\n");
         md.push_str("## Executive Summary\n\n");
-        md.push_str(&format!("| Metric | Value |\n"));
+        md.push_str("| Metric | Value |\n");
         md.push_str("|--------|-------|\n");
         md.push_str(&format!(
             "| Total AI Decisions | {} |\n",

@@ -124,11 +124,11 @@ enum MCPId {
     Number(i64),
 }
 
-impl ToString for MCPId {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for MCPId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MCPId::String(s) => s.clone(),
-            MCPId::Number(n) => n.to_string(),
+            MCPId::String(s) => write!(f, "{}", s),
+            MCPId::Number(n) => write!(f, "{}", n),
         }
     }
 }

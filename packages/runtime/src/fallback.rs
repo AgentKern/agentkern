@@ -22,23 +22,18 @@ use serde::{Deserialize, Serialize};
 use std::env;
 
 /// Service operation mode with graceful degradation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ServiceMode {
     /// Live mode - real API calls (credentials available)
     Live,
     /// Demo mode - returns realistic mock data (no credentials)
+    #[default]
     Demo,
     /// Offline mode - cached/local data only
     Offline,
     /// Disabled - feature explicitly disabled
     Disabled,
-}
-
-impl Default for ServiceMode {
-    fn default() -> Self {
-        Self::Demo
-    }
 }
 
 impl ServiceMode {

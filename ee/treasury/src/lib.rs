@@ -65,7 +65,7 @@ pub enum TreasuryError {
 }
 
 /// Supported currencies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Currency {
     /// US Dollar (fiat)
@@ -83,6 +83,7 @@ pub enum Currency {
     /// USDT Stablecoin
     Usdt,
     /// AgentKern Credits (internal)
+    #[default]
     Credits,
 }
 
@@ -108,12 +109,6 @@ impl Currency {
     pub fn from_base_units(&self, units: u64) -> f64 {
         let multiplier = 10_u64.pow(self.decimals() as u32);
         units as f64 / multiplier as f64
-    }
-}
-
-impl Default for Currency {
-    fn default() -> Self {
-        Self::Credits
     }
 }
 

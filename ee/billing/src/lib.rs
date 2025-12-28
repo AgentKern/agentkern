@@ -264,10 +264,7 @@ impl Meter {
             month: event.timestamp.month(),
         };
 
-        let aggregate = self
-            .aggregates
-            .entry((period, event.metric))
-            .or_insert_with(UsageAggregate::default);
+        let aggregate = self.aggregates.entry((period, event.metric)).or_default();
 
         aggregate.add(event.quantity, event.timestamp);
 

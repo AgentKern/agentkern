@@ -8,12 +8,13 @@
 use serde::{Deserialize, Serialize};
 
 /// Isolation mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum IsolationMode {
     /// WASM Components (Default, Nano-Light)
     /// - Microsecond startup
     /// - Capability-based security
     /// - Truly universal binaries
+    #[default]
     Wasm,
 
     /// Container fallback (for legacy workloads)
@@ -23,12 +24,6 @@ pub enum IsolationMode {
     /// Process isolation (minimal)
     /// For development/testing only
     Process,
-}
-
-impl Default for IsolationMode {
-    fn default() -> Self {
-        Self::Wasm // WASM is the default per ARCHITECTURE.md
-    }
 }
 
 /// Isolation configuration.
