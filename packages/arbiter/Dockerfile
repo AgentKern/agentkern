@@ -13,7 +13,6 @@ COPY Cargo.toml Cargo.lock ./
 # Copy all workspace crates (needed for dependency resolution)
 COPY packages packages/
 COPY ee ee/
-COPY crates crates/
 
 # Build release binary
 RUN cargo build --release --package agentkern-arbiter --bin arbiter-server
