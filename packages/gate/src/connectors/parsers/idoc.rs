@@ -89,7 +89,7 @@ impl IDocParser {
         }
 
         // Parse control record (first line, usually 524 chars)
-        let control = self.parse_control_record(lines.get(0).unwrap_or(&""))?;
+        let control = self.parse_control_record(lines.first().unwrap_or(&""))?;
 
         // Extract basic info from control
         let idoc_type = control

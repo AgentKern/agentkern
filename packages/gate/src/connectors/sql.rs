@@ -52,13 +52,13 @@ pub struct SqlConnector {
 impl SqlConnector {
     /// Create a new SQL connector.
     pub fn new(endpoint: impl Into<String>) -> Self {
-        let mut config = ConnectorConfig::default();
-        config.name = "SQL Connector".to_string();
-        config.protocol = ConnectorProtocol::Sql;
-        config.endpoint = endpoint.into();
-
         Self {
-            config,
+            config: ConnectorConfig {
+                name: "SQL Connector".to_string(),
+                protocol: ConnectorProtocol::Sql,
+                endpoint: endpoint.into(),
+                ..Default::default()
+            },
             pool: Arc::new(RwLock::new(None)),
         }
     }
@@ -105,7 +105,7 @@ impl SqlConnector {
         let query_params = params
             .get("params")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.clone())
+            .cloned()
             .unwrap_or_default();
 
         let timeout = params.get("timeout_ms").and_then(|v| v.as_u64());

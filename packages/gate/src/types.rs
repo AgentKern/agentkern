@@ -71,7 +71,7 @@ pub struct LatencyBreakdown {
 /// - Tier 3: Regional fallbacks for broader compliance
 ///
 /// Reference: GLOBAL_GAPS.md, ENGINEERING_STANDARD.md
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum DataRegion {
     // ═══════════════════════════════════════════════════════════════
@@ -106,6 +106,7 @@ pub enum DataRegion {
     // Default
     // ═══════════════════════════════════════════════════════════════
     /// Global (no specific residency, universal policies)
+    #[default]
     Global,
 }
 
@@ -128,12 +129,6 @@ impl DataRegion {
             Self::Africa => "Various",
             Self::Global => "None",
         }
-    }
-}
-
-impl Default for DataRegion {
-    fn default() -> Self {
-        Self::Global
     }
 }
 

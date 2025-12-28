@@ -17,7 +17,6 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use agentkern_gate::{GateEngine, Policy, VerificationResult};
-use agentkern_multitenancy::{PlanTier, TenantContext};
 
 /// Application state
 struct AppState {

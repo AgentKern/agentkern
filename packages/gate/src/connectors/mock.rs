@@ -18,12 +18,12 @@ pub struct MockConnector {
 impl MockConnector {
     /// Create a new mock connector.
     pub fn new(name: impl Into<String>) -> Self {
-        let mut config = ConnectorConfig::default();
-        config.name = name.into();
-        config.protocol = ConnectorProtocol::Sql; // Mock as SQL
-
         Self {
-            config,
+            config: ConnectorConfig {
+                name: name.into(),
+                protocol: ConnectorProtocol::Sql, // Mock as SQL
+                ..Default::default()
+            },
             should_fail: false,
             latency_ms: 0,
         }

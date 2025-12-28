@@ -22,10 +22,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Explanation method enum.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ExplanationMethod {
     /// Rule-based symbolic reasoning
+    #[default]
     RuleBased,
     /// SHAP values
     Shap,
@@ -35,12 +36,6 @@ pub enum ExplanationMethod {
     Attention,
     /// Custom/plugin method
     Custom,
-}
-
-impl Default for ExplanationMethod {
-    fn default() -> Self {
-        Self::RuleBased
-    }
 }
 
 /// Contribution of a feature to the decision.

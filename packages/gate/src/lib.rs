@@ -1,5 +1,8 @@
 #![allow(unused)]
 #![allow(dead_code)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::manual_range_contains)]
 //! AgentKern-Gate: Neuro-Symbolic Verification Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"

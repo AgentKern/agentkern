@@ -404,9 +404,9 @@ impl PromptGuard {
         // P0 Enhancement: Check for mixed scripts or specific homoglyph ranges
         if text.chars().any(|c| {
             let u = c as u32;
-            (u >= 0x0400 && u <= 0x04FF) || // Cyrillic
-            (u >= 0xFF00 && u <= 0xFFEF) || // Fullwidth
-            (u >= 0x2000 && u <= 0x206F) // General Punctuation (invisible chars)
+            (0x0400..=0x04FF).contains(&u) || // Cyrillic
+            (0xFF00..=0xFFEF).contains(&u) || // Fullwidth
+            (0x2000..=0x206F).contains(&u) // General Punctuation (invisible chars)
         }) {
             score += 30;
         }

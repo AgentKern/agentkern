@@ -44,9 +44,10 @@ pub enum NeuralError {
 }
 
 /// Execution provider for inference.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ExecutionProvider {
     /// CPU (default, always available)
+    #[default]
     Cpu,
     /// CUDA for NVIDIA GPUs
     Cuda,
@@ -58,12 +59,6 @@ pub enum ExecutionProvider {
     DirectML,
     /// CoreML for Apple hardware
     CoreML,
-}
-
-impl Default for ExecutionProvider {
-    fn default() -> Self {
-        Self::Cpu
-    }
 }
 
 /// Neural model configuration.
