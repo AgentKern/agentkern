@@ -194,6 +194,55 @@ pub enum DataRegion {
 
 ---
 
+## 6. Islamic Finance: Shariah Compliance Module
+
+AgentKern provides comprehensive Islamic finance validation through the `shariah_compliance` module.
+
+**Implementation**: `packages/gate/src/shariah_compliance.rs`
+
+### Supported Transaction Types (10 Total)
+
+| Type | Description | Shariah-Compliant |
+|------|-------------|-------------------|
+| **Takaful** | Islamic insurance (mutual risk pooling) | ✅ |
+| **Murabaha** | Cost-plus financing | ✅ |
+| **Musharakah** | Profit/loss partnership | ✅ |
+| **Ijara** | Leasing | ✅ |
+| **Sukuk** | Islamic bonds (asset-backed securities) | ✅ |
+| **Wakala** | Agency contract | ✅ |
+| **Salam** | Forward sale (advance payment) | ✅ |
+| Trade | General trade | ✅ |
+| Insurance | Conventional insurance | ❌ |
+| Loan | Interest-based loan | ❌ |
+
+### Validation Rules
+
+| Principle | Detection | Penalty |
+|-----------|-----------|---------|
+| **Riba** (Interest) | `interest_rate > 0` | -50 score, non-compliant |
+| **Gharar** (Uncertainty) | No underlying asset | -20 to -40 score |
+| **Maysir** (Gambling) | Guaranteed outcome on insurance | -30 score |
+
+### Usage
+
+```rust
+use agentkern_gate::shariah_compliance::{ShariahComplianceValidator, TransactionType};
+
+let validator = ShariahComplianceValidator::new();
+let result = validator.validate(&transaction)?;
+
+if result.compliant {
+    // Proceed with Shariah-compliant transaction
+} else {
+    // Review recommendations for compliance
+    for rec in result.recommendations {
+        println!("Recommendation: {}", rec);
+    }
+}
+```
+
+---
+
 *This is verifiable, safe, and extremely fast.*
-*Last updated: December 25, 2025*
+*Last updated: December 28, 2025*
 

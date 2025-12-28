@@ -51,6 +51,12 @@ pub enum TransactionType {
     Ijara,
     /// General trade
     Trade,
+    /// Sukuk (Islamic bond) - asset-backed security
+    Sukuk,
+    /// Wakala (agency contract) - agent acts on behalf of principal
+    Wakala,
+    /// Salam (forward sale) - advance payment for future delivery
+    Salam,
 }
 
 /// Takaful compliance result.
@@ -201,6 +207,52 @@ impl ShariahComplianceValidator {
                     );
                 }
             }
+            TransactionType::Sukuk => {
+                // Sukuk MUST have underlying asset (asset-backed)
+                if !details.has_underlying_asset {
+                    result.score = result.score.saturating_sub(40);
+                    result.gharar_risk = RiskLevel::Critical;
+                    result.recommendations.push(
+                        "Sukuk must be backed by tangible assets or business ventures".to_string(),
+                    );
+                }
+                // No guaranteed returns allowed
+                if details.guaranteed_outcome {
+                    result.score = result.score.saturating_sub(30);
+                    result.recommendations.push(
+                        "Sukuk returns must be linked to asset performance, not guaranteed"
+                            .to_string(),
+                    );
+                }
+            }
+            TransactionType::Wakala => {
+                // Wakala agent fee should be fixed, not percentage of profit
+                if details.profit_margin.unwrap_or(0.0) > 15.0 {
+                    result.score = result.score.saturating_sub(15);
+                    result.recommendations.push(
+                        "Wakala agent fee should be fixed or capped to avoid profit-sharing confusion".to_string(),
+                    );
+                }
+            }
+            TransactionType::Salam => {
+                // Salam requires prepayment and must have underlying commodity
+                if !details.has_underlying_asset {
+                    result.score = result.score.saturating_sub(30);
+                    result.gharar_risk = RiskLevel::High;
+                    result.recommendations.push(
+                        "Salam requires a clearly defined fungible commodity for future delivery"
+                            .to_string(),
+                    );
+                }
+                // Salam should not have excessive uncertainty
+                if details.guaranteed_outcome {
+                    result.score = result.score.saturating_sub(10);
+                    result.recommendations.push(
+                        "Salam delivery terms should be clearly specified to reduce gharar"
+                            .to_string(),
+                    );
+                }
+            }
             _ => {}
         }
 
@@ -232,6 +284,9 @@ impl ShariahComplianceValidator {
                 | TransactionType::Musharakah
                 | TransactionType::Ijara
                 | TransactionType::Trade
+                | TransactionType::Sukuk
+                | TransactionType::Wakala
+                | TransactionType::Salam
         )
     }
 }
@@ -309,7 +364,93 @@ mod tests {
 
         assert!(validator.is_compliant_type(TransactionType::Takaful));
         assert!(validator.is_compliant_type(TransactionType::Murabaha));
+        assert!(validator.is_compliant_type(TransactionType::Sukuk));
+        assert!(validator.is_compliant_type(TransactionType::Wakala));
+        assert!(validator.is_compliant_type(TransactionType::Salam));
         assert!(!validator.is_compliant_type(TransactionType::Insurance));
         assert!(!validator.is_compliant_type(TransactionType::Loan));
+    }
+
+    #[test]
+    fn test_sukuk_compliance() {
+        let validator = ShariahComplianceValidator::new();
+
+        // Valid Sukuk: asset-backed, no guaranteed returns
+        let valid_sukuk = TransactionDetails {
+            transaction_type: TransactionType::Sukuk,
+            amount: 100000.0,
+            has_underlying_asset: true,
+            guaranteed_outcome: false,
+            ..Default::default()
+        };
+        let result = validator.validate(&valid_sukuk).unwrap();
+        assert!(result.compliant);
+        assert_eq!(result.score, 100);
+
+        // Invalid Sukuk: no underlying asset
+        let invalid_sukuk = TransactionDetails {
+            transaction_type: TransactionType::Sukuk,
+            amount: 100000.0,
+            has_underlying_asset: false,
+            guaranteed_outcome: true,
+            ..Default::default()
+        };
+        let result = validator.validate(&invalid_sukuk).unwrap();
+        assert!(!result.compliant);
+        assert_eq!(result.gharar_risk, RiskLevel::Critical);
+    }
+
+    #[test]
+    fn test_wakala_compliance() {
+        let validator = ShariahComplianceValidator::new();
+
+        // Valid Wakala: fixed reasonable fee
+        let valid_wakala = TransactionDetails {
+            transaction_type: TransactionType::Wakala,
+            amount: 50000.0,
+            profit_margin: Some(10.0),
+            has_underlying_asset: true,
+            ..Default::default()
+        };
+        let result = validator.validate(&valid_wakala).unwrap();
+        assert!(result.compliant);
+        assert_eq!(result.score, 100);
+
+        // Wakala with excessive fee
+        let high_fee_wakala = TransactionDetails {
+            transaction_type: TransactionType::Wakala,
+            profit_margin: Some(25.0),
+            has_underlying_asset: true,
+            ..Default::default()
+        };
+        let result = validator.validate(&high_fee_wakala).unwrap();
+        assert_eq!(result.score, 85); // 100 - 15 for high fee
+    }
+
+    #[test]
+    fn test_salam_compliance() {
+        let validator = ShariahComplianceValidator::new();
+
+        // Valid Salam: has commodity, clear terms
+        let valid_salam = TransactionDetails {
+            transaction_type: TransactionType::Salam,
+            amount: 25000.0,
+            has_underlying_asset: true,
+            guaranteed_outcome: false,
+            ..Default::default()
+        };
+        let result = validator.validate(&valid_salam).unwrap();
+        assert!(result.compliant);
+        assert_eq!(result.score, 100);
+
+        // Invalid Salam: no commodity specified
+        let invalid_salam = TransactionDetails {
+            transaction_type: TransactionType::Salam,
+            has_underlying_asset: false,
+            ..Default::default()
+        };
+        let result = validator.validate(&invalid_salam).unwrap();
+        assert!(!result.compliant);
+        assert_eq!(result.gharar_risk, RiskLevel::High);
     }
 }
