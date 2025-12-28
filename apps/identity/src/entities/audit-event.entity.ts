@@ -1,5 +1,5 @@
 /**
- * AgentProof - Audit Event Entity (TypeORM)
+ * AgentKern Identity - Audit Event Entity (TypeORM)
  * 
  * PostgreSQL entity for audit logs.
  */

@@ -1,5 +1,5 @@
 /**
- * AgentProof - Crypto-Agility Service
+ * AgentKern Identity - Crypto-Agility Service
  *
  * Provides algorithm-agnostic cryptographic operations to prepare for
  * quantum-safe cryptography migration. Supports hybrid signatures

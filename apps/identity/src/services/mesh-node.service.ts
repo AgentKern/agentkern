@@ -1,5 +1,5 @@
 /**
- * AgentProof - Mesh Node Service
+ * AgentKern Identity - Mesh Node Service
  * 
  * Manages the local Trust Mesh node, peer connections,
  * and message propagation to the decentralized network.
@@ -52,9 +52,9 @@ export class MeshNodeService implements OnModuleInit, OnModuleDestroy {
   
   // Bootstrap nodes
   private readonly BOOTSTRAP_NODES = [
-    'wss://mesh-1.agentproof.io:8080',
-    'wss://mesh-2.agentproof.io:8080',
-    'wss://mesh-3.agentproof.io:8080',
+    'wss://mesh-1.agentkern-identity.io:8080',
+    'wss://mesh-2.agentkern-identity.io:8080',
+    'wss://mesh-3.agentkern-identity.io:8080',
   ];
 
   constructor(

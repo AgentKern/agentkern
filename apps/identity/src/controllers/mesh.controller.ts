@@ -1,5 +1,5 @@
 /**
- * AgentProof - Mesh Controller
+ * AgentKern Identity - Mesh Controller
  * 
  * REST API endpoints for Trust Mesh management.
  */

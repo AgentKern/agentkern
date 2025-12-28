@@ -4,12 +4,12 @@
 
 ### TypeScript/JavaScript
 ```bash
-npm install @agentproof/sdk
+npm install @agentkern-identity/sdk
 ```
 
 ### Python
 ```bash
-pip install agentproof
+pip install agentkern-identity
 ```
 
 ---
@@ -19,10 +19,10 @@ pip install agentproof
 ### Creating a Liability Proof
 
 ```typescript
-import { AgentProofSDK } from '@agentproof/sdk';
+import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
-const sdk = new AgentProofSDK({
-  apiUrl: 'https://api.agentproof.dev',
+const sdk = new AgentKern IdentitySDK({
+  apiUrl: 'https://api.agentkern-identity.dev',
   agentId: 'your-agent-id',
   agentName: 'My AI Agent',
 });
@@ -62,7 +62,7 @@ const response = await fetch('https://api.bank.com/v1/transfers', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-AgentProof': proof.toHeader(),
+    'X-AgentKern Identity': proof.toHeader(),
   },
   body: JSON.stringify({ amount: 1000, to: 'account-456' }),
 });
@@ -71,12 +71,12 @@ const response = await fetch('https://api.bank.com/v1/transfers', {
 ### Verifying a Proof
 
 ```typescript
-import { AgentProofSDK } from '@agentproof/sdk';
+import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
-const sdk = new AgentProofSDK({ apiUrl: 'https://api.agentproof.dev' });
+const sdk = new AgentKern IdentitySDK({ apiUrl: 'https://api.agentkern-identity.dev' });
 
 // Extract proof from incoming request
-const proofHeader = req.headers['x-agentproof'];
+const proofHeader = req.headers['x-agentkern-identity'];
 
 const result = await sdk.verifyProof(proofHeader);
 
@@ -95,13 +95,13 @@ if (result.valid) {
 ## LangChain Integration
 
 ```typescript
-import { AgentProofTool } from '@agentproof/sdk/langchain';
+import { AgentKern IdentityTool } from '@agentkern-identity/sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
 import { AgentExecutor, createOpenAIFunctionsAgent } from 'langchain/agents';
 
-// Create AgentProof tool
-const agentProofTool = new AgentProofTool({
-  apiUrl: 'https://api.agentproof.dev',
+// Create AgentKern Identity tool
+const agentProofTool = new AgentKern IdentityTool({
+  apiUrl: 'https://api.agentkern-identity.dev',
   agentId: 'langchain-agent',
 });
 
@@ -122,10 +122,10 @@ await executor.invoke({ input: 'Transfer $500 to account 1234' });
 ## Python SDK
 
 ```python
-from agentproof import AgentProofClient
+from agentkern-identity import AgentKern IdentityClient
 
-client = AgentProofClient(
-    api_url="https://api.agentproof.dev",
+client = AgentKern IdentityClient(
+    api_url="https://api.agentkern-identity.dev",
     agent_id="python-agent",
 )
 
@@ -146,7 +146,7 @@ proof = client.create_proof(
 import requests
 response = requests.post(
     "https://api.bank.com/v1/transfers",
-    headers={"X-AgentProof": proof.to_header()},
+    headers={"X-AgentKern Identity": proof.to_header()},
     json={"amount": 1000}
 )
 ```
@@ -155,7 +155,7 @@ response = requests.post(
 
 ## API Reference
 
-### `AgentProofSDK`
+### `AgentKern IdentitySDK`
 
 | Method | Description |
 |--------|-------------|

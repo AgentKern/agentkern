@@ -1,5 +1,5 @@
 /**
- * AgentProof - Proof Verification Service Tests
+ * AgentKern Identity - Proof Verification Service Tests
  * 
  * Unit tests for proof verification logic.
  * Follows mandate: 100% testing coverage.

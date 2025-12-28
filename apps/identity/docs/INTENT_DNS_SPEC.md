@@ -11,17 +11,17 @@ Similar to DNS for domain names, Intent DNS resolves agent identities to trust i
 
 ### Query Format
 ```
-agentproof://[agent-id].[principal-id].verify
+agentkern-identity://[agent-id].[principal-id].verify
 ```
 
 ### Example
 ```
-agentproof://cursor-agent.user-123.verify
+agentkern-identity://cursor-agent.user-123.verify
 ```
 
 ### Response Format (TXT Record Style)
 ```
-v=agentproof1 trusted=true score=850 expires=2025-12-25T00:00:00Z revoked=false
+v=agentkern-identity1 trusted=true score=850 expires=2025-12-25T00:00:00Z revoked=false
 ```
 
 ---

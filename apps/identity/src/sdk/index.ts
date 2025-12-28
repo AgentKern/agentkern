@@ -1,14 +1,14 @@
 /**
- * AgentProof SDK - TypeScript Client
+ * AgentKern Identity SDK - TypeScript Client
  * 
  * Zero-config embedded verification for AI agents.
- * Install: npm install @agentproof/sdk
+ * Install: npm install @agentkern/sdk
  * 
  * Usage:
  * ```typescript
- * import { AgentProof } from '@agentproof/sdk';
+ * import { AgentKern Identity } from '@agentkern/sdk';
  * 
- * const proof = await AgentProof.createProof({
+ * const proof = await AgentKern Identity.createProof({
  *   principal: { id: 'user-123', credentialId: 'cred-456' },
  *   agent: { id: 'my-agent', name: 'My Agent', version: '1.0.0' },
  *   intent: { action: 'transfer', target: { service: 'api.bank.com', endpoint: '/transfer', method: 'POST' } }
@@ -16,7 +16,7 @@
  * 
  * // Add to request
  * const response = await fetch(url, {
- *   headers: { 'X-AgentProof': proof.header }
+ *   headers: { 'X-AgentKern Identity': proof.header }
  * });
  * ```
  */
@@ -85,25 +85,25 @@ export interface TrustResolution {
   revoked: boolean;
 }
 
-export interface AgentProofConfig {
+export interface AgentKern IdentityConfig {
   serverUrl?: string;
   timeout?: number;
   retries?: number;
 }
 
-const DEFAULT_CONFIG: AgentProofConfig = {
+const DEFAULT_CONFIG: AgentKern IdentityConfig = {
   serverUrl: 'http://localhost:5002',
   timeout: 5000,
   retries: 3,
 };
 
 /**
- * AgentProof SDK Client
+ * AgentKern Identity SDK Client
  */
-export class AgentProofClient {
-  private config: AgentProofConfig;
+export class AgentKernIdentityClient {
+  private config: AgentKern IdentityConfig;
 
-  constructor(config: Partial<AgentProofConfig> = {}) {
+  constructor(config: Partial<AgentKern IdentityConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -204,28 +204,28 @@ export class AgentProofClient {
 /**
  * Default singleton instance
  */
-export const AgentProof = new AgentProofClient();
+export const AgentKern Identity = new AgentKernIdentityClient();
 
 /**
  * Create a new client with custom config
  */
-export function createAgentProofClient(config: Partial<AgentProofConfig> = {}): AgentProofClient {
-  return new AgentProofClient(config);
+export function createAgentKernIdentityClient(config: Partial<AgentKern IdentityConfig> = {}): AgentKernIdentityClient {
+  return new AgentKernIdentityClient(config);
 }
 
 /**
  * Middleware for Express/NestJS to verify incoming requests
  */
-export function agentProofMiddleware(options: { required?: boolean; client?: AgentProofClient } = {}) {
-  const client = options.client || AgentProof;
+export function agentProofMiddleware(options: { required?: boolean; client?: AgentKernIdentityClient } = {}) {
+  const client = options.client || AgentKern Identity;
   const required = options.required ?? true;
 
   return async (req: any, res: any, next: any) => {
-    const header = req.headers['x-agentproof'];
+    const header = req.headers['x-agentkern-identity'];
 
     if (!header) {
       if (required) {
-        return res.status(401).json({ error: 'Missing X-AgentProof header' });
+        return res.status(401).json({ error: 'Missing X-AgentKern Identity header' });
       }
       return next();
     }
@@ -256,18 +256,18 @@ export function agentProofMiddleware(options: { required?: boolean; client?: Age
 /**
  * Decorator for NestJS controllers
  */
-export function RequireAgentProof() {
+export function RequireAgentKern Identity() {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
       const request = args.find(arg => arg?.headers);
       
-      if (!request?.headers?.['x-agentproof']) {
-        throw new Error('Missing X-AgentProof header');
+      if (!request?.headers?.['x-agentkern-identity']) {
+        throw new Error('Missing X-AgentKern Identity header');
       }
 
-      const result = await AgentProof.verifyProof(request.headers['x-agentproof']);
+      const result = await AgentKern Identity.verifyProof(request.headers['x-agentkern-identity']);
       
       if (!result.valid) {
         throw new Error(`Invalid proof: ${result.errors?.join(', ')}`);

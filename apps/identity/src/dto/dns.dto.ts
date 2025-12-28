@@ -1,5 +1,5 @@
 /**
- * AgentProof - DNS DTOs with Validation
+ * AgentKern Identity - DNS DTOs with Validation
  * 
  * Data Transfer Objects for Intent DNS endpoints.
  */

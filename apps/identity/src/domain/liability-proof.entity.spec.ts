@@ -1,5 +1,5 @@
 /**
- * AgentProof - Liability Proof Entity Tests
+ * AgentKern Identity - Liability Proof Entity Tests
  * 
  * Unit tests for domain entity functions.
  * Follows mandate: 100% testing coverage.

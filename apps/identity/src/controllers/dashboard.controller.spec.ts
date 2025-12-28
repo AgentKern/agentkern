@@ -108,7 +108,7 @@ describe('DashboardController', () => {
   describe('getRoot', () => {
     it('should return dashboard info', () => {
       const result = controller.getRoot();
-      expect(result.name).toBe('AgentProof Dashboard API');
+      expect(result.name).toBe('AgentKern Identity Dashboard API');
       expect(result.endpoints).toBeDefined();
       expect(result.endpoints.stats).toBeDefined();
     });

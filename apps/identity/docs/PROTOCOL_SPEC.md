@@ -1,8 +1,8 @@
-# AgentProof Protocol Specification v1.0
+# AgentKern Identity Protocol Specification v1.0
 
 ## Overview
 
-AgentProof provides **Liability Proofs** – cryptographic attestations that prove:
+AgentKern Identity provides **Liability Proofs** – cryptographic attestations that prove:
 1. A specific human authorized a specific action
 2. The authorization was made via a hardware-bound credential (Passkey)
 3. The authorizer accepts liability for the agent's action
@@ -15,7 +15,7 @@ A Liability Proof is a compact, self-verifying token embedded in HTTP headers.
 
 ### Header Format
 ```
-X-AgentProof: v1.<payload>.<signature>
+X-AgentKern Identity: v1.<payload>.<signature>
 ```
 
 ### Payload Structure (Base64URL-encoded JSON)
@@ -86,7 +86,7 @@ The signature is created using ES256 (ECDSA with P-256 curve) via WebAuthn:
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   Agent     │────▶│  Target Service  │────▶│  Verify Proof   │
 │  (Request)  │     │  (Receives X-    │     │  1. Check expiry│
-│             │     │   AgentProof)    │     │  2. Verify sig  │
+│             │     │   AgentKern Identity)    │     │  2. Verify sig  │
 └─────────────┘     └──────────────────┘     │  3. Check intent│
                                               │  4. Log audit   │
                                               └─────────────────┘
@@ -97,7 +97,7 @@ The signature is created using ES256 (ECDSA with P-256 curve) via WebAuthn:
 1. **Parse Header**: Extract version, payload, signature
 2. **Decode Payload**: Base64URL decode, parse JSON
 3. **Check Expiry**: `expires_at` must be in future
-4. **Retrieve Public Key**: From AgentProof Trust Registry or cached
+4. **Retrieve Public Key**: From AgentKern Identity Trust Registry or cached
 5. **Verify Signature**: ES256 verification using public key
 6. **Validate Intent**: Check action matches request being made
 7. **Check Constraints**: Ensure request falls within authorized bounds
@@ -134,24 +134,24 @@ The `liability` block is critical for legal clarity:
 For real-time trust lookups without full verification:
 
 ```
-agentproof://agent-123.principal-456.verify
+agentkern-identity://agent-123.principal-456.verify
 ```
 
 Returns DNS TXT record:
 ```
-"v=agentproof1 trusted=true score=850 expires=2025-12-25"
+"v=agentkern-identity1 trusted=true score=850 expires=2025-12-25"
 ```
 
 ---
 
 ## HTTP Integration
 
-### Request with AgentProof
+### Request with AgentKern Identity
 ```http
 POST /v1/transfers HTTP/1.1
 Host: api.bank.com
 Content-Type: application/json
-X-AgentProof: v1.eyJ2ZXJzaW9uIjoiMS4wIi....<signature>
+X-AgentKern Identity: v1.eyJ2ZXJzaW9uIjoiMS4wIi....<signature>
 
 {"amount": 1000, "to_account": "****1234"}
 ```
@@ -161,7 +161,7 @@ X-AgentProof: v1.eyJ2ZXJzaW9uIjoiMS4wIi....<signature>
 | Code | Meaning |
 |------|---------|
 | 200 | Request processed, proof valid |
-| 401 | Missing or invalid X-AgentProof header |
+| 401 | Missing or invalid X-AgentKern Identity header |
 | 403 | Proof valid but action not authorized by constraints |
 | 410 | Proof expired |
 
@@ -187,5 +187,5 @@ Protocol versions follow semver. The `version` field in payload ensures forward 
 
 ---
 
-*AgentProof Protocol Specification v1.0*
+*AgentKern Identity Protocol Specification v1.0*
 *December 2025*

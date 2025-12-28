@@ -15,7 +15,7 @@ describe('AppController', () => {
   describe('root', () => {
     it('should return API info', () => {
       const result = appController.getRoot();
-      expect(result.name).toBe('AgentProof API');
+      expect(result.name).toBe('AgentKern Identity API');
       expect(result.version).toBe('1.0.0');
       expect(result.docs).toBe('/docs');
       expect(result.endpoints).toBeDefined();

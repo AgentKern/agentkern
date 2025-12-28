@@ -1,37 +1,37 @@
 /**
- * AgentProof SDK Tests
+ * AgentKern Identity SDK Tests
  * Using mocked fetch
  */
 
 import {
-  AgentProofClient,
-  createAgentProofClient,
+  AgentKern IdentityClient,
+  createAgentKern IdentityClient,
   agentProofMiddleware,
-  RequireAgentProof,
-  AgentProof,
+  RequireAgentKern Identity,
+  AgentKern Identity,
 } from './index';
 
 // Mock global fetch
 const mockFetch = jest.fn();
 globalThis.fetch = mockFetch;
 
-describe('AgentProof SDK', () => {
-  let client: AgentProofClient;
+describe('AgentKern Identity SDK', () => {
+  let client: AgentKern IdentityClient;
 
   beforeEach(() => {
-    client = new AgentProofClient({ serverUrl: 'http://test-server:3000' });
+    client = new AgentKern IdentityClient({ serverUrl: 'http://test-server:3000' });
     mockFetch.mockClear();
   });
 
-  describe('AgentProofClient', () => {
+  describe('AgentKern IdentityClient', () => {
     describe('constructor', () => {
       it('should create client with default config', () => {
-        const defaultClient = new AgentProofClient();
+        const defaultClient = new AgentKern IdentityClient();
         expect(defaultClient).toBeDefined();
       });
 
       it('should create client with custom config', () => {
-        const customClient = new AgentProofClient({
+        const customClient = new AgentKern IdentityClient({
           serverUrl: 'http://custom:8080',
           timeout: 10000,
           retries: 5,
@@ -42,7 +42,7 @@ describe('AgentProof SDK', () => {
 
     describe('createProof', () => {
       it('should create a proof', async () => {
-        const mockResponse = { header: 'AgentProof v1.xxx', proofId: 'proof-1', expiresAt: '2025-12-31' };
+        const mockResponse = { header: 'AgentKernIdentity v1.xxx', proofId: 'proof-1', expiresAt: '2025-12-31' };
         mockFetch.mockResolvedValue({
           ok: true,
           json: () => Promise.resolve(mockResponse),
@@ -90,7 +90,7 @@ describe('AgentProof SDK', () => {
           json: () => Promise.resolve(mockResponse),
         });
 
-        const result = await client.verifyProof('AgentProof v1.xxx.yyy');
+        const result = await client.verifyProof('AgentKernIdentity v1.xxx.yyy');
 
         expect(result.valid).toBe(true);
         expect(mockFetch).toHaveBeenCalledWith(
@@ -202,16 +202,16 @@ describe('AgentProof SDK', () => {
     });
   });
 
-  describe('createAgentProofClient', () => {
+  describe('createAgentKern IdentityClient', () => {
     it('should create a new client instance', () => {
-      const newClient = createAgentProofClient({ serverUrl: 'http://other:4000' });
-      expect(newClient).toBeInstanceOf(AgentProofClient);
+      const newClient = createAgentKern IdentityClient({ serverUrl: 'http://other:4000' });
+      expect(newClient).toBeInstanceOf(AgentKern IdentityClient);
     });
   });
 
-  describe('AgentProof singleton', () => {
+  describe('AgentKern Identity singleton', () => {
     it('should be a default client instance', () => {
-      expect(AgentProof).toBeInstanceOf(AgentProofClient);
+      expect(AgentKern Identity).toBeInstanceOf(AgentKern IdentityClient);
     });
   });
 
@@ -256,7 +256,7 @@ describe('AgentProof SDK', () => {
       });
 
       const middleware = agentProofMiddleware();
-      const req = { headers: { 'x-agentproof': 'AgentProof v1.xxx' }, agentProof: null };
+      const req = { headers: { 'x-agentkern-identity': 'AgentKernIdentity v1.xxx' }, agentProof: null };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       const next = jest.fn();
 
@@ -274,7 +274,7 @@ describe('AgentProof SDK', () => {
       });
 
       const middleware = agentProofMiddleware();
-      const req = { headers: { 'x-agentproof': 'expired-proof' } };
+      const req = { headers: { 'x-agentkern-identity': 'expired-proof' } };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       const next = jest.fn();
 
@@ -288,7 +288,7 @@ describe('AgentProof SDK', () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
       const middleware = agentProofMiddleware();
-      const req = { headers: { 'x-agentproof': 'test-proof' } };
+      const req = { headers: { 'x-agentkern-identity': 'test-proof' } };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       const next = jest.fn();
 
@@ -298,10 +298,10 @@ describe('AgentProof SDK', () => {
     });
   });
 
-  describe('RequireAgentProof decorator', () => {
+  describe('RequireAgentKern Identity decorator', () => {
     it('should throw if header is missing', async () => {
       class TestController {
-        @RequireAgentProof()
+        @RequireAgentKern Identity()
         async testMethod(request: any) {
           return 'success';
         }
@@ -310,7 +310,7 @@ describe('AgentProof SDK', () => {
       const controller = new TestController();
       const request = { headers: {} };
 
-      await expect(controller.testMethod(request)).rejects.toThrow('Missing X-AgentProof header');
+      await expect(controller.testMethod(request)).rejects.toThrow('Missing X-AgentKern Identity header');
     });
 
     it('should throw if proof is invalid', async () => {
@@ -320,14 +320,14 @@ describe('AgentProof SDK', () => {
       });
 
       class TestController {
-        @RequireAgentProof()
+        @RequireAgentKern Identity()
         async testMethod(request: any) {
           return 'success';
         }
       }
 
       const controller = new TestController();
-      const request = { headers: { 'x-agentproof': 'invalid' } };
+      const request = { headers: { 'x-agentkern-identity': 'invalid' } };
 
       await expect(controller.testMethod(request)).rejects.toThrow('Invalid proof');
     });
@@ -339,14 +339,14 @@ describe('AgentProof SDK', () => {
       });
 
       class TestController {
-        @RequireAgentProof()
+        @RequireAgentKern Identity()
         async testMethod(request: any) {
           return 'success';
         }
       }
 
       const controller = new TestController();
-      const request = { headers: { 'x-agentproof': 'valid-proof' } };
+      const request = { headers: { 'x-agentkern-identity': 'valid-proof' } };
 
       const result = await controller.testMethod(request);
       expect(result).toBe('success');

@@ -25,7 +25,7 @@ describe('WebAuthnService Full Coverage', () => {
     // Default implementations
     mockGenerateRegistrationOptions.mockResolvedValue({
       challenge: 'mock-challenge',
-      rp: { name: 'AgentProof', id: 'localhost' },
+      rp: { name: 'AgentKern Identity', id: 'localhost' },
       user: { id: 'mock-user-id', name: 'user', displayName: 'user' },
       pubKeyCredParams: [],
       timeout: 60000,
@@ -49,7 +49,7 @@ describe('WebAuthnService Full Coverage', () => {
           useValue: {
             get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
               const config: Record<string, any> = {
-                'WEBAUTHN_RP_NAME': 'AgentProof',
+                'WEBAUTHN_RP_NAME': 'AgentKern Identity',
                 'WEBAUTHN_RP_ID': 'localhost',
                 'WEBAUTHN_ORIGIN': 'http://localhost:3000',
               };

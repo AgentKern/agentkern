@@ -1,5 +1,5 @@
 /**
- * AgentProof - Mesh Module
+ * AgentKern Identity - Mesh Module
  * 
  * Module for Trust Mesh P2P network.
  */

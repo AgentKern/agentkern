@@ -1,28 +1,28 @@
 /**
- * AgentProof - LangChain Integration
+ * AgentKern Identity - LangChain Integration
  * 
- * Provides AgentProof verification for LangChain agents.
+ * Provides AgentKern Identity verification for LangChain agents.
  * Zero-config: agents automatically include Liability Proofs.
  * 
  * Usage:
  * ```typescript
- * import { AgentProofLangChain } from '@agentproof/sdk/langchain';
+ * import { AgentKern IdentityLangChain } from '@agentkern/sdk/langchain';
  * 
- * const agent = AgentProofLangChain.wrap(myAgent, {
+ * const agent = AgentKern IdentityLangChain.wrap(myAgent, {
  *   principal: { id: 'user-123', credentialId: 'cred-456' },
  *   agent: { id: 'langchain-agent', name: 'My LangChain Agent', version: '1.0.0' }
  * });
  * ```
  */
 
-import { AgentProofClient, Principal, Agent, Intent, Constraints, ProofResult } from './index';
+import { AgentKern IdentityClient, Principal, Agent, Intent, Constraints, ProofResult } from './index';
 
 export interface LangChainAgentConfig {
   principal: Principal;
   agent: Agent;
   constraints?: Constraints;
   expiresInSeconds?: number;
-  client?: AgentProofClient;
+  client?: AgentKern IdentityClient;
 }
 
 export interface ToolCallContext {
@@ -33,16 +33,16 @@ export interface ToolCallContext {
 }
 
 /**
- * LangChain callback handler that adds AgentProof to tool calls
+ * LangChain callback handler that adds AgentKern Identity to tool calls
  */
-export class AgentProofCallbackHandler {
+export class AgentKern IdentityCallbackHandler {
   private config: LangChainAgentConfig;
-  private client: AgentProofClient;
+  private client: AgentKern IdentityClient;
   private lastProof: ProofResult | null = null;
 
   constructor(config: LangChainAgentConfig) {
     this.config = config;
-    this.client = config.client || new AgentProofClient();
+    this.client = config.client || new AgentKern IdentityClient();
   }
 
   /**
@@ -71,7 +71,7 @@ export class AgentProofCallbackHandler {
       this.lastProof = proof;
       return proof.header;
     } catch (error) {
-      console.error('[AgentProof] Failed to create proof for tool:', context.toolName, error);
+      console.error('[AgentKern Identity] Failed to create proof for tool:', context.toolName, error);
       return null;
     }
   }
@@ -82,7 +82,7 @@ export class AgentProofCallbackHandler {
   async onToolEnd(context: ToolCallContext, success: boolean): Promise<void> {
     // In production, report verification result to mesh
     if (this.lastProof) {
-      console.debug(`[AgentProof] Tool ${context.toolName} completed:`, success ? 'success' : 'failure');
+      console.debug(`[AgentKern Identity] Tool ${context.toolName} completed:`, success ? 'success' : 'failure');
     }
   }
 
@@ -95,14 +95,14 @@ export class AgentProofCallbackHandler {
 }
 
 /**
- * Wrap a LangChain-style tool to automatically add AgentProof
+ * Wrap a LangChain-style tool to automatically add AgentKern Identity
  */
 export function wrapTool<T extends (...args: any[]) => Promise<any>>(
   tool: T,
   toolName: string,
   config: LangChainAgentConfig,
 ): T {
-  const handler = new AgentProofCallbackHandler(config);
+  const handler = new AgentKern IdentityCallbackHandler(config);
 
   return (async (...args: any[]) => {
     const context: ToolCallContext = {
@@ -135,19 +135,19 @@ export function wrapTool<T extends (...args: any[]) => Promise<any>>(
 }
 
 /**
- * HTTP client wrapper that automatically adds X-AgentProof header
+ * HTTP client wrapper that automatically adds X-AgentKern Identity header
  */
-export class AgentProofFetch {
+export class AgentKern IdentityFetch {
   private config: LangChainAgentConfig;
-  private client: AgentProofClient;
+  private client: AgentKern IdentityClient;
 
   constructor(config: LangChainAgentConfig) {
     this.config = config;
-    this.client = config.client || new AgentProofClient();
+    this.client = config.client || new AgentKern IdentityClient();
   }
 
   /**
-   * Fetch with automatic AgentProof header
+   * Fetch with automatic AgentKern Identity header
    */
   async fetch(url: string, options: RequestInit = {}): Promise<Response> {
     const urlObj = new URL(url);
@@ -174,16 +174,16 @@ export class AgentProofFetch {
       ...options,
       headers: {
         ...options.headers,
-        'X-AgentProof': proof.header,
+        'X-AgentKern Identity': proof.header,
       },
     });
   }
 }
 
 /**
- * Create an AgentProof-enabled fetch function
+ * Create an AgentKern Identity-enabled fetch function
  */
-export function createAgentProofFetch(config: LangChainAgentConfig) {
-  const wrapper = new AgentProofFetch(config);
+export function createAgentKern IdentityFetch(config: LangChainAgentConfig) {
+  const wrapper = new AgentKern IdentityFetch(config);
   return wrapper.fetch.bind(wrapper);
 }

@@ -3,13 +3,13 @@
  */
 
 import {
-  AgentProofCallbackHandler,
+  AgentKern IdentityCallbackHandler,
   wrapTool,
-  AgentProofFetch,
-  createAgentProofFetch,
+  AgentKern IdentityFetch,
+  createAgentKern IdentityFetch,
   LangChainAgentConfig,
 } from './langchain';
-import { AgentProofClient } from './index';
+import { AgentKern IdentityClient } from './index';
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -29,22 +29,22 @@ describe('LangChain Integration', () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
-        header: 'AgentProof v1.test-header',
+        header: 'AgentKernIdentity v1.test-header',
         proofId: 'proof-123',
         expiresAt: '2025-12-31T23:59:59Z',
       }),
     });
   });
 
-  describe('AgentProofCallbackHandler', () => {
+  describe('AgentKern IdentityCallbackHandler', () => {
     it('should create handler with config', () => {
-      const handler = new AgentProofCallbackHandler(mockConfig);
+      const handler = new AgentKern IdentityCallbackHandler(mockConfig);
       expect(handler).toBeDefined();
     });
 
     it('should create handler with custom client', () => {
-      const customClient = new AgentProofClient({ serverUrl: 'http://custom:8080' });
-      const handler = new AgentProofCallbackHandler({
+      const customClient = new AgentKern IdentityClient({ serverUrl: 'http://custom:8080' });
+      const handler = new AgentKern IdentityCallbackHandler({
         ...mockConfig,
         client: customClient,
       });
@@ -53,7 +53,7 @@ describe('LangChain Integration', () => {
 
     describe('onToolStart', () => {
       it('should create proof for tool call', async () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         const context = {
           toolName: 'search',
           toolInput: { query: 'test query' },
@@ -61,12 +61,12 @@ describe('LangChain Integration', () => {
 
         const proofHeader = await handler.onToolStart(context);
 
-        expect(proofHeader).toBe('AgentProof v1.test-header');
+        expect(proofHeader).toBe('AgentKernIdentity v1.test-header');
         expect(mockFetch).toHaveBeenCalled();
       });
 
       it('should use provided target service and endpoint', async () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         const context = {
           toolName: 'api_call',
           toolInput: { data: 'test' },
@@ -85,7 +85,7 @@ describe('LangChain Integration', () => {
       it('should return null on error', async () => {
         mockFetch.mockRejectedValue(new Error('Network error'));
 
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         const result = await handler.onToolStart({
           toolName: 'test',
           toolInput: {},
@@ -97,7 +97,7 @@ describe('LangChain Integration', () => {
 
     describe('onToolEnd', () => {
       it('should log success', async () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         
         // First start a tool to set lastProof
         await handler.onToolStart({ toolName: 'test', toolInput: {} });
@@ -109,7 +109,7 @@ describe('LangChain Integration', () => {
       });
 
       it('should log failure', async () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         
         await handler.onToolStart({ toolName: 'test', toolInput: {} });
         
@@ -121,12 +121,12 @@ describe('LangChain Integration', () => {
 
     describe('getLastProof', () => {
       it('should return null initially', () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         expect(handler.getLastProof()).toBeNull();
       });
 
       it('should return last proof after tool start', async () => {
-        const handler = new AgentProofCallbackHandler(mockConfig);
+        const handler = new AgentKern IdentityCallbackHandler(mockConfig);
         await handler.onToolStart({ toolName: 'test', toolInput: {} });
 
         const proof = handler.getLastProof();
@@ -145,7 +145,7 @@ describe('LangChain Integration', () => {
 
       expect(originalTool).toHaveBeenCalledWith({ input: 'test' });
       expect(result.result).toBe('success');
-      expect(result.__agentProof).toBe('AgentProof v1.test-header');
+      expect(result.__agentProof).toBe('AgentKernIdentity v1.test-header');
     });
 
     it('should handle tool with primitive return', async () => {
@@ -165,23 +165,23 @@ describe('LangChain Integration', () => {
     });
   });
 
-  describe('AgentProofFetch', () => {
+  describe('AgentKern IdentityFetch', () => {
     it('should create fetch wrapper', () => {
-      const wrapper = new AgentProofFetch(mockConfig);
+      const wrapper = new AgentKern IdentityFetch(mockConfig);
       expect(wrapper).toBeDefined();
     });
 
-    it('should add X-AgentProof header to requests', async () => {
+    it('should add X-AgentKern Identity header to requests', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
-          header: 'AgentProof v1.fetch-test',
+          header: 'AgentKernIdentity v1.fetch-test',
           proofId: 'fetch-proof',
           expiresAt: '2025-12-31',
         }),
       });
 
-      const wrapper = new AgentProofFetch(mockConfig);
+      const wrapper = new AgentKern IdentityFetch(mockConfig);
       await wrapper.fetch('https://api.example.com/endpoint', {
         method: 'POST',
         body: JSON.stringify({ data: 'test' }),
@@ -190,7 +190,7 @@ describe('LangChain Integration', () => {
       // Second call should be the actual fetch with header
       expect(mockFetch).toHaveBeenCalledTimes(2);
       const [, fetchOptions] = mockFetch.mock.calls[1];
-      expect(fetchOptions.headers['X-AgentProof']).toBe('AgentProof v1.fetch-test');
+      expect(fetchOptions.headers['X-AgentKern Identity']).toBe('AgentKernIdentity v1.fetch-test');
     });
 
     it('should parse URL for intent', async () => {
@@ -203,7 +203,7 @@ describe('LangChain Integration', () => {
         }),
       });
 
-      const wrapper = new AgentProofFetch(mockConfig);
+      const wrapper = new AgentKern IdentityFetch(mockConfig);
       await wrapper.fetch('https://api.bank.com/v1/transfer?amount=100');
 
       const [, createOptions] = mockFetch.mock.calls[0];
@@ -213,7 +213,7 @@ describe('LangChain Integration', () => {
     });
   });
 
-  describe('createAgentProofFetch', () => {
+  describe('createAgentKern IdentityFetch', () => {
     it('should return a bound fetch function', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
@@ -224,7 +224,7 @@ describe('LangChain Integration', () => {
         }),
       });
 
-      const agentFetch = createAgentProofFetch(mockConfig);
+      const agentFetch = createAgentKern IdentityFetch(mockConfig);
       expect(typeof agentFetch).toBe('function');
 
       await agentFetch('https://example.com/test');

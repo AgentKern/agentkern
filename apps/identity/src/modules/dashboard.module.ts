@@ -1,5 +1,5 @@
 /**
- * AgentProof - Dashboard Module
+ * AgentKern Identity - Dashboard Module
  * 
  * Enterprise dashboard and policy management.
  */

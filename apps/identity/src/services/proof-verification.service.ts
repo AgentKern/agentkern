@@ -1,5 +1,5 @@
 /**
- * AgentProof - Proof Verification Service
+ * AgentKern Identity - Proof Verification Service
  * 
  * Verifies Liability Proofs using real cryptographic verification.
  * No mocks, no placeholders - production code.
@@ -41,7 +41,7 @@ export class ProofVerificationService {
   private publicKeys: Map<string, PublicKeyInfo> = new Map();
 
   /**
-   * Verify a Liability Proof from X-AgentProof header
+   * Verify a Liability Proof from X-AgentKern Identity header
    */
   async verifyProof(header: string): Promise<VerificationResult> {
     const errors: string[] = [];

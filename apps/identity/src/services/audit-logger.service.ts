@@ -1,5 +1,5 @@
 /**
- * AgentProof - Audit Logger Service
+ * AgentKern Identity - Audit Logger Service
  * 
  * Structured audit logging for compliance and security.
  * Logs all proof verifications, key registrations, and security events.

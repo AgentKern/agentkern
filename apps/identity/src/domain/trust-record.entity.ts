@@ -1,5 +1,5 @@
 /**
- * AgentProof - Trust Record Entity
+ * AgentKern Identity - Trust Record Entity
  * 
  * Represents an agent's trust status in the Intent DNS system.
  * Used for caching and resolving trust lookups.

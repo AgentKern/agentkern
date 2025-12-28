@@ -1,5 +1,5 @@
 /**
- * AgentProof Performance Benchmarks
+ * AgentKern Identity Performance Benchmarks
  * 
  * Run: npm run build && node dist/test/benchmarks/performance.benchmark.js
  * Or simpler: npm run test -- --testPathPattern="benchmark" --testTimeout=60000

@@ -1,5 +1,5 @@
 /**
- * AgentProof - License Guard
+ * AgentKern Identity - License Guard
  * 
  * Guard that checks if the current license allows access to a feature.
  */
@@ -46,7 +46,7 @@ export class LicenseGuard implements CanActivate {
         error: 'Feature not available',
         message: `The '${requiredFeature}' feature requires a higher license tier`,
         currentTier: license.tier,
-        upgrade: 'https://agentproof.io/pricing',
+        upgrade: 'https://agentkern-identity.io/pricing',
       });
     }
 
@@ -63,7 +63,7 @@ export class LicenseGuard implements CanActivate {
         message: `This endpoint requires ${requiredTier.toUpperCase()} tier or higher`,
         currentTier: license.tier,
         requiredTier: requiredTier,
-        upgrade: 'https://agentproof.io/pricing',
+        upgrade: 'https://agentkern-identity.io/pricing',
       });
     }
 

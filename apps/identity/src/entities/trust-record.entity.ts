@@ -1,5 +1,5 @@
 /**
- * AgentProof - Trust Record Entity (TypeORM)
+ * AgentKern Identity - Trust Record Entity (TypeORM)
  * 
  * PostgreSQL entity for trust records.
  */

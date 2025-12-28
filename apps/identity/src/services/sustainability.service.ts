@@ -1,5 +1,5 @@
 /**
- * AgentProof - Sustainability Service
+ * AgentKern Identity - Sustainability Service
  *
  * Tracks the carbon footprint and energy efficiency of the application.
  * Implements recommendation from the sustainability audit.

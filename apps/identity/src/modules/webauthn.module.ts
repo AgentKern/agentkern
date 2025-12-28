@@ -1,5 +1,5 @@
 /**
- * AgentProof - WebAuthn Module
+ * AgentKern Identity - WebAuthn Module
  * 
  * Module for Passkey authentication.
  */

@@ -1,5 +1,5 @@
 /**
- * AgentProof - Privacy Engineering Service
+ * AgentKern Identity - Privacy Engineering Service
  *
  * Automates compliance with privacy regulations like GDPR and CCPA.
  * Handles data mapping, consent management, and Right to be Forgotten (deletion).

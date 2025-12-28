@@ -1,5 +1,5 @@
 /**
- * AgentProof - Policy Entity (TypeORM)
+ * AgentKern Identity - Policy Entity (TypeORM)
  * 
  * PostgreSQL entity for enterprise policies.
  */

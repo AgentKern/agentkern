@@ -1,5 +1,5 @@
 /**
- * AgentProof - Mesh DTOs
+ * AgentKern Identity - Mesh DTOs
  * 
  * Data Transfer Objects for Mesh endpoints.
  */

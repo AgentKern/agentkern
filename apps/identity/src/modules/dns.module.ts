@@ -1,5 +1,5 @@
 /**
- * AgentProof - DNS Module
+ * AgentKern Identity - DNS Module
  * 
  * Module for Intent DNS resolution.
  */

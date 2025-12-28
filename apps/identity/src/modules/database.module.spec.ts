@@ -26,9 +26,9 @@ describe('DatabaseModule', () => {
         type: 'postgres',
         host: configService.get('DATABASE_HOST', 'localhost'),
         port: configService.get('DATABASE_PORT', 5432),
-        username: configService.get('DATABASE_USER', 'agentproof'),
-        password: configService.get('DATABASE_PASSWORD', 'agentproof'),
-        database: configService.get('DATABASE_NAME', 'agentproof'),
+        username: configService.get('DATABASE_USER', 'agentkern-identity'),
+        password: configService.get('DATABASE_PASSWORD', 'agentkern-identity'),
+        database: configService.get('DATABASE_NAME', 'agentkern-identity'),
         synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
         logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
         ssl: configService.get('DATABASE_SSL', 'false') === 'true'
@@ -38,8 +38,8 @@ describe('DatabaseModule', () => {
 
       expect(config.host).toBe('localhost');
       expect(config.port).toBe(5432);
-      expect(config.username).toBe('agentproof');
-      expect(config.database).toBe('agentproof');
+      expect(config.username).toBe('agentkern-identity');
+      expect(config.database).toBe('agentkern-identity');
       expect(config.synchronize).toBe(true);
       expect(config.logging).toBe(false);
       expect(config.ssl).toBe(false);
@@ -65,9 +65,9 @@ describe('DatabaseModule', () => {
         type: 'postgres',
         host: configService.get('DATABASE_HOST', 'localhost'),
         port: parseInt(configService.get('DATABASE_PORT', '5432'), 10),
-        username: configService.get('DATABASE_USER', 'agentproof'),
-        password: configService.get('DATABASE_PASSWORD', 'agentproof'),
-        database: configService.get('DATABASE_NAME', 'agentproof'),
+        username: configService.get('DATABASE_USER', 'agentkern-identity'),
+        password: configService.get('DATABASE_PASSWORD', 'agentkern-identity'),
+        database: configService.get('DATABASE_NAME', 'agentkern-identity'),
         synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
         logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
         ssl: configService.get('DATABASE_SSL', 'false') === 'true'

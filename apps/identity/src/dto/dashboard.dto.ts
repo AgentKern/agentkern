@@ -1,5 +1,5 @@
 /**
- * AgentProof - Dashboard DTOs
+ * AgentKern Identity - Dashboard DTOs
  * 
  * Data Transfer Objects for enterprise dashboard.
  */

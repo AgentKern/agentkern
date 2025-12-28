@@ -1,5 +1,5 @@
 /**
- * AgentProof - Policy Service
+ * AgentKern Identity - Policy Service
  * 
  * Enterprise policy management for controlling agent actions.
  */

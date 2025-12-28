@@ -1,5 +1,5 @@
 /**
- * AgentProof - DNS Controller
+ * AgentKern Identity - DNS Controller
  * 
  * REST API endpoints for Intent DNS resolution.
  */

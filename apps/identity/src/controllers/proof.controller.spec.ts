@@ -78,7 +78,7 @@ describe('ProofController', () => {
   describe('verifyProof', () => {
     it('should verify a valid proof', async () => {
       const result = await controller.verifyProof(
-        { proof: 'AgentProof v1.xxx.yyy' },
+        { proof: 'AgentKern Identity v1.xxx.yyy' },
         '127.0.0.1',
         'test-agent',
       );

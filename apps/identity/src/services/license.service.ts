@@ -1,5 +1,5 @@
 /**
- * AgentProof - License Service
+ * AgentKern Identity - License Service
  * 
  * Gates enterprise features behind license validation.
  * 
@@ -205,7 +205,7 @@ export class LicenseService implements OnModuleInit {
 
   private generateSignature(payload: string): string {
     // In production, use asymmetric keys (e.g., Ed25519)
-    const secret = this.configService.get('LICENSE_SECRET', 'agentproof-license-secret');
+    const secret = this.configService.get('LICENSE_SECRET', 'agentkern-identity-license-secret');
     return crypto
       .createHmac('sha256', secret)
       .update(payload)

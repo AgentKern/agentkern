@@ -1,5 +1,5 @@
 /**
- * AgentProof - Entities Index
+ * AgentKern Identity - Entities Index
  */
 
 export * from './trust-record.entity';

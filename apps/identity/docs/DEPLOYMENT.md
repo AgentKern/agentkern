@@ -39,12 +39,12 @@ docker compose -f docker-compose.yml up -d --build
 | `PORT` | API port | `3000` |
 | `DATABASE_HOST` | PostgreSQL host | `localhost` |
 | `DATABASE_PORT` | PostgreSQL port | `5432` |
-| `DATABASE_USER` | Database user | `agentproof` |
+| `DATABASE_USER` | Database user | `agentkern-identity` |
 | `DATABASE_PASSWORD` | Database password | - |
-| `DATABASE_NAME` | Database name | `agentproof` |
+| `DATABASE_NAME` | Database name | `agentkern-identity` |
 | `DATABASE_SYNC` | Auto-sync schema | `false` |
 | `DATABASE_SSL` | Enable SSL | `false` |
-| `WEBAUTHN_RP_NAME` | Relying party name | `AgentProof` |
+| `WEBAUTHN_RP_NAME` | Relying party name | `AgentKern Identity` |
 | `WEBAUTHN_RP_ID` | Relying party ID | `localhost` |
 | `WEBAUTHN_ORIGIN` | WebAuthn origin | `http://localhost:3000` |
 
@@ -76,12 +76,12 @@ curl http://localhost:3000/health
 
 ### Database Health
 ```bash
-docker exec agentproof-postgres-1 pg_isready -U agentproof
+docker exec agentkern-identity-postgres-1 pg_isready -U agentkern-identity
 ```
 
 ### Redis Health
 ```bash
-docker exec agentproof-redis-1 redis-cli ping
+docker exec agentkern-identity-redis-1 redis-cli ping
 ```
 
 ---

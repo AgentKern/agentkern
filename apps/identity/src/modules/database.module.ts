@@ -1,5 +1,5 @@
 /**
- * AgentProof - Database Module
+ * AgentKern Identity - Database Module
  * 
  * TypeORM configuration for PostgreSQL.
  */
@@ -22,9 +22,9 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
         type: 'postgres',
         host: configService.get('DATABASE_HOST', 'localhost'),
         port: configService.get('DATABASE_PORT', 5432),
-        username: configService.get('DATABASE_USER', 'agentproof'),
-        password: configService.get('DATABASE_PASSWORD', 'agentproof'),
-        database: configService.get('DATABASE_NAME', 'agentproof'),
+        username: configService.get('DATABASE_USER', 'agentkern-identity'),
+        password: configService.get('DATABASE_PASSWORD', 'agentkern-identity'),
+        database: configService.get('DATABASE_NAME', 'agentkern-identity'),
         entities: [
           TrustRecordEntity,
           AuditEventEntity,

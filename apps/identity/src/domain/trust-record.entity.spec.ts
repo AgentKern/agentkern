@@ -1,5 +1,5 @@
 /**
- * AgentProof - Trust Record Entity Tests
+ * AgentKern Identity - Trust Record Entity Tests
  * 
  * Unit tests for trust scoring and resolution functions.
  */

@@ -1,5 +1,5 @@
 /**
- * AgentProof - WebAuthn Controller
+ * AgentKern Identity - WebAuthn Controller
  * 
  * API endpoints for Passkey registration and authentication.
  */

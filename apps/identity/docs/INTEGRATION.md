@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to integrate AgentProof into your existing systems:
+This guide explains how to integrate AgentKern Identity into your existing systems:
 - **Agent Developers**: Add liability proofs to your AI agents
 - **API Providers**: Verify proofs in your services
 - **Platform Operators**: Monitor and manage trust
@@ -14,18 +14,18 @@ This guide explains how to integrate AgentProof into your existing systems:
 ### Step 1: Install SDK
 
 ```bash
-npm install @agentproof/sdk
+npm install @agentkern-identity/sdk
 # or
-pip install agentproof
+pip install agentkern-identity
 ```
 
 ### Step 2: Initialize Client
 
 ```typescript
-import { AgentProofSDK } from '@agentproof/sdk';
+import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
-const agentproof = new AgentProofSDK({
-  apiUrl: process.env.AGENTPROOF_URL || 'https://api.agentproof.dev',
+const agentkern-identity = new AgentKern IdentitySDK({
+  apiUrl: process.env.AGENTPROOF_URL || 'https://api.agentkern-identity.dev',
   agentId: 'my-agent-id',
   agentName: 'My AI Assistant',
   agentVersion: '1.0.0',
@@ -38,7 +38,7 @@ Before performing sensitive actions, request authorization:
 
 ```typescript
 // User signs with their Passkey
-const authorization = await agentproof.requestAuthorization({
+const authorization = await agentkern-identity.requestAuthorization({
   action: 'transfer',
   description: 'Transfer $500 to John',
   constraints: {
@@ -51,7 +51,7 @@ const authorization = await agentproof.requestAuthorization({
 ### Step 4: Create Proof for API Call
 
 ```typescript
-const proof = await agentproof.createProof({
+const proof = await agentkern-identity.createProof({
   authorization,
   intent: {
     action: 'transfer',
@@ -66,7 +66,7 @@ const proof = await agentproof.createProof({
 
 // Include proof in request
 await fetch('https://api.bank.com/v1/transfers', {
-  headers: { 'X-AgentProof': proof.toHeader() },
+  headers: { 'X-AgentKern Identity': proof.toHeader() },
   body: JSON.stringify({ amount: 500, recipient: 'john@example.com' }),
 });
 ```
@@ -78,18 +78,18 @@ await fetch('https://api.bank.com/v1/transfers', {
 ### Step 1: Add Verification Middleware
 
 ```typescript
-import { AgentProofVerifier } from '@agentproof/sdk';
+import { AgentKern IdentityVerifier } from '@agentkern-identity/sdk';
 
-const verifier = new AgentProofVerifier({
-  apiUrl: 'https://api.agentproof.dev',
+const verifier = new AgentKern IdentityVerifier({
+  apiUrl: 'https://api.agentkern-identity.dev',
 });
 
 // Express middleware
 app.use('/v1/transfers', async (req, res, next) => {
-  const proofHeader = req.headers['x-agentproof'];
+  const proofHeader = req.headers['x-agentkern-identity'];
   
   if (!proofHeader) {
-    return res.status(401).json({ error: 'Missing X-AgentProof header' });
+    return res.status(401).json({ error: 'Missing X-AgentKern Identity header' });
   }
 
   const result = await verifier.verify(proofHeader);
@@ -99,7 +99,7 @@ app.use('/v1/transfers', async (req, res, next) => {
   }
 
   // Attach verification result to request
-  req.agentproof = result;
+  req.agentkern-identity = result;
   next();
 });
 ```
@@ -108,15 +108,15 @@ app.use('/v1/transfers', async (req, res, next) => {
 
 ```typescript
 app.post('/v1/transfers', async (req, res) => {
-  const { agentproof } = req;
+  const { agentkern-identity } = req;
   
   // Verify the proof authorizes THIS action
-  if (agentproof.intent.action !== 'transfer') {
+  if (agentkern-identity.intent.action !== 'transfer') {
     return res.status(403).json({ error: 'Proof not valid for transfers' });
   }
 
   // Check amount is within constraints
-  if (req.body.amount > agentproof.constraints.maxAmount) {
+  if (req.body.amount > agentkern-identity.constraints.maxAmount) {
     return res.status(403).json({ error: 'Amount exceeds authorized limit' });
   }
 
@@ -126,10 +126,10 @@ app.post('/v1/transfers', async (req, res) => {
   // Log for audit
   await logAudit({
     action: 'transfer',
-    principal: agentproof.principal.id,
-    agent: agentproof.agent.id,
+    principal: agentkern-identity.principal.id,
+    agent: agentkern-identity.agent.id,
     amount: req.body.amount,
-    proofId: agentproof.proofId,
+    proofId: agentkern-identity.proofId,
   });
 
   res.json({ success: true });
@@ -184,13 +184,13 @@ For decentralized trust propagation:
 ### Join the Mesh
 
 ```typescript
-import { TrustMeshNode } from '@agentproof/sdk';
+import { TrustMeshNode } from '@agentkern-identity/sdk';
 
 const node = new TrustMeshNode({
   nodeId: 'my-node-id',
   bootstrapPeers: [
-    'wss://mesh.agentproof.dev/node-1',
-    'wss://mesh.agentproof.dev/node-2',
+    'wss://mesh.agentkern-identity.dev/node-1',
+    'wss://mesh.agentkern-identity.dev/node-2',
   ],
 });
 
@@ -216,7 +216,7 @@ node.broadcast({
 ### Local Testing
 
 ```bash
-# Start local AgentProof server
+# Start local AgentKern Identity server
 npm run start:dev
 
 # Test proof creation
@@ -232,7 +232,7 @@ curl -X POST http://localhost:3000/api/v1/proof/create \
 ### Integration Tests
 
 ```typescript
-describe('AgentProof Integration', () => {
+describe('AgentKern Identity Integration', () => {
   it('should create and verify proof', async () => {
     const proof = await sdk.createProof(testOptions);
     const result = await sdk.verifyProof(proof.toHeader());

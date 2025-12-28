@@ -1,5 +1,5 @@
 /**
- * AgentProof - Trust Record Repository
+ * AgentKern Identity - Trust Record Repository
  * 
  * PostgreSQL repository for Trust Records.
  */

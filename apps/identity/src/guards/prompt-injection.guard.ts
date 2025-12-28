@@ -1,5 +1,5 @@
 /**
- * AgentProof - Prompt Injection Guard
+ * AgentKern Identity - Prompt Injection Guard
  *
  * Multi-layer defense against prompt injection attacks from AI agents.
  * Scans all incoming requests for known injection patterns and suspicious content.
@@ -247,7 +247,7 @@ export class PromptInjectionGuard implements CanActivate {
     }
 
     // Scan specific headers that might carry agent payloads
-    const sensitiveHeaders = ['x-agentproof', 'authorization', 'x-agent-id'];
+    const sensitiveHeaders = ['x-agentkern-identity', 'authorization', 'x-agent-id'];
     for (const header of sensitiveHeaders) {
       const value = request.headers[header];
       if (value && typeof value === 'string') {

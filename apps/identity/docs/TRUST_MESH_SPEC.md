@@ -2,7 +2,7 @@
 
 ## Overview
 
-Trust Mesh is a decentralized P2P network for sharing trust signals across AgentProof nodes.
+Trust Mesh is a decentralized P2P network for sharing trust signals across AgentKern Identity nodes.
 It provides resilience, censorship resistance, and real-time trust propagation.
 
 ---
@@ -108,9 +108,9 @@ These propagate immediately without waiting for consensus.
 ### Bootstrap Nodes
 Hard-coded list of known reliable nodes:
 ```
-wss://mesh-1.agentproof.io:8080
-wss://mesh-2.agentproof.io:8080
-wss://mesh-3.agentproof.io:8080
+wss://mesh-1.agentkern-identity.io:8080
+wss://mesh-2.agentkern-identity.io:8080
+wss://mesh-3.agentkern-identity.io:8080
 ```
 
 ### DHT-Based Discovery

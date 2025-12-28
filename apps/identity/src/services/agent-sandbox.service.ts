@@ -1,5 +1,5 @@
 /**
- * AgentProof - Agent Sandbox Service
+ * AgentKern Identity - Agent Sandbox Service
  *
  * Provides agent isolation, budget enforcement, and kill switch capabilities
  * for secure AI agent execution. Implements the Autonomous AI Agent Security
