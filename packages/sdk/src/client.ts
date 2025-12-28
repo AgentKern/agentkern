@@ -127,11 +127,11 @@ export class AgentKern {
           createdAt: new Date(),
         };
       },
-      async getIdentity(agentId) {
+      async getIdentity(_agentId) {
         // TODO: Connect to AgentKern-Identity API
         return null;
       },
-      async signAction(agentId, action, payload) {
+      async signAction(_agentId, action, _payload) {
         // TODO: Connect to AgentKern-Identity API
         return {
           action,
@@ -141,11 +141,11 @@ export class AgentKern {
           payloadHash: '', // Computed from payload
         };
       },
-      async verifyProof(proof) {
+      async verifyProof(_proof) {
         // TODO: Connect to AgentKern-Identity API
         return true;
       },
-      async getTrustScore(agentId) {
+      async getTrustScore(_agentId) {
         // TODO: Connect to AgentKern-Trust API
         return 100;
       },
@@ -158,7 +158,7 @@ export class AgentKern {
    */
   private createGateAdapter(): GatePort {
     return {
-      async verify(agentId, action, context = {}) {
+      async verify(_agentId, _action, _context = {}) {
         // TODO: Connect to AgentKern-Gate API (Neuro-Symbolic verification)
         const startTime = Date.now();
         return {
@@ -168,14 +168,14 @@ export class AgentKern {
           latencyMs: Date.now() - startTime,
         };
       },
-      async registerPolicy(policy) {
+      async registerPolicy(_policy) {
         // TODO: Connect to AgentKern-Gate API
       },
       async getPolicies() {
         // TODO: Connect to AgentKern-Gate API
         return [];
       },
-      async checkPolicy(policyId, action, context = {}) {
+      async checkPolicy(_policyId, _action, _context = {}) {
         // TODO: Connect to AgentKern-Gate API
         return true;
       },
@@ -188,11 +188,11 @@ export class AgentKern {
    */
   private createSynapseAdapter(): SynapsePort {
     return {
-      async getState(agentId) {
+      async getState(_agentId) {
         // TODO: Connect to AgentKern-Synapse API
         return null;
       },
-      async setState(agentId, state) {
+      async setState(_agentId, state) {
         // TODO: Connect to AgentKern-Synapse API (CRDT merge)
         return {
           agentId,
@@ -201,7 +201,7 @@ export class AgentKern {
           version: 1,
         };
       },
-      async startIntent(agentId, intent, expectedSteps) {
+      async startIntent(_agentId, intent, expectedSteps) {
         // TODO: Connect to AgentKern-Synapse API
         return {
           id: crypto.randomUUID(),
@@ -213,7 +213,7 @@ export class AgentKern {
           driftScore: 0,
         };
       },
-      async recordStep(agentId, action, result) {
+      async recordStep(_agentId, action, result) {
         // TODO: Connect to AgentKern-Synapse API
         return {
           id: '',
@@ -225,7 +225,7 @@ export class AgentKern {
           driftScore: 0,
         };
       },
-      async checkDrift(agentId) {
+      async checkDrift(_agentId) {
         // TODO: Connect to AgentKern-Synapse API
         return { drifted: false, score: 0 };
       },
@@ -238,7 +238,7 @@ export class AgentKern {
    */
   private createArbiterAdapter(): ArbiterPort {
     return {
-      async requestCoordination(request) {
+      async requestCoordination(_request) {
         // TODO: Connect to AgentKern-Arbiter API
         return {
           granted: true,
@@ -261,15 +261,15 @@ export class AgentKern {
           priority,
         };
       },
-      async releaseLock(agentId, resource) {
+      async releaseLock(_agentId, _resource) {
         // TODO: Connect to AgentKern-Arbiter API
         return true;
       },
-      async getLockStatus(resource) {
+      async getLockStatus(_resource) {
         // TODO: Connect to AgentKern-Arbiter API
         return null;
       },
-      async getQueuePosition(agentId, resource) {
+      async getQueuePosition(_agentId, _resource) {
         // TODO: Connect to AgentKern-Arbiter API
         return 0;
       },
@@ -283,7 +283,7 @@ export class AgentKern {
   private createSovereignAdapter(): SovereignPort {
     const config = this.config;
     return {
-      async canTransfer(fromRegion, toRegion, dataType) {
+      async canTransfer(fromRegion, toRegion, _dataType) {
         // Per GLOBAL_GAPS.md: Implement geo-fencing rules
         // China (PIPL) and EU (GDPR) have strict rules
         if (fromRegion === 'cn' && toRegion !== 'cn') {
@@ -294,11 +294,11 @@ export class AgentKern {
         }
         return true;
       },
-      async getRequiredResidency(operation, jurisdiction) {
+      async getRequiredResidency(_operation, jurisdiction) {
         // TODO: Connect to AgentKern-Sovereign API
         return jurisdiction;
       },
-      async validateCompliance(operation, data, jurisdiction) {
+      async validateCompliance(_operation, _data, _jurisdiction) {
         // TODO: Connect to AgentKern-Sovereign API
         return { compliant: true };
       },
@@ -311,7 +311,7 @@ export class AgentKern {
    */
   private createTreasuryAdapter(): TreasuryPort {
     return {
-      async getBalance(agentId) {
+      async getBalance(_agentId) {
         // TODO: Connect to AgentKern-Treasury API
         return {
           balance: 0,
@@ -319,24 +319,24 @@ export class AgentKern {
           pending: 0,
         };
       },
-      async transfer(from, to, amount, reference) {
+      async transfer(_from, _to, _amount, _reference) {
         // TODO: Connect to AgentKern-Treasury API
         return {
           transactionId: crypto.randomUUID(),
           status: 'completed',
         };
       },
-      async setSpendingLimit(agentId, limit, period) {
+      async setSpendingLimit(_agentId, _limit, _period) {
         // TODO: Connect to AgentKern-Treasury API
       },
-      async getRemainingBudget(agentId) {
+      async getRemainingBudget(_agentId) {
         // TODO: Connect to AgentKern-Treasury API
         return {
           remaining: Infinity,
           period: 'unlimited',
         };
       },
-      async canSpend(agentId, amount) {
+      async canSpend(_agentId, _amount) {
         // TODO: Connect to AgentKern-Treasury API
         return true;
       },

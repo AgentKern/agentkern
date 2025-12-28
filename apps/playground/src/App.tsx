@@ -34,7 +34,7 @@ const simulateRegister = async (name: string): Promise<Agent> => {
   };
 };
 
-const simulateVerify = async (action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
+const simulateVerify = async (_action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
   await new Promise(r => setTimeout(r, 300));
   const amount = (context.amount as number) || 0;
   const riskScore = Math.min(100, Math.floor(amount / 100));

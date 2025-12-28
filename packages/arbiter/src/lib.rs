@@ -1,5 +1,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::derivable_impls)]
 //! AgentKern-Arbiter: Conflict Resolution & Coordination Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"

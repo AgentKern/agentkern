@@ -1,5 +1,9 @@
 #![allow(unused)]
 #![allow(dead_code)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::unwrap_or_default)]
 //! AgentKern-Synapse: Graph-based State Ledger with CRDTs
 //!
 //! Per ARCHITECTURE.md Section 3: "The Speed of Light"
