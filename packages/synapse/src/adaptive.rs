@@ -7,11 +7,11 @@
 //!
 //! This enables deterministic self-optimization, not stochastic.
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 
 /// Query execution strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -135,7 +135,7 @@ impl AdaptiveExecutor {
     fn adapt_strategy(&self) {
         let pressure = self.pressure.read().clone();
         let new_strategy = self.select_strategy(&pressure);
-        
+
         let mut current = self.current_strategy.write();
         if *current != new_strategy {
             tracing::info!(
@@ -155,12 +155,12 @@ impl AdaptiveExecutor {
         if pressure.memory_pressure > self.thresholds.standard_memory_threshold {
             return ExecutionStrategy::Streaming;
         }
-        
+
         // Low CPU, can use vectorized
         if pressure.cpu_utilization < self.thresholds.vectorized_cpu_threshold {
             return ExecutionStrategy::Vectorized;
         }
-        
+
         ExecutionStrategy::Standard
     }
 
@@ -170,34 +170,37 @@ impl AdaptiveExecutor {
         F: FnOnce(ExecutionStrategy) -> T,
     {
         let start = Instant::now();
-        
+
         // Select strategy for this query
         let strategy = if dataset_size_bytes > self.thresholds.streaming_threshold_bytes {
             ExecutionStrategy::Streaming
         } else {
             *self.current_strategy.read()
         };
-        
+
         // Execute
         let result = query_fn(strategy);
-        
+
         // Record metrics
         let latency_us = start.elapsed().as_micros() as u64;
         self.record_execution(strategy, latency_us);
-        
+
         result
     }
 
     fn record_execution(&self, strategy: ExecutionStrategy, latency_us: u64) {
         self.metrics.total.fetch_add(1, Ordering::Relaxed);
-        
+
         let mut latencies = self.metrics.latencies.write();
         latencies.push(latency_us);
         if latencies.len() > 10000 {
             latencies.remove(0);
         }
-        
-        *self.metrics.strategy_counts.write()
+
+        *self
+            .metrics
+            .strategy_counts
+            .write()
             .entry(strategy)
             .or_insert(0) += 1;
     }
@@ -206,13 +209,13 @@ impl AdaptiveExecutor {
     pub fn get_metrics(&self) -> ExecutionMetrics {
         let total = self.metrics.total.load(Ordering::Relaxed);
         let latencies = self.metrics.latencies.read();
-        
+
         let avg = if latencies.is_empty() {
             0
         } else {
             latencies.iter().sum::<u64>() / latencies.len() as u64
         };
-        
+
         let p99 = if latencies.is_empty() {
             0
         } else {
@@ -221,7 +224,7 @@ impl AdaptiveExecutor {
             let idx = (sorted.len() as f64 * 0.99) as usize;
             sorted.get(idx.min(sorted.len() - 1)).copied().unwrap_or(0)
         };
-        
+
         ExecutionMetrics {
             total_queries: total,
             avg_latency_us: avg,
@@ -250,7 +253,7 @@ mod tests {
     #[test]
     fn test_strategy_adaptation() {
         let executor = AdaptiveExecutor::new();
-        
+
         // Low pressure -> vectorized
         executor.update_pressure(SystemPressure {
             cpu_utilization: 0.3,
@@ -258,7 +261,7 @@ mod tests {
             query_backlog: 0,
         });
         assert_eq!(executor.current_strategy(), ExecutionStrategy::Vectorized);
-        
+
         // High memory -> streaming
         executor.update_pressure(SystemPressure {
             cpu_utilization: 0.5,
@@ -271,12 +274,14 @@ mod tests {
     #[tokio::test]
     async fn test_query_execution() {
         let executor = AdaptiveExecutor::new();
-        
-        let result = executor.execute(1024, |strategy| {
-            assert_eq!(strategy, ExecutionStrategy::Standard);
-            42
-        }).await;
-        
+
+        let result = executor
+            .execute(1024, |strategy| {
+                assert_eq!(strategy, ExecutionStrategy::Standard);
+                42
+            })
+            .await;
+
         assert_eq!(result, 42);
         assert_eq!(executor.get_metrics().total_queries, 1);
     }
@@ -285,13 +290,15 @@ mod tests {
     fn test_large_dataset_forces_streaming() {
         let executor = AdaptiveExecutor::new();
         let large_size = 2 * 1024 * 1024 * 1024; // 2GB
-        
+
         // Large dataset should use streaming regardless of current strategy
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            executor.execute(large_size, |strategy| {
-                assert_eq!(strategy, ExecutionStrategy::Streaming);
-            }).await;
+            executor
+                .execute(large_size, |strategy| {
+                    assert_eq!(strategy, ExecutionStrategy::Streaming);
+                })
+                .await;
         });
     }
 }

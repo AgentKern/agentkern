@@ -10,26 +10,15 @@ use std::path::Path;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Environment {
     /// Running in Docker/Podman container
-    Container {
-        runtime: ContainerRuntime,
-    },
+    Container { runtime: ContainerRuntime },
     /// Running in Kubernetes
-    Kubernetes {
-        namespace: String,
-        pod_name: String,
-    },
+    Kubernetes { namespace: String, pod_name: String },
     /// Running in serverless environment
-    Serverless {
-        platform: ServerlessPlatform,
-    },
+    Serverless { platform: ServerlessPlatform },
     /// Running on bare metal or VM
-    Server {
-        os: OperatingSystem,
-    },
+    Server { os: OperatingSystem },
     /// Running on edge device
-    Edge {
-        device_type: EdgeDevice,
-    },
+    Edge { device_type: EdgeDevice },
     /// Running in browser (WASM)
     Browser,
     /// Unknown environment
@@ -80,30 +69,30 @@ pub fn detect_environment() -> Environment {
             pod_name: env::var("HOSTNAME").unwrap_or_else(|_| "unknown".into()),
         };
     }
-    
+
     // Check for serverless
     if is_serverless() {
         return Environment::Serverless {
             platform: ServerlessPlatform::FunctionAsService,
         };
     }
-    
+
     // Check for container
     if is_container() {
         return Environment::Container {
             runtime: detect_container_runtime(),
         };
     }
-    
+
     // Check for edge device
     if let Some(device) = detect_edge_device() {
-        return Environment::Edge { device_type: device };
+        return Environment::Edge {
+            device_type: device,
+        };
     }
-    
+
     // Default to server
-    Environment::Server {
-        os: detect_os(),
-    }
+    Environment::Server { os: detect_os() }
 }
 
 /// Check if running in Kubernetes.
@@ -164,7 +153,7 @@ fn detect_edge_device() -> Option<EdgeDevice> {
             return Some(EdgeDevice::Jetson);
         }
     }
-    
+
     // Check for low-memory edge device
     if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
         if let Some(line) = meminfo.lines().find(|l| l.starts_with("MemTotal:")) {
@@ -178,7 +167,7 @@ fn detect_edge_device() -> Option<EdgeDevice> {
             }
         }
     }
-    
+
     None
 }
 
@@ -186,13 +175,13 @@ fn detect_edge_device() -> Option<EdgeDevice> {
 fn detect_os() -> OperatingSystem {
     #[cfg(target_os = "linux")]
     return OperatingSystem::Linux;
-    
+
     #[cfg(target_os = "macos")]
     return OperatingSystem::MacOS;
-    
+
     #[cfg(target_os = "windows")]
     return OperatingSystem::Windows;
-    
+
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     return OperatingSystem::Unknown;
 }
@@ -205,7 +194,13 @@ mod tests {
     fn test_detect_os() {
         let os = detect_os();
         // Should at least return something
-        assert!(matches!(os, OperatingSystem::Linux | OperatingSystem::MacOS | OperatingSystem::Windows | OperatingSystem::Unknown));
+        assert!(matches!(
+            os,
+            OperatingSystem::Linux
+                | OperatingSystem::MacOS
+                | OperatingSystem::Windows
+                | OperatingSystem::Unknown
+        ));
     }
 
     #[test]

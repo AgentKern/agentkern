@@ -132,7 +132,7 @@ impl KillSwitch {
         if *self.emergency_shutdown.read().await {
             return false;
         }
-        
+
         // Check if specifically terminated
         !self.terminated_agents.read().await.contains(agent_id)
     }
@@ -166,11 +166,14 @@ impl KillSwitch {
         };
 
         // Add to terminated set
-        self.terminated_agents.write().await.insert(agent_id.to_string());
-        
+        self.terminated_agents
+            .write()
+            .await
+            .insert(agent_id.to_string());
+
         // Log the kill
         self.history.write().await.push(record.clone());
-        
+
         tracing::warn!(
             agent_id = %agent_id,
             reason = ?record.reason,
@@ -201,7 +204,10 @@ impl KillSwitch {
             error: None,
         };
 
-        self.terminated_swarms.write().await.insert(swarm_id.to_string());
+        self.terminated_swarms
+            .write()
+            .await
+            .insert(swarm_id.to_string());
         self.history.write().await.push(record.clone());
 
         tracing::error!(
@@ -231,9 +237,7 @@ impl KillSwitch {
         *self.emergency_shutdown.write().await = true;
         self.history.write().await.push(record.clone());
 
-        tracing::error!(
-            "🚨 EMERGENCY SHUTDOWN ACTIVATED - ALL AGENTS TERMINATED"
-        );
+        tracing::error!("🚨 EMERGENCY SHUTDOWN ACTIVATED - ALL AGENTS TERMINATED");
 
         record
     }
@@ -267,16 +271,17 @@ mod tests {
     #[tokio::test]
     async fn test_agent_termination() {
         let ks = KillSwitch::new();
-        
+
         assert!(ks.is_agent_alive("agent-1").await);
-        
+
         ks.terminate_agent(
             "agent-1",
             KillReason::PolicyViolation,
             TerminationType::Graceful,
             None,
-        ).await;
-        
+        )
+        .await;
+
         assert!(!ks.is_agent_alive("agent-1").await);
         assert!(ks.is_agent_alive("agent-2").await);
     }
@@ -284,28 +289,29 @@ mod tests {
     #[tokio::test]
     async fn test_swarm_termination() {
         let ks = KillSwitch::new();
-        
+
         assert!(ks.is_swarm_alive("swarm-1").await);
-        
+
         ks.terminate_swarm(
             "swarm-1",
             KillReason::BudgetExceeded,
             TerminationType::Forced,
             Some("operator-123".to_string()),
-        ).await;
-        
+        )
+        .await;
+
         assert!(!ks.is_swarm_alive("swarm-1").await);
     }
 
     #[tokio::test]
     async fn test_emergency_shutdown() {
         let ks = KillSwitch::new();
-        
+
         assert!(ks.is_agent_alive("agent-1").await);
         assert!(!ks.is_emergency().await);
-        
+
         ks.emergency_shutdown(Some("admin".to_string())).await;
-        
+
         assert!(ks.is_emergency().await);
         assert!(!ks.is_agent_alive("agent-1").await);
         assert!(!ks.is_agent_alive("any-agent").await);
@@ -314,10 +320,22 @@ mod tests {
     #[tokio::test]
     async fn test_kill_history() {
         let ks = KillSwitch::new();
-        
-        ks.terminate_agent("a1", KillReason::RogueBehavior, TerminationType::Forced, None).await;
-        ks.terminate_agent("a2", KillReason::TimeoutExceeded, TerminationType::Graceful, None).await;
-        
+
+        ks.terminate_agent(
+            "a1",
+            KillReason::RogueBehavior,
+            TerminationType::Forced,
+            None,
+        )
+        .await;
+        ks.terminate_agent(
+            "a2",
+            KillReason::TimeoutExceeded,
+            TerminationType::Graceful,
+            None,
+        )
+        .await;
+
         let history = ks.get_history().await;
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].target_id, "a1");

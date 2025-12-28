@@ -2,13 +2,13 @@
 //!
 //! Manages agent balances with atomic operations.
 
+use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
-use crate::types::{Amount, AgentId};
+use crate::types::{AgentId, Amount};
 
 /// Supported currencies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -79,7 +79,9 @@ impl AgentBalance {
 
     /// Get available balance (balance - pending).
     pub fn available(&self) -> Amount {
-        self.balance.sub(&self.pending).unwrap_or(self.currency.zero())
+        self.balance
+            .sub(&self.pending)
+            .unwrap_or(self.currency.zero())
     }
 
     /// Check if agent can spend amount.
@@ -115,7 +117,8 @@ impl BalanceLedger {
     /// Get or create balance for an agent.
     pub fn get_balance(&self, agent_id: &str) -> AgentBalance {
         let balances = self.balances.read();
-        balances.get(agent_id)
+        balances
+            .get(agent_id)
             .cloned()
             .unwrap_or_else(|| AgentBalance::new(agent_id, self.default_currency))
     }
@@ -131,9 +134,13 @@ impl BalanceLedger {
             .entry(agent_id.to_string())
             .or_insert_with(|| AgentBalance::new(agent_id, self.default_currency));
 
-        balance.balance = balance.balance.add(&amount)
+        balance.balance = balance
+            .balance
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
-        balance.total_deposited = balance.total_deposited.add(&amount)
+        balance.total_deposited = balance
+            .total_deposited
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
         balance.updated_at = Utc::now();
 
@@ -143,14 +150,17 @@ impl BalanceLedger {
     /// Hold funds for a pending transaction.
     pub fn hold(&self, agent_id: &str, amount: Amount) -> Result<(), LedgerError> {
         let mut balances = self.balances.write();
-        let balance = balances.get_mut(agent_id)
+        let balance = balances
+            .get_mut(agent_id)
             .ok_or(LedgerError::AccountNotFound)?;
 
         if !balance.can_spend(&amount) {
             return Err(LedgerError::InsufficientFunds);
         }
 
-        balance.pending = balance.pending.add(&amount)
+        balance.pending = balance
+            .pending
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
         balance.updated_at = Utc::now();
 
@@ -160,10 +170,13 @@ impl BalanceLedger {
     /// Release held funds (cancel pending transaction).
     pub fn release(&self, agent_id: &str, amount: Amount) -> Result<(), LedgerError> {
         let mut balances = self.balances.write();
-        let balance = balances.get_mut(agent_id)
+        let balance = balances
+            .get_mut(agent_id)
             .ok_or(LedgerError::AccountNotFound)?;
 
-        balance.pending = balance.pending.sub(&amount)
+        balance.pending = balance
+            .pending
+            .sub(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
         balance.updated_at = Utc::now();
 
@@ -180,14 +193,21 @@ impl BalanceLedger {
         let mut balances = self.balances.write();
 
         // Subtract from sender (and pending)
-        let from_balance = balances.get_mut(from_id)
+        let from_balance = balances
+            .get_mut(from_id)
             .ok_or(LedgerError::AccountNotFound)?;
 
-        from_balance.balance = from_balance.balance.sub(&amount)
+        from_balance.balance = from_balance
+            .balance
+            .sub(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
-        from_balance.pending = from_balance.pending.sub(&amount)
+        from_balance.pending = from_balance
+            .pending
+            .sub(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
-        from_balance.total_withdrawn = from_balance.total_withdrawn.add(&amount)
+        from_balance.total_withdrawn = from_balance
+            .total_withdrawn
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
         from_balance.updated_at = Utc::now();
 
@@ -196,9 +216,13 @@ impl BalanceLedger {
             .entry(to_id.to_string())
             .or_insert_with(|| AgentBalance::new(to_id, self.default_currency));
 
-        to_balance.balance = to_balance.balance.add(&amount)
+        to_balance.balance = to_balance
+            .balance
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
-        to_balance.total_deposited = to_balance.total_deposited.add(&amount)
+        to_balance.total_deposited = to_balance
+            .total_deposited
+            .add(&amount)
             .ok_or(LedgerError::InvalidAmount)?;
         to_balance.updated_at = Utc::now();
 
@@ -227,7 +251,7 @@ mod tests {
     fn test_deposit() {
         let ledger = BalanceLedger::default();
         let amount = Amount::from_float(100.0, 6);
-        
+
         let balance = ledger.deposit("agent-1", amount).unwrap();
         assert_eq!(balance.balance.value, 100_000_000);
     }
@@ -240,15 +264,17 @@ mod tests {
 
         ledger.deposit("agent-1", deposit).unwrap();
         ledger.hold("agent-1", transfer).unwrap();
-        
+
         let balance = ledger.get_balance("agent-1");
         assert_eq!(balance.available().to_float(), 70.0);
 
-        ledger.commit_transfer("agent-1", "agent-2", transfer).unwrap();
-        
+        ledger
+            .commit_transfer("agent-1", "agent-2", transfer)
+            .unwrap();
+
         let from_balance = ledger.get_balance("agent-1");
         let to_balance = ledger.get_balance("agent-2");
-        
+
         assert_eq!(from_balance.balance.to_float(), 70.0);
         assert_eq!(to_balance.balance.to_float(), 30.0);
     }
@@ -257,11 +283,13 @@ mod tests {
     fn test_insufficient_funds() {
         let ledger = BalanceLedger::default();
         let amount = Amount::from_float(100.0, 6);
-        
+
         let result = ledger.hold("agent-1", amount);
         assert!(matches!(result, Err(LedgerError::AccountNotFound)));
-        
-        ledger.deposit("agent-1", Amount::from_float(50.0, 6)).unwrap();
+
+        ledger
+            .deposit("agent-1", Amount::from_float(50.0, 6))
+            .unwrap();
         let result = ledger.hold("agent-1", amount);
         assert!(matches!(result, Err(LedgerError::InsufficientFunds)));
     }

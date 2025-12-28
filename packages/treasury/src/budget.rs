@@ -3,12 +3,12 @@
 //! Per MANDATE.md Section 6: "Budgeting: Strict Gas Limits for tokens, API calls, and cloud costs"
 
 use chrono::{DateTime, Duration, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
-use crate::types::{Amount, AgentId};
+use crate::types::{AgentId, Amount};
 
 /// Budget period.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,7 +79,9 @@ impl SpendingLimit {
 
     /// Get remaining budget.
     pub fn remaining(&self) -> Amount {
-        self.max_amount.sub(&self.spent).unwrap_or(Amount::new(0, self.max_amount.decimals))
+        self.max_amount
+            .sub(&self.spent)
+            .unwrap_or(Amount::new(0, self.max_amount.decimals))
     }
 
     /// Check if amount can be spent.
@@ -127,7 +129,7 @@ impl BudgetManager {
     pub fn set_limit(&self, agent_id: &str, limit: SpendingLimit) {
         let mut limits = self.limits.write();
         let agent_limits = limits.entry(agent_id.to_string()).or_insert_with(Vec::new);
-        
+
         // Remove existing limit for same period
         agent_limits.retain(|l| l.period != limit.period);
         agent_limits.push(limit);
@@ -136,14 +138,14 @@ impl BudgetManager {
     /// Check if agent can spend amount.
     pub fn can_spend(&self, agent_id: &str, amount: &Amount) -> Result<(), BudgetError> {
         let mut limits = self.limits.write();
-        
+
         if let Some(agent_limits) = limits.get_mut(agent_id) {
             for limit in agent_limits.iter_mut() {
                 // Reset if period expired
                 if limit.should_reset() {
                     limit.reset();
                 }
-                
+
                 if !limit.can_spend(amount) {
                     return Err(BudgetError::LimitExceeded {
                         limit: limit.max_amount,
@@ -153,7 +155,7 @@ impl BudgetManager {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -161,7 +163,7 @@ impl BudgetManager {
     pub fn record_spend(&self, agent_id: &str, amount: &Amount) -> Result<(), BudgetError> {
         // First check all limits
         self.can_spend(agent_id, amount)?;
-        
+
         // Then record against all limits
         let mut limits = self.limits.write();
         if let Some(agent_limits) = limits.get_mut(agent_id) {
@@ -169,7 +171,7 @@ impl BudgetManager {
                 limit.record_spend(amount)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -177,7 +179,10 @@ impl BudgetManager {
     pub fn get_remaining(&self, agent_id: &str) -> Option<Amount> {
         let limits = self.limits.read();
         limits.get(agent_id).and_then(|agent_limits| {
-            agent_limits.iter().map(|l| l.remaining()).min_by_key(|a| a.value)
+            agent_limits
+                .iter()
+                .map(|l| l.remaining())
+                .min_by_key(|a| a.value)
         })
     }
 }
@@ -185,7 +190,9 @@ impl BudgetManager {
 /// Budget errors.
 #[derive(Debug, thiserror::Error)]
 pub enum BudgetError {
-    #[error("Spending limit exceeded: limit={limit}, requested={requested}, remaining={remaining}")]
+    #[error(
+        "Spending limit exceeded: limit={limit}, requested={requested}, remaining={remaining}"
+    )]
     LimitExceeded {
         limit: Amount,
         requested: Amount,
@@ -201,14 +208,11 @@ mod tests {
 
     #[test]
     fn test_spending_limit() {
-        let mut limit = SpendingLimit::new(
-            Amount::from_float(100.0, 2),
-            BudgetPeriod::Daily,
-        );
-        
+        let mut limit = SpendingLimit::new(Amount::from_float(100.0, 2), BudgetPeriod::Daily);
+
         assert!(limit.can_spend(&Amount::from_float(50.0, 2)));
         limit.record_spend(&Amount::from_float(50.0, 2)).unwrap();
-        
+
         assert!(limit.can_spend(&Amount::from_float(50.0, 2)));
         assert!(!limit.can_spend(&Amount::from_float(51.0, 2)));
     }
@@ -216,16 +220,20 @@ mod tests {
     #[test]
     fn test_budget_manager() {
         let manager = BudgetManager::new();
-        
-        manager.set_limit("agent-1", SpendingLimit::new(
-            Amount::from_float(100.0, 2),
-            BudgetPeriod::Daily,
-        ));
-        
+
+        manager.set_limit(
+            "agent-1",
+            SpendingLimit::new(Amount::from_float(100.0, 2), BudgetPeriod::Daily),
+        );
+
         // Should succeed
-        manager.record_spend("agent-1", &Amount::from_float(30.0, 2)).unwrap();
-        manager.record_spend("agent-1", &Amount::from_float(30.0, 2)).unwrap();
-        
+        manager
+            .record_spend("agent-1", &Amount::from_float(30.0, 2))
+            .unwrap();
+        manager
+            .record_spend("agent-1", &Amount::from_float(30.0, 2))
+            .unwrap();
+
         // Should fail
         let result = manager.record_spend("agent-1", &Amount::from_float(50.0, 2));
         assert!(result.is_err());
@@ -234,19 +242,19 @@ mod tests {
     #[test]
     fn test_multiple_limits() {
         let manager = BudgetManager::new();
-        
+
         // Per-transaction limit
-        manager.set_limit("agent-1", SpendingLimit::new(
-            Amount::from_float(50.0, 2),
-            BudgetPeriod::Transaction,
-        ));
-        
+        manager.set_limit(
+            "agent-1",
+            SpendingLimit::new(Amount::from_float(50.0, 2), BudgetPeriod::Transaction),
+        );
+
         // Daily limit
-        manager.set_limit("agent-1", SpendingLimit::new(
-            Amount::from_float(200.0, 2),
-            BudgetPeriod::Daily,
-        ));
-        
+        manager.set_limit(
+            "agent-1",
+            SpendingLimit::new(Amount::from_float(200.0, 2), BudgetPeriod::Daily),
+        );
+
         // Exceeds per-transaction limit
         let result = manager.can_spend("agent-1", &Amount::from_float(60.0, 2));
         assert!(result.is_err());

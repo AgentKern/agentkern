@@ -6,10 +6,10 @@
 //!
 //! This module implements Raft-based distributed locking.
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 /// Raft node ID.
 pub type NodeId = u64;
@@ -91,32 +91,45 @@ impl LockStateMachine {
     /// Apply a command to the state machine.
     pub fn apply(&mut self, command: &LockCommand) -> Result<bool, &'static str> {
         match command {
-            LockCommand::Acquire { resource, agent_id, priority, ttl_ms } => {
+            LockCommand::Acquire {
+                resource,
+                agent_id,
+                priority,
+                ttl_ms,
+            } => {
                 // Check if lock exists and is still valid
                 if let Some(existing) = self.locks.get(resource) {
                     if existing.expires_at > chrono::Utc::now() {
                         // Lock exists - check priority for preemption
                         if *priority > existing.priority {
                             // Preempt lower priority lock
-                            self.locks.insert(resource.clone(), LockEntry {
-                                agent_id: agent_id.clone(),
-                                priority: *priority,
-                                acquired_at: chrono::Utc::now(),
-                                expires_at: chrono::Utc::now() + chrono::Duration::milliseconds(*ttl_ms as i64),
-                            });
+                            self.locks.insert(
+                                resource.clone(),
+                                LockEntry {
+                                    agent_id: agent_id.clone(),
+                                    priority: *priority,
+                                    acquired_at: chrono::Utc::now(),
+                                    expires_at: chrono::Utc::now()
+                                        + chrono::Duration::milliseconds(*ttl_ms as i64),
+                                },
+                            );
                             return Ok(true);
                         }
                         return Err("Resource locked by higher priority agent");
                     }
                 }
-                
+
                 // Acquire lock
-                self.locks.insert(resource.clone(), LockEntry {
-                    agent_id: agent_id.clone(),
-                    priority: *priority,
-                    acquired_at: chrono::Utc::now(),
-                    expires_at: chrono::Utc::now() + chrono::Duration::milliseconds(*ttl_ms as i64),
-                });
+                self.locks.insert(
+                    resource.clone(),
+                    LockEntry {
+                        agent_id: agent_id.clone(),
+                        priority: *priority,
+                        acquired_at: chrono::Utc::now(),
+                        expires_at: chrono::Utc::now()
+                            + chrono::Duration::milliseconds(*ttl_ms as i64),
+                    },
+                );
                 Ok(true)
             }
             LockCommand::Release { resource, agent_id } => {
@@ -143,7 +156,9 @@ impl LockStateMachine {
 
     /// Get lock status for a resource.
     pub fn get_lock(&self, resource: &str) -> Option<&LockEntry> {
-        self.locks.get(resource).filter(|e| e.expires_at > chrono::Utc::now())
+        self.locks
+            .get(resource)
+            .filter(|e| e.expires_at > chrono::Utc::now())
     }
 
     /// Clean up expired locks.
@@ -206,16 +221,16 @@ impl RaftLockManager {
             index: self.log.len() as u64 + 1,
             command,
         };
-        
+
         let index = entry.index;
         self.log.push(entry);
-        
+
         // In single-node mode, immediately commit
         if self.config.peers.is_empty() {
             self.commit_index = index;
             self.apply_committed();
         }
-        
+
         Ok(index)
     }
 
@@ -274,7 +289,7 @@ mod tests {
     #[test]
     fn test_state_machine_acquire_release() {
         let mut sm = LockStateMachine::new();
-        
+
         // Acquire lock
         let result = sm.apply(&LockCommand::Acquire {
             resource: "resource-1".to_string(),
@@ -283,19 +298,19 @@ mod tests {
             ttl_ms: 30000,
         });
         assert!(result.is_ok());
-        
+
         // Verify lock exists
         let lock = sm.get_lock("resource-1");
         assert!(lock.is_some());
         assert_eq!(lock.unwrap().agent_id, "agent-1");
-        
+
         // Release lock
         let result = sm.apply(&LockCommand::Release {
             resource: "resource-1".to_string(),
             agent_id: "agent-1".to_string(),
         });
         assert!(result.is_ok());
-        
+
         // Verify lock is gone
         assert!(sm.get_lock("resource-1").is_none());
     }
@@ -303,23 +318,25 @@ mod tests {
     #[test]
     fn test_priority_preemption() {
         let mut sm = LockStateMachine::new();
-        
+
         // Low priority acquires
         sm.apply(&LockCommand::Acquire {
             resource: "resource-1".to_string(),
             agent_id: "low-priority".to_string(),
             priority: 1,
             ttl_ms: 30000,
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         // High priority preempts
         sm.apply(&LockCommand::Acquire {
             resource: "resource-1".to_string(),
             agent_id: "high-priority".to_string(),
             priority: 10,
             ttl_ms: 30000,
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         let lock = sm.get_lock("resource-1").unwrap();
         assert_eq!(lock.agent_id, "high-priority");
     }
@@ -328,11 +345,11 @@ mod tests {
     fn test_raft_lock_manager() {
         let mut manager = RaftLockManager::new(RaftConfig::default());
         manager.become_leader();
-        
+
         // Acquire through Raft
         let index = manager.acquire_lock("db:accounts", "agent-1", 5, 30000);
         assert!(index.is_ok());
-        
+
         // Check state machine
         let sm = manager.state_machine();
         let lock = sm.read().get_lock("db:accounts").cloned();

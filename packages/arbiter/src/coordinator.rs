@@ -5,11 +5,9 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::locks::{LockManager, LockError};
+use crate::locks::{LockError, LockManager};
 use crate::queue::PriorityQueue;
-use crate::types::{
-    BusinessLock, CoordinationRequest, CoordinationResult, LockType,
-};
+use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
 
 /// The Arbiter Coordinator.
 pub struct Coordinator {
@@ -36,13 +34,17 @@ impl Coordinator {
     /// Request coordination for a resource.
     pub async fn request(&self, request: CoordinationRequest) -> CoordinationResult {
         // Try to acquire lock
-        match self.lock_manager.acquire(
-            &request.agent_id,
-            &request.resource,
-            request.priority,
-            request.operation,
-            Some(request.expected_duration_ms),
-        ).await {
+        match self
+            .lock_manager
+            .acquire(
+                &request.agent_id,
+                &request.resource,
+                request.priority,
+                request.operation,
+                Some(request.expected_duration_ms),
+            )
+            .await
+        {
             Ok(lock) => {
                 // Lock acquired, remove from queue if present
                 let mut queue = self.queue.write().await;
@@ -56,9 +58,7 @@ impl Coordinator {
                 let wait_ms = queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
                 CoordinationResult::queued(position, wait_ms)
             }
-            Err(e) => {
-                CoordinationResult::denied(e.to_string())
-            }
+            Err(e) => CoordinationResult::denied(e.to_string()),
         }
     }
 
@@ -86,15 +86,18 @@ impl Coordinator {
         let mut queue = self.queue.write().await;
         if let Some(next_request) = queue.pop(resource) {
             drop(queue); // Release lock before recursive call
-            
+
             // Auto-grant to next in queue
-            let _ = self.lock_manager.acquire(
-                &next_request.agent_id,
-                resource,
-                next_request.priority,
-                next_request.operation,
-                Some(next_request.expected_duration_ms),
-            ).await;
+            let _ = self
+                .lock_manager
+                .acquire(
+                    &next_request.agent_id,
+                    resource,
+                    next_request.priority,
+                    next_request.operation,
+                    Some(next_request.expected_duration_ms),
+                )
+                .await;
         }
 
         Ok(())

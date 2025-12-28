@@ -30,7 +30,11 @@ pub enum CrdtOperation {
     /// Counter increment
     GCounter { increment: i64 },
     /// Map update
-    LwwMap { key: String, value: Vec<u8>, timestamp: u64 },
+    LwwMap {
+        key: String,
+        value: Vec<u8>,
+        timestamp: u64,
+    },
 }
 
 /// Conflict resolution strategy.
@@ -65,7 +69,7 @@ impl MeshSync {
             vector_clock: HashMap::new(),
         }
     }
-    
+
     /// Record a local change.
     pub fn record_change(&mut self, key: &str, value: &[u8]) -> SyncEvent {
         let ts = self.increment_clock();
@@ -82,15 +86,19 @@ impl MeshSync {
         self.pending.push(event.clone());
         event
     }
-    
+
     /// Increment local vector clock.
     fn increment_clock(&mut self) -> u64 {
-        let current = self.vector_clock.get(&self.local_cell_id).copied().unwrap_or(0);
+        let current = self
+            .vector_clock
+            .get(&self.local_cell_id)
+            .copied()
+            .unwrap_or(0);
         let next = current + 1;
         self.vector_clock.insert(self.local_cell_id.clone(), next);
         next
     }
-    
+
     /// Apply a remote event.
     pub fn apply_remote(&mut self, event: SyncEvent, strategy: ConflictResolution) -> bool {
         // Update vector clock
@@ -98,8 +106,9 @@ impl MeshSync {
         if event.timestamp <= remote_ts {
             return false; // Already seen
         }
-        self.vector_clock.insert(event.origin.clone(), event.timestamp);
-        
+        self.vector_clock
+            .insert(event.origin.clone(), event.timestamp);
+
         match strategy {
             ConflictResolution::LastWriteWins => true,
             ConflictResolution::FirstWriteWins => remote_ts == 0,
@@ -107,13 +116,18 @@ impl MeshSync {
             ConflictResolution::Custom => true,
         }
     }
-    
+
     /// Push data to a remote cell.
     /// Graceful fallback: tries real HTTP if AGENTKERN_MESH_API_KEY set, else logs only.
-    pub async fn push_to_cell(&self, endpoint: &str, data_id: &str, data: &[u8]) -> Result<(), SyncError> {
+    pub async fn push_to_cell(
+        &self,
+        endpoint: &str,
+        data_id: &str,
+        data: &[u8],
+    ) -> Result<(), SyncError> {
         // Check for mesh sync credentials
         let api_key = std::env::var("AGENTKERN_MESH_API_KEY").ok();
-        
+
         if let Some(key) = api_key {
             if !key.is_empty() {
                 // Try real HTTP push
@@ -130,21 +144,27 @@ impl MeshSync {
                 }
             }
         }
-        
+
         // Fallback: log only (demo mode)
         tracing::debug!(
-            endpoint = %endpoint, 
+            endpoint = %endpoint,
             data_id = %data_id,
             data_len = data.len(),
             "Mesh sync (demo mode) - set AGENTKERN_MESH_API_KEY for live"
         );
         Ok(())
     }
-    
+
     /// Perform actual HTTP push.
-    async fn do_http_push(&self, endpoint: &str, data_id: &str, data: &[u8], api_key: &str) -> Result<(), String> {
+    async fn do_http_push(
+        &self,
+        endpoint: &str,
+        data_id: &str,
+        data: &[u8],
+        api_key: &str,
+    ) -> Result<(), String> {
         let client = reqwest::Client::new();
-        
+
         let response = client
             .post(endpoint)
             .header("Authorization", format!("Bearer {}", api_key))
@@ -155,11 +175,11 @@ impl MeshSync {
             .send()
             .await
             .map_err(|e| format!("HTTP error: {}", e))?;
-        
+
         if !response.status().is_success() {
             return Err(format!("Push failed: {}", response.status()));
         }
-        
+
         tracing::info!(
             endpoint = %endpoint,
             data_id = %data_id,
@@ -167,12 +187,12 @@ impl MeshSync {
         );
         Ok(())
     }
-    
+
     /// Get pending events.
     pub fn pending_events(&self) -> &[SyncEvent] {
         &self.pending
     }
-    
+
     /// Clear pending events after sync.
     pub fn clear_pending(&mut self) {
         self.pending.clear();
@@ -207,7 +227,7 @@ mod tests {
     fn test_record_change() {
         let mut sync = MeshSync::new("cell-1".to_string());
         let event = sync.record_change("user:123", b"test data");
-        
+
         assert_eq!(event.key, "user:123");
         assert_eq!(event.origin, "cell-1");
         assert_eq!(sync.pending_events().len(), 1);
@@ -218,22 +238,25 @@ mod tests {
         let mut sync = MeshSync::new("cell-1".to_string());
         sync.record_change("a", b"1");
         sync.record_change("b", b"2");
-        
+
         assert_eq!(*sync.vector_clock.get("cell-1").unwrap(), 2);
     }
 
     #[test]
     fn test_apply_remote() {
         let mut sync = MeshSync::new("cell-1".to_string());
-        
+
         let event = SyncEvent {
             id: "evt-1".to_string(),
             key: "user:456".to_string(),
-            operation: CrdtOperation::LwwSet { value: vec![1, 2, 3], timestamp: 5 },
+            operation: CrdtOperation::LwwSet {
+                value: vec![1, 2, 3],
+                timestamp: 5,
+            },
             timestamp: 5,
             origin: "cell-2".to_string(),
         };
-        
+
         let applied = sync.apply_remote(event, ConflictResolution::LastWriteWins);
         assert!(applied);
     }

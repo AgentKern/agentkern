@@ -9,9 +9,9 @@
 //! - Cost breakdown by resource type
 //! - Billing export for enterprise
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use parking_lot::RwLock;
 
 /// Cost category types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -148,18 +148,18 @@ impl CostTracker {
             alerts: RwLock::new(Vec::new()),
         }
     }
-    
+
     /// Record a cost event.
     pub fn record(&self, event: CostEvent) -> Option<CostAlert> {
         let agent_id = event.agent_id.clone();
         let amount = event.amount_usd;
-        
+
         self.events.write().push(event);
-        
+
         // Check thresholds
         self.check_thresholds(&agent_id, amount)
     }
-    
+
     /// Create a cost event builder.
     pub fn event(&self, agent_id: &str, category: CostCategory) -> CostEventBuilder {
         CostEventBuilder {
@@ -173,29 +173,28 @@ impl CostTracker {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Get total cost for an agent.
     pub fn get_agent_total(&self, agent_id: &str) -> f64 {
-        self.events.read()
+        self.events
+            .read()
             .iter()
             .filter(|e| e.agent_id == agent_id)
             .map(|e| e.amount_usd)
             .sum()
     }
-    
+
     /// Get agent cost summary.
     pub fn get_agent_summary(&self, agent_id: &str) -> AgentCostSummary {
         let events = self.events.read();
-        let agent_events: Vec<_> = events.iter()
-            .filter(|e| e.agent_id == agent_id)
-            .collect();
-        
+        let agent_events: Vec<_> = events.iter().filter(|e| e.agent_id == agent_id).collect();
+
         let mut by_category: HashMap<String, f64> = HashMap::new();
         for event in &agent_events {
             let key = format!("{:?}", event.category);
             *by_category.entry(key).or_insert(0.0) += event.amount_usd;
         }
-        
+
         AgentCostSummary {
             agent_id: agent_id.to_string(),
             total_usd: agent_events.iter().map(|e| e.amount_usd).sum(),
@@ -205,29 +204,30 @@ impl CostTracker {
             last_event: agent_events.last().map(|e| e.timestamp),
         }
     }
-    
+
     /// Get all costs in a time window.
     pub fn get_window(&self, since: u64, until: u64) -> Vec<CostEvent> {
-        self.events.read()
+        self.events
+            .read()
             .iter()
             .filter(|e| e.timestamp >= since && e.timestamp <= until)
             .cloned()
             .collect()
     }
-    
+
     /// Get global summary.
     pub fn get_global_summary(&self) -> GlobalCostSummary {
         let events = self.events.read();
-        
+
         let mut by_agent: HashMap<String, f64> = HashMap::new();
         let mut by_category: HashMap<String, f64> = HashMap::new();
-        
+
         for event in events.iter() {
             *by_agent.entry(event.agent_id.clone()).or_insert(0.0) += event.amount_usd;
             let cat_key = format!("{:?}", event.category);
             *by_category.entry(cat_key).or_insert(0.0) += event.amount_usd;
         }
-        
+
         GlobalCostSummary {
             total_usd: events.iter().map(|e| e.amount_usd).sum(),
             by_agent,
@@ -236,27 +236,27 @@ impl CostTracker {
             alert_count: self.alerts.read().len() as u64,
         }
     }
-    
+
     /// Add a cost threshold.
     pub fn add_threshold(&self, threshold: CostThreshold) {
         self.thresholds.write().push(threshold);
     }
-    
+
     /// Check thresholds for an agent.
     fn check_thresholds(&self, agent_id: &str, _new_amount: f64) -> Option<CostAlert> {
         let thresholds = self.thresholds.read();
         let current_total = self.get_agent_total(agent_id);
-        
+
         for threshold in thresholds.iter() {
             if !threshold.enabled {
                 continue;
             }
-            
+
             // Check if threshold applies
             if threshold.agent_id != "*" && threshold.agent_id != agent_id {
                 continue;
             }
-            
+
             // Check if exceeded
             if current_total >= threshold.amount_usd {
                 let alert = CostAlert {
@@ -269,26 +269,27 @@ impl CostTracker {
                     timestamp: chrono::Utc::now().timestamp_millis() as u64,
                     agent_paused: threshold.level.should_pause(),
                 };
-                
+
                 self.alerts.write().push(alert.clone());
                 return Some(alert);
             }
         }
-        
+
         None
     }
-    
+
     /// Get recent alerts.
     pub fn get_alerts(&self, limit: usize) -> Vec<CostAlert> {
         let alerts = self.alerts.read();
         alerts.iter().rev().take(limit).cloned().collect()
     }
-    
+
     /// Export costs to CSV.
     pub fn export_csv(&self) -> String {
         let events = self.events.read();
-        let mut csv = String::from("id,agent_id,timestamp,category,amount_usd,resource,quantity,unit\n");
-        
+        let mut csv =
+            String::from("id,agent_id,timestamp,category,amount_usd,resource,quantity,unit\n");
+
         for event in events.iter() {
             csv.push_str(&format!(
                 "{},{},{},{:?},{:.6},{},{},{}\n",
@@ -302,7 +303,7 @@ impl CostTracker {
                 event.unit
             ));
         }
-        
+
         csv
     }
 }
@@ -330,28 +331,28 @@ impl CostEventBuilder {
         self.resource = resource.into();
         self
     }
-    
+
     pub fn amount(mut self, usd: f64) -> Self {
         self.amount_usd = usd;
         self
     }
-    
+
     pub fn quantity(mut self, qty: f64, unit: impl Into<String>) -> Self {
         self.quantity = qty;
         self.unit = unit.into();
         self
     }
-    
+
     pub fn task(mut self, task_id: impl Into<String>) -> Self {
         self.task_id = Some(task_id.into());
         self
     }
-    
+
     pub fn meta(mut self, key: impl Into<String>, value: serde_json::Value) -> Self {
         self.metadata.insert(key.into(), value);
         self
     }
-    
+
     pub fn build(self) -> CostEvent {
         CostEvent {
             id: uuid::Uuid::new_v4().to_string(),
@@ -395,29 +396,31 @@ mod tests {
     #[test]
     fn test_record_event() {
         let tracker = CostTracker::new();
-        
-        let event = tracker.event("agent-1", CostCategory::LlmInference)
+
+        let event = tracker
+            .event("agent-1", CostCategory::LlmInference)
             .resource("gpt-4")
             .amount(0.003)
             .quantity(1000.0, "tokens")
             .build();
-        
+
         tracker.record(event);
-        
+
         assert_eq!(tracker.events.read().len(), 1);
     }
 
     #[test]
     fn test_agent_total() {
         let tracker = CostTracker::new();
-        
+
         for i in 0..5 {
-            let event = tracker.event("agent-1", CostCategory::LlmInference)
+            let event = tracker
+                .event("agent-1", CostCategory::LlmInference)
                 .amount(0.01)
                 .build();
             tracker.record(event);
         }
-        
+
         let total = tracker.get_agent_total("agent-1");
         assert!((total - 0.05).abs() < 0.001);
     }
@@ -425,12 +428,22 @@ mod tests {
     #[test]
     fn test_agent_summary() {
         let tracker = CostTracker::new();
-        
-        tracker.record(tracker.event("agent-1", CostCategory::LlmInference).amount(0.01).build());
-        tracker.record(tracker.event("agent-1", CostCategory::VectorSearch).amount(0.002).build());
-        
+
+        tracker.record(
+            tracker
+                .event("agent-1", CostCategory::LlmInference)
+                .amount(0.01)
+                .build(),
+        );
+        tracker.record(
+            tracker
+                .event("agent-1", CostCategory::VectorSearch)
+                .amount(0.002)
+                .build(),
+        );
+
         let summary = tracker.get_agent_summary("agent-1");
-        
+
         assert!((summary.total_usd - 0.012).abs() < 0.001);
         assert_eq!(summary.event_count, 2);
     }
@@ -438,7 +451,7 @@ mod tests {
     #[test]
     fn test_threshold_alert() {
         let tracker = CostTracker::new();
-        
+
         tracker.add_threshold(CostThreshold {
             id: "t1".into(),
             agent_id: "agent-1".into(),
@@ -447,15 +460,16 @@ mod tests {
             level: AlertLevel::Warning,
             enabled: true,
         });
-        
+
         // Record events until threshold exceeded
         for _ in 0..10 {
-            let event = tracker.event("agent-1", CostCategory::LlmInference)
+            let event = tracker
+                .event("agent-1", CostCategory::LlmInference)
                 .amount(0.01)
                 .build();
             tracker.record(event);
         }
-        
+
         // Should have alerts
         assert!(!tracker.alerts.read().is_empty());
     }
@@ -463,12 +477,22 @@ mod tests {
     #[test]
     fn test_global_summary() {
         let tracker = CostTracker::new();
-        
-        tracker.record(tracker.event("agent-1", CostCategory::LlmInference).amount(0.01).build());
-        tracker.record(tracker.event("agent-2", CostCategory::Storage).amount(0.005).build());
-        
+
+        tracker.record(
+            tracker
+                .event("agent-1", CostCategory::LlmInference)
+                .amount(0.01)
+                .build(),
+        );
+        tracker.record(
+            tracker
+                .event("agent-2", CostCategory::Storage)
+                .amount(0.005)
+                .build(),
+        );
+
         let summary = tracker.get_global_summary();
-        
+
         assert!((summary.total_usd - 0.015).abs() < 0.001);
         assert_eq!(summary.by_agent.len(), 2);
     }
@@ -476,15 +500,18 @@ mod tests {
     #[test]
     fn test_export_csv() {
         let tracker = CostTracker::new();
-        
-        tracker.record(tracker.event("agent-1", CostCategory::LlmInference)
-            .resource("gpt-4")
-            .amount(0.003)
-            .quantity(1000.0, "tokens")
-            .build());
-        
+
+        tracker.record(
+            tracker
+                .event("agent-1", CostCategory::LlmInference)
+                .resource("gpt-4")
+                .amount(0.003)
+                .quantity(1000.0, "tokens")
+                .build(),
+        );
+
         let csv = tracker.export_csv();
-        
+
         assert!(csv.contains("agent-1"));
         assert!(csv.contains("LlmInference"));
     }

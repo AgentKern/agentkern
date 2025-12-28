@@ -11,17 +11,17 @@
 //!
 //! All connectors run in WASM sandboxes with policy enforcement through Gate.
 
-pub mod sdk;
-pub mod registry;
 pub mod mock;
-pub mod sql;
 pub mod parsers;
+pub mod registry;
+pub mod sdk;
+pub mod sql;
 
 // Re-exports
-pub use sdk::{
-    LegacyConnector, ConnectorProtocol, ConnectorConfig, 
-    ConnectorHealth, ConnectorError, ConnectorResult,
-};
-pub use registry::{ConnectorRegistry, RegisteredConnector};
 pub use mock::MockConnector;
+pub use registry::{ConnectorRegistry, RegisteredConnector};
+pub use sdk::{
+    ConnectorConfig, ConnectorError, ConnectorHealth, ConnectorProtocol, ConnectorResult,
+    LegacyConnector,
+};
 pub use sql::SqlConnector;

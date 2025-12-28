@@ -57,10 +57,10 @@ pub struct BudgetConfig {
 impl Default for BudgetConfig {
     fn default() -> Self {
         Self {
-            max_tokens: 100_000,        // 100k tokens
-            max_api_calls: 1_000,       // 1000 API calls
-            max_cost_usd: 10.0,         // $10 USD
-            max_runtime_secs: 3600,     // 1 hour
+            max_tokens: 100_000,    // 100k tokens
+            max_api_calls: 1_000,   // 1000 API calls
+            max_cost_usd: 10.0,     // $10 USD
+            max_runtime_secs: 3600, // 1 hour
             enforce: true,
         }
     }
@@ -92,10 +92,10 @@ impl BudgetConfig {
     /// Create a budget for enterprise tier.
     pub fn enterprise() -> Self {
         Self {
-            max_tokens: 10_000_000,     // 10M tokens
-            max_api_calls: 100_000,     // 100k API calls
-            max_cost_usd: 1000.0,       // $1000 USD
-            max_runtime_secs: 86400,    // 24 hours
+            max_tokens: 10_000_000,  // 10M tokens
+            max_api_calls: 100_000,  // 100k API calls
+            max_cost_usd: 1000.0,    // $1000 USD
+            max_runtime_secs: 86400, // 24 hours
             enforce: true,
         }
     }
@@ -159,12 +159,16 @@ impl AgentBudget {
 
     /// Get remaining tokens.
     pub fn remaining_tokens(&self) -> u64 {
-        self.config.max_tokens.saturating_sub(self.usage.tokens_used)
+        self.config
+            .max_tokens
+            .saturating_sub(self.usage.tokens_used)
     }
 
     /// Get remaining API calls.
     pub fn remaining_api_calls(&self) -> u64 {
-        self.config.max_api_calls.saturating_sub(self.usage.api_calls_used)
+        self.config
+            .max_api_calls
+            .saturating_sub(self.usage.api_calls_used)
     }
 
     /// Get remaining budget in USD.
@@ -185,7 +189,7 @@ impl AgentBudget {
         }
 
         let new_total = self.usage.tokens_used + tokens;
-        
+
         if self.config.enforce && new_total > self.config.max_tokens {
             self.exhausted = true;
             return Err(BudgetError::TokenLimitExceeded {
@@ -210,7 +214,7 @@ impl AgentBudget {
         }
 
         let new_total = self.usage.api_calls_used + calls;
-        
+
         if self.config.enforce && new_total > self.config.max_api_calls {
             self.exhausted = true;
             return Err(BudgetError::ApiCallLimitExceeded {
@@ -230,7 +234,7 @@ impl AgentBudget {
         }
 
         let new_total = self.usage.cost_usd + cost_usd;
-        
+
         if self.config.enforce && new_total > self.config.max_cost_usd {
             self.exhausted = true;
             return Err(BudgetError::CostLimitExceeded {
@@ -251,7 +255,7 @@ impl AgentBudget {
 
         let elapsed = self.start_time.elapsed().as_secs();
         self.usage.runtime_secs = elapsed;
-        
+
         if self.config.enforce && elapsed > self.config.max_runtime_secs {
             self.exhausted = true;
             return Err(BudgetError::TimeLimitExceeded {
@@ -268,8 +272,9 @@ impl AgentBudget {
         let token_pct = self.usage.tokens_used as f64 / self.config.max_tokens as f64;
         let api_pct = self.usage.api_calls_used as f64 / self.config.max_api_calls as f64;
         let cost_pct = self.usage.cost_usd / self.config.max_cost_usd;
-        let time_pct = self.start_time.elapsed().as_secs() as f64 / self.config.max_runtime_secs as f64;
-        
+        let time_pct =
+            self.start_time.elapsed().as_secs() as f64 / self.config.max_runtime_secs as f64;
+
         token_pct.max(api_pct).max(cost_pct).max(time_pct)
     }
 
@@ -313,13 +318,13 @@ mod tests {
     #[test]
     fn test_token_consumption() {
         let mut budget = AgentBudget::new("agent-1", BudgetConfig::minimal());
-        
+
         budget.consume_tokens(500).unwrap();
         assert_eq!(budget.remaining_tokens(), 500);
-        
+
         budget.consume_tokens(400).unwrap();
         assert_eq!(budget.remaining_tokens(), 100);
-        
+
         // This should fail
         let result = budget.consume_tokens(200);
         assert!(result.is_err());
@@ -329,11 +334,11 @@ mod tests {
     #[test]
     fn test_api_call_limit() {
         let mut budget = AgentBudget::new("agent-1", BudgetConfig::minimal());
-        
+
         for _ in 0..10 {
             budget.consume_api_call().unwrap();
         }
-        
+
         // 11th call should fail
         let result = budget.consume_api_call();
         assert!(result.is_err());
@@ -342,10 +347,10 @@ mod tests {
     #[test]
     fn test_cost_limit() {
         let mut budget = AgentBudget::new("agent-1", BudgetConfig::minimal());
-        
+
         budget.consume_cost(0.05).unwrap();
         budget.consume_cost(0.04).unwrap();
-        
+
         // This should fail ($0.10 limit)
         let result = budget.consume_cost(0.02);
         assert!(result.is_err());
@@ -353,14 +358,17 @@ mod tests {
 
     #[test]
     fn test_usage_percentage() {
-        let mut budget = AgentBudget::new("agent-1", BudgetConfig {
-            max_tokens: 100,
-            max_api_calls: 10,
-            max_cost_usd: 1.0,
-            max_runtime_secs: 100,
-            enforce: true,
-        });
-        
+        let mut budget = AgentBudget::new(
+            "agent-1",
+            BudgetConfig {
+                max_tokens: 100,
+                max_api_calls: 10,
+                max_cost_usd: 1.0,
+                max_runtime_secs: 100,
+                enforce: true,
+            },
+        );
+
         budget.consume_tokens(50).unwrap();
         assert!((budget.usage_percentage() - 0.5).abs() < 0.01);
     }
@@ -368,11 +376,11 @@ mod tests {
     #[test]
     fn test_exhausted_blocks_all() {
         let mut budget = AgentBudget::new("agent-1", BudgetConfig::minimal());
-        
+
         // Exhaust tokens
         let _ = budget.consume_tokens(2000);
         assert!(budget.is_exhausted());
-        
+
         // Now everything should fail
         assert!(budget.consume_api_call().is_err());
         assert!(budget.consume_cost(0.01).is_err());

@@ -22,9 +22,9 @@
 //! meter.record(UsageEvent::api_call("policy.check", 1))?;
 //! ```
 
+use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Datelike};
 
 mod license {
     #[derive(Debug, thiserror::Error)]
@@ -34,13 +34,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise billing feature accessed");
         Ok(())
     }
@@ -72,12 +72,12 @@ impl MetricType {
     /// Get default price per unit (in cents).
     pub fn default_price_cents(&self) -> f64 {
         match self {
-            Self::ApiCalls => 0.001,         // $0.00001 per call
-            Self::PolicyChecks => 0.0001,    // $0.000001 per check
-            Self::NeuralInferences => 0.01,  // $0.0001 per inference
-            Self::AgentActions => 0.001,     // $0.00001 per action
-            Self::StorageBytes => 0.00000001, // $0.10 per GB/month
-            Self::ComputeMs => 0.00001,      // $0.0001 per second
+            Self::ApiCalls => 0.001,           // $0.00001 per call
+            Self::PolicyChecks => 0.0001,      // $0.000001 per check
+            Self::NeuralInferences => 0.01,    // $0.0001 per inference
+            Self::AgentActions => 0.001,       // $0.00001 per action
+            Self::StorageBytes => 0.00000001,  // $0.10 per GB/month
+            Self::ComputeMs => 0.00001,        // $0.0001 per second
             Self::TransferBytes => 0.00000008, // $0.08 per GB
             Self::TokensProcessed => 0.00003,  // Similar to OpenAI
         }
@@ -132,22 +132,30 @@ impl UsageEvent {
     /// Create an API call event.
     pub fn api_call(tenant_id: impl Into<String>, endpoint: &str) -> Self {
         let mut event = Self::new(tenant_id, MetricType::ApiCalls, 1);
-        event.properties.insert("endpoint".to_string(), endpoint.to_string());
+        event
+            .properties
+            .insert("endpoint".to_string(), endpoint.to_string());
         event
     }
 
     /// Create a policy check event.
     pub fn policy_check(tenant_id: impl Into<String>, policy_id: &str) -> Self {
         let mut event = Self::new(tenant_id, MetricType::PolicyChecks, 1);
-        event.properties.insert("policy_id".to_string(), policy_id.to_string());
+        event
+            .properties
+            .insert("policy_id".to_string(), policy_id.to_string());
         event
     }
 
     /// Create a neural inference event.
     pub fn neural_inference(tenant_id: impl Into<String>, model: &str, tokens: u64) -> Self {
         let mut event = Self::new(tenant_id, MetricType::NeuralInferences, 1);
-        event.properties.insert("model".to_string(), model.to_string());
-        event.properties.insert("tokens".to_string(), tokens.to_string());
+        event
+            .properties
+            .insert("model".to_string(), model.to_string());
+        event
+            .properties
+            .insert("tokens".to_string(), tokens.to_string());
         event
     }
 
@@ -181,7 +189,7 @@ impl UsageAggregate {
     pub fn add(&mut self, quantity: u64, timestamp: DateTime<Utc>) {
         self.total_quantity += quantity;
         self.event_count += 1;
-        
+
         if self.first_event.is_none() || timestamp < self.first_event.unwrap() {
             self.first_event = Some(timestamp);
         }
@@ -226,7 +234,7 @@ impl Meter {
     /// Create a new meter (requires enterprise license).
     pub fn new(tenant_id: impl Into<String>) -> Result<Self, license::LicenseError> {
         license::require("BILLING")?;
-        
+
         let mut prices = HashMap::new();
         for metric in [
             MetricType::ApiCalls,
@@ -240,7 +248,7 @@ impl Meter {
         ] {
             prices.insert(metric, metric.default_price_cents());
         }
-        
+
         Ok(Self {
             tenant_id: tenant_id.into(),
             events: Vec::new(),
@@ -255,20 +263,21 @@ impl Meter {
             year: event.timestamp.year(),
             month: event.timestamp.month(),
         };
-        
-        let aggregate = self.aggregates
+
+        let aggregate = self
+            .aggregates
             .entry((period, event.metric))
             .or_insert_with(UsageAggregate::default);
-        
+
         aggregate.add(event.quantity, event.timestamp);
-        
+
         self.events.push(event);
     }
 
     /// Get usage for current period.
     pub fn current_usage(&self) -> HashMap<MetricType, u64> {
         let period = BillingPeriod::current();
-        
+
         self.aggregates
             .iter()
             .filter(|((p, _), _)| *p == period)
@@ -279,7 +288,7 @@ impl Meter {
     /// Calculate current period cost in cents.
     pub fn current_cost_cents(&self) -> f64 {
         let usage = self.current_usage();
-        
+
         usage
             .iter()
             .map(|(metric, quantity)| {
@@ -340,15 +349,15 @@ impl Invoice {
     pub fn generate(meter: &Meter, period: BillingPeriod) -> Self {
         let mut line_items = Vec::new();
         let mut subtotal = 0.0;
-        
+
         for ((p, metric), aggregate) in &meter.aggregates {
             if *p != period {
                 continue;
             }
-            
+
             let price = meter.prices.get(metric).copied().unwrap_or(0.0);
             let amount = aggregate.total_quantity as f64 * price;
-            
+
             line_items.push(InvoiceLineItem {
                 description: format!("{} ({})", metric.unit_name(), aggregate.total_quantity),
                 metric: *metric,
@@ -356,13 +365,13 @@ impl Invoice {
                 unit_price_cents: price,
                 amount_cents: amount,
             });
-            
+
             subtotal += amount;
         }
-        
+
         // No tax for simplicity (would be calculated based on location)
         let tax = 0.0;
-        
+
         Self {
             id: format!("inv_{}", uuid::Uuid::new_v4()),
             tenant_id: meter.tenant_id.clone(),
@@ -441,25 +450,30 @@ impl StripeMeterSync {
     /// Sync pending events to Stripe Billing Meter API.
     pub async fn sync(&mut self) -> Result<usize, BillingError> {
         let count = self.pending_events.len();
-        
+
         if count == 0 {
             return Ok(0);
         }
-        
+
         // Build events payload for Stripe API
-        let events: Vec<_> = self.pending_events.iter().map(|e| {
-            serde_json::json!({
-                "event_name": format!("{}_{}", e.metric.unit_name(), e.tenant_id),
-                "payload": {
-                    "stripe_customer_id": e.tenant_id,
-                    "value": e.quantity.to_string(),
-                    "timestamp": e.timestamp.timestamp()
-                }
+        let events: Vec<_> = self
+            .pending_events
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "event_name": format!("{}_{}", e.metric.unit_name(), e.tenant_id),
+                    "payload": {
+                        "stripe_customer_id": e.tenant_id,
+                        "value": e.quantity.to_string(),
+                        "timestamp": e.timestamp.timestamp()
+                    }
+                })
             })
-        }).collect();
-        
+            .collect();
+
         // POST to Stripe Billing Meter Events API
-        let response = self.client
+        let response = self
+            .client
             .post(format!(
                 "https://api.stripe.com/v1/billing/meters/{}/events",
                 self.meter_id
@@ -470,10 +484,10 @@ impl StripeMeterSync {
             .form(&[("events", serde_json::to_string(&events).unwrap_or_default())])
             .send()
             .await
-            .map_err(|e| BillingError::StripeError { 
-                message: format!("HTTP error: {}", e) 
+            .map_err(|e| BillingError::StripeError {
+                message: format!("HTTP error: {}", e),
             })?;
-        
+
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
@@ -481,13 +495,13 @@ impl StripeMeterSync {
                 message: format!("Stripe API error {}: {}", status, body),
             });
         }
-        
+
         tracing::info!(
             meter_id = %self.meter_id,
             count = count,
             "Synced events to Stripe Billing Meter API"
         );
-        
+
         self.pending_events.clear();
         Ok(count)
     }
@@ -497,7 +511,6 @@ impl StripeMeterSync {
         self.pending_events.len()
     }
 }
-
 
 /// Billing errors.
 #[derive(Debug, thiserror::Error)]
@@ -523,7 +536,7 @@ mod tests {
     #[test]
     fn test_usage_event() {
         let event = UsageEvent::api_call("org-123", "/api/v1/check");
-        
+
         assert_eq!(event.metric, MetricType::ApiCalls);
         assert_eq!(event.quantity, 1);
         assert!(event.properties.contains_key("endpoint"));
@@ -531,42 +544,52 @@ mod tests {
 
     #[test]
     fn test_meter_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = Meter::new("org-123");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_meter_with_license() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut meter = Meter::new("org-123").unwrap();
-        
+
         meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
         meter.record(UsageEvent::policy_check("org-123", "policy-1"));
-        
+
         let usage = meter.current_usage();
         assert_eq!(usage.get(&MetricType::ApiCalls), Some(&1));
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_invoice_generation() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut meter = Meter::new("org-123").unwrap();
-        
+
         for _ in 0..100 {
             meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
         }
-        
+
         let invoice = Invoice::generate(&meter, BillingPeriod::current());
-        
+
         assert!(!invoice.line_items.is_empty());
         assert!(invoice.total_cents > 0.0);
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]

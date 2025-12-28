@@ -3,8 +3,8 @@
 //! Defines the universal format for portable agent state.
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use std::collections::HashMap;
+use thiserror::Error;
 
 /// Passport version for forward compatibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,8 +15,12 @@ pub struct PassportVersion {
 }
 
 impl PassportVersion {
-    pub const CURRENT: Self = Self { major: 1, minor: 0, patch: 0 };
-    
+    pub const CURRENT: Self = Self {
+        major: 1,
+        minor: 0,
+        patch: 0,
+    };
+
     pub fn is_compatible(&self, other: &Self) -> bool {
         self.major == other.major
     }
@@ -39,19 +43,19 @@ impl std::fmt::Display for PassportVersion {
 pub enum PassportError {
     #[error("Invalid passport version: {0}")]
     IncompatibleVersion(String),
-    
+
     #[error("Invalid signature")]
     InvalidSignature,
-    
+
     #[error("Decryption failed: {0}")]
     DecryptionFailed(String),
-    
+
     #[error("Missing required field: {0}")]
     MissingField(String),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(String),
-    
+
     #[error("Policy violation: {0}")]
     PolicyViolation(String),
 }
@@ -146,7 +150,7 @@ impl ProvenanceChain {
             hash_algorithm: "SHA-256".to_string(),
         }
     }
-    
+
     /// Verify chain integrity.
     pub fn verify(&self) -> Result<bool, PassportError> {
         // In production, verify each signature cryptographically
@@ -165,25 +169,25 @@ impl Default for ProvenanceChain {
 pub struct MemoryPassport {
     /// Passport version
     pub version: PassportVersion,
-    
+
     /// Agent identity (DID-based)
     pub identity: AgentIdentity,
-    
+
     /// Cryptographic provenance
     pub provenance: ProvenanceChain,
-    
+
     /// Sovereignty metadata
     pub sovereignty: SovereigntyInfo,
-    
+
     /// Memory layers (may be encrypted)
     pub memory: super::layers::MemoryLayers,
-    
+
     /// Export timestamp
     pub exported_at: u64,
-    
+
     /// Checksum of memory content
     pub checksum: String,
-    
+
     /// Additional metadata
     pub metadata: HashMap<String, serde_json::Value>,
 }
@@ -209,48 +213,51 @@ impl MemoryPassport {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Validate passport integrity.
     pub fn validate(&self) -> Result<(), PassportError> {
         // Check version compatibility
         if !self.version.is_compatible(&PassportVersion::CURRENT) {
-            return Err(PassportError::IncompatibleVersion(
-                format!("Got {}, expected {}.x.x", self.version, PassportVersion::CURRENT.major)
-            ));
+            return Err(PassportError::IncompatibleVersion(format!(
+                "Got {}, expected {}.x.x",
+                self.version,
+                PassportVersion::CURRENT.major
+            )));
         }
-        
+
         // Verify identity
         if self.identity.did.is_empty() {
             return Err(PassportError::MissingField("identity.did".into()));
         }
-        
+
         // Verify provenance - must have at least one signature
         if !self.provenance.verify()? {
             return Err(PassportError::InvalidSignature);
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if passport can be transferred to region.
     pub fn can_transfer_to(&self, region: &str) -> bool {
         if self.sovereignty.allowed_regions.is_empty() {
             // No restrictions
             return true;
         }
-        self.sovereignty.allowed_regions.contains(&region.to_string())
+        self.sovereignty
+            .allowed_regions
+            .contains(&region.to_string())
     }
-    
+
     /// Serialize to JSON.
     pub fn to_json(&self) -> Result<String, PassportError> {
         serde_json::to_string_pretty(self)
             .map_err(|e| PassportError::SerializationError(e.to_string()))
     }
-    
+
     /// Deserialize from JSON.
     pub fn from_json(json: &str) -> Result<Self, PassportError> {
-        serde_json::from_str(json)
-            .map_err(|e| PassportError::SerializationError(e.to_string()))
+        serde_json::from_str(json).map_err(|e| PassportError::SerializationError(e.to_string()))
     }
 }
 
@@ -274,10 +281,22 @@ mod tests {
 
     #[test]
     fn test_passport_version() {
-        let v1 = PassportVersion { major: 1, minor: 0, patch: 0 };
-        let v1_1 = PassportVersion { major: 1, minor: 1, patch: 0 };
-        let v2 = PassportVersion { major: 2, minor: 0, patch: 0 };
-        
+        let v1 = PassportVersion {
+            major: 1,
+            minor: 0,
+            patch: 0,
+        };
+        let v1_1 = PassportVersion {
+            major: 1,
+            minor: 1,
+            patch: 0,
+        };
+        let v2 = PassportVersion {
+            major: 2,
+            minor: 0,
+            patch: 0,
+        };
+
         assert!(v1.is_compatible(&v1_1));
         assert!(!v1.is_compatible(&v2));
     }
@@ -285,7 +304,7 @@ mod tests {
     #[test]
     fn test_create_passport() {
         let passport = MemoryPassport::new(sample_identity(), "US");
-        
+
         assert_eq!(passport.version, PassportVersion::CURRENT);
         assert_eq!(passport.sovereignty.origin_region, "US");
         assert_eq!(passport.identity.did, "did:agentkern:agent-test-001");
@@ -294,7 +313,7 @@ mod tests {
     #[test]
     fn test_passport_validation() {
         let passport = MemoryPassport::new(sample_identity(), "US");
-        
+
         // Should fail because provenance chain is empty
         // In real implementation, we'd sign on creation
         assert!(passport.validate().is_err());
@@ -304,7 +323,7 @@ mod tests {
     fn test_transfer_restriction() {
         let mut passport = MemoryPassport::new(sample_identity(), "US");
         passport.sovereignty.allowed_regions = vec!["US".into(), "EU".into()];
-        
+
         assert!(passport.can_transfer_to("US"));
         assert!(passport.can_transfer_to("EU"));
         assert!(!passport.can_transfer_to("CN"));
@@ -313,10 +332,10 @@ mod tests {
     #[test]
     fn test_passport_serialization() {
         let passport = MemoryPassport::new(sample_identity(), "US");
-        
+
         let json = passport.to_json().unwrap();
         let restored = MemoryPassport::from_json(&json).unwrap();
-        
+
         assert_eq!(restored.identity.did, passport.identity.did);
         assert_eq!(restored.sovereignty.origin_region, "US");
     }
@@ -330,7 +349,7 @@ mod tests {
             timestamp: 1700000000000,
             prev_hash: "0000000000".into(),
         });
-        
+
         assert!(chain.verify().unwrap());
     }
 }

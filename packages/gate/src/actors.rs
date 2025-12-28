@@ -9,9 +9,9 @@
 
 #[cfg(feature = "actors")]
 use actix::prelude::*;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 /// Message to evaluate a policy.
 #[cfg(feature = "actors")]
@@ -142,7 +142,7 @@ impl Handler<EvaluatePolicy> for GateSupervisor {
 
     fn handle(&mut self, msg: EvaluatePolicy, _ctx: &mut Self::Context) -> Self::Result {
         self.total_evaluations += 1;
-        
+
         // For now, return default result
         // In production: route to appropriate PolicyCellActor
         PolicyResult {
@@ -163,11 +163,11 @@ impl Handler<HotSwapPolicy> for GateSupervisor {
             bytes = msg.wasm_bytes.len(),
             "Hot-swapping policy WASM module"
         );
-        
+
         // Create or replace policy cell
         let cell_actor = PolicyCellActor::new(msg.policy_name.clone()).start();
         self.cells.insert(msg.policy_name, cell_actor);
-        
+
         Ok(())
     }
 }
@@ -233,8 +233,14 @@ impl GateSupervisor {
         }
     }
 
-    pub fn evaluate(&self, _policy: &str, _action: &str, _context: &serde_json::Value) -> PolicyResult {
-        self.total_evaluations.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    pub fn evaluate(
+        &self,
+        _policy: &str,
+        _action: &str,
+        _context: &serde_json::Value,
+    ) -> PolicyResult {
+        self.total_evaluations
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         PolicyResult {
             allowed: true,
             risk_score: 0,
@@ -245,7 +251,9 @@ impl GateSupervisor {
     pub fn status(&self) -> SupervisorStatus {
         SupervisorStatus {
             active_policies: self.policies.read().len(),
-            total_evaluations: self.total_evaluations.load(std::sync::atomic::Ordering::Relaxed),
+            total_evaluations: self
+                .total_evaluations
+                .load(std::sync::atomic::Ordering::Relaxed),
             uptime_secs: self.start_time.elapsed().as_secs(),
         }
     }

@@ -26,7 +26,7 @@ impl IDocSegment {
     pub fn get(&self, field: &str) -> Option<&String> {
         self.fields.get(field)
     }
-    
+
     /// Check if segment is header level.
     pub fn is_header(&self) -> bool {
         self.level == 1
@@ -59,12 +59,12 @@ impl IDocMessage {
     pub fn get_segments(&self, name: &str) -> Vec<&IDocSegment> {
         self.segments.iter().filter(|s| s.name == name).collect()
     }
-    
+
     /// Get header segment.
     pub fn get_header(&self) -> Option<&IDocSegment> {
         self.segments.iter().find(|s| s.is_header())
     }
-    
+
     /// Get all detail segments.
     pub fn get_details(&self) -> Vec<&IDocSegment> {
         self.segments.iter().filter(|s| !s.is_header()).collect()
@@ -79,35 +79,38 @@ impl IDocParser {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Parse IDOC from raw text (flat file format).
     pub fn parse(&self, raw: &str) -> Result<IDocMessage, IDocParseError> {
         let lines: Vec<&str> = raw.lines().collect();
-        
+
         if lines.is_empty() {
             return Err(IDocParseError::EmptyDocument);
         }
-        
+
         // Parse control record (first line, usually 524 chars)
         let control = self.parse_control_record(lines.get(0).unwrap_or(&""))?;
-        
+
         // Extract basic info from control
-        let idoc_type = control.get("IDOCTYP")
+        let idoc_type = control
+            .get("IDOCTYP")
             .cloned()
             .unwrap_or_else(|| "UNKNOWN".to_string());
-        let idoc_number = control.get("DOCNUM")
+        let idoc_number = control
+            .get("DOCNUM")
             .cloned()
             .unwrap_or_else(|| "0".to_string());
-        let direction = control.get("DIRECT")
+        let direction = control
+            .get("DIRECT")
             .and_then(|d| d.parse().ok())
             .unwrap_or(1);
         let sender = control.get("SNDPRN").cloned();
         let receiver = control.get("RCVPRN").cloned();
         let message_type = control.get("MESTYP").cloned();
-        
+
         // Parse data segments (remaining lines)
         let segments = self.parse_segments(&lines[1..])?;
-        
+
         Ok(IDocMessage {
             idoc_type,
             idoc_number,
@@ -119,17 +122,17 @@ impl IDocParser {
             control,
         })
     }
-    
+
     /// Parse control record.
     fn parse_control_record(&self, line: &str) -> Result<HashMap<String, String>, IDocParseError> {
         let mut fields = HashMap::new();
-        
+
         // Control record layout (simplified for common fields)
         // Real IDOCs have fixed-width fields
         if line.len() >= 10 {
             // Parse as space/tab separated for simplicity
             let parts: Vec<&str> = line.split_whitespace().collect();
-            
+
             // Common control fields
             for (i, part) in parts.iter().enumerate() {
                 if part.contains('=') {
@@ -140,47 +143,55 @@ impl IDocParser {
                 } else {
                     // Positional fields
                     match i {
-                        0 => { fields.insert("TABNAM".to_string(), part.to_string()); }
-                        1 => { fields.insert("DOCNUM".to_string(), part.to_string()); }
-                        2 => { fields.insert("IDOCTYP".to_string(), part.to_string()); }
-                        3 => { fields.insert("MESTYP".to_string(), part.to_string()); }
+                        0 => {
+                            fields.insert("TABNAM".to_string(), part.to_string());
+                        }
+                        1 => {
+                            fields.insert("DOCNUM".to_string(), part.to_string());
+                        }
+                        2 => {
+                            fields.insert("IDOCTYP".to_string(), part.to_string());
+                        }
+                        3 => {
+                            fields.insert("MESTYP".to_string(), part.to_string());
+                        }
                         _ => {}
                     }
                 }
             }
         }
-        
+
         Ok(fields)
     }
-    
+
     /// Parse data segments.
     fn parse_segments(&self, lines: &[&str]) -> Result<Vec<IDocSegment>, IDocParseError> {
         let mut segments = Vec::new();
         let mut segment_num = 0u32;
-        
+
         for line in lines {
             if line.trim().is_empty() {
                 continue;
             }
-            
+
             segment_num += 1;
             let segment = self.parse_segment_line(line, segment_num)?;
             segments.push(segment);
         }
-        
+
         Ok(segments)
     }
-    
+
     /// Parse a single segment line.
     fn parse_segment_line(&self, line: &str, number: u32) -> Result<IDocSegment, IDocParseError> {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        
+
         if parts.is_empty() {
             return Err(IDocParseError::InvalidSegment("Empty segment".into()));
         }
-        
+
         let name = parts[0].to_string();
-        
+
         // Determine level from segment name pattern
         // E1xxx = level 1, E2xxx = level 2, etc.
         let level = if name.starts_with("E1") {
@@ -193,7 +204,7 @@ impl IDocParser {
                 .and_then(|c| c.to_digit(10))
                 .unwrap_or(1)
         };
-        
+
         // Parse fields from remaining parts
         let mut fields = HashMap::new();
         for part in &parts[1..] {
@@ -204,7 +215,7 @@ impl IDocParser {
                 }
             }
         }
-        
+
         Ok(IDocSegment {
             name,
             number,
@@ -213,13 +224,13 @@ impl IDocParser {
             fields,
         })
     }
-    
+
     /// Parse from XML format (used in newer SAP systems).
     pub fn parse_xml(&self, xml: &str) -> Result<IDocMessage, IDocParseError> {
         // Simplified XML parsing - in production use proper XML parser
         let mut fields: HashMap<String, String> = HashMap::new();
         let segments = Vec::new();
-        
+
         // Extract IDOC type from root element
         let idoc_type = if let Some(start) = xml.find("<IDOC BEGIN=\"1\"") {
             let remaining = &xml[start..];
@@ -236,9 +247,9 @@ impl IDocParser {
         } else {
             "UNKNOWN".to_string()
         };
-        
+
         fields.insert("IDOCTYP".to_string(), idoc_type.clone());
-        
+
         Ok(IDocMessage {
             idoc_type,
             idoc_number: "0".to_string(),
@@ -295,7 +306,7 @@ E1EDP01 POSNR=000020 MATNR=MAT002 MENGE=50"#;
     fn test_parse_idoc() {
         let parser = IDocParser::new();
         let idoc = parser.parse(IDOC_SAMPLE).unwrap();
-        
+
         assert_eq!(idoc.idoc_type, "ORDERS05");
         assert_eq!(idoc.segments.len(), 3);
     }
@@ -304,10 +315,10 @@ E1EDP01 POSNR=000020 MATNR=MAT002 MENGE=50"#;
     fn test_get_segments() {
         let parser = IDocParser::new();
         let idoc = parser.parse(IDOC_SAMPLE).unwrap();
-        
+
         let header = idoc.get_segments("E1EDK01");
         assert_eq!(header.len(), 1);
-        
+
         let items = idoc.get_segments("E1EDP01");
         assert_eq!(items.len(), 2);
     }
@@ -316,7 +327,7 @@ E1EDP01 POSNR=000020 MATNR=MAT002 MENGE=50"#;
     fn test_segment_fields() {
         let parser = IDocParser::new();
         let idoc = parser.parse(IDOC_SAMPLE).unwrap();
-        
+
         let header = idoc.get_header().unwrap();
         assert_eq!(header.get("BELNR"), Some(&"4500000001".to_string()));
         assert_eq!(header.get("CURCY"), Some(&"EUR".to_string()));
@@ -326,7 +337,7 @@ E1EDP01 POSNR=000020 MATNR=MAT002 MENGE=50"#;
     fn test_segment_levels() {
         let parser = IDocParser::new();
         let idoc = parser.parse(IDOC_SAMPLE).unwrap();
-        
+
         let header = idoc.get_header().unwrap();
         assert!(header.is_header());
         assert_eq!(header.level, 1);

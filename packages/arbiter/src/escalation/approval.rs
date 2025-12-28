@@ -2,10 +2,10 @@
 //!
 //! Manages approval requests, decisions, and audit trails for human-in-the-loop.
 
+use super::triggers::{EscalationLevel, TriggerResult};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use parking_lot::RwLock;
-use super::triggers::{TriggerResult, EscalationLevel};
 
 /// Approval status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,7 +67,7 @@ impl ApprovalRequest {
         let now = chrono::Utc::now().timestamp_millis() as u64;
         now > self.expires_at
     }
-    
+
     /// Check if request is pending.
     pub fn is_pending(&self) -> bool {
         self.status == ApprovalStatus::Pending && !self.is_expired()
@@ -88,7 +88,7 @@ impl ApprovalWorkflow {
             auto_approve_levels: vec![], // No auto-approve by default
         }
     }
-    
+
     /// Create with auto-approve for low levels.
     pub fn with_auto_approve(levels: Vec<EscalationLevel>) -> Self {
         Self {
@@ -96,16 +96,21 @@ impl ApprovalWorkflow {
             auto_approve_levels: levels,
         }
     }
-    
+
     /// Create approval request from trigger.
-    pub fn request_approval(&self, trigger: &TriggerResult, action: &str, params: serde_json::Value) -> ApprovalRequest {
+    pub fn request_approval(
+        &self,
+        trigger: &TriggerResult,
+        action: &str,
+        params: serde_json::Value,
+    ) -> ApprovalRequest {
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp_millis() as u64;
         let timeout = trigger.level.default_timeout_secs() * 1000;
-        
+
         // Check for auto-approval
         let auto_approved = self.auto_approve_levels.contains(&trigger.level);
-        
+
         let request = ApprovalRequest {
             id: id.clone(),
             agent_id: trigger.agent_id.clone(),
@@ -114,7 +119,11 @@ impl ApprovalWorkflow {
             level: trigger.level,
             created_at: now,
             expires_at: now + timeout,
-            status: if auto_approved { ApprovalStatus::AutoApproved } else { ApprovalStatus::Pending },
+            status: if auto_approved {
+                ApprovalStatus::AutoApproved
+            } else {
+                ApprovalStatus::Pending
+            },
             decision: if auto_approved {
                 Some(ApprovalDecision {
                     status: ApprovalStatus::AutoApproved,
@@ -127,40 +136,47 @@ impl ApprovalWorkflow {
             },
             context: trigger.context.clone(),
         };
-        
+
         // Store request
         self.requests.write().insert(id, request.clone());
-        
+
         request
     }
-    
+
     /// Get approval request by ID.
     pub fn get_request(&self, id: &str) -> Option<ApprovalRequest> {
         self.requests.read().get(id).cloned()
     }
-    
+
     /// List pending requests.
     pub fn pending_requests(&self) -> Vec<ApprovalRequest> {
-        self.requests.read()
+        self.requests
+            .read()
             .values()
             .filter(|r| r.is_pending())
             .cloned()
             .collect()
     }
-    
+
     /// List requests by agent.
     pub fn requests_by_agent(&self, agent_id: &str) -> Vec<ApprovalRequest> {
-        self.requests.read()
+        self.requests
+            .read()
             .values()
             .filter(|r| r.agent_id == agent_id)
             .cloned()
             .collect()
     }
-    
+
     /// Approve a request.
-    pub fn approve(&self, request_id: &str, approver: &str, reason: Option<String>) -> Option<ApprovalRequest> {
+    pub fn approve(
+        &self,
+        request_id: &str,
+        approver: &str,
+        reason: Option<String>,
+    ) -> Option<ApprovalRequest> {
         let mut requests = self.requests.write();
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             if request.status == ApprovalStatus::Pending {
                 request.status = ApprovalStatus::Approved;
@@ -173,14 +189,19 @@ impl ApprovalWorkflow {
                 return Some(request.clone());
             }
         }
-        
+
         None
     }
-    
+
     /// Reject a request.
-    pub fn reject(&self, request_id: &str, approver: &str, reason: Option<String>) -> Option<ApprovalRequest> {
+    pub fn reject(
+        &self,
+        request_id: &str,
+        approver: &str,
+        reason: Option<String>,
+    ) -> Option<ApprovalRequest> {
         let mut requests = self.requests.write();
-        
+
         if let Some(request) = requests.get_mut(request_id) {
             if request.status == ApprovalStatus::Pending {
                 request.status = ApprovalStatus::Rejected;
@@ -193,15 +214,15 @@ impl ApprovalWorkflow {
                 return Some(request.clone());
             }
         }
-        
+
         None
     }
-    
+
     /// Expire old pending requests.
     pub fn expire_stale(&self) -> Vec<String> {
         let mut requests = self.requests.write();
         let mut expired = Vec::new();
-        
+
         for (id, request) in requests.iter_mut() {
             if request.status == ApprovalStatus::Pending && request.is_expired() {
                 request.status = ApprovalStatus::Expired;
@@ -214,14 +235,14 @@ impl ApprovalWorkflow {
                 expired.push(id.clone());
             }
         }
-        
+
         expired
     }
-    
+
     /// Get workflow statistics.
     pub fn stats(&self) -> WorkflowStats {
         let requests = self.requests.read();
-        
+
         let mut stats = WorkflowStats::default();
         for request in requests.values() {
             stats.total += 1;
@@ -233,7 +254,7 @@ impl ApprovalWorkflow {
                 ApprovalStatus::Expired => stats.expired += 1,
             }
         }
-        
+
         stats
     }
 }
@@ -286,9 +307,9 @@ mod tests {
     fn test_request_approval() {
         let workflow = ApprovalWorkflow::new();
         let trigger = sample_trigger(EscalationLevel::High);
-        
+
         let request = workflow.request_approval(&trigger, "delete_data", serde_json::json!({}));
-        
+
         assert_eq!(request.status, ApprovalStatus::Pending);
         assert_eq!(request.agent_id, "agent-test");
     }
@@ -297,9 +318,9 @@ mod tests {
     fn test_auto_approve() {
         let workflow = ApprovalWorkflow::with_auto_approve(vec![EscalationLevel::Low]);
         let trigger = sample_trigger(EscalationLevel::Low);
-        
+
         let request = workflow.request_approval(&trigger, "log_message", serde_json::json!({}));
-        
+
         assert_eq!(request.status, ApprovalStatus::AutoApproved);
     }
 
@@ -307,11 +328,12 @@ mod tests {
     fn test_approve_request() {
         let workflow = ApprovalWorkflow::new();
         let trigger = sample_trigger(EscalationLevel::High);
-        
+
         let request = workflow.request_approval(&trigger, "action", serde_json::json!({}));
-        
-        let approved = workflow.approve(&request.id, "admin@example.com", Some("Looks good".into()));
-        
+
+        let approved =
+            workflow.approve(&request.id, "admin@example.com", Some("Looks good".into()));
+
         assert!(approved.is_some());
         assert_eq!(approved.unwrap().status, ApprovalStatus::Approved);
     }
@@ -320,11 +342,12 @@ mod tests {
     fn test_reject_request() {
         let workflow = ApprovalWorkflow::new();
         let trigger = sample_trigger(EscalationLevel::High);
-        
+
         let request = workflow.request_approval(&trigger, "action", serde_json::json!({}));
-        
-        let rejected = workflow.reject(&request.id, "admin@example.com", Some("Not allowed".into()));
-        
+
+        let rejected =
+            workflow.reject(&request.id, "admin@example.com", Some("Not allowed".into()));
+
         assert!(rejected.is_some());
         assert_eq!(rejected.unwrap().status, ApprovalStatus::Rejected);
     }
@@ -333,10 +356,10 @@ mod tests {
     fn test_get_pending() {
         let workflow = ApprovalWorkflow::new();
         let trigger = sample_trigger(EscalationLevel::High);
-        
+
         workflow.request_approval(&trigger, "action1", serde_json::json!({}));
         workflow.request_approval(&trigger, "action2", serde_json::json!({}));
-        
+
         assert_eq!(workflow.pending_requests().len(), 2);
     }
 
@@ -344,12 +367,12 @@ mod tests {
     fn test_stats() {
         let workflow = ApprovalWorkflow::new();
         let trigger = sample_trigger(EscalationLevel::High);
-        
+
         let req1 = workflow.request_approval(&trigger, "action1", serde_json::json!({}));
         workflow.request_approval(&trigger, "action2", serde_json::json!({}));
-        
+
         workflow.approve(&req1.id, "admin", None);
-        
+
         let stats = workflow.stats();
         assert_eq!(stats.total, 2);
         assert_eq!(stats.approved, 1);

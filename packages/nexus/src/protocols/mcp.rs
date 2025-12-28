@@ -8,11 +8,11 @@
 //! - Auth: OAuth 2.1
 //! - Focus: LLM ↔ Tools connection
 
+use super::ProtocolAdapter;
+use crate::error::NexusError;
+use crate::types::{NexusMessage, Protocol};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use crate::types::{Protocol, NexusMessage};
-use crate::error::NexusError;
-use super::ProtocolAdapter;
 
 /// MCP Protocol adapter.
 pub struct MCPAdapter {
@@ -22,7 +22,9 @@ pub struct MCPAdapter {
 impl MCPAdapter {
     /// Create a new MCP adapter.
     pub fn new() -> Self {
-        Self { version: "2025-06-18" }
+        Self {
+            version: "2025-06-18",
+        }
     }
 }
 
@@ -59,11 +61,12 @@ impl ProtocolAdapter for MCPAdapter {
     }
 
     async fn parse(&self, raw: &[u8]) -> Result<NexusMessage, NexusError> {
-        let text = std::str::from_utf8(raw)
-            .map_err(|e| NexusError::ParseError { message: e.to_string() })?;
-        
+        let text = std::str::from_utf8(raw).map_err(|e| NexusError::ParseError {
+            message: e.to_string(),
+        })?;
+
         let rpc: MCPJsonRpcMessage = serde_json::from_str(text)?;
-        
+
         Ok(NexusMessage {
             id: rpc.id.map(|id| id.to_string()).unwrap_or_default(),
             method: rpc.method.unwrap_or_default(),
@@ -86,9 +89,10 @@ impl ProtocolAdapter for MCPAdapter {
             result: None,
             error: None,
         };
-        
-        serde_json::to_vec(&rpc)
-            .map_err(|e| NexusError::SerializeError { message: e.to_string() })
+
+        serde_json::to_vec(&rpc).map_err(|e| NexusError::SerializeError {
+            message: e.to_string(),
+        })
     }
 
     fn supports_streaming(&self) -> bool {
@@ -196,15 +200,15 @@ mod tests {
     #[test]
     fn test_mcp_detection() {
         let adapter = MCPAdapter::new();
-        
+
         // Valid MCP message
         let valid = r#"{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}"#;
         assert!(adapter.detect(valid.as_bytes()));
-        
+
         // Initialize is also MCP
         let init = r#"{"jsonrpc":"2.0","id":"init","method":"initialize"}"#;
         assert!(adapter.detect(init.as_bytes()));
-        
+
         // A2A message should not match
         let a2a = r#"{"jsonrpc":"2.0","method":"tasks/send"}"#;
         assert!(!adapter.detect(a2a.as_bytes()));
@@ -213,10 +217,10 @@ mod tests {
     #[tokio::test]
     async fn test_mcp_parse() {
         let adapter = MCPAdapter::new();
-        
+
         let msg = r#"{"jsonrpc":"2.0","id":"req-1","method":"tools/call","params":{"name":"get_weather"}}"#;
         let parsed = adapter.parse(msg.as_bytes()).await.unwrap();
-        
+
         assert_eq!(parsed.method, "tools/call");
         assert_eq!(parsed.source_protocol, Protocol::AnthropicMCP);
     }
@@ -224,10 +228,10 @@ mod tests {
     #[tokio::test]
     async fn test_mcp_serialize() {
         let adapter = MCPAdapter::new();
-        
+
         let msg = NexusMessage::new("tools/list", serde_json::json!({}));
         let serialized = adapter.serialize(&msg).await.unwrap();
-        
+
         let text = String::from_utf8(serialized).unwrap();
         assert!(text.contains("tools/list"));
     }
@@ -244,7 +248,7 @@ mod tests {
                 }
             }),
         };
-        
+
         let json = serde_json::to_string(&tool).unwrap();
         assert!(json.contains("get_weather"));
         assert!(json.contains("inputSchema"));

@@ -64,11 +64,14 @@ impl LoadBalancer {
 
     /// Register an agent with the load balancer.
     pub fn register_agent(&mut self, agent_id: &str, weight: u32) {
-        self.agent_loads.insert(agent_id.to_string(), AgentLoad {
-            weight,
-            healthy: true,
-            ..Default::default()
-        });
+        self.agent_loads.insert(
+            agent_id.to_string(),
+            AgentLoad {
+                weight,
+                healthy: true,
+                ..Default::default()
+            },
+        );
     }
 
     /// Unregister an agent.
@@ -78,15 +81,17 @@ impl LoadBalancer {
     }
 
     /// Select an agent from the list.
-    pub fn select<'a>(&self, agents: &'a [AgentCard], client_id: Option<&str>) -> Option<&'a AgentCard> {
+    pub fn select<'a>(
+        &self,
+        agents: &'a [AgentCard],
+        client_id: Option<&str>,
+    ) -> Option<&'a AgentCard> {
         if agents.is_empty() {
             return None;
         }
 
         // Filter to healthy agents only
-        let healthy: Vec<_> = agents.iter()
-            .filter(|a| self.is_healthy(&a.id))
-            .collect();
+        let healthy: Vec<_> = agents.iter().filter(|a| self.is_healthy(&a.id)).collect();
 
         if healthy.is_empty() {
             // Fall back to any agent if none healthy
@@ -116,7 +121,8 @@ impl LoadBalancer {
 
     /// Select agent with least active connections.
     fn select_least_connections<'a>(&self, agents: &[&'a AgentCard]) -> Option<&'a AgentCard> {
-        agents.iter()
+        agents
+            .iter()
             .min_by_key(|a| {
                 self.agent_loads
                     .get(&a.id)
@@ -128,7 +134,8 @@ impl LoadBalancer {
 
     /// Weighted selection based on capacity.
     fn select_weighted<'a>(&self, agents: &[&'a AgentCard]) -> Option<&'a AgentCard> {
-        let total_weight: u32 = agents.iter()
+        let total_weight: u32 = agents
+            .iter()
             .map(|a| self.agent_loads.get(&a.id).map(|l| l.weight).unwrap_or(1))
             .sum();
 
@@ -139,11 +146,16 @@ impl LoadBalancer {
         let random_point = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos() as u32) % total_weight;
+            .as_nanos() as u32)
+            % total_weight;
 
         let mut cumulative = 0u32;
         for agent in agents {
-            let weight = self.agent_loads.get(&agent.id).map(|l| l.weight).unwrap_or(1);
+            let weight = self
+                .agent_loads
+                .get(&agent.id)
+                .map(|l| l.weight)
+                .unwrap_or(1);
             cumulative += weight;
             if random_point < cumulative {
                 return Some(agent);
@@ -158,18 +170,23 @@ impl LoadBalancer {
         let idx = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos() as usize) % agents.len();
+            .as_nanos() as usize)
+            % agents.len();
         agents.get(idx).copied()
     }
 
     /// Sticky session selection.
-    fn select_sticky<'a>(&self, agents: &[&'a AgentCard], client_id: &str) -> Option<&'a AgentCard> {
+    fn select_sticky<'a>(
+        &self,
+        agents: &[&'a AgentCard],
+        client_id: &str,
+    ) -> Option<&'a AgentCard> {
         if let Some(agent_id) = self.sticky_sessions.get(client_id) {
             if let Some(agent) = agents.iter().find(|a| &a.id == agent_id) {
                 return Some(agent);
             }
         }
-        
+
         // Fall back to round-robin for new clients
         self.select_round_robin(agents)
     }
@@ -194,14 +211,15 @@ impl LoadBalancer {
         if let Some(load) = self.agent_loads.get_mut(agent_id) {
             load.active_tasks = load.active_tasks.saturating_sub(1);
             load.completed_tasks += 1;
-            
+
             // Update rolling average
             let total = load.completed_tasks as u64;
             load.avg_response_ms = (load.avg_response_ms * (total - 1) + response_ms) / total;
-            
+
             // Update error rate
             if !success {
-                load.error_rate = ((load.error_rate as u32 * (total as u32 - 1) + 100) / total as u32) as u8;
+                load.error_rate =
+                    ((load.error_rate as u32 * (total as u32 - 1) + 100) / total as u32) as u8;
             }
         }
     }
@@ -222,7 +240,8 @@ impl LoadBalancer {
 
     /// Create sticky session.
     pub fn create_sticky_session(&mut self, client_id: &str, agent_id: &str) {
-        self.sticky_sessions.insert(client_id.to_string(), agent_id.to_string());
+        self.sticky_sessions
+            .insert(client_id.to_string(), agent_id.to_string());
     }
 
     /// Get load stats for an agent.
@@ -259,12 +278,12 @@ mod tests {
     fn test_round_robin() {
         let lb = LoadBalancer::new(LoadBalanceStrategy::RoundRobin);
         let agents = create_test_agents();
-        
+
         let first = lb.select(&agents, None).unwrap();
         let second = lb.select(&agents, None).unwrap();
         let third = lb.select(&agents, None).unwrap();
         let fourth = lb.select(&agents, None).unwrap();
-        
+
         // Should rotate through agents
         assert_ne!(first.id, second.id);
         assert_ne!(second.id, third.id);
@@ -275,16 +294,16 @@ mod tests {
     fn test_least_connections() {
         let mut lb = LoadBalancer::new(LoadBalanceStrategy::LeastConnections);
         let agents = create_test_agents();
-        
+
         lb.register_agent("agent-1", 1);
         lb.register_agent("agent-2", 1);
         lb.register_agent("agent-3", 1);
-        
+
         // Simulate load
         lb.task_started("agent-1");
         lb.task_started("agent-1");
         lb.task_started("agent-2");
-        
+
         // Should select agent-3 (least loaded)
         let selected = lb.select(&agents, None).unwrap();
         assert_eq!(selected.id, "agent-3");
@@ -294,18 +313,18 @@ mod tests {
     fn test_weighted() {
         let mut lb = LoadBalancer::new(LoadBalanceStrategy::Weighted);
         let agents = create_test_agents();
-        
+
         lb.register_agent("agent-1", 10);
         lb.register_agent("agent-2", 1);
         lb.register_agent("agent-3", 1);
-        
+
         // With high weight, agent-1 should be selected most often
         let mut counts = HashMap::new();
         for _ in 0..100 {
             let selected = lb.select(&agents, None).unwrap();
             *counts.entry(selected.id.clone()).or_insert(0) += 1;
         }
-        
+
         // agent-1 should have significantly more selections
         assert!(counts.get("agent-1").unwrap_or(&0) > counts.get("agent-2").unwrap_or(&0));
     }
@@ -314,12 +333,12 @@ mod tests {
     fn test_health_check() {
         let mut lb = LoadBalancer::new(LoadBalanceStrategy::RoundRobin);
         let agents = create_test_agents();
-        
+
         lb.register_agent("agent-1", 1);
         lb.register_agent("agent-2", 1);
-        
+
         lb.mark_unhealthy("agent-1");
-        
+
         // Should never select unhealthy agent
         for _ in 0..10 {
             let selected = lb.select(&agents, None).unwrap();
@@ -330,16 +349,16 @@ mod tests {
     #[test]
     fn test_task_tracking() {
         let mut lb = LoadBalancer::new(LoadBalanceStrategy::RoundRobin);
-        
+
         lb.register_agent("agent-1", 1);
-        
+
         lb.task_started("agent-1");
         lb.task_started("agent-1");
-        
+
         assert_eq!(lb.get_load("agent-1").unwrap().active_tasks, 2);
-        
+
         lb.task_completed("agent-1", 100, true);
-        
+
         assert_eq!(lb.get_load("agent-1").unwrap().active_tasks, 1);
         assert_eq!(lb.get_load("agent-1").unwrap().completed_tasks, 1);
     }

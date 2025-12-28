@@ -3,16 +3,16 @@
 //! Multi-region CRDT synchronization with geo-fencing.
 //! Per GLOBAL_GAPS.md: "Geo-Fenced Cells"
 
-pub mod sync;
 pub mod geo_fence;
+pub mod sync;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-pub use sync::{MeshSync, SyncEvent, ConflictResolution};
-pub use geo_fence::{GeoFence, TransferPolicy, ResidencyRule};
+pub use geo_fence::{GeoFence, ResidencyRule, TransferPolicy};
+pub use sync::{ConflictResolution, MeshSync, SyncEvent};
 
 /// A mesh cell representing a regional node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,13 +47,16 @@ pub enum DataRegion {
 impl DataRegion {
     /// Check if data localization is required.
     pub fn requires_localization(&self) -> bool {
-        matches!(self, 
-            DataRegion::EuFrankfurt | DataRegion::EuIreland |
-            DataRegion::MenaRiyadh | DataRegion::MenaDubai |
-            DataRegion::IndiaMumbai
+        matches!(
+            self,
+            DataRegion::EuFrankfurt
+                | DataRegion::EuIreland
+                | DataRegion::MenaRiyadh
+                | DataRegion::MenaDubai
+                | DataRegion::IndiaMumbai
         )
     }
-    
+
     /// Get the governing privacy law.
     pub fn privacy_law(&self) -> &'static str {
         match self {
@@ -87,13 +90,13 @@ impl GlobalMesh {
             sync: MeshSync::new(local_cell_id),
         }
     }
-    
+
     /// Register a remote cell.
     pub async fn register_cell(&self, cell: MeshCell) {
         let mut cells = self.cells.write().await;
         cells.insert(cell.id.clone(), cell);
     }
-    
+
     /// Sync data to a target region (with geo-fence check).
     pub async fn sync_to_region(
         &self,
@@ -104,39 +107,50 @@ impl GlobalMesh {
         // Check geo-fence policy
         if !self.geo_fence.can_transfer(target_region, data_id) {
             return Err(MeshError::GeoFenceBlocked {
-                reason: format!("Data {} cannot leave {}", data_id, self.geo_fence.local_region().privacy_law()),
+                reason: format!(
+                    "Data {} cannot leave {}",
+                    data_id,
+                    self.geo_fence.local_region().privacy_law()
+                ),
             });
         }
-        
+
         // Find cells in target region
         let cells = self.cells.read().await;
-        let target_cells: Vec<_> = cells.values()
+        let target_cells: Vec<_> = cells
+            .values()
             .filter(|c| c.region == target_region && c.active)
             .collect();
-        
+
         if target_cells.is_empty() {
             return Err(MeshError::NoCellsInRegion(target_region));
         }
-        
+
         // Sync to all target cells
         let mut synced_count = 0;
         for cell in target_cells {
-            if self.sync.push_to_cell(&cell.endpoint, data_id, data).await.is_ok() {
+            if self
+                .sync
+                .push_to_cell(&cell.endpoint, data_id, data)
+                .await
+                .is_ok()
+            {
                 synced_count += 1;
             }
         }
-        
+
         Ok(SyncResult {
             data_id: data_id.to_string(),
             target_region,
             cells_synced: synced_count,
         })
     }
-    
+
     /// Get all cells in a region.
     pub async fn cells_in_region(&self, region: DataRegion) -> Vec<MeshCell> {
         let cells = self.cells.read().await;
-        cells.values()
+        cells
+            .values()
             .filter(|c| c.region == region)
             .cloned()
             .collect()
@@ -180,7 +194,10 @@ mod tests {
     #[tokio::test]
     async fn test_mesh_creation() {
         let mesh = GlobalMesh::new("cell-eu-1".to_string(), DataRegion::EuFrankfurt);
-        assert!(mesh.cells_in_region(DataRegion::EuFrankfurt).await.is_empty());
+        assert!(mesh
+            .cells_in_region(DataRegion::EuFrankfurt)
+            .await
+            .is_empty());
     }
 
     #[tokio::test]
@@ -192,8 +209,9 @@ mod tests {
             endpoint: "https://us-east.mesh.local".to_string(),
             active: true,
             last_heartbeat: 0,
-        }).await;
-        
+        })
+        .await;
+
         let us_cells = mesh.cells_in_region(DataRegion::UsEast).await;
         assert_eq!(us_cells.len(), 1);
     }

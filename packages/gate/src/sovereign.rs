@@ -36,10 +36,7 @@ pub enum SovereignError {
     #[error("Data residency violation: data must stay in {required:?}")]
     ResidencyViolation { required: DataRegion },
     #[error("No adequacy agreement between {from:?} and {to:?}")]
-    NoAdequacy {
-        from: DataRegion,
-        to: DataRegion,
-    },
+    NoAdequacy { from: DataRegion, to: DataRegion },
 }
 
 /// A data transfer request.
@@ -140,17 +137,17 @@ impl SovereignController {
             strict_localization: HashSet::new(),
             adequacy_agreements: HashMap::new(),
         };
-        
+
         // Per GLOBAL_GAPS.md: Strict localization regions
-        controller.strict_localization.insert(DataRegion::Cn);     // PIPL
-        controller.strict_localization.insert(DataRegion::India);  // DPDP
-        
+        controller.strict_localization.insert(DataRegion::Cn); // PIPL
+        controller.strict_localization.insert(DataRegion::India); // DPDP
+
         // EU adequacy decisions (simplified)
-        controller.add_adequacy(DataRegion::Eu, DataRegion::Us);   // EU-US Data Privacy Framework
+        controller.add_adequacy(DataRegion::Eu, DataRegion::Us); // EU-US Data Privacy Framework
         controller.add_adequacy(DataRegion::Eu, DataRegion::AsiaPac); // Japan, Korea adequacy
-        
+
         // MENA -> no external adequacy for government/critical data
-        
+
         controller
     }
 
@@ -192,7 +189,8 @@ impl SovereignController {
 
         // Check adequacy for PII/Personal data FIRST
         if transfer.is_pii || transfer.data_type == DataType::Personal {
-            let has_adequacy = self.adequacy_agreements
+            let has_adequacy = self
+                .adequacy_agreements
                 .get(&(transfer.origin, transfer.destination))
                 .copied()
                 .unwrap_or(false);
@@ -261,7 +259,7 @@ impl SovereignController {
     /// Block a transfer and return an error.
     pub fn enforce(&self, transfer: &DataTransfer) -> Result<(), SovereignError> {
         let decision = self.validate(transfer);
-        
+
         if decision.allowed {
             Ok(())
         } else {
@@ -281,7 +279,7 @@ mod tests {
     fn test_same_region_always_allowed() {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("data-1", DataRegion::Eu, DataRegion::Eu).with_pii();
-        
+
         assert!(controller.is_allowed(&transfer));
     }
 
@@ -289,7 +287,7 @@ mod tests {
     fn test_cn_pii_blocked() {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("data-cn", DataRegion::Cn, DataRegion::Us).with_pii();
-        
+
         assert!(!controller.is_allowed(&transfer));
     }
 
@@ -298,7 +296,7 @@ mod tests {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("data-cn", DataRegion::Cn, DataRegion::Us)
             .with_data_type(DataType::Aggregated);
-        
+
         assert!(controller.is_allowed(&transfer));
     }
 
@@ -308,7 +306,7 @@ mod tests {
         let transfer = DataTransfer::new("data-eu", DataRegion::Eu, DataRegion::Us)
             .with_pii()
             .with_data_type(DataType::Personal);
-        
+
         assert!(controller.is_allowed(&transfer));
     }
 
@@ -316,16 +314,16 @@ mod tests {
     fn test_india_pii_blocked() {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("data-in", DataRegion::India, DataRegion::Us).with_pii();
-        
+
         assert!(!controller.is_allowed(&transfer));
     }
 
     #[test]
     fn test_global_always_allowed() {
         let controller = SovereignController::new();
-        let transfer = DataTransfer::new("data-global", DataRegion::Global, DataRegion::Cn)
-            .with_pii();
-        
+        let transfer =
+            DataTransfer::new("data-global", DataRegion::Global, DataRegion::Cn).with_pii();
+
         assert!(controller.is_allowed(&transfer));
     }
 
@@ -334,7 +332,7 @@ mod tests {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("health-data", DataRegion::Us, DataRegion::Eu)
             .with_data_type(DataType::Health);
-        
+
         let decision = controller.validate(&transfer);
         assert!(decision.allowed);
         assert!(!decision.safeguards.is_empty());
@@ -345,7 +343,7 @@ mod tests {
     fn test_enforce_blocked() {
         let controller = SovereignController::new();
         let transfer = DataTransfer::new("data-cn", DataRegion::Cn, DataRegion::Us).with_pii();
-        
+
         let result = controller.enforce(&transfer);
         assert!(result.is_err());
     }

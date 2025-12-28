@@ -2,8 +2,8 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Agent state stored in Synapse.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,7 +40,7 @@ impl AgentState {
             self.version = other.version;
             self.updated_at = other.updated_at;
         }
-        
+
         // Merge vector clocks
         for (node, clock) in &other.vector_clock {
             let entry = self.vector_clock.entry(node.clone()).or_insert(0);
@@ -84,15 +84,19 @@ mod tests {
     #[test]
     fn test_agent_state_merge_lww() {
         let mut state1 = AgentState::new("agent-1");
-        state1.state.insert("key1".to_string(), serde_json::json!("value1"));
+        state1
+            .state
+            .insert("key1".to_string(), serde_json::json!("value1"));
         state1.version = 1;
 
         let mut state2 = AgentState::new("agent-1");
-        state2.state.insert("key1".to_string(), serde_json::json!("value2"));
+        state2
+            .state
+            .insert("key1".to_string(), serde_json::json!("value2"));
         state2.version = 2;
 
         state1.merge(&state2);
-        
+
         // state2 wins because higher version
         assert_eq!(state1.state.get("key1").unwrap(), "value2");
         assert_eq!(state1.version, 2);

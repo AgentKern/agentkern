@@ -9,9 +9,9 @@
 
 use crate::intent::IntentPath;
 use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 // ============================================================================
 // DRIFT RESULT
@@ -205,17 +205,17 @@ impl DriftAlerter {
     async fn send_to_webhook(&self, config: &WebhookConfig, alert: &DriftAlert) {
         // Try actual HTTP POST
         let client = reqwest::Client::new();
-        
+
         let mut request = client
             .post(&config.url)
             .header("Content-Type", "application/json")
             .timeout(std::time::Duration::from_millis(config.timeout_ms));
-        
+
         // Add custom headers
         for (key, value) in &config.headers {
             request = request.header(key.as_str(), value.as_str());
         }
-        
+
         // Send the request
         match request.json(alert).send().await {
             Ok(response) => {
@@ -247,7 +247,6 @@ impl DriftAlerter {
         }
     }
 
-
     /// Get recent alerts.
     pub fn get_history(&self, limit: usize) -> Vec<DriftAlert> {
         let history = self.history.read();
@@ -257,7 +256,8 @@ impl DriftAlerter {
     /// Get alerts for a specific agent.
     pub fn get_alerts_for_agent(&self, agent_id: &str) -> Vec<DriftAlert> {
         let history = self.history.read();
-        history.iter()
+        history
+            .iter()
             .filter(|a| a.agent_id == agent_id)
             .cloned()
             .collect()
@@ -266,9 +266,18 @@ impl DriftAlerter {
     /// Get alert count by severity.
     pub fn get_alert_counts(&self) -> (usize, usize, usize) {
         let history = self.history.read();
-        let info = history.iter().filter(|a| a.severity == AlertSeverity::Info).count();
-        let warning = history.iter().filter(|a| a.severity == AlertSeverity::Warning).count();
-        let critical = history.iter().filter(|a| a.severity == AlertSeverity::Critical).count();
+        let info = history
+            .iter()
+            .filter(|a| a.severity == AlertSeverity::Info)
+            .count();
+        let warning = history
+            .iter()
+            .filter(|a| a.severity == AlertSeverity::Warning)
+            .count();
+        let critical = history
+            .iter()
+            .filter(|a| a.severity == AlertSeverity::Critical)
+            .count();
         (info, warning, critical)
     }
 }
@@ -352,8 +361,17 @@ impl DriftDetector {
         }
 
         // Check 3: Action pattern anomaly (repeated failures)
-        let recent_failures = path.history.iter().rev().take(3)
-            .filter(|s| s.result.as_ref().map(|r| r.contains("fail") || r.contains("error")).unwrap_or(false))
+        let recent_failures = path
+            .history
+            .iter()
+            .rev()
+            .take(3)
+            .filter(|s| {
+                s.result
+                    .as_ref()
+                    .map(|r| r.contains("fail") || r.contains("error"))
+                    .unwrap_or(false)
+            })
             .count();
         if recent_failures >= 2 {
             score = score.saturating_add(20);
@@ -414,7 +432,7 @@ mod tests {
     fn test_no_drift_on_normal_path() {
         let path = IntentPath::new("agent-1", "Test", 5);
         let detector = DriftDetector::new();
-        
+
         let result = detector.check(&path);
         assert!(!result.drifted);
         assert_eq!(result.score, 0);
@@ -426,11 +444,11 @@ mod tests {
         path.record_step("step1", None);
         path.record_step("step2", None);
         path.record_step("step3", None);
-        path.record_step("step4", None);  // 2x overrun
-        
+        path.record_step("step4", None); // 2x overrun
+
         let detector = DriftDetector::new().with_threshold(20);
         let result = detector.check(&path);
-        
+
         assert!(result.drifted);
         assert!(result.score > 0);
         assert!(result.reason.unwrap().contains("overrun"));
@@ -442,10 +460,10 @@ mod tests {
         path.record_step("step1", Some("failed".to_string()));
         path.record_step("step2", Some("error occurred".to_string()));
         path.record_step("step3", Some("failed again".to_string()));
-        
+
         let detector = DriftDetector::new().with_threshold(15);
         let result = detector.check(&path);
-        
+
         assert!(result.drifted);
         assert!(result.reason.unwrap().contains("failures"));
     }
@@ -475,9 +493,9 @@ mod tests {
             score: 60,
             reason: Some("Step overrun".to_string()),
         };
-        
+
         let alert = DriftAlert::new(&path, result);
-        
+
         assert_eq!(alert.agent_id, "agent-1");
         assert_eq!(alert.severity, AlertSeverity::Warning);
     }
@@ -491,14 +509,14 @@ mod tests {
             score: 75,
             reason: Some("Test".to_string()),
         };
-        
+
         let alert = DriftAlert::new(&path, result);
-        
+
         // Use tokio runtime for async
         tokio::runtime::Runtime::new().unwrap().block_on(async {
             alerter.send_alert(alert).await;
         });
-        
+
         let history = alerter.get_history(10);
         assert_eq!(history.len(), 1);
     }
@@ -506,15 +524,15 @@ mod tests {
     #[test]
     fn test_alerter_callback() {
         use std::sync::atomic::{AtomicUsize, Ordering};
-        
+
         let alerter = DriftAlerter::new();
         let call_count = Arc::new(AtomicUsize::new(0));
         let call_count_clone = call_count.clone();
-        
+
         alerter.on_alert(Box::new(move |_| {
             call_count_clone.fetch_add(1, Ordering::SeqCst);
         }));
-        
+
         let path = IntentPath::new("agent-1", "Test", 5);
         let result = DriftResult {
             drifted: true,
@@ -522,12 +540,11 @@ mod tests {
             reason: None,
         };
         let alert = DriftAlert::new(&path, result);
-        
+
         tokio::runtime::Runtime::new().unwrap().block_on(async {
             alerter.send_alert(alert).await;
         });
-        
+
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
 }
-

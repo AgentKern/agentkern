@@ -235,44 +235,44 @@ impl HipaaValidator {
     pub fn scan_for_phi(&self, text: &str) -> PhiScanResult {
         let mut identifiers = Vec::new();
         let text_lower = text.to_lowercase();
-        
+
         // Check for SSN pattern (XXX-XX-XXXX)
         if text.contains('-') && text.chars().filter(|c| c.is_numeric()).count() == 9 {
             identifiers.push(PhiIdentifier::Ssn);
         }
-        
+
         // Check for email pattern
         if text.contains('@') && text.contains('.') {
             identifiers.push(PhiIdentifier::Email);
         }
-        
+
         // Check for phone pattern
         if text_lower.contains("phone") || text.chars().filter(|c| c.is_numeric()).count() >= 10 {
             if text.contains('-') || text.contains('(') {
                 identifiers.push(PhiIdentifier::PhoneNumber);
             }
         }
-        
+
         // Check for date of birth
         if text_lower.contains("dob") || text_lower.contains("date of birth") {
             identifiers.push(PhiIdentifier::Dates);
         }
-        
+
         // Check for MRN
         if text_lower.contains("mrn") || text_lower.contains("medical record") {
             identifiers.push(PhiIdentifier::MedicalRecordNumber);
         }
-        
+
         // Check for IP address
         if text.split('.').count() == 4 && text.chars().filter(|c| c.is_numeric()).count() >= 4 {
             identifiers.push(PhiIdentifier::IpAddress);
         }
 
         let contains_phi = !identifiers.is_empty();
-        let confidence = if contains_phi { 
-            (identifiers.len() * 25).min(100) as u8 
-        } else { 
-            0 
+        let confidence = if contains_phi {
+            (identifiers.len() * 25).min(100) as u8
+        } else {
+            0
         };
 
         PhiScanResult {
@@ -383,7 +383,7 @@ mod tests {
     fn test_phi_detection_ssn() {
         let validator = HipaaValidator::new();
         let result = validator.scan_for_phi("Patient SSN: 123-45-6789");
-        
+
         assert!(result.contains_phi);
         assert!(result.identifiers_found.contains(&PhiIdentifier::Ssn));
     }
@@ -392,7 +392,7 @@ mod tests {
     fn test_phi_detection_email() {
         let validator = HipaaValidator::new();
         let result = validator.scan_for_phi("Contact: patient@hospital.com");
-        
+
         assert!(result.contains_phi);
         assert!(result.identifiers_found.contains(&PhiIdentifier::Email));
     }
@@ -401,16 +401,16 @@ mod tests {
     fn test_no_phi() {
         let validator = HipaaValidator::new();
         let result = validator.scan_for_phi("General health information");
-        
+
         assert!(!result.contains_phi);
     }
 
     #[test]
     fn test_baa_validation() {
         let mut validator = HipaaValidator::new();
-        
+
         assert!(validator.require_baa("new-vendor").is_err());
-        
+
         validator.register_baa("trusted-vendor");
         assert!(validator.require_baa("trusted-vendor").is_ok());
     }
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn test_access_validation() {
         let validator = HipaaValidator::new();
-        
+
         // Provider treatment access should be allowed
         let request = AccessRequest {
             requester_id: "dr-smith".to_string(),
@@ -427,14 +427,14 @@ mod tests {
             purpose: AccessPurpose::Treatment,
             is_emergency: false,
         };
-        
+
         assert!(validator.validate_access(&request).is_ok());
     }
 
     #[test]
     fn test_emergency_access() {
         let validator = HipaaValidator::new();
-        
+
         let request = AccessRequest {
             requester_id: "emt-456".to_string(),
             role: HipaaRole::Provider,
@@ -442,7 +442,7 @@ mod tests {
             purpose: AccessPurpose::Emergency,
             is_emergency: true,
         };
-        
+
         assert!(validator.validate_access(&request).is_ok());
     }
 }

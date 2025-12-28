@@ -14,12 +14,11 @@
 //! - HIPAA audit trails
 //! - Custom compliance frameworks
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 mod license {
-    
-    
+
     #[derive(Debug, thiserror::Error)]
     pub enum LicenseError {
         #[error("Enterprise license required for audit export")]
@@ -27,13 +26,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise audit feature accessed");
         Ok(())
     }
@@ -109,21 +108,24 @@ pub fn export_iso42001(
     records: Vec<AuditExportRecord>,
 ) -> Result<Iso42001Report, license::LicenseError> {
     license::require("ISO_42001_EXPORT")?;
-    
+
     let total_actions = records.len() as u64;
     let high_risk_count = records.iter().filter(|r| r.risk_score >= 70).count() as u64;
-    let medium_risk_count = records.iter().filter(|r| r.risk_score >= 40 && r.risk_score < 70).count() as u64;
+    let medium_risk_count = records
+        .iter()
+        .filter(|r| r.risk_score >= 40 && r.risk_score < 70)
+        .count() as u64;
     let low_risk_count = records.iter().filter(|r| r.risk_score < 40).count() as u64;
     let human_oversight_count = records.iter().filter(|r| r.outcome == "review").count() as u64;
-    
+
     let avg_risk = if total_actions > 0 {
         (records.iter().map(|r| r.risk_score as u64).sum::<u64>() / total_actions) as u8
     } else {
         0
     };
-    
+
     let max_risk = records.iter().map(|r| r.risk_score).max().unwrap_or(0);
-    
+
     Ok(Iso42001Report {
         generated_at: Utc::now(),
         period_start,
@@ -160,28 +162,22 @@ mod tests {
 
     #[test]
     fn test_export_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
-        let result = export_iso42001(
-            "Test Org",
-            "ai-system-1",
-            Utc::now(),
-            Utc::now(),
-            vec![],
-        );
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
+        let result = export_iso42001("Test Org", "ai-system-1", Utc::now(), Utc::now(), vec![]);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_export_with_license() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        let result = export_iso42001(
-            "Test Org",
-            "ai-system-1",
-            Utc::now(),
-            Utc::now(),
-            vec![],
-        );
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+        let result = export_iso42001("Test Org", "ai-system-1", Utc::now(), Utc::now(), vec![]);
         assert!(result.is_ok());
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 }

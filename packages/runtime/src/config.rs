@@ -38,8 +38,8 @@ pub enum Protocol {
     Http,
     Grpc,
     WebSocket,
-    A2A,  // Agent-to-Agent
-    Mcp,  // Model Context Protocol
+    A2A, // Agent-to-Agent
+    Mcp, // Model Context Protocol
 }
 
 /// Resource allocation mode.
@@ -73,7 +73,7 @@ impl Default for RuntimeConfig {
 /// Auto-configure based on environment.
 pub fn auto_configure(env: &Environment) -> RuntimeConfig {
     let mut config = RuntimeConfig::default();
-    
+
     // Apply environment-specific settings
     match env {
         Environment::Kubernetes { .. } => {
@@ -81,20 +81,20 @@ pub fn auto_configure(env: &Environment) -> RuntimeConfig {
             config.max_connections = 5000;
             config.resource_mode = ResourceMode::Full;
         }
-        
+
         Environment::Container { .. } => {
             // Container: respect memory limits
             config.memory_limit = detect_memory_limit();
             config.resource_mode = ResourceMode::Standard;
         }
-        
+
         Environment::Serverless { .. } => {
             // Serverless: minimal footprint, fast startup
             config.grpc_port = None; // Save resources
             config.max_connections = 100;
             config.resource_mode = ResourceMode::Minimal;
         }
-        
+
         Environment::Edge { .. } => {
             // Edge: very constrained
             config.grpc_port = None;
@@ -103,7 +103,7 @@ pub fn auto_configure(env: &Environment) -> RuntimeConfig {
             config.memory_limit = 256 * 1024 * 1024; // 256MB max
             config.resource_mode = ResourceMode::Minimal;
         }
-        
+
         Environment::Server { .. } => {
             // Bare metal: use all resources
             config.max_connections = 10000;
@@ -111,17 +111,17 @@ pub fn auto_configure(env: &Environment) -> RuntimeConfig {
             config.protocols.push(Protocol::Grpc);
             config.protocols.push(Protocol::Mcp);
         }
-        
+
         _ => {}
     }
-    
+
     // Override with environment variables (user preference)
     apply_env_overrides(&mut config);
-    
+
     // Auto-detect database and cache
     config.database_url = detect_database();
     config.cache_url = detect_cache();
-    
+
     config
 }
 
@@ -132,19 +132,19 @@ fn apply_env_overrides(config: &mut RuntimeConfig) {
             config.http_port = p;
         }
     }
-    
+
     if let Ok(port) = env::var("GRPC_PORT") {
         if let Ok(p) = port.parse() {
             config.grpc_port = Some(p);
         }
     }
-    
+
     if let Ok(addr) = env::var("BIND_ADDRESS") {
         if let Ok(a) = addr.parse() {
             config.bind_address = a;
         }
     }
-    
+
     if let Ok(max) = env::var("MAX_CONNECTIONS") {
         if let Ok(m) = max.parse() {
             config.max_connections = m;
@@ -160,16 +160,17 @@ fn detect_memory_limit() -> usize {
             return bytes;
         }
     }
-    
+
     // Try cgroup v1
     if let Ok(limit) = std::fs::read_to_string("/sys/fs/cgroup/memory/memory.limit_in_bytes") {
         if let Ok(bytes) = limit.trim().parse::<usize>() {
-            if bytes < usize::MAX / 2 { // Not "unlimited"
+            if bytes < usize::MAX / 2 {
+                // Not "unlimited"
                 return bytes;
             }
         }
     }
-    
+
     // No limit
     0
 }
@@ -207,7 +208,9 @@ mod tests {
 
     #[test]
     fn test_auto_configure_server() {
-        let env = Environment::Server { os: OperatingSystem::Linux };
+        let env = Environment::Server {
+            os: OperatingSystem::Linux,
+        };
         let config = auto_configure(&env);
         assert_eq!(config.resource_mode, ResourceMode::Full);
         assert_eq!(config.max_connections, 10000);
@@ -215,7 +218,9 @@ mod tests {
 
     #[test]
     fn test_auto_configure_edge() {
-        let env = Environment::Edge { device_type: crate::detect::EdgeDevice::RaspberryPi };
+        let env = Environment::Edge {
+            device_type: crate::detect::EdgeDevice::RaspberryPi,
+        };
         let config = auto_configure(&env);
         assert_eq!(config.resource_mode, ResourceMode::Minimal);
         assert!(config.grpc_port.is_none());

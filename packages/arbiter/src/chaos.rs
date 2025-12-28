@@ -5,8 +5,8 @@
 //! Provides fault injection and chaos engineering capabilities for testing
 //! system resilience under adverse conditions.
 
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use rand::Rng;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 /// Chaos configuration.
 #[derive(Debug, Clone)]
@@ -229,11 +229,14 @@ impl ChaosMonkey {
             self.latency_injections.fetch_add(1, Ordering::Relaxed);
             let (min, max) = self.config.latency_range_ms;
             let delay = rng.gen_range(min..=max);
-            
+
             // In a real implementation, we'd actually sleep here
             // For now, we just record the intended delay
             let result = operation();
-            return ChaosResult::Delayed { result, delay_ms: delay };
+            return ChaosResult::Delayed {
+                result,
+                delay_ms: delay,
+            };
         }
 
         ChaosResult::Ok(operation())
@@ -265,11 +268,14 @@ impl ChaosMonkey {
             self.latency_injections.fetch_add(1, Ordering::Relaxed);
             let (min, max) = self.config.latency_range_ms;
             let delay = rng.gen_range(min..=max);
-            
+
             tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
-            
+
             let result = operation().await;
-            return ChaosResult::Delayed { result, delay_ms: delay };
+            return ChaosResult::Delayed {
+                result,
+                delay_ms: delay,
+            };
         }
 
         ChaosResult::Ok(operation().await)
@@ -317,9 +323,9 @@ mod tests {
     #[test]
     fn test_disabled_chaos() {
         let monkey = ChaosMonkey::disabled();
-        
+
         let result = monkey.maybe_inject(|| 42);
-        
+
         match result {
             ChaosResult::Ok(v) => assert_eq!(v, 42),
             _ => panic!("Expected Ok result"),
@@ -393,7 +399,10 @@ mod tests {
         assert!(!ok.had_chaos());
         assert_eq!(ok.into_result().unwrap(), 42);
 
-        let delayed: ChaosResult<i32> = ChaosResult::Delayed { result: 42, delay_ms: 100 };
+        let delayed: ChaosResult<i32> = ChaosResult::Delayed {
+            result: 42,
+            delay_ms: 100,
+        };
         assert!(delayed.had_chaos());
         assert_eq!(delayed.into_result().unwrap(), 42);
 

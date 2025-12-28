@@ -27,17 +27,17 @@ jobs:
       - name: Generate SBOM for Gate
         working-directory: packages/gate
         run: |
-          cargo sbom --output-format cyclonedx-json > gate-sbom.json
+          cargo sbom --output-format cyclone_dx_json_1_6 > gate-sbom.json
       
       - name: Generate SBOM for Synapse
         working-directory: packages/synapse
         run: |
-          cargo sbom --output-format cyclonedx-json > synapse-sbom.json
+          cargo sbom --output-format cyclone_dx_json_1_6 > synapse-sbom.json
       
       - name: Generate SBOM for Arbiter
         working-directory: packages/arbiter
         run: |
-          cargo sbom --output-format cyclonedx-json > arbiter-sbom.json
+          cargo sbom --output-format cyclone_dx_json_1_6 > arbiter-sbom.json
       
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4

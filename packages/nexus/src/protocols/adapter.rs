@@ -3,11 +3,11 @@
 //! This is the core extensibility point for Nexus.
 //! New protocols only need to implement `ProtocolAdapter`.
 
+use crate::error::NexusError;
+use crate::types::{NexusMessage, Protocol};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::types::{Protocol, NexusMessage};
-use crate::error::NexusError;
 
 /// Protocol adapter trait.
 ///
@@ -108,7 +108,9 @@ impl AdapterRegistry {
         self.adapters
             .get(protocol)
             .cloned()
-            .ok_or(NexusError::AdapterNotRegistered { protocol: *protocol })
+            .ok_or(NexusError::AdapterNotRegistered {
+                protocol: *protocol,
+            })
     }
 
     /// Auto-detect protocol from raw bytes.
@@ -178,9 +180,11 @@ mod tests {
     #[test]
     fn test_registry() {
         let mut registry = AdapterRegistry::new();
-        
-        registry.register(Box::new(MockAdapter { proto: Protocol::GoogleA2A }));
-        
+
+        registry.register(Box::new(MockAdapter {
+            proto: Protocol::GoogleA2A,
+        }));
+
         assert_eq!(registry.count(), 1);
         assert!(registry.supports(&Protocol::GoogleA2A));
         assert!(!registry.supports(&Protocol::AnthropicMCP));
@@ -189,19 +193,23 @@ mod tests {
     #[test]
     fn test_protocol_detection() {
         let mut registry = AdapterRegistry::new();
-        registry.register(Box::new(MockAdapter { proto: Protocol::GoogleA2A }));
-        
+        registry.register(Box::new(MockAdapter {
+            proto: Protocol::GoogleA2A,
+        }));
+
         let a2a_msg = b"{\"jsonrpc\":\"2.0\",\"method\":\"tasks/send\"}";
         let detected = registry.detect(a2a_msg);
-        
+
         assert!(matches!(detected, Ok(Protocol::GoogleA2A)));
     }
 
     #[tokio::test]
     async fn test_adapter_lookup() {
         let mut registry = AdapterRegistry::new();
-        registry.register(Box::new(MockAdapter { proto: Protocol::GoogleA2A }));
-        
+        registry.register(Box::new(MockAdapter {
+            proto: Protocol::GoogleA2A,
+        }));
+
         let adapter = registry.get(&Protocol::GoogleA2A).unwrap();
         assert_eq!(adapter.protocol(), Protocol::GoogleA2A);
     }

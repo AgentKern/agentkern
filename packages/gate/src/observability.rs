@@ -23,7 +23,7 @@ pub struct GateMetrics {
     pub denied_requests: u64,
     /// Average symbolic path latency (microseconds)
     pub avg_symbolic_latency_us: u64,
-    /// Average neural path latency (microseconds) 
+    /// Average neural path latency (microseconds)
     pub avg_neural_latency_us: u64,
     /// P99 latency (microseconds)
     pub p99_latency_us: u64,
@@ -59,9 +59,11 @@ impl MetricsCollector {
         } else {
             self.denied_requests.fetch_add(1, Ordering::Relaxed);
         }
-        self.symbolic_latency_sum.fetch_add(symbolic_latency_us, Ordering::Relaxed);
-        self.neural_latency_sum.fetch_add(neural_latency_us, Ordering::Relaxed);
-        
+        self.symbolic_latency_sum
+            .fetch_add(symbolic_latency_us, Ordering::Relaxed);
+        self.neural_latency_sum
+            .fetch_add(neural_latency_us, Ordering::Relaxed);
+
         let total_latency = symbolic_latency_us + neural_latency_us;
         let mut latencies = self.latencies.lock();
         latencies.push(total_latency);
@@ -84,7 +86,7 @@ impl MetricsCollector {
     pub fn get_metrics(&self) -> GateMetrics {
         let total = self.total_requests.load(Ordering::Relaxed).max(1);
         let latencies = self.latencies.lock();
-        
+
         let p99 = if !latencies.is_empty() {
             let mut sorted: Vec<_> = latencies.clone();
             sorted.sort();
@@ -230,11 +232,11 @@ mod tests {
     #[test]
     fn test_metrics_collector() {
         let collector = MetricsCollector::new();
-        
+
         collector.record_request(true, 100, 0);
         collector.record_request(false, 50, 1000);
         collector.record_policy_eval();
-        
+
         let metrics = collector.get_metrics();
         assert_eq!(metrics.total_requests, 2);
         assert_eq!(metrics.allowed_requests, 1);
@@ -244,7 +246,7 @@ mod tests {
     #[test]
     fn test_observability_plane() {
         let plane = ObservabilityPlane::new();
-        
+
         plane.trace(TraceEvent {
             timestamp_ns: 1234567890,
             event_type: TraceEventType::RequestStart,
@@ -255,7 +257,7 @@ mod tests {
             risk_score: 10,
             metadata: HashMap::new(),
         });
-        
+
         let traces = plane.get_traces(10);
         assert_eq!(traces.len(), 1);
     }
@@ -264,7 +266,7 @@ mod tests {
     fn test_prometheus_export() {
         let plane = ObservabilityPlane::new();
         plane.metrics().record_request(true, 500, 0);
-        
+
         let prom = plane.prometheus_metrics();
         assert!(prom.contains("agentkern_gate_requests_total"));
     }

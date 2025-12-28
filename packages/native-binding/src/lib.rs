@@ -55,28 +55,26 @@ pub struct CarbonBudgetConfig {
 pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
     use std::time::Instant;
     let start = Instant::now();
-    
+
     // Parse context
-    let context_data: HashMap<String, serde_json::Value> = 
+    let context_data: HashMap<String, serde_json::Value> =
         serde_json::from_str(&request.context).unwrap_or_default();
-    
+
     // Build verification request for Rust core
     let rust_request = agentkern_gate::types::VerificationRequest {
         request_id: uuid::Uuid::new_v4(),
         agent_id: request.agent_id.clone(),
         action: request.action.clone(),
-        context: agentkern_gate::types::VerificationContext {
-            data: context_data,
-        },
+        context: agentkern_gate::types::VerificationContext { data: context_data },
         timestamp: chrono::Utc::now(),
     };
-    
+
     // Create Gate engine and verify
     let engine = agentkern_gate::engine::GateEngine::new();
     let verification = engine.verify(rust_request).await;
-    
+
     let latency_ms = start.elapsed().as_millis() as u32;
-    
+
     Ok(VerifyResult {
         allowed: verification.allowed,
         evaluated_policies: verification.evaluated_policies,
@@ -90,11 +88,11 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
 /// Get TEE attestation proof.
 #[napi]
 pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
-    use agentkern_gate::tee::{TeeRuntime, TeePlatform};
-    
+    use agentkern_gate::tee::{TeePlatform, TeeRuntime};
+
     let runtime = TeeRuntime::detect()
         .map_err(|e| napi::Error::from_reason(format!("TEE detection failed: {}", e)))?;
-    
+
     let platform_str = match runtime.platform() {
         TeePlatform::IntelTdx => "intel_tdx",
         TeePlatform::AmdSevSnp => "amd_sev_snp",
@@ -102,14 +100,18 @@ pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
         TeePlatform::ArmCca => "arm_cca",
         TeePlatform::Simulated => "simulated",
     };
-    
+
     // Get attestation from TEE
-    let attestation = runtime.get_attestation(nonce.as_bytes())
+    let attestation = runtime
+        .get_attestation(nonce.as_bytes())
         .map_err(|e| napi::Error::from_reason(format!("TEE error: {}", e)))?;
-    
+
     Ok(AttestationResult {
         platform: platform_str.to_string(),
-        quote: base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &attestation.quote),
+        quote: base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            &attestation.quote,
+        ),
         measurement: hex::encode(&attestation.measurement),
         nonce,
         timestamp: chrono::Utc::now().timestamp_millis(),
@@ -120,10 +122,10 @@ pub async fn get_attestation(nonce: String) -> Result<AttestationResult> {
 #[napi]
 pub fn check_carbon_budget(agent_id: String, estimated_grams: f64) -> Result<bool> {
     use rust_decimal::prelude::ToPrimitive;
-    
+
     // Use treasury carbon ledger
     let ledger = agentkern_treasury::carbon::CarbonLedger::new();
-    
+
     match ledger.get_budget(&agent_id) {
         Some(budget) => {
             let usage = ledger.get_daily_usage(&agent_id);
@@ -141,6 +143,6 @@ pub fn check_carbon_budget(agent_id: String, estimated_grams: f64) -> Result<boo
 pub fn init_runtime() -> Result<String> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     Ok("AgentKern Native Runtime initialized".to_string())
 }

@@ -6,24 +6,24 @@
 //! - Fast Path (Symbolic): <1ms
 //! - Safety Path (Neural): <20ms (only when risk > threshold)
 
+use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use chrono::Utc;
 
-use crate::dsl::{evaluate, EvalContext};
 use crate::carbon::CarbonVeto;
+use crate::dsl::{evaluate, EvalContext};
 use crate::neural::NeuralScorer;
 use crate::policy::{Policy, PolicyAction};
 use crate::types::{
     DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
-use agentkern_treasury::carbon::{ComputeType};
+use agentkern_treasury::carbon::ComputeType;
 
 /// The AgentKern Gate Engine.
-/// 
+///
 /// Evaluates agent actions against registered policies using a
 /// two-phase Neuro-Symbolic approach.
 pub struct GateEngine {
@@ -98,7 +98,7 @@ impl GateEngine {
     /// Verify an action against all applicable policies.
     pub async fn verify(&self, request: VerificationRequest) -> VerificationResult {
         let start = Instant::now();
-        
+
         // === SYMBOLIC PATH (Fast) ===
         let symbolic_start = Instant::now();
         let (evaluated, blocking, symbolic_risk) = self.evaluate_symbolic(&request).await;
@@ -107,7 +107,10 @@ impl GateEngine {
         // === NEURAL PATH (If needed) ===
         let neural_result = if symbolic_risk >= self.neural_threshold {
             let neural_start = Instant::now();
-            let score = self.neural_scorer.score(&request.action, &request.context).await;
+            let score = self
+                .neural_scorer
+                .score(&request.action, &request.context)
+                .await;
             Some((score, neural_start.elapsed().as_micros() as u64))
         } else {
             None
@@ -124,12 +127,20 @@ impl GateEngine {
                 },
                 None => ComputeType::Cpu,
             };
-            
-            let duration_ms = request.context.data.get("duration_ms")
+
+            let duration_ms = request
+                .context
+                .data
+                .get("duration_ms")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
 
-            Some(veto.evaluate(&request.agent_id, &request.action, compute_type, duration_ms))
+            Some(veto.evaluate(
+                &request.agent_id,
+                &request.action,
+                compute_type,
+                duration_ms,
+            ))
         } else {
             None
         };
@@ -149,7 +160,9 @@ impl GateEngine {
         let allowed = blocking.is_empty() && final_risk < 80 && carbon_allowed;
 
         let reasoning = if !carbon_allowed {
-            carbon_result.as_ref().and_then(|r| r.message.clone())
+            carbon_result
+                .as_ref()
+                .and_then(|r| r.message.clone())
                 .unwrap_or_else(|| "Blocked by carbon budget".to_string())
         } else if !blocking.is_empty() {
             format!("Blocked by policies: {}", blocking.join(", "))
@@ -197,7 +210,7 @@ impl GateEngine {
         request: &VerificationRequest,
     ) -> (Vec<String>, Vec<String>, u8) {
         let policies = self.policies.read().await;
-        
+
         let mut evaluated = Vec::new();
         let mut blocking = Vec::new();
         let mut max_risk = 0u8;
@@ -210,7 +223,8 @@ impl GateEngine {
         };
 
         // Sort policies by priority (higher first)
-        let mut sorted_policies: Vec<_> = policies.values()
+        let mut sorted_policies: Vec<_> = policies
+            .values()
             .filter(|p| p.enabled && p.applies_to_jurisdiction(self.jurisdiction))
             .collect();
         sorted_policies.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -289,7 +303,7 @@ mod tests {
     #[tokio::test]
     async fn test_engine_allows_safe_action() {
         let engine = GateEngine::new();
-        
+
         let request = VerificationRequestBuilder::new("agent-1", "send_email")
             .context("to", "user@example.com")
             .build();
@@ -327,18 +341,19 @@ mod tests {
 
         let result = engine.verify(request).await;
         assert!(!result.allowed);
-        assert!(result.blocking_policies.contains(&"no-transfers".to_string()));
+        assert!(result
+            .blocking_policies
+            .contains(&"no-transfers".to_string()));
     }
 
     #[tokio::test]
     async fn test_latency_breakdown() {
         let engine = GateEngine::new();
-        
-        let request = VerificationRequestBuilder::new("agent-1", "read_data")
-            .build();
+
+        let request = VerificationRequestBuilder::new("agent-1", "read_data").build();
 
         let result = engine.verify(request).await;
-        
+
         // Symbolic path should be very fast
         assert!(result.latency.symbolic_us < 1000); // <1ms
         assert!(result.latency.total_us >= result.latency.symbolic_us);
@@ -346,17 +361,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_carbon_veto_blocks_action() {
-        use agentkern_treasury::carbon::{CarbonLedger, CarbonBudget};
+        use agentkern_treasury::carbon::{CarbonBudget, CarbonLedger};
         use rust_decimal_macros::dec;
 
         let ledger = CarbonLedger::new();
         let agent_id = "agent-carbon".to_string();
-        
+
         // Set a tiny budget
         ledger.set_budget(
             CarbonBudget::new(agent_id.clone())
                 .with_daily_limit(dec!(0.1))
-                .block_on_exceed()
+                .block_on_exceed(),
         );
 
         let veto = CarbonVeto::new(ledger);
@@ -368,7 +383,7 @@ mod tests {
             .build();
 
         let result = engine.verify(request).await;
-        
+
         assert!(!result.allowed);
         assert!(result.reasoning.contains("Carbon budget exceeded"));
     }

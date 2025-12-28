@@ -71,7 +71,7 @@ impl ThreadPerCoreRuntime {
 
         for core_id in 0..config.cores {
             let (sender, receiver) = std::sync::mpsc::channel::<WorkFn>();
-            
+
             let queue = Arc::new(CoreQueue { core_id, sender });
             queues.push(Arc::clone(&queue));
 
@@ -100,7 +100,11 @@ impl ThreadPerCoreRuntime {
             handles.push(handle);
         }
 
-        Self { config, queues, handles }
+        Self {
+            config,
+            queues,
+            handles,
+        }
     }
 
     /// Get the number of cores.
@@ -132,7 +136,7 @@ impl ThreadPerCoreRuntime {
     pub fn shutdown(self) {
         // Drop senders to signal shutdown
         drop(self.queues);
-        
+
         // Wait for threads
         for handle in self.handles {
             let _ = handle.join();
@@ -157,13 +161,13 @@ fn hash_string(s: &str) -> u64 {
 #[cfg(target_os = "linux")]
 fn set_thread_affinity(core_id: usize) -> Result<(), std::io::Error> {
     use std::io;
-    
+
     // Use libc to set CPU affinity
     unsafe {
         let mut cpuset: libc::cpu_set_t = std::mem::zeroed();
         libc::CPU_ZERO(&mut cpuset);
         libc::CPU_SET(core_id, &mut cpuset);
-        
+
         let result = libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &cpuset);
         if result != 0 {
             return Err(io::Error::last_os_error());
@@ -188,15 +192,20 @@ mod tests {
         let counter = Arc::new(AtomicUsize::new(0));
         let counter_clone = Arc::clone(&counter);
 
-        runtime.submit_to_core(0, Box::new(move || {
-            counter_clone.fetch_add(1, Ordering::SeqCst);
-        })).unwrap();
+        runtime
+            .submit_to_core(
+                0,
+                Box::new(move || {
+                    counter_clone.fetch_add(1, Ordering::SeqCst);
+                }),
+            )
+            .unwrap();
 
         // Give it time to process
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         assert_eq!(counter.load(Ordering::SeqCst), 1);
-        
+
         runtime.shutdown();
     }
 
@@ -211,9 +220,9 @@ mod tests {
         // Same key should always go to same core
         let key = "user:12345";
         let expected_core = (hash_string(key) as usize) % 4;
-        
+
         assert!(runtime.submit_hashed(key, Box::new(|| {})).is_ok());
-        
+
         runtime.shutdown();
     }
 }

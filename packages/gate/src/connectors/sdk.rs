@@ -15,25 +15,25 @@ pub type ConnectorResult<T> = Result<T, ConnectorError>;
 pub enum ConnectorError {
     #[error("Connection failed: {0}")]
     ConnectionFailed(String),
-    
+
     #[error("Authentication failed: {0}")]
     AuthenticationFailed(String),
-    
+
     #[error("Protocol error: {0}")]
     ProtocolError(String),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("Timeout: operation took longer than {0}ms")]
     Timeout(u64),
-    
+
     #[error("Not supported: {0}")]
     NotSupported(String),
-    
+
     #[error("Policy violation: {0}")]
     PolicyViolation(String),
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -92,12 +92,12 @@ impl ConnectorProtocol {
             Self::Custom(_) => "Custom",
         }
     }
-    
+
     /// Check if protocol requires enterprise license.
     pub fn requires_enterprise(&self) -> bool {
         match self {
             Self::Sql => false, // Free tier
-            _ => true, // All others require enterprise
+            _ => true,          // All others require enterprise
         }
     }
 }
@@ -164,7 +164,7 @@ impl ConnectorHealth {
             message: None,
         }
     }
-    
+
     /// Create unhealthy status.
     pub fn unhealthy(message: impl Into<String>) -> Self {
         Self {
@@ -210,29 +210,29 @@ pub struct LegacyMessage {
 /// enabling AI agents to interact with enterprise systems.
 ///
 /// # WASM Safety
-/// 
+///
 /// All connectors are designed to run in WASM isolation.
 /// They must not use any system calls directly.
 #[async_trait::async_trait]
 pub trait LegacyConnector: Send + Sync {
     /// Get connector name.
     fn name(&self) -> &str;
-    
+
     /// Get connector protocol.
     fn protocol(&self) -> ConnectorProtocol;
-    
+
     /// Get current configuration.
     fn config(&self) -> &ConnectorConfig;
-    
+
     /// Check connector health.
     async fn health_check(&self) -> ConnectorResult<ConnectorHealth>;
-    
+
     /// Translate A2A task to legacy message.
     fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage>;
-    
+
     /// Translate legacy message to A2A task.
     fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload>;
-    
+
     /// Execute a query/operation on the legacy system.
     async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage>;
 }
@@ -272,7 +272,7 @@ mod tests {
         let healthy = ConnectorHealth::healthy();
         assert!(healthy.healthy);
         assert!(healthy.last_success_ms.is_some());
-        
+
         let unhealthy = ConnectorHealth::unhealthy("Connection refused");
         assert!(!unhealthy.healthy);
         assert_eq!(unhealthy.message, Some("Connection refused".to_string()));
@@ -287,7 +287,7 @@ mod tests {
             source_agent: Some("agent-a".to_string()),
             target_agent: None,
         };
-        
+
         assert_eq!(task.method, "query");
     }
 
@@ -298,7 +298,7 @@ mod tests {
             message_type: "MT103".to_string(),
             metadata: HashMap::new(),
         };
-        
+
         assert_eq!(msg.message_type, "MT103");
     }
 }

@@ -32,13 +32,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise multitenancy feature accessed");
         Ok(())
     }
@@ -238,7 +238,7 @@ impl TenantIsolator {
     /// Create a new tenant isolator (requires enterprise license).
     pub fn new(level: IsolationLevel) -> Result<Self, license::LicenseError> {
         license::require("MULTI_TENANCY")?;
-        
+
         Ok(Self {
             quotas: HashMap::new(),
             usage: HashMap::new(),
@@ -248,26 +248,37 @@ impl TenantIsolator {
 
     /// Register a tenant.
     pub fn register_tenant(&mut self, tenant_id: &str, plan: PlanTier) {
-        self.quotas.insert(tenant_id.to_string(), TenantQuota::from(plan));
-        self.usage.insert(tenant_id.to_string(), TenantUsage::default());
+        self.quotas
+            .insert(tenant_id.to_string(), TenantQuota::from(plan));
+        self.usage
+            .insert(tenant_id.to_string(), TenantUsage::default());
     }
 
     /// Check if tenant can perform action.
     pub fn can_proceed(&self, ctx: &TenantContext) -> Result<bool, IsolationError> {
-        let quota = self.quotas.get(&ctx.tenant_id).ok_or(IsolationError::TenantNotFound)?;
-        let usage = self.usage.get(&ctx.tenant_id).ok_or(IsolationError::TenantNotFound)?;
-        
+        let quota = self
+            .quotas
+            .get(&ctx.tenant_id)
+            .ok_or(IsolationError::TenantNotFound)?;
+        let usage = self
+            .usage
+            .get(&ctx.tenant_id)
+            .ok_or(IsolationError::TenantNotFound)?;
+
         Ok(usage.within_quota(quota))
     }
 
     /// Record usage.
     pub fn record_usage(&mut self, tenant_id: &str, cost_cents: u64) -> Result<(), IsolationError> {
-        let usage = self.usage.get_mut(tenant_id).ok_or(IsolationError::TenantNotFound)?;
-        
+        let usage = self
+            .usage
+            .get_mut(tenant_id)
+            .ok_or(IsolationError::TenantNotFound)?;
+
         usage.requests_minute += 1;
         usage.api_calls_month += 1;
         usage.cost_cents += cost_cents;
-        
+
         Ok(())
     }
 
@@ -338,7 +349,7 @@ impl<T> TenantScoped<T> {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         Self {
             tenant_id: tenant_id.into(),
             data,
@@ -382,34 +393,40 @@ mod tests {
     fn test_usage_within_quota() {
         let quota = TenantQuota::from(PlanTier::Free);
         let usage = TenantUsage::default();
-        
+
         assert!(usage.within_quota(&quota));
     }
 
     #[test]
     fn test_tenant_isolator_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = TenantIsolator::new(IsolationLevel::Logical);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_tenant_isolator_with_license() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut isolator = TenantIsolator::new(IsolationLevel::Schema).unwrap();
         isolator.register_tenant("org-123", PlanTier::Pro);
-        
+
         let ctx = TenantContext::new("org-123").with_plan(PlanTier::Pro);
         assert!(isolator.can_proceed(&ctx).unwrap());
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_rls_filter() {
         let filter = RlsFilter::new("tenant_id", "org-123");
-        
+
         assert_eq!(filter.where_clause(), "tenant_id = 'org-123'");
         assert!(filter.allows("org-123"));
         assert!(!filter.allows("org-456"));
@@ -418,7 +435,7 @@ mod tests {
     #[test]
     fn test_tenant_scoped() {
         let resource = TenantScoped::new("org-123", "secret data");
-        
+
         assert!(resource.belongs_to("org-123"));
         assert!(!resource.belongs_to("org-456"));
         assert_eq!(resource.get_if_owner("org-123"), Some(&"secret data"));

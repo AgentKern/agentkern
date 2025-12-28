@@ -1,7 +1,7 @@
 //! Nexus Error Types
 
-use thiserror::Error;
 use crate::types::Protocol;
+use thiserror::Error;
 
 /// Nexus errors.
 #[derive(Debug, Error)]
@@ -54,13 +54,17 @@ pub enum NexusError {
 
 impl From<serde_json::Error> for NexusError {
     fn from(e: serde_json::Error) -> Self {
-        Self::ParseError { message: e.to_string() }
+        Self::ParseError {
+            message: e.to_string(),
+        }
     }
 }
 
 impl From<reqwest::Error> for NexusError {
     fn from(e: reqwest::Error) -> Self {
-        Self::NetworkError { message: e.to_string() }
+        Self::NetworkError {
+            message: e.to_string(),
+        }
     }
 }
 
@@ -70,7 +74,9 @@ mod tests {
 
     #[test]
     fn test_error_display() {
-        let err = NexusError::AgentNotFound { agent_id: "agent-1".into() };
+        let err = NexusError::AgentNotFound {
+            agent_id: "agent-1".into(),
+        };
         assert_eq!(err.to_string(), "Agent not found: agent-1");
     }
 }

@@ -10,10 +10,10 @@
 //! - Time travel replay
 
 use chrono::{DateTime, Duration, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 // ============================================================================
 // SANDBOX TYPES
@@ -235,10 +235,10 @@ impl SandboxEngine {
             created_at: Utc::now(),
             size_bytes: 0,
         };
-        
+
         let mut snapshots = self.snapshots.write();
         snapshots.insert(snapshot.id.clone(), snapshot.clone());
-        
+
         snapshot
     }
 
@@ -288,15 +288,19 @@ impl SandboxEngine {
         state: serde_json::Value,
     ) -> Result<(), SandboxError> {
         let mut sandboxes = self.sandboxes.write();
-        let sandbox = sandboxes.get_mut(sandbox_id)
+        let sandbox = sandboxes
+            .get_mut(sandbox_id)
             .ok_or_else(|| SandboxError::SandboxNotFound(sandbox_id.to_string()))?;
 
-        sandbox.agents.insert(agent_id.to_string(), AgentSnapshot {
-            agent_id: agent_id.to_string(),
-            state,
-            pending_tasks: Vec::new(),
-            memory: Vec::new(),
-        });
+        sandbox.agents.insert(
+            agent_id.to_string(),
+            AgentSnapshot {
+                agent_id: agent_id.to_string(),
+                state,
+                pending_tasks: Vec::new(),
+                memory: Vec::new(),
+            },
+        );
 
         Ok(())
     }
@@ -312,9 +316,10 @@ impl SandboxEngine {
         // Verify sandbox exists and is in chaos mode
         {
             let sandboxes = self.sandboxes.read();
-            let sandbox = sandboxes.get(sandbox_id)
+            let sandbox = sandboxes
+                .get(sandbox_id)
                 .ok_or_else(|| SandboxError::SandboxNotFound(sandbox_id.to_string()))?;
-            
+
             if sandbox.mode != SandboxMode::Chaos {
                 return Err(SandboxError::NotChaosMode);
             }
@@ -343,7 +348,7 @@ impl SandboxEngine {
         scenario: &TestScenario,
     ) -> Result<TestResult, SandboxError> {
         let start = std::time::Instant::now();
-        
+
         // Verify sandbox
         {
             let sandboxes = self.sandboxes.read();
@@ -359,11 +364,11 @@ impl SandboxEngine {
             // Execute step (simulated)
             let result = StepResult {
                 index: step.index,
-                passed: true,  // Would actually execute and validate
+                passed: true, // Would actually execute and validate
                 actual: serde_json::json!({"status": "completed"}),
                 error: None,
             };
-            
+
             all_passed = all_passed && result.passed;
             step_results.push(result);
         }
@@ -390,14 +395,15 @@ impl SandboxEngine {
         to_time: DateTime<Utc>,
     ) -> Result<(), SandboxError> {
         let mut sandboxes = self.sandboxes.write();
-        let sandbox = sandboxes.get_mut(sandbox_id)
+        let sandbox = sandboxes
+            .get_mut(sandbox_id)
             .ok_or_else(|| SandboxError::SandboxNotFound(sandbox_id.to_string()))?;
 
         // In a real implementation, this would replay events up to the specified time
         // For now, we just log the operation
         sandbox.state.insert(
             "_time_travel_to".to_string(),
-            serde_json::json!(to_time.to_rfc3339())
+            serde_json::json!(to_time.to_rfc3339()),
         );
 
         Ok(())
@@ -418,7 +424,8 @@ impl SandboxEngine {
     /// Destroy sandbox.
     pub fn destroy(&self, sandbox_id: &str) -> Result<(), SandboxError> {
         let mut sandboxes = self.sandboxes.write();
-        sandboxes.remove(sandbox_id)
+        sandboxes
+            .remove(sandbox_id)
             .ok_or_else(|| SandboxError::SandboxNotFound(sandbox_id.to_string()))?;
         Ok(())
     }
@@ -461,17 +468,17 @@ mod tests {
     fn test_snapshot() {
         let engine = SandboxEngine::new();
         let snapshot = engine.snapshot("production");
-        
+
         assert_eq!(snapshot.source, "production");
     }
 
     #[test]
     fn test_create_sandbox() {
         let engine = SandboxEngine::new();
-        
+
         let sandbox = engine.create_sandbox("test", SandboxMode::Isolated, None, Some(24));
         assert!(sandbox.is_ok());
-        
+
         let sb = sandbox.unwrap();
         assert_eq!(sb.mode, SandboxMode::Isolated);
         assert!(sb.expires_at.is_some());
@@ -480,38 +487,40 @@ mod tests {
     #[test]
     fn test_chaos_injection() {
         let engine = SandboxEngine::new();
-        let sandbox = engine.create_sandbox("chaos-test", SandboxMode::Chaos, None, None).unwrap();
-        
+        let sandbox = engine
+            .create_sandbox("chaos-test", SandboxMode::Chaos, None, None)
+            .unwrap();
+
         let event = engine.inject_chaos(
             &sandbox.id,
             ChaosEventType::NetworkLatency,
             "service-a",
             5000,
         );
-        
+
         assert!(event.is_ok());
     }
 
     #[test]
     fn test_scenario_execution() {
         let engine = SandboxEngine::new();
-        let sandbox = engine.create_sandbox("test", SandboxMode::Clone, None, None).unwrap();
-        
+        let sandbox = engine
+            .create_sandbox("test", SandboxMode::Clone, None, None)
+            .unwrap();
+
         let scenario = TestScenario {
             id: "scenario-1".to_string(),
             name: "Basic Test".to_string(),
             description: "Test basic functionality".to_string(),
-            steps: vec![
-                ScenarioStep {
-                    index: 0,
-                    action: "call_api".to_string(),
-                    input: serde_json::json!({}),
-                    wait_ms: 100,
-                }
-            ],
+            steps: vec![ScenarioStep {
+                index: 0,
+                action: "call_api".to_string(),
+                input: serde_json::json!({}),
+                wait_ms: 100,
+            }],
             expected: vec![],
         };
-        
+
         let result = engine.run_scenario(&sandbox.id, &scenario);
         assert!(result.is_ok());
         assert!(result.unwrap().passed);

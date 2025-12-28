@@ -1,15 +1,15 @@
 //! Agent Card - A2A Compatible Agent Discovery
 //!
 //! Per A2A Spec: Agents publish capabilities at `/.well-known/agent.json`
-//! 
+//!
 //! This module provides a unified Agent Card format compatible with:
 //! - Google A2A Agent Cards
 //! - OpenAPI-style capability descriptions
 //! - AgentKern extensions
 
+use crate::types::{Capability, Modality, Skill};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::types::{Skill, Capability, Modality};
 
 /// Agent Card - Universal agent discovery format.
 ///
@@ -20,47 +20,47 @@ use crate::types::{Skill, Capability, Modality};
 pub struct AgentCard {
     /// Unique agent identifier
     pub id: String,
-    
+
     /// Human-readable name
     pub name: String,
-    
+
     /// Description of what this agent does
     pub description: String,
-    
+
     /// Base URL for agent API
     pub url: String,
-    
+
     /// Agent version
     pub version: String,
-    
+
     /// Provider/owner
     #[serde(default)]
     pub provider: Option<Provider>,
-    
+
     /// Capabilities this agent supports
     #[serde(default)]
     pub capabilities: Vec<Capability>,
-    
+
     /// Skills this agent can perform
     #[serde(default)]
     pub skills: Vec<Skill>,
-    
+
     /// Default input modalities
     #[serde(default)]
     pub default_input_modes: Vec<Modality>,
-    
+
     /// Default output modalities
     #[serde(default)]
     pub default_output_modes: Vec<Modality>,
-    
+
     /// Authentication info
     #[serde(default)]
     pub authentication: AuthInfo,
-    
+
     /// Supported protocols
     #[serde(default)]
     pub protocols: Vec<ProtocolSupport>,
-    
+
     /// AgentKern-specific extensions
     #[serde(default)]
     pub extensions: HashMap<String, serde_json::Value>,
@@ -128,7 +128,9 @@ impl AgentCard {
 
     /// Check if agent supports a skill tag.
     pub fn has_skill_tag(&self, tag: &str) -> bool {
-        self.skills.iter().any(|s| s.tags.contains(&tag.to_string()))
+        self.skills
+            .iter()
+            .any(|s| s.tags.contains(&tag.to_string()))
     }
 
     /// Calculate skill match score (0-100).
@@ -136,12 +138,12 @@ impl AgentCard {
         if required_skills.is_empty() {
             return 100;
         }
-        
+
         let matched = required_skills
             .iter()
             .filter(|s| self.has_skill(s) || self.has_skill_tag(s))
             .count();
-        
+
         ((matched as f64 / required_skills.len() as f64) * 100.0) as u8
     }
 
@@ -225,7 +227,7 @@ mod tests {
                 input_schema: None,
                 output_schema: None,
             });
-        
+
         assert_eq!(card.id, "agent-1");
         assert_eq!(card.skills.len(), 1);
         assert!(card.has_skill("summarize"));
@@ -251,26 +253,27 @@ mod tests {
                 input_schema: None,
                 output_schema: None,
             });
-        
+
         let required = vec!["nlp".into(), "vision".into(), "audio".into()];
         let score = card.skill_match_score(&required);
-        
+
         // 2 out of 3 = 66%
         assert!(score >= 66 && score <= 67);
     }
 
     #[test]
     fn test_agent_card_serialization() {
-        let card = AgentCard::new("test", "Test", "https://example.com")
-            .supports_protocol(ProtocolSupport {
+        let card = AgentCard::new("test", "Test", "https://example.com").supports_protocol(
+            ProtocolSupport {
                 name: "a2a".into(),
                 version: "0.3".into(),
                 endpoint: None,
-            });
-        
+            },
+        );
+
         let json = card.to_json().unwrap();
         assert!(json.contains("\"name\": \"Test\""));
-        
+
         let parsed = AgentCard::from_json(&json).unwrap();
         assert_eq!(parsed.id, "test");
     }
@@ -289,9 +292,9 @@ mod tests {
                 version: "2025-06-18".into(),
                 endpoint: Some("/mcp".into()),
             });
-        
+
         let json = card.to_json().unwrap();
-        
+
         // Should be valid for /.well-known/agent.json
         assert!(json.contains("my-agent"));
         assert!(json.contains("a2a"));
@@ -301,10 +304,10 @@ mod tests {
     #[test]
     fn test_empty_skills_score() {
         let card = AgentCard::new("agent", "Agent", "http://localhost");
-        
+
         // No skills required = 100% match
         assert_eq!(card.skill_match_score(&[]), 100);
-        
+
         // Skills required but agent has none = 0%
         let required = vec!["nlp".into()];
         assert_eq!(card.skill_match_score(&required), 0);
@@ -312,14 +315,14 @@ mod tests {
 
     #[test]
     fn test_capability_builder() {
-        let card = AgentCard::new("agent", "Agent", "http://localhost")
-            .with_capability(Capability {
+        let card =
+            AgentCard::new("agent", "Agent", "http://localhost").with_capability(Capability {
                 name: "streaming".into(),
                 input_modes: vec![Modality::Text],
                 output_modes: vec![Modality::Text, Modality::Audio],
                 rate_limit: Some(60),
             });
-        
+
         assert_eq!(card.capabilities.len(), 1);
         assert_eq!(card.capabilities[0].name, "streaming");
     }
@@ -335,7 +338,7 @@ mod tests {
                 scopes: vec!["read".into(), "write".into()],
             }),
         };
-        
+
         let json = card.to_json().unwrap();
         assert!(json.contains("oauth2"));
         assert!(json.contains("authorization_url"));
@@ -348,7 +351,7 @@ mod tests {
             organization: "AgentKern Inc.".into(),
             url: Some("https://agentkern.io".into()),
         });
-        
+
         let json = card.to_json().unwrap();
         assert!(json.contains("AgentKern Inc."));
     }
@@ -356,14 +359,15 @@ mod tests {
     #[test]
     fn test_extensions() {
         let mut card = AgentCard::new("extended", "Extended Agent", "http://localhost");
-        card.extensions.insert("custom_field".into(), serde_json::json!({"key": "value"}));
-        card.extensions.insert("version_info".into(), serde_json::json!("v2.0"));
-        
+        card.extensions
+            .insert("custom_field".into(), serde_json::json!({"key": "value"}));
+        card.extensions
+            .insert("version_info".into(), serde_json::json!("v2.0"));
+
         let json = card.to_json().unwrap();
         let parsed = AgentCard::from_json(&json).unwrap();
-        
+
         assert!(parsed.extensions.contains_key("custom_field"));
         assert!(parsed.extensions.contains_key("version_info"));
     }
 }
-

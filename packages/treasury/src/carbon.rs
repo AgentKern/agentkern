@@ -10,13 +10,13 @@
 //! This addresses ESG requirements and positions AgentKern
 //! as the only agent platform with native sustainability tracking.
 
-use chrono::{DateTime, Utc, Duration};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
+use chrono::{DateTime, Duration, Utc};
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::types::AgentId;
 
@@ -112,11 +112,11 @@ impl ComputeType {
     /// Typical power draw in watts.
     pub fn typical_watts(&self) -> u32 {
         match self {
-            ComputeType::Cpu => 150,      // Server CPU
-            ComputeType::Gpu => 400,      // H100 GPU
-            ComputeType::Tpu => 300,      // TPU v4
-            ComputeType::Network => 10,   // Per operation
-            ComputeType::Storage => 5,    // Per operation
+            ComputeType::Cpu => 150,    // Server CPU
+            ComputeType::Gpu => 400,    // H100 GPU
+            ComputeType::Tpu => 300,    // TPU v4
+            ComputeType::Network => 10, // Per operation
+            ComputeType::Storage => 5,  // Per operation
         }
     }
 
@@ -124,7 +124,7 @@ impl ComputeType {
     pub fn water_ratio(&self) -> Decimal {
         match self {
             ComputeType::Cpu => dec!(1.8),
-            ComputeType::Gpu => dec!(2.5),  // More cooling needed
+            ComputeType::Gpu => dec!(2.5), // More cooling needed
             ComputeType::Tpu => dec!(2.2),
             ComputeType::Network => dec!(0.5),
             ComputeType::Storage => dec!(0.3),
@@ -172,11 +172,11 @@ impl CarbonFootprint {
         let hours = Decimal::from(duration_ms) / dec!(3_600_000);
         let watts = Decimal::from(compute_type.typical_watts());
         let energy_kwh = watts * hours / dec!(1000);
-        
+
         // CO2 = Energy * Carbon Intensity
         let intensity = Decimal::from(region.intensity());
         let co2_grams = energy_kwh * intensity;
-        
+
         // Water = Energy * Water Ratio
         let water_liters = energy_kwh * compute_type.water_ratio();
 
@@ -220,8 +220,8 @@ impl CarbonBudget {
     pub fn new(agent_id: AgentId) -> Self {
         Self {
             agent_id,
-            daily_limit_grams: dec!(1000),      // 1kg CO2/day default
-            monthly_limit_grams: dec!(25000),   // 25kg CO2/month default
+            daily_limit_grams: dec!(1000),    // 1kg CO2/day default
+            monthly_limit_grams: dec!(25000), // 25kg CO2/month default
             alert_threshold_pct: 80,
             block_on_exceed: false,
         }
@@ -305,7 +305,7 @@ impl CarbonLedger {
         if let Some(budget) = self.get_budget(&footprint.agent_id) {
             let daily = self.get_daily_usage(&footprint.agent_id);
             let new_total = daily.total_co2_grams + footprint.co2_grams;
-            
+
             if new_total > budget.daily_limit_grams && budget.block_on_exceed {
                 return Err(CarbonError::BudgetExceeded {
                     agent_id: footprint.agent_id.clone(),
@@ -318,7 +318,7 @@ impl CarbonLedger {
 
         let mut footprints = self.footprints.write();
         footprints.push(footprint);
-        
+
         // Trim if needed
         if footprints.len() > self.max_history {
             footprints.remove(0);
@@ -343,7 +343,7 @@ impl CarbonLedger {
             duration_ms,
             region.unwrap_or(self.default_region),
         );
-        
+
         self.record(footprint.clone())?;
         Ok(footprint)
     }
@@ -382,8 +382,9 @@ impl CarbonLedger {
         end: DateTime<Utc>,
     ) -> CarbonUsage {
         let footprints = self.footprints.read();
-        
-        let relevant: Vec<_> = footprints.iter()
+
+        let relevant: Vec<_> = footprints
+            .iter()
             .filter(|f| &f.agent_id == agent_id && f.timestamp >= start && f.timestamp <= end)
             .collect();
 
@@ -404,7 +405,7 @@ impl CarbonLedger {
     /// Get total fleet carbon footprint.
     pub fn get_fleet_usage(&self) -> CarbonUsage {
         let footprints = self.footprints.read();
-        
+
         let total_co2_grams = footprints.iter().map(|f| f.co2_grams).sum();
         let total_energy_kwh = footprints.iter().map(|f| f.energy_kwh).sum();
         let total_water_liters = footprints.iter().map(|f| f.water_liters).sum();
@@ -512,7 +513,7 @@ mod tests {
     #[test]
     fn test_ledger_recording() {
         let ledger = CarbonLedger::new();
-        
+
         let result = ledger.record_compute(
             "agent-1".to_string(),
             "test_action",
@@ -520,9 +521,9 @@ mod tests {
             1000,
             None,
         );
-        
+
         assert!(result.is_ok());
-        
+
         let usage = ledger.get_daily_usage(&"agent-1".to_string());
         assert!(usage.total_co2_grams > dec!(0));
         assert_eq!(usage.action_count, 1);
@@ -531,12 +532,12 @@ mod tests {
     #[test]
     fn test_budget_enforcement() {
         let ledger = CarbonLedger::new();
-        
+
         // Set a very low budget
         ledger.set_budget(
             CarbonBudget::new("agent-1".to_string())
                 .with_daily_limit(dec!(0.001))
-                .block_on_exceed()
+                .block_on_exceed(),
         );
 
         // First small action should work
@@ -556,14 +557,14 @@ mod tests {
             3600_000, // 1 hour
             None,
         );
-        
+
         assert!(matches!(result, Err(CarbonError::BudgetExceeded { .. })));
     }
 
     #[test]
     fn test_fleet_usage() {
         let ledger = CarbonLedger::new();
-        
+
         for i in 0..5 {
             let _ = ledger.record_compute(
                 format!("agent-{}", i),
@@ -582,7 +583,7 @@ mod tests {
     fn test_region_recommendation() {
         let ledger = CarbonLedger::new();
         let recommended = ledger.recommend_region();
-        
+
         // Should recommend cleanest
         assert_eq!(recommended.intensity(), 50);
     }

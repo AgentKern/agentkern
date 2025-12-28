@@ -3,9 +3,9 @@
 //! Central translation engine for converting between agent protocols.
 //! Supports: A2A, MCP, AgentKern, ANP, NLIP, AITP
 
-use crate::types::{NexusMessage, Protocol, TaskStatus};
-use crate::protocols::adapter::AdapterRegistry;
 use crate::error::NexusError;
+use crate::protocols::adapter::AdapterRegistry;
+use crate::types::{NexusMessage, Protocol, TaskStatus};
 use std::collections::HashMap;
 
 /// Translation result with metadata.
@@ -90,21 +90,25 @@ impl ProtocolTranslator {
     fn load_default_mappings(&mut self) {
         // A2A → MCP mappings
         let mut a2a_to_mcp = FieldMapping::default();
-        a2a_to_mcp.direct.insert("task_id".to_string(), "id".to_string());
-        a2a_to_mcp.direct.insert("message".to_string(), "content".to_string());
-        self.field_mappings.insert(
-            (Protocol::GoogleA2A, Protocol::AnthropicMCP),
-            a2a_to_mcp,
-        );
+        a2a_to_mcp
+            .direct
+            .insert("task_id".to_string(), "id".to_string());
+        a2a_to_mcp
+            .direct
+            .insert("message".to_string(), "content".to_string());
+        self.field_mappings
+            .insert((Protocol::GoogleA2A, Protocol::AnthropicMCP), a2a_to_mcp);
 
         // MCP → A2A mappings
         let mut mcp_to_a2a = FieldMapping::default();
-        mcp_to_a2a.direct.insert("id".to_string(), "task_id".to_string());
-        mcp_to_a2a.direct.insert("content".to_string(), "message".to_string());
-        self.field_mappings.insert(
-            (Protocol::AnthropicMCP, Protocol::GoogleA2A),
-            mcp_to_a2a,
-        );
+        mcp_to_a2a
+            .direct
+            .insert("id".to_string(), "task_id".to_string());
+        mcp_to_a2a
+            .direct
+            .insert("content".to_string(), "message".to_string());
+        self.field_mappings
+            .insert((Protocol::AnthropicMCP, Protocol::GoogleA2A), mcp_to_a2a);
     }
 
     /// Translate a raw message from one protocol to another.
@@ -130,7 +134,7 @@ impl ProtocolTranslator {
         target_protocol: Protocol,
     ) -> Result<TranslationResult, NexusError> {
         let source_protocol = message.source_protocol;
-        
+
         if source_protocol == target_protocol {
             return Ok(TranslationResult {
                 message,
@@ -140,17 +144,16 @@ impl ProtocolTranslator {
                 confidence: 100,
             });
         }
-        
-        let (translated, lost_fields) = self.apply_mappings(
-            message,
-            &source_protocol,
-            &target_protocol,
-        );
-        
-        let confidence = if lost_fields.is_empty() { 100 } else {
+
+        let (translated, lost_fields) =
+            self.apply_mappings(message, &source_protocol, &target_protocol);
+
+        let confidence = if lost_fields.is_empty() {
+            100
+        } else {
             (100 - (lost_fields.len() * 10).min(50)) as u8
         };
-        
+
         Ok(TranslationResult {
             message: translated,
             source_protocol,
@@ -168,16 +171,16 @@ impl ProtocolTranslator {
         target: &Protocol,
     ) -> (NexusMessage, Vec<String>) {
         let lost_fields = vec![];
-        
+
         // Update protocol marker
         message.source_protocol = *target;
-        
+
         // Apply mappings if available
         if let Some(mapping) = self.field_mappings.get(&(*source, *target)) {
             // Apply direct mappings to params
             if let Some(params) = message.params.as_object_mut() {
                 let mut new_params = serde_json::Map::new();
-                
+
                 for (key, value) in params.iter() {
                     if let Some(new_key) = mapping.direct.get(key) {
                         new_params.insert(new_key.clone(), value.clone());
@@ -186,11 +189,11 @@ impl ProtocolTranslator {
                         new_params.insert(key.clone(), value.clone());
                     }
                 }
-                
+
                 message.params = serde_json::Value::Object(new_params);
             }
         }
-        
+
         (message, lost_fields)
     }
 
@@ -200,11 +203,7 @@ impl ProtocolTranslator {
     }
 
     /// Translate task status between protocols.
-    pub fn translate_status(
-        &self,
-        status: TaskStatus,
-        _target_protocol: Protocol,
-    ) -> TaskStatus {
+    pub fn translate_status(&self, status: TaskStatus, _target_protocol: Protocol) -> TaskStatus {
         // Status is already unified, but protocols may have different names
         status
     }
@@ -219,19 +218,19 @@ impl Default for ProtocolTranslator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_translator_creation() {
         let translator = ProtocolTranslator::new();
         let paths = translator.supported_translations();
-        
+
         assert!(!paths.is_empty());
     }
-    
+
     #[test]
     fn test_same_protocol_translation() {
         let translator = ProtocolTranslator::new();
-        
+
         let message = NexusMessage {
             id: "test-1".to_string(),
             method: "execute".to_string(),
@@ -243,17 +242,19 @@ mod tests {
             timestamp: chrono::Utc::now(),
             metadata: HashMap::new(),
         };
-        
-        let result = translator.translate_message(message, Protocol::AgentKern).unwrap();
-        
+
+        let result = translator
+            .translate_message(message, Protocol::AgentKern)
+            .unwrap();
+
         assert_eq!(result.confidence, 100);
         assert!(result.lost_fields.is_empty());
     }
-    
+
     #[test]
     fn test_cross_protocol_translation() {
         let translator = ProtocolTranslator::new();
-        
+
         let message = NexusMessage {
             id: "test-2".to_string(),
             method: "invoke".to_string(),
@@ -265,17 +266,19 @@ mod tests {
             timestamp: chrono::Utc::now(),
             metadata: HashMap::new(),
         };
-        
-        let result = translator.translate_message(message, Protocol::AnthropicMCP).unwrap();
-        
+
+        let result = translator
+            .translate_message(message, Protocol::AnthropicMCP)
+            .unwrap();
+
         assert_eq!(result.source_protocol, Protocol::GoogleA2A);
         assert_eq!(result.target_protocol, Protocol::AnthropicMCP);
     }
-    
+
     #[test]
     fn test_status_translation() {
         let translator = ProtocolTranslator::new();
-        
+
         let status = translator.translate_status(TaskStatus::Working, Protocol::AnthropicMCP);
         assert_eq!(status, TaskStatus::Working);
     }

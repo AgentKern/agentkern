@@ -3,13 +3,13 @@
 //! Unified message format that can represent any agent protocol message.
 //! Designed for extensibility - new protocols just need to implement translation.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 /// Supported agent protocols.
-/// 
+///
 /// # Extensibility
 /// New protocols can be added here. The `Custom` variant allows for
 /// runtime-registered protocols without recompilation.
@@ -318,7 +318,7 @@ mod tests {
             .from_agent("agent-A")
             .to_agent("agent-B")
             .with_metadata("auth", serde_json::json!("Bearer token"));
-        
+
         assert_eq!(msg.method, "tasks/create");
         assert_eq!(msg.source_agent, Some("agent-A".into()));
         assert!(msg.metadata.contains_key("auth"));
@@ -329,7 +329,7 @@ mod tests {
         let task = Task::new("summarize", serde_json::json!({"text": "hello"}))
             .require_skills(vec!["nlp".into()])
             .with_priority(80);
-        
+
         assert_eq!(task.priority, 80);
         assert_eq!(task.required_skills, vec!["nlp"]);
         assert_eq!(task.status, TaskStatus::Pending);
@@ -337,11 +337,11 @@ mod tests {
 
     #[test]
     fn test_message_response() {
-        let request = NexusMessage::new("echo", serde_json::json!({"msg": "hello"}))
-            .from_agent("client");
-        
+        let request =
+            NexusMessage::new("echo", serde_json::json!({"msg": "hello"})).from_agent("client");
+
         let response = request.respond(serde_json::json!({"msg": "hello back"}));
-        
+
         assert_eq!(response.correlation_id, Some(request.id.clone()));
         assert_eq!(response.target_agent, request.source_agent);
     }

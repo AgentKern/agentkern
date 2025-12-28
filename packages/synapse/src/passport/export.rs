@@ -60,24 +60,29 @@ impl PassportExporter {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Export passport to bytes.
-    pub fn export(&self, passport: &MemoryPassport, options: &ExportOptions) -> Result<Vec<u8>, PassportError> {
+    pub fn export(
+        &self,
+        passport: &MemoryPassport,
+        options: &ExportOptions,
+    ) -> Result<Vec<u8>, PassportError> {
         // Validate passport before export
         passport.validate()?;
-        
+
         // Check region restrictions
         if let Some(ref region) = options.target_region {
             if !passport.can_transfer_to(region) {
-                return Err(PassportError::PolicyViolation(
-                    format!("Transfer to region '{}' not allowed", region)
-                ));
+                return Err(PassportError::PolicyViolation(format!(
+                    "Transfer to region '{}' not allowed",
+                    region
+                )));
             }
         }
-        
+
         // Clone and optionally filter
         let mut export_passport = passport.clone();
-        
+
         // Remove embeddings if not requested
         if !options.include_embeddings {
             for entry in &mut export_passport.memory.episodic.entries {
@@ -87,24 +92,28 @@ impl PassportExporter {
                 fact.embedding = None;
             }
         }
-        
+
         // Filter by time if requested
         if let Some(since) = options.since {
-            export_passport.memory.episodic.entries.retain(|e| e.timestamp >= since);
+            export_passport
+                .memory
+                .episodic
+                .entries
+                .retain(|e| e.timestamp >= since);
         }
-        
+
         // Update export timestamp
         export_passport.exported_at = chrono::Utc::now().timestamp_millis() as u64;
-        
+
         // Calculate checksum
         export_passport.checksum = self.calculate_checksum(&export_passport)?;
-        
+
         // Serialize based on format
         match options.format {
             ExportFormat::Json => {
                 let json = serde_json::to_vec_pretty(&export_passport)
                     .map_err(|e| PassportError::SerializationError(e.to_string()))?;
-                
+
                 if options.compress {
                     self.compress(&json)
                 } else {
@@ -114,7 +123,7 @@ impl PassportExporter {
             ExportFormat::Binary => {
                 let binary = rmp_serde::to_vec(&export_passport)
                     .map_err(|e| PassportError::SerializationError(e.to_string()))?;
-                
+
                 if options.compress {
                     self.compress(&binary)
                 } else {
@@ -122,44 +131,45 @@ impl PassportExporter {
                 }
             }
             ExportFormat::Encrypted => {
-                let key = options.encryption_key.as_ref()
+                let key = options
+                    .encryption_key
+                    .as_ref()
                     .ok_or_else(|| PassportError::MissingField("encryption_key".into()))?;
-                
+
                 let json = serde_json::to_vec(&export_passport)
                     .map_err(|e| PassportError::SerializationError(e.to_string()))?;
-                
+
                 self.encrypt(&json, key)
             }
         }
     }
-    
+
     /// Export to JSON string (convenience method).
     pub fn export_json(&self, passport: &MemoryPassport) -> Result<String, PassportError> {
         let bytes = self.export(passport, &ExportOptions::default())?;
-        String::from_utf8(bytes)
-            .map_err(|e| PassportError::SerializationError(e.to_string()))
+        String::from_utf8(bytes).map_err(|e| PassportError::SerializationError(e.to_string()))
     }
-    
+
     /// Calculate SHA-256 checksum of memory content.
     fn calculate_checksum(&self, passport: &MemoryPassport) -> Result<String, PassportError> {
-        use sha2::{Sha256, Digest};
-        
+        use sha2::{Digest, Sha256};
+
         let memory_json = serde_json::to_vec(&passport.memory)
             .map_err(|e| PassportError::SerializationError(e.to_string()))?;
-        
+
         let mut hasher = Sha256::new();
         hasher.update(&memory_json);
         let result = hasher.finalize();
-        
+
         Ok(hex::encode(result))
     }
-    
+
     /// Compress data using zstd.
     fn compress(&self, data: &[u8]) -> Result<Vec<u8>, PassportError> {
         // Using simple compression - in production use zstd
         Ok(data.to_vec()) // Placeholder - actual compression would go here
     }
-    
+
     /// Encrypt data using AES-256-GCM.
     fn encrypt(&self, data: &[u8], _key: &str) -> Result<Vec<u8>, PassportError> {
         // Production would use actual AES-256-GCM encryption
@@ -193,7 +203,7 @@ mod tests {
             created_at: 1700000000000,
             updated_at: 1700000000000,
         };
-        
+
         let mut passport = MemoryPassport::new(identity, "US");
         // Add a provenance signature to pass validation
         passport.provenance.signatures.push(ProvenanceSignature {
@@ -209,7 +219,7 @@ mod tests {
     fn test_export_json() {
         let exporter = PassportExporter::new();
         let passport = sample_passport();
-        
+
         let json = exporter.export_json(&passport).unwrap();
         assert!(json.contains("did:agentkern:test-001"));
     }
@@ -218,13 +228,13 @@ mod tests {
     fn test_export_with_options() {
         let exporter = PassportExporter::new();
         let passport = sample_passport();
-        
+
         let options = ExportOptions {
             format: ExportFormat::Json,
             include_embeddings: false,
             ..Default::default()
         };
-        
+
         let bytes = exporter.export(&passport, &options).unwrap();
         assert!(!bytes.is_empty());
     }
@@ -234,14 +244,14 @@ mod tests {
         let exporter = PassportExporter::new();
         let mut passport = sample_passport();
         passport.sovereignty.allowed_regions = vec!["US".into(), "EU".into()];
-        
+
         // Should allow EU
         let options = ExportOptions {
             target_region: Some("EU".into()),
             ..Default::default()
         };
         assert!(exporter.export(&passport, &options).is_ok());
-        
+
         // Should block CN
         let options = ExportOptions {
             target_region: Some("CN".into()),
@@ -254,7 +264,7 @@ mod tests {
     fn test_checksum_calculation() {
         let exporter = PassportExporter::new();
         let passport = sample_passport();
-        
+
         let checksum = exporter.calculate_checksum(&passport).unwrap();
         assert!(!checksum.is_empty());
         assert_eq!(checksum.len(), 64); // SHA-256 hex

@@ -15,11 +15,11 @@
 //! - Predictive failure detection (ML)
 //! - Automated runbook execution
 
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, Duration};
-use serde::{Deserialize, Serialize};
 
 // ============================================================================
 // SEVERITY & CATEGORY (merged from synapse/antifragile.rs)
@@ -71,24 +71,24 @@ impl FailureCategory {
             (FailureCategory::Network, 0..=2) => RecoveryStrategyType::Retry,
             (FailureCategory::Network, 3..=5) => RecoveryStrategyType::ExponentialBackoff,
             (FailureCategory::Network, _) => RecoveryStrategyType::CircuitBreaker,
-            
+
             (FailureCategory::Timeout, 0..=1) => RecoveryStrategyType::Retry,
             (FailureCategory::Timeout, _) => RecoveryStrategyType::CircuitBreaker,
-            
+
             (FailureCategory::RateLimit, _) => RecoveryStrategyType::ExponentialBackoff,
-            
+
             (FailureCategory::ExternalApi, 0..=2) => RecoveryStrategyType::Fallback,
             (FailureCategory::ExternalApi, _) => RecoveryStrategyType::GracefulDegradation,
-            
+
             (FailureCategory::ResourceExhaustion, _) => RecoveryStrategyType::GracefulDegradation,
-            
+
             (FailureCategory::DataCorruption, _) => RecoveryStrategyType::Rollback,
-            
+
             (FailureCategory::PolicyViolation, _) => RecoveryStrategyType::Skip,
-            
+
             (FailureCategory::AuthFailure, 0..=1) => RecoveryStrategyType::Retry,
             (FailureCategory::AuthFailure, _) => RecoveryStrategyType::HumanIntervention,
-            
+
             (FailureCategory::Other(_), 0..=2) => RecoveryStrategyType::Retry,
             (FailureCategory::Other(_), _) => RecoveryStrategyType::HumanIntervention,
         }
@@ -184,24 +184,32 @@ impl FailureClass {
     /// Classify from error message.
     pub fn from_error(msg: &str) -> Self {
         let lower = msg.to_lowercase();
-        
+
         if lower.contains("timeout") || lower.contains("timed out") {
             Self::Timeout
-        } else if lower.contains("connection") || lower.contains("network") || lower.contains("dns") {
+        } else if lower.contains("connection") || lower.contains("network") || lower.contains("dns")
+        {
             Self::Network
-        } else if lower.contains("memory") || lower.contains("resource") || lower.contains("limit") {
+        } else if lower.contains("memory") || lower.contains("resource") || lower.contains("limit")
+        {
             Self::ResourceExhaustion
         } else if lower.contains("unavailable") || lower.contains("503") || lower.contains("502") {
             Self::ServiceUnavailable
-        } else if lower.contains("validation") || lower.contains("invalid") || lower.contains("parse") {
+        } else if lower.contains("validation")
+            || lower.contains("invalid")
+            || lower.contains("parse")
+        {
             Self::ValidationError
-        } else if lower.contains("policy") || lower.contains("denied") || lower.contains("forbidden") {
+        } else if lower.contains("policy")
+            || lower.contains("denied")
+            || lower.contains("forbidden")
+        {
             Self::PolicyViolation
         } else {
             Self::Unknown
         }
     }
-    
+
     /// Convert to FailureCategory for strategy recommendation.
     pub fn to_category(&self) -> FailureCategory {
         match self {
@@ -380,7 +388,7 @@ impl CircuitBreaker {
     pub fn record_failure(&mut self) {
         self.failure_count += 1;
         self.last_failure = Some(Utc::now());
-        
+
         match self.state {
             CircuitState::Closed => {
                 if self.failure_count >= self.failure_threshold {
@@ -420,7 +428,11 @@ impl AntifragileEngine {
         let strategies = vec![
             RecoveryStrategy {
                 name: "retry_with_backoff".into(),
-                applies_to: vec![FailureClass::Network, FailureClass::Timeout, FailureClass::ServiceUnavailable],
+                applies_to: vec![
+                    FailureClass::Network,
+                    FailureClass::Timeout,
+                    FailureClass::ServiceUnavailable,
+                ],
                 priority: 80,
                 success_rate: 70,
                 avg_recovery_ms: 2000,
@@ -447,7 +459,7 @@ impl AntifragileEngine {
                 avg_recovery_ms: 10,
             },
         ];
-        
+
         Self {
             failures: Arc::new(RwLock::new(Vec::new())),
             circuits: Arc::new(RwLock::new(HashMap::new())),
@@ -462,19 +474,19 @@ impl AntifragileEngine {
         {
             let mut failures = self.failures.write().await;
             failures.push(failure.clone());
-            
+
             // Keep only last 1000 failures
             if failures.len() > 1000 {
                 failures.remove(0);
             }
         }
-        
+
         // Update stats
         {
             let mut stats = self.failure_stats.write().await;
             *stats.entry(failure.class.clone()).or_insert(0) += 1;
         }
-        
+
         // Update circuit breaker
         {
             let mut circuits = self.circuits.write().await;
@@ -483,7 +495,7 @@ impl AntifragileEngine {
                 .or_insert_with(|| CircuitBreaker::new(&failure.service));
             circuit.record_failure();
         }
-        
+
         // Find best recovery strategy
         self.find_strategy(&failure.class)
     }
@@ -544,19 +556,31 @@ mod tests {
 
     #[test]
     fn test_failure_classification() {
-        assert_eq!(FailureClass::from_error("Connection timeout"), FailureClass::Timeout);
-        assert_eq!(FailureClass::from_error("Network unreachable"), FailureClass::Network);
-        assert_eq!(FailureClass::from_error("Out of memory"), FailureClass::ResourceExhaustion);
-        assert_eq!(FailureClass::from_error("Service unavailable 503"), FailureClass::ServiceUnavailable);
+        assert_eq!(
+            FailureClass::from_error("Connection timeout"),
+            FailureClass::Timeout
+        );
+        assert_eq!(
+            FailureClass::from_error("Network unreachable"),
+            FailureClass::Network
+        );
+        assert_eq!(
+            FailureClass::from_error("Out of memory"),
+            FailureClass::ResourceExhaustion
+        );
+        assert_eq!(
+            FailureClass::from_error("Service unavailable 503"),
+            FailureClass::ServiceUnavailable
+        );
     }
 
     #[test]
     fn test_circuit_breaker_normal() {
         let mut cb = CircuitBreaker::new("test-service");
-        
+
         assert!(cb.is_allowed());
         assert_eq!(cb.state(), CircuitState::Closed);
-        
+
         cb.record_success();
         assert_eq!(cb.state(), CircuitState::Closed);
     }
@@ -564,12 +588,12 @@ mod tests {
     #[test]
     fn test_circuit_breaker_opens() {
         let mut cb = CircuitBreaker::new("failing-service");
-        
+
         // Record failures up to threshold
         for _ in 0..5 {
             cb.record_failure();
         }
-        
+
         assert_eq!(cb.state(), CircuitState::Open);
         assert!(!cb.is_allowed());
     }
@@ -577,10 +601,10 @@ mod tests {
     #[tokio::test]
     async fn test_antifragile_handle_failure() {
         let engine = AntifragileEngine::new();
-        
+
         let failure = Failure::new("api-service", "Connection timeout");
         let strategy = engine.handle_failure(failure).await;
-        
+
         assert!(strategy.is_some());
         let strat = strategy.unwrap();
         assert!(strat.applies(&FailureClass::Timeout));
@@ -589,16 +613,16 @@ mod tests {
     #[tokio::test]
     async fn test_antifragile_service_availability() {
         let engine = AntifragileEngine::new();
-        
+
         // Service should be available initially
         assert!(engine.is_service_available("new-service").await);
-        
+
         // Record many failures
         for _ in 0..5 {
             let failure = Failure::new("failing-service", "Service unavailable");
             engine.handle_failure(failure).await;
         }
-        
+
         // Circuit should be open now
         assert!(!engine.is_service_available("failing-service").await);
     }
@@ -606,13 +630,13 @@ mod tests {
     #[tokio::test]
     async fn test_recovery_recording() {
         let engine = AntifragileEngine::new();
-        
+
         // Create failure then recover
         let failure = Failure::new("recovering-service", "Timeout");
         engine.handle_failure(failure).await;
-        
+
         engine.record_recovery("recovering-service").await;
-        
+
         // Should still be available
         assert!(engine.is_service_available("recovering-service").await);
     }
@@ -620,11 +644,11 @@ mod tests {
     #[test]
     fn test_recovery_strategy_selection() {
         let engine = AntifragileEngine::new();
-        
+
         // Network failures should get retry strategy
         let strat = engine.find_strategy(&FailureClass::Network);
         assert!(strat.is_some());
-        
+
         // Resource exhaustion gets reduce_load
         let strat = engine.find_strategy(&FailureClass::ResourceExhaustion);
         assert!(strat.is_some());

@@ -20,12 +20,12 @@
 extern crate alloc;
 
 pub mod minimal;
-pub mod policy;
 pub mod offline;
+pub mod policy;
 
-pub use minimal::{EdgeRuntime, EdgeConfig, EdgeError};
-pub use policy::{EdgePolicy, PolicyRule, PolicyAction};
+pub use minimal::{EdgeConfig, EdgeError, EdgeRuntime};
 pub use offline::{OfflineAgent, OfflineState, SyncStrategy};
+pub use policy::{EdgePolicy, PolicyAction, PolicyRule};
 
 /// Edge runtime version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

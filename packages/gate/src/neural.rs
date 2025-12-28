@@ -21,12 +21,12 @@
 //! let result = guard.classify_intent("transfer $10000")?;
 //! ```
 
+use crate::types::VerificationContext;
+use deunicode::deunicode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-use crate::types::VerificationContext;
 use unicode_normalization::UnicodeNormalization;
-use deunicode::deunicode;
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -170,20 +170,42 @@ impl SimpleTokenizer {
     /// Create a simple tokenizer with common words.
     pub fn new() -> Self {
         let mut vocab = HashMap::new();
-        
+
         // Build basic vocabulary
         let words = [
-            "transfer", "send", "money", "pay", "delete", "remove",
-            "access", "read", "write", "execute", "admin", "root",
-            "password", "credential", "token", "key", "secret",
-            "database", "file", "system", "network", "api",
-            "user", "account", "data", "query", "select",
+            "transfer",
+            "send",
+            "money",
+            "pay",
+            "delete",
+            "remove",
+            "access",
+            "read",
+            "write",
+            "execute",
+            "admin",
+            "root",
+            "password",
+            "credential",
+            "token",
+            "key",
+            "secret",
+            "database",
+            "file",
+            "system",
+            "network",
+            "api",
+            "user",
+            "account",
+            "data",
+            "query",
+            "select",
         ];
-        
+
         for (i, word) in words.iter().enumerate() {
             vocab.insert(word.to_string(), i as i64 + 1);
         }
-        
+
         Self {
             vocab,
             max_length: 64,
@@ -200,26 +222,32 @@ impl SimpleTokenizer {
         // 3. Lowercasing
         let nfc_normalized = text.nfc().collect::<String>();
         let lowered = deunicode(&nfc_normalized).to_lowercase();
-        
+
         // Clean special characters but keep spaces
         let cleaned: String = lowered
             .chars()
-            .map(|c| if c.is_alphanumeric() || c.is_whitespace() { c } else { ' ' })
+            .map(|c| {
+                if c.is_alphanumeric() || c.is_whitespace() {
+                    c
+                } else {
+                    ' '
+                }
+            })
             .collect();
 
         let words: Vec<&str> = cleaned.split_whitespace().collect();
-        
+
         let mut tokens: Vec<i64> = words
             .iter()
             .map(|w| *self.vocab.get(*w).unwrap_or(&self.unk_token))
             .collect();
-        
+
         // Truncate or pad
         tokens.truncate(self.max_length);
         while tokens.len() < self.max_length {
             tokens.push(self.pad_token);
         }
-        
+
         tokens
     }
 }
@@ -251,21 +279,21 @@ impl PolicyEmbedding {
         if self.dimension != other.dimension {
             return 0.0;
         }
-        
+
         let mut dot = 0.0f32;
         let mut norm_a = 0.0f32;
         let mut norm_b = 0.0f32;
-        
+
         for i in 0..self.dimension {
             dot += self.vector[i] * other.vector[i];
             norm_a += self.vector[i] * self.vector[i];
             norm_b += other.vector[i] * other.vector[i];
         }
-        
+
         if norm_a == 0.0 || norm_b == 0.0 {
             return 0.0;
         }
-        
+
         dot / (norm_a.sqrt() * norm_b.sqrt())
     }
 }
@@ -287,7 +315,7 @@ impl InferenceSession {
     #[cfg(feature = "neural")]
     pub fn new(config: ModelConfig) -> Result<Self, NeuralError> {
         use std::path::Path;
-        
+
         let model_path = Path::new(&config.model_path);
         if !model_path.exists() {
             // Return session without model loaded - will use mock inference
@@ -296,16 +324,24 @@ impl InferenceSession {
                 session: None,
             });
         }
-        
+
         let session = ort::Session::builder()
-            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .map_err(|e| NeuralError::ModelLoadFailed {
+                reason: e.to_string(),
+            })?
             .with_optimization_level(ort::GraphOptimizationLevel::Level3)
-            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .map_err(|e| NeuralError::ModelLoadFailed {
+                reason: e.to_string(),
+            })?
             .with_intra_threads(config.num_threads as usize)
-            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?
+            .map_err(|e| NeuralError::ModelLoadFailed {
+                reason: e.to_string(),
+            })?
             .commit_from_file(model_path)
-            .map_err(|e| NeuralError::ModelLoadFailed { reason: e.to_string() })?;
-        
+            .map_err(|e| NeuralError::ModelLoadFailed {
+                reason: e.to_string(),
+            })?;
+
         Ok(Self {
             config,
             session: Some(session),
@@ -326,18 +362,30 @@ impl InferenceSession {
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
         if let Some(ref session) = self.session {
             use ort::inputs;
-            
+
             let input_array = ndarray::Array1::from_vec(input.to_vec())
                 .into_shape((1, input.len()))
-                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
-            
-            let outputs = session.run(inputs![input_array]
-                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?)
-                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
-            
-            let output_tensor = outputs[0].extract_tensor::<f32>()
-                .map_err(|e| NeuralError::InferenceFailed { reason: e.to_string() })?;
-            
+                .map_err(|e| NeuralError::InferenceFailed {
+                    reason: e.to_string(),
+                })?;
+
+            let outputs = session
+                .run(
+                    inputs![input_array].map_err(|e| NeuralError::InferenceFailed {
+                        reason: e.to_string(),
+                    })?,
+                )
+                .map_err(|e| NeuralError::InferenceFailed {
+                    reason: e.to_string(),
+                })?;
+
+            let output_tensor =
+                outputs[0]
+                    .extract_tensor::<f32>()
+                    .map_err(|e| NeuralError::InferenceFailed {
+                        reason: e.to_string(),
+                    })?;
+
             Ok(output_tensor.view().iter().cloned().collect())
         } else {
             // Fallback to mock inference
@@ -355,18 +403,17 @@ impl InferenceSession {
     fn mock_run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
         let hash: f32 = input.iter().sum::<f32>().abs();
         let base = (hash % 100.0) / 100.0;
-        
+
         Ok(vec![
-            0.7 - base * 0.3,  // Safe
-            base * 0.2,        // Suspicious
-            base * 0.1,        // Malicious
-            0.1,               // Financial
-            0.05,              // DataAccess
-            0.05,              // SystemOp
+            0.7 - base * 0.3, // Safe
+            base * 0.2,       // Suspicious
+            base * 0.1,       // Malicious
+            0.1,              // Financial
+            0.05,             // DataAccess
+            0.05,             // SystemOp
         ])
     }
 }
-
 
 /// Neural guard for policy enforcement.
 pub struct NeuralGuard {
@@ -384,38 +431,45 @@ impl NeuralGuard {
     pub fn with_config(config: ModelConfig) -> Result<Self, NeuralError> {
         let session = InferenceSession::new(config)?;
         let tokenizer = SimpleTokenizer::new();
-        
+
         Ok(Self { session, tokenizer })
     }
 
     /// Classify intent from text.
     pub fn classify_intent(&self, text: &str) -> Result<IntentResult, NeuralError> {
         let start = std::time::Instant::now();
-        
+
         // Tokenize input
         let tokens = self.tokenizer.tokenize(text);
         let input: Vec<f32> = tokens.iter().map(|&t| t as f32).collect();
-        
+
         // Run inference
         let output = self.session.run(&input)?;
-        
+
         // Parse results
-        let class_names = ["Safe", "Suspicious", "Malicious", "Financial", "DataAccess", "SystemOp"];
+        let class_names = [
+            "Safe",
+            "Suspicious",
+            "Malicious",
+            "Financial",
+            "DataAccess",
+            "SystemOp",
+        ];
         let mut probabilities = HashMap::new();
-        
+
         for (i, &prob) in output.iter().enumerate() {
             if i < class_names.len() {
                 probabilities.insert(class_names[i].to_string(), prob);
             }
         }
-        
+
         // Find highest probability class
         let (max_idx, &max_prob) = output
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
             .unwrap_or((0, &0.0));
-        
+
         let intent = match max_idx {
             0 => IntentClass::Safe,
             1 => IntentClass::Suspicious,
@@ -425,9 +479,9 @@ impl NeuralGuard {
             5 => IntentClass::SystemOp,
             _ => IntentClass::Unknown,
         };
-        
+
         let latency = start.elapsed().as_micros() as u64;
-        
+
         Ok(IntentResult {
             intent,
             confidence: max_prob,
@@ -447,7 +501,7 @@ impl NeuralGuard {
     /// Check if action should be blocked.
     pub fn should_block(&self, text: &str, threshold: f32) -> Result<bool, NeuralError> {
         let result = self.classify_intent(text)?;
-        
+
         Ok(result.intent == IntentClass::Malicious && result.confidence >= threshold)
     }
 }
@@ -485,7 +539,7 @@ impl NeuroSymbolicValidator {
     /// Create a new validator.
     pub fn new() -> Result<Self, NeuralError> {
         let guard = NeuralGuard::new()?;
-        
+
         // Default symbolic rules
         let symbolic_rules = vec![
             SymbolicRule {
@@ -501,7 +555,7 @@ impl NeuroSymbolicValidator {
                 action: RuleAction::Review,
             },
         ];
-        
+
         Ok(Self {
             guard,
             symbolic_rules,
@@ -511,11 +565,11 @@ impl NeuroSymbolicValidator {
     /// Validate an action combining neural and symbolic.
     pub fn validate(&self, text: &str) -> Result<ValidationResult, NeuralError> {
         let text_lower = text.to_lowercase();
-        
+
         // Check symbolic rules first (fast path)
         for rule in &self.symbolic_rules {
             let matches_keywords = rule.keywords.iter().all(|kw| text_lower.contains(kw));
-            
+
             if matches_keywords {
                 return Ok(ValidationResult {
                     allowed: rule.action == RuleAction::Allow,
@@ -525,20 +579,24 @@ impl NeuroSymbolicValidator {
                 });
             }
         }
-        
+
         // Fall back to neural inference
         let intent = self.guard.classify_intent(text)?;
-        
+
         let (allowed, action) = match intent.intent {
             IntentClass::Malicious => (false, RuleAction::Block),
             IntentClass::Suspicious => (false, RuleAction::Review),
             _ => (true, RuleAction::Allow),
         };
-        
+
         Ok(ValidationResult {
             allowed,
             action,
-            reason: format!("Neural: {:?} ({:.2}%)", intent.intent, intent.confidence * 100.0),
+            reason: format!(
+                "Neural: {:?} ({:.2}%)",
+                intent.intent,
+                intent.confidence * 100.0
+            ),
             neural_result: Some(intent),
         })
     }
@@ -559,7 +617,7 @@ pub struct ValidationResult {
 }
 
 /// Neural scorer for use in Gate Engine.
-/// 
+///
 /// Wraps NeuralGuard to provide async scoring interface.
 pub struct NeuralScorer {
     guard: Option<NeuralGuard>,
@@ -608,7 +666,7 @@ mod tests {
     fn test_tokenizer() {
         let tokenizer = SimpleTokenizer::new();
         let tokens = tokenizer.tokenize("transfer money to account");
-        
+
         assert_eq!(tokens.len(), 64);
         assert!(tokens[0] > 0); // "transfer" should be known
     }
@@ -617,7 +675,7 @@ mod tests {
     fn test_intent_classification() {
         let guard = NeuralGuard::new().unwrap();
         let result = guard.classify_intent("transfer money").unwrap();
-        
+
         assert!(result.confidence > 0.0);
         assert!(result.latency_us < 10000); // <10ms
     }
@@ -634,7 +692,7 @@ mod tests {
         let a = PolicyEmbedding::new(vec![1.0, 0.0, 0.0], "p1");
         let b = PolicyEmbedding::new(vec![1.0, 0.0, 0.0], "p2");
         let c = PolicyEmbedding::new(vec![0.0, 1.0, 0.0], "p3");
-        
+
         assert!((a.cosine_similarity(&b) - 1.0).abs() < 0.001);
         assert!((a.cosine_similarity(&c) - 0.0).abs() < 0.001);
     }
@@ -642,12 +700,12 @@ mod tests {
     #[test]
     fn test_neuro_symbolic_validator() {
         let validator = NeuroSymbolicValidator::new().unwrap();
-        
+
         // Should trigger symbolic rule
         let result = validator.validate("delete all records").unwrap();
         assert!(!result.allowed);
         assert!(result.reason.contains("Symbolic"));
-        
+
         // Should use neural inference
         let result = validator.validate("check account balance").unwrap();
         assert!(result.reason.contains("Neural"));
@@ -657,7 +715,7 @@ mod tests {
     fn test_batch_classify() {
         let guard = NeuralGuard::new().unwrap();
         let texts = vec!["transfer money", "read file", "delete data"];
-        
+
         let results = guard.batch_classify(&texts).unwrap();
         assert_eq!(results.len(), 3);
     }

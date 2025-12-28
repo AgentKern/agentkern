@@ -18,8 +18,8 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use thiserror::Error;
 
 /// mTLS errors.
 #[derive(Debug, Error)]
@@ -135,7 +135,7 @@ impl CertificateInfo {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         now >= self.not_before && now <= self.not_after
     }
 
@@ -145,7 +145,7 @@ impl CertificateInfo {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         ((self.not_after as i64) - (now as i64)) / 86400
     }
 }
@@ -178,11 +178,11 @@ impl CertificateValidator {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         if now < cert.not_before {
             return Err(MtlsError::CertificateNotYetValid);
         }
-        
+
         if now > cert.not_after {
             return Err(MtlsError::CertificateExpired);
         }
@@ -215,10 +215,10 @@ impl CertificateValidator {
         // Check if client cert is required
         if self.config.require_client_cert {
             let cert = client_cert.ok_or(MtlsError::MissingClientCert)?;
-            
+
             // Validate the certificate
             self.validate(cert)?;
-            
+
             // Check agent identity if specified
             if let Some(expected_id) = expected_agent_id {
                 if cert.subject != expected_id && !cert.subject.contains(expected_id) {
@@ -258,7 +258,7 @@ impl JitCredentialIssuer {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         EphemeralCredential {
             credential_id: uuid::Uuid::new_v4().to_string(),
             agent_id: agent_id.to_string(),
@@ -288,7 +288,7 @@ impl EphemeralCredential {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         now >= self.issued_at && now <= self.expires_at
     }
 
@@ -298,7 +298,7 @@ impl EphemeralCredential {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        
+
         (self.expires_at as i64) - now
     }
 }
@@ -312,7 +312,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         CertificateInfo {
             subject: "CN=agent-123".to_string(),
             issuer: "CN=AgentKern CA".to_string(),
@@ -330,7 +330,7 @@ mod tests {
     fn test_valid_certificate() {
         let validator = CertificateValidator::new(MtlsConfig::default());
         let cert = make_valid_cert();
-        
+
         assert!(validator.validate(&cert).is_ok());
     }
 
@@ -339,7 +339,7 @@ mod tests {
         let validator = CertificateValidator::new(MtlsConfig::default());
         let mut cert = make_valid_cert();
         cert.not_after = 0; // Expired in 1970
-        
+
         let result = validator.validate(&cert);
         assert!(matches!(result, Err(MtlsError::CertificateExpired)));
     }
@@ -348,9 +348,9 @@ mod tests {
     fn test_revoked_certificate() {
         let mut validator = CertificateValidator::new(MtlsConfig::default());
         let cert = make_valid_cert();
-        
+
         validator.revoke(cert.serial.clone());
-        
+
         let result = validator.validate(&cert);
         assert!(matches!(result, Err(MtlsError::CertificateRevoked)));
     }
@@ -358,7 +358,7 @@ mod tests {
     #[test]
     fn test_missing_client_cert() {
         let validator = CertificateValidator::new(MtlsConfig::strict());
-        
+
         let result = validator.validate_connection(None, None);
         assert!(matches!(result, Err(MtlsError::MissingClientCert)));
     }
@@ -367,7 +367,7 @@ mod tests {
     fn test_jit_credentials() {
         let issuer = JitCredentialIssuer::default();
         let cred = issuer.issue("agent-456", "database:read");
-        
+
         assert!(cred.is_valid());
         assert!(cred.ttl_secs() > 0);
         assert!(cred.token.contains("agent-456"));

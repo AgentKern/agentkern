@@ -1,23 +1,18 @@
 //! AgentKern-Arbiter Server
 
-use std::sync::Arc;
 use axum::{
-    Router,
-    routing::{get, post},
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use agentkern_arbiter::{
-    Coordinator,
-    CoordinationRequest,
-    CoordinationResult,
-    BusinessLock,
-    types::LockType,
+    types::LockType, BusinessLock, CoordinationRequest, CoordinationResult, Coordinator,
 };
 
 struct AppState {
@@ -77,9 +72,9 @@ async fn main() {
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3003".to_string());
     let addr = format!("0.0.0.0:{}", port);
-    
+
     tracing::info!("⚖️ AgentKern-Arbiter server running on http://{}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -101,9 +96,9 @@ async fn coordinate(
         _ => LockType::Write,
     };
 
-    let mut request = CoordinationRequest::new(req.agent_id, req.resource)
-        .with_operation(operation);
-    
+    let mut request =
+        CoordinationRequest::new(req.agent_id, req.resource).with_operation(operation);
+
     if let Some(p) = req.priority {
         request = request.with_priority(p);
     }
@@ -118,7 +113,8 @@ async fn acquire_lock(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LockRequest>,
 ) -> Result<Json<BusinessLock>, StatusCode> {
-    state.coordinator
+    state
+        .coordinator
         .acquire_lock(&req.agent_id, &req.resource, req.priority.unwrap_or(0))
         .await
         .map(Json)
@@ -129,7 +125,8 @@ async fn release_lock(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LockRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    state.coordinator
+    state
+        .coordinator
         .release_lock(&req.agent_id, &req.resource)
         .await
         .map(|_| Json(serde_json::json!({"released": true})))
@@ -140,7 +137,8 @@ async fn lock_status(
     State(state): State<Arc<AppState>>,
     Path(resource): Path<String>,
 ) -> Result<Json<BusinessLock>, StatusCode> {
-    state.coordinator
+    state
+        .coordinator
         .get_lock_status(&resource)
         .await
         .map(Json)
@@ -151,10 +149,11 @@ async fn queue_position(
     State(state): State<Arc<AppState>>,
     Query(query): Query<QueueQuery>,
 ) -> Json<serde_json::Value> {
-    let position = state.coordinator
+    let position = state
+        .coordinator
         .get_queue_position(&query.agent_id, &query.resource)
         .await;
-    
+
     Json(serde_json::json!({
         "agent_id": query.agent_id,
         "resource": query.resource,

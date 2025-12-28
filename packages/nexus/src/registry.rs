@@ -9,11 +9,11 @@
 //! - Multi-tenant isolation
 //! - Advanced search and filtering
 
+use crate::agent_card::AgentCard;
+use crate::error::NexusError;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::agent_card::AgentCard;
-use crate::error::NexusError;
 
 /// Agent registry - in-memory implementation (Open Source).
 pub struct AgentRegistry {
@@ -32,11 +32,11 @@ impl AgentRegistry {
     pub async fn register(&self, card: AgentCard) -> Result<(), NexusError> {
         let id = card.id.clone();
         let mut agents = self.agents.write().await;
-        
+
         if agents.contains_key(&id) {
             return Err(NexusError::AgentAlreadyExists { agent_id: id });
         }
-        
+
         tracing::info!(agent_id = %id, name = %card.name, "Agent registered");
         agents.insert(id, card);
         Ok(())
@@ -46,11 +46,11 @@ impl AgentRegistry {
     pub async fn update(&self, card: AgentCard) -> Result<(), NexusError> {
         let id = card.id.clone();
         let mut agents = self.agents.write().await;
-        
+
         if !agents.contains_key(&id) {
             return Err(NexusError::AgentNotFound { agent_id: id });
         }
-        
+
         agents.insert(id, card);
         Ok(())
     }
@@ -58,9 +58,10 @@ impl AgentRegistry {
     /// Unregister an agent.
     pub async fn unregister(&self, agent_id: &str) -> Result<AgentCard, NexusError> {
         let mut agents = self.agents.write().await;
-        
-        agents.remove(agent_id)
-            .ok_or(NexusError::AgentNotFound { agent_id: agent_id.to_string() })
+
+        agents.remove(agent_id).ok_or(NexusError::AgentNotFound {
+            agent_id: agent_id.to_string(),
+        })
     }
 
     /// Get an agent by ID.
@@ -78,7 +79,8 @@ impl AgentRegistry {
     /// Find agents with a specific skill.
     pub async fn find_by_skill(&self, skill_id: &str) -> Vec<AgentCard> {
         let agents = self.agents.read().await;
-        agents.values()
+        agents
+            .values()
             .filter(|a| a.has_skill(skill_id) || a.has_skill_tag(skill_id))
             .cloned()
             .collect()
@@ -109,9 +111,9 @@ mod tests {
     #[tokio::test]
     async fn test_register_agent() {
         let registry = AgentRegistry::new();
-        
+
         registry.register(test_card("agent-1")).await.unwrap();
-        
+
         assert_eq!(registry.count().await, 1);
         assert!(registry.get("agent-1").await.is_some());
     }
@@ -119,27 +121,27 @@ mod tests {
     #[tokio::test]
     async fn test_duplicate_registration() {
         let registry = AgentRegistry::new();
-        
+
         registry.register(test_card("agent-1")).await.unwrap();
         let result = registry.register(test_card("agent-1")).await;
-        
+
         assert!(matches!(result, Err(NexusError::AgentAlreadyExists { .. })));
     }
 
     #[tokio::test]
     async fn test_unregister() {
         let registry = AgentRegistry::new();
-        
+
         registry.register(test_card("agent-1")).await.unwrap();
         registry.unregister("agent-1").await.unwrap();
-        
+
         assert_eq!(registry.count().await, 0);
     }
 
     #[tokio::test]
     async fn test_find_by_skill() {
         let registry = AgentRegistry::new();
-        
+
         let mut card = test_card("agent-1");
         card.skills.push(Skill {
             id: "nlp".into(),
@@ -149,10 +151,10 @@ mod tests {
             input_schema: None,
             output_schema: None,
         });
-        
+
         registry.register(card).await.unwrap();
         registry.register(test_card("agent-2")).await.unwrap();
-        
+
         let nlp_agents = registry.find_by_skill("nlp").await;
         assert_eq!(nlp_agents.len(), 1);
         assert_eq!(nlp_agents[0].id, "agent-1");

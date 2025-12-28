@@ -2,12 +2,12 @@
 //!
 //! This adapter handles the core AgentKern protocol for direct agent communication.
 
-use crate::types::{NexusMessage, Protocol};
-use crate::NexusError;
 use super::adapter::ProtocolAdapter;
+use crate::NexusError;
+use crate::types::{NexusMessage, Protocol};
 
 /// AgentKern native protocol adapter.
-/// 
+///
 /// Handles direct A2A protocol messages without translation.
 pub struct AgentKernAdapter;
 
@@ -45,13 +45,15 @@ impl ProtocolAdapter for AgentKernAdapter {
 
     async fn parse(&self, data: &[u8]) -> Result<NexusMessage, NexusError> {
         // Parse A2A JSON-RPC message
-        serde_json::from_slice(data)
-            .map_err(|e| NexusError::ParseError { message: e.to_string() })
+        serde_json::from_slice(data).map_err(|e| NexusError::ParseError {
+            message: e.to_string(),
+        })
     }
 
     async fn serialize(&self, msg: &NexusMessage) -> Result<Vec<u8>, NexusError> {
-        serde_json::to_vec(msg)
-            .map_err(|e| NexusError::SerializeError { message: e.to_string() })
+        serde_json::to_vec(msg).map_err(|e| NexusError::SerializeError {
+            message: e.to_string(),
+        })
     }
 
     fn supports_streaming(&self) -> bool {

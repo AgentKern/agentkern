@@ -43,7 +43,7 @@ fn now() -> Timestamp {
 // ============================================
 
 /// Grow-only counter CRDT.
-/// 
+///
 /// Each node can only increment, never decrement.
 /// The value is the sum of all node increments.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,7 +87,7 @@ impl GCounter {
 // ============================================
 
 /// Positive-Negative counter CRDT.
-/// 
+///
 /// Supports both increment and decrement.
 /// Uses two G-Counters internally.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,7 +138,7 @@ impl PNCounter {
 // ============================================
 
 /// Last-Writer-Wins Register CRDT.
-/// 
+///
 /// Stores a single value; conflicts resolved by timestamp.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LwwRegister<T: Clone> {
@@ -208,7 +208,7 @@ struct Tagged<T: Clone + Eq + std::hash::Hash> {
 }
 
 /// Observed-Remove Set CRDT.
-/// 
+///
 /// Add-wins semantics with unique tags per add.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrSet<T: Clone + Eq + std::hash::Hash> {
@@ -242,12 +242,13 @@ impl<T: Clone + Eq + std::hash::Hash> OrSet<T> {
 
     /// Remove an element.
     pub fn remove(&mut self, value: &T) {
-        let to_remove: Vec<_> = self.elements
+        let to_remove: Vec<_> = self
+            .elements
             .iter()
             .filter(|e| e.value == *value)
             .cloned()
             .collect();
-        
+
         for elem in to_remove {
             self.tombstones.insert(elem.tag.clone());
             self.elements.remove(&elem);
@@ -282,10 +283,10 @@ impl<T: Clone + Eq + std::hash::Hash> OrSet<T> {
                 self.elements.insert(elem.clone());
             }
         }
-        
+
         // Merge tombstones
         self.tombstones.extend(other.tombstones.iter().cloned());
-        
+
         // Remove tombstoned elements
         self.elements.retain(|e| !self.tombstones.contains(&e.tag));
     }
@@ -296,7 +297,7 @@ impl<T: Clone + Eq + std::hash::Hash> OrSet<T> {
 // ============================================
 
 /// Last-Writer-Wins Map CRDT.
-/// 
+///
 /// Each key has an LWW-Register for its value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LwwMap<K: Clone + Eq + std::hash::Hash, V: Clone> {
@@ -321,14 +322,14 @@ impl<K: Clone + Eq + std::hash::Hash, V: Clone> LwwMap<K, V> {
     /// Set a key-value pair.
     pub fn set(&mut self, key: K, value: V) {
         let ts = now();
-        
+
         // Only set if newer than tombstone
         if let Some(&tomb_ts) = self.tombstones.get(&key) {
             if ts <= tomb_ts {
                 return;
             }
         }
-        
+
         let register = self.entries.entry(key).or_insert_with(LwwRegister::new);
         register.set(value, &self.node_id);
     }
@@ -359,16 +360,19 @@ impl<K: Clone + Eq + std::hash::Hash, V: Clone> LwwMap<K, V> {
     pub fn merge(&mut self, other: &LwwMap<K, V>) {
         // Merge entries
         for (key, register) in &other.entries {
-            let entry = self.entries.entry(key.clone()).or_insert_with(LwwRegister::new);
+            let entry = self
+                .entries
+                .entry(key.clone())
+                .or_insert_with(LwwRegister::new);
             entry.merge(register);
         }
-        
+
         // Merge tombstones
         for (key, &ts) in &other.tombstones {
             let entry = self.tombstones.entry(key.clone()).or_insert(0);
             *entry = (*entry).max(ts);
         }
-        
+
         // Remove entries older than tombstones
         self.entries.retain(|k, r| {
             if let Some(&tomb_ts) = self.tombstones.get(k) {
@@ -406,7 +410,7 @@ impl AgentStateCrdt {
     pub fn new(agent_id: impl Into<String>, node_id: impl Into<NodeId>) -> Self {
         let id: String = agent_id.into();
         let node: NodeId = node_id.into();
-        
+
         Self {
             agent_id: id,
             action_count: GCounter::new(node.clone()),
@@ -422,7 +426,7 @@ impl AgentStateCrdt {
         if self.agent_id != other.agent_id {
             return; // Can't merge different agents
         }
-        
+
         self.action_count.merge(&other.action_count);
         self.budget.merge(&other.budget);
         self.current_task.merge(&other.current_task);
@@ -439,10 +443,10 @@ mod tests {
     fn test_gcounter() {
         let mut c1 = GCounter::new("node-1");
         let mut c2 = GCounter::new("node-2");
-        
+
         c1.increment(5);
         c2.increment(3);
-        
+
         c1.merge(&c2);
         assert_eq!(c1.value(), 8);
     }
@@ -450,10 +454,10 @@ mod tests {
     #[test]
     fn test_pncounter() {
         let mut counter = PNCounter::new("node-1");
-        
+
         counter.increment(10);
         counter.decrement(3);
-        
+
         assert_eq!(counter.value(), 7);
     }
 
@@ -461,11 +465,11 @@ mod tests {
     fn test_lww_register() {
         let mut r1: LwwRegister<String> = LwwRegister::new();
         let mut r2: LwwRegister<String> = LwwRegister::new();
-        
+
         r1.set("first".to_string(), "node-1");
         std::thread::sleep(std::time::Duration::from_micros(10));
         r2.set("second".to_string(), "node-2");
-        
+
         r1.merge(&r2);
         assert_eq!(r1.get(), Some(&"second".to_string()));
     }
@@ -474,12 +478,12 @@ mod tests {
     fn test_or_set() {
         let mut s1 = OrSet::new("node-1");
         let mut s2 = OrSet::new("node-2");
-        
+
         s1.add("apple");
         s1.add("banana");
         s2.add("banana");
         s2.add("cherry");
-        
+
         s1.merge(&s2);
         assert!(s1.contains(&"apple"));
         assert!(s1.contains(&"banana"));
@@ -491,9 +495,9 @@ mod tests {
         let mut s1 = OrSet::new("node-1");
         s1.add("apple");
         s1.add("banana");
-        
+
         s1.remove(&"apple");
-        
+
         assert!(!s1.contains(&"apple"));
         assert!(s1.contains(&"banana"));
     }
@@ -502,12 +506,12 @@ mod tests {
     fn test_lww_map() {
         let mut m1: LwwMap<String, i32> = LwwMap::new("node-1");
         let mut m2: LwwMap<String, i32> = LwwMap::new("node-2");
-        
+
         m1.set("a".to_string(), 1);
         m2.set("b".to_string(), 2);
-        
+
         m1.merge(&m2);
-        
+
         assert_eq!(m1.get(&"a".to_string()), Some(&1));
         assert_eq!(m1.get(&"b".to_string()), Some(&2));
     }
@@ -516,17 +520,17 @@ mod tests {
     fn test_agent_state_crdt() {
         let mut state1 = AgentStateCrdt::new("agent-42", "node-1");
         let mut state2 = AgentStateCrdt::new("agent-42", "node-2");
-        
+
         state1.action_count.increment(5);
         state1.budget.increment(100);
         state1.tags.add("priority".to_string());
-        
+
         state2.action_count.increment(3);
         state2.budget.decrement(20);
         state2.tags.add("verified".to_string());
-        
+
         state1.merge(&state2);
-        
+
         assert_eq!(state1.action_count.value(), 8);
         assert_eq!(state1.budget.value(), 80);
         assert!(state1.tags.contains(&"priority".to_string()));

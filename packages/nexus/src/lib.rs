@@ -46,24 +46,24 @@
 //! let msg = nexus.receive(incoming_bytes).await?;
 //! ```
 
-pub mod types;
 pub mod agent_card;
-pub mod protocols;
-pub mod router;
 pub mod discovery;
-pub mod registry;
 pub mod error;
 pub mod marketplace;
+pub mod protocols;
+pub mod registry;
+pub mod router;
+pub mod types;
 
 // Re-exports
-pub use types::*;
 pub use agent_card::AgentCard;
-pub use protocols::{Protocol, ProtocolAdapter, AdapterRegistry};
-pub use router::TaskRouter;
 pub use discovery::AgentDiscovery;
-pub use registry::AgentRegistry;
 pub use error::NexusError;
-pub use marketplace::{Marketplace, TaskAuction, Bid, Settlement};
+pub use marketplace::{Bid, Marketplace, Settlement, TaskAuction};
+pub use protocols::{AdapterRegistry, Protocol, ProtocolAdapter};
+pub use registry::AgentRegistry;
+pub use router::TaskRouter;
+pub use types::*;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -87,7 +87,7 @@ impl Nexus {
         let agents = Arc::new(AgentRegistry::new());
         let router = Arc::new(TaskRouter::new(agents.clone()));
         let discovery = Arc::new(AgentDiscovery::new(agents.clone()));
-        
+
         Self {
             adapters,
             agents,
@@ -110,10 +110,10 @@ impl Nexus {
     /// Receive and translate an incoming message.
     pub async fn receive(&self, raw: &[u8]) -> Result<NexusMessage, NexusError> {
         let adapters = self.adapters.read().await;
-        
+
         // Auto-detect protocol
         let protocol = adapters.detect(raw)?;
-        
+
         // Parse using appropriate adapter
         let adapter = adapters.get(&protocol)?;
         adapter.parse(raw).await
@@ -165,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_registration() {
         let nexus = Nexus::new();
-        
+
         let card = AgentCard {
             id: "test-agent".into(),
             name: "Test Agent".into(),
@@ -176,9 +176,9 @@ mod tests {
             skills: vec![],
             ..Default::default()
         };
-        
+
         nexus.register_agent(card).await.unwrap();
-        
+
         let found = nexus.agents.get("test-agent").await;
         assert!(found.is_some());
     }

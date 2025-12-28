@@ -174,12 +174,12 @@ impl AuditLedger {
     /// Record an audit entry.
     pub async fn record(&self, record: AuditRecord) {
         let mut records = self.records.write().await;
-        
+
         // Prune old records if at capacity
         while records.len() >= self.max_records {
             records.pop_front();
         }
-        
+
         records.push_back(record);
     }
 
@@ -252,18 +252,27 @@ impl AuditLedger {
     /// Get statistics for compliance reporting.
     pub async fn get_statistics(&self) -> AuditStatistics {
         let records = self.records.read().await;
-        
+
         let total = records.len();
-        let allowed = records.iter().filter(|r| r.outcome == AuditOutcome::Allowed).count();
-        let denied = records.iter().filter(|r| r.outcome == AuditOutcome::Denied).count();
-        let review = records.iter().filter(|r| r.outcome == AuditOutcome::Review).count();
-        
+        let allowed = records
+            .iter()
+            .filter(|r| r.outcome == AuditOutcome::Allowed)
+            .count();
+        let denied = records
+            .iter()
+            .filter(|r| r.outcome == AuditOutcome::Denied)
+            .count();
+        let review = records
+            .iter()
+            .filter(|r| r.outcome == AuditOutcome::Review)
+            .count();
+
         let avg_risk = if total > 0 {
             records.iter().map(|r| r.risk_score as u32).sum::<u32>() / total as u32
         } else {
             0
         };
-        
+
         let avg_latency = if total > 0 {
             records.iter().map(|r| r.latency_us).sum::<u64>() / total as u64
         } else {
@@ -321,7 +330,7 @@ mod tests {
     #[tokio::test]
     async fn test_audit_ledger_record() {
         let ledger = AuditLedger::new();
-        
+
         let record = AuditRecord::new(
             "agent-1",
             "send_email",
@@ -329,7 +338,7 @@ mod tests {
             30,
             AuditOutcome::Allowed,
         );
-        
+
         ledger.record(record).await;
         assert_eq!(ledger.count().await, 1);
     }
@@ -337,11 +346,35 @@ mod tests {
     #[tokio::test]
     async fn test_audit_ledger_query_by_agent() {
         let ledger = AuditLedger::new();
-        
-        ledger.record(AuditRecord::new("agent-1", "action-a", "policy-1", 20, AuditOutcome::Allowed)).await;
-        ledger.record(AuditRecord::new("agent-2", "action-b", "policy-1", 30, AuditOutcome::Allowed)).await;
-        ledger.record(AuditRecord::new("agent-1", "action-c", "policy-2", 40, AuditOutcome::Denied)).await;
-        
+
+        ledger
+            .record(AuditRecord::new(
+                "agent-1",
+                "action-a",
+                "policy-1",
+                20,
+                AuditOutcome::Allowed,
+            ))
+            .await;
+        ledger
+            .record(AuditRecord::new(
+                "agent-2",
+                "action-b",
+                "policy-1",
+                30,
+                AuditOutcome::Allowed,
+            ))
+            .await;
+        ledger
+            .record(AuditRecord::new(
+                "agent-1",
+                "action-c",
+                "policy-2",
+                40,
+                AuditOutcome::Denied,
+            ))
+            .await;
+
         let agent1_records = ledger.query_by_agent("agent-1").await;
         assert_eq!(agent1_records.len(), 2);
     }
@@ -349,11 +382,17 @@ mod tests {
     #[tokio::test]
     async fn test_audit_ledger_statistics() {
         let ledger = AuditLedger::new();
-        
-        ledger.record(AuditRecord::new("a", "x", "p", 20, AuditOutcome::Allowed)).await;
-        ledger.record(AuditRecord::new("b", "y", "p", 80, AuditOutcome::Denied)).await;
-        ledger.record(AuditRecord::new("c", "z", "p", 50, AuditOutcome::Review)).await;
-        
+
+        ledger
+            .record(AuditRecord::new("a", "x", "p", 20, AuditOutcome::Allowed))
+            .await;
+        ledger
+            .record(AuditRecord::new("b", "y", "p", 80, AuditOutcome::Denied))
+            .await;
+        ledger
+            .record(AuditRecord::new("c", "z", "p", 50, AuditOutcome::Review))
+            .await;
+
         let stats = ledger.get_statistics().await;
         assert_eq!(stats.total_records, 3);
         assert_eq!(stats.allowed_count, 1);
@@ -365,11 +404,17 @@ mod tests {
     #[tokio::test]
     async fn test_audit_ledger_high_risk_query() {
         let ledger = AuditLedger::new();
-        
-        ledger.record(AuditRecord::new("a", "x", "p", 20, AuditOutcome::Allowed)).await;
-        ledger.record(AuditRecord::new("b", "y", "p", 80, AuditOutcome::Denied)).await;
-        ledger.record(AuditRecord::new("c", "z", "p", 90, AuditOutcome::Denied)).await;
-        
+
+        ledger
+            .record(AuditRecord::new("a", "x", "p", 20, AuditOutcome::Allowed))
+            .await;
+        ledger
+            .record(AuditRecord::new("b", "y", "p", 80, AuditOutcome::Denied))
+            .await;
+        ledger
+            .record(AuditRecord::new("c", "z", "p", 90, AuditOutcome::Denied))
+            .await;
+
         let high_risk = ledger.query_high_risk(75).await;
         assert_eq!(high_risk.len(), 2);
     }
@@ -377,9 +422,17 @@ mod tests {
     #[tokio::test]
     async fn test_audit_ledger_export_json() {
         let ledger = AuditLedger::new();
-        
-        ledger.record(AuditRecord::new("agent-1", "action", "policy", 50, AuditOutcome::Allowed)).await;
-        
+
+        ledger
+            .record(AuditRecord::new(
+                "agent-1",
+                "action",
+                "policy",
+                50,
+                AuditOutcome::Allowed,
+            ))
+            .await;
+
         let json = ledger.export_json().await.unwrap();
         assert!(json.contains("agent-1"));
         assert!(json.contains("policy"));

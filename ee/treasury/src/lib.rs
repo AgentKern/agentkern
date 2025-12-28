@@ -22,9 +22,9 @@
 //! treasury.pay_agent("agent-A", "agent-B", 0.001)?;
 //! ```
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 mod license {
@@ -35,13 +35,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise treasury feature accessed");
         Ok(())
     }
@@ -165,14 +165,14 @@ impl AgentWallet {
     pub fn withdraw(&mut self, currency: Currency, amount: f64) -> Result<(), TreasuryError> {
         let units = currency.to_base_units(amount);
         let balance = self.balances.entry(currency).or_insert(0);
-        
+
         if *balance < units {
             return Err(TreasuryError::InsufficientBalance {
                 required: amount,
                 available: currency.from_base_units(*balance),
             });
         }
-        
+
         *balance -= units;
         self.last_activity = Utc::now();
         Ok(())
@@ -239,10 +239,7 @@ impl PaymentRequest {
     /// Generate L402 invoice.
     pub fn generate_invoice(&mut self) -> String {
         // Generate payment hash (simulated)
-        let hash = format!("lnbc{}u1p{}", 
-            (self.amount * 100.0) as u64,
-            &self.id[..8]
-        );
+        let hash = format!("lnbc{}u1p{}", (self.amount * 100.0) as u64, &self.id[..8]);
         self.invoice = Some(hash.clone());
         hash
     }
@@ -324,20 +321,20 @@ impl PaymentChannel {
         if !self.is_open {
             return Err(TreasuryError::ChannelNotOpen);
         }
-        
+
         let units = self.currency.to_base_units(amount);
-        
+
         if self.balance_a < units {
             return Err(TreasuryError::InsufficientBalance {
                 required: amount,
                 available: self.currency.from_base_units(self.balance_a),
             });
         }
-        
+
         self.balance_a -= units;
         self.balance_b += units;
         self.tx_count += 1;
-        
+
         Ok(())
     }
 
@@ -346,20 +343,20 @@ impl PaymentChannel {
         if !self.is_open {
             return Err(TreasuryError::ChannelNotOpen);
         }
-        
+
         let units = self.currency.to_base_units(amount);
-        
+
         if self.balance_b < units {
             return Err(TreasuryError::InsufficientBalance {
                 required: amount,
                 available: self.currency.from_base_units(self.balance_b),
             });
         }
-        
+
         self.balance_b -= units;
         self.balance_a += units;
         self.tx_count += 1;
-        
+
         Ok(())
     }
 
@@ -441,7 +438,7 @@ impl Escrow {
                 reason: "Escrow not locked".to_string(),
             });
         }
-        
+
         self.status = EscrowStatus::Released;
         Ok(self.amount)
     }
@@ -453,7 +450,7 @@ impl Escrow {
                 reason: "Escrow not locked".to_string(),
             });
         }
-        
+
         self.status = EscrowStatus::Refunded;
         Ok(self.amount)
     }
@@ -479,10 +476,7 @@ impl L402Result {
     pub fn new(invoice: &str, price_sats: u64) -> Self {
         Self {
             status: 402,
-            www_authenticate: format!(
-                "L402 macaroon=\"\", invoice=\"{}\"",
-                invoice
-            ),
+            www_authenticate: format!("L402 macaroon=\"\", invoice=\"{}\"", invoice),
             invoice: invoice.to_string(),
             price_sats,
             macaroon: None,
@@ -503,7 +497,7 @@ impl Treasury {
     /// Create a new treasury (requires enterprise license).
     pub fn new(tenant_id: impl Into<String>) -> Result<Self, license::LicenseError> {
         license::require("TREASURY")?;
-        
+
         Ok(Self {
             tenant_id: tenant_id.into(),
             wallets: HashMap::new(),
@@ -516,26 +510,38 @@ impl Treasury {
     /// Register an agent wallet.
     pub fn register_agent(&mut self, agent_id: &str) {
         if !self.wallets.contains_key(agent_id) {
-            self.wallets.insert(agent_id.to_string(), AgentWallet::new(agent_id));
+            self.wallets
+                .insert(agent_id.to_string(), AgentWallet::new(agent_id));
         }
     }
 
     /// Deposit funds to an agent.
-    pub fn deposit(&mut self, agent_id: &str, currency: Currency, amount: f64) -> Result<(), TreasuryError> {
-        let wallet = self.wallets.get_mut(agent_id).ok_or(TreasuryError::AgentNotFound {
-            agent_id: agent_id.to_string(),
-        })?;
-        
+    pub fn deposit(
+        &mut self,
+        agent_id: &str,
+        currency: Currency,
+        amount: f64,
+    ) -> Result<(), TreasuryError> {
+        let wallet = self
+            .wallets
+            .get_mut(agent_id)
+            .ok_or(TreasuryError::AgentNotFound {
+                agent_id: agent_id.to_string(),
+            })?;
+
         wallet.deposit(currency, amount);
         Ok(())
     }
 
     /// Get agent balance.
     pub fn balance(&self, agent_id: &str, currency: Currency) -> Result<f64, TreasuryError> {
-        let wallet = self.wallets.get(agent_id).ok_or(TreasuryError::AgentNotFound {
-            agent_id: agent_id.to_string(),
-        })?;
-        
+        let wallet = self
+            .wallets
+            .get(agent_id)
+            .ok_or(TreasuryError::AgentNotFound {
+                agent_id: agent_id.to_string(),
+            })?;
+
         Ok(wallet.balance(currency))
     }
 
@@ -550,7 +556,7 @@ impl Treasury {
         if amount <= 0.0 {
             return Err(TreasuryError::InvalidAmount { amount });
         }
-        
+
         // Check sender balance
         let from_balance = self.balance(from_agent, currency)?;
         if from_balance < amount {
@@ -559,27 +565,27 @@ impl Treasury {
                 available: from_balance,
             });
         }
-        
+
         // Check recipient exists
         if !self.wallets.contains_key(to_agent) {
             return Err(TreasuryError::AgentNotFound {
                 agent_id: to_agent.to_string(),
             });
         }
-        
+
         // Execute transfer
         let from_wallet = self.wallets.get_mut(from_agent).unwrap();
         from_wallet.withdraw(currency, amount)?;
-        
+
         let to_wallet = self.wallets.get_mut(to_agent).unwrap();
         to_wallet.deposit(currency, amount);
-        
+
         // Create payment record
         let mut request = PaymentRequest::new(from_agent, to_agent, amount, currency);
         request.status = PaymentStatus::Completed;
         let payment_id = request.id.clone();
         self.pending_payments.push(request);
-        
+
         Ok(payment_id)
     }
 
@@ -599,16 +605,16 @@ impl Treasury {
                 available: balance,
             });
         }
-        
+
         // Lock funds
         let wallet = self.wallets.get_mut(party_a).unwrap();
         wallet.withdraw(currency, capacity)?;
-        
+
         // Create channel
         let channel = PaymentChannel::new(party_a, party_b, capacity, currency);
         let channel_id = channel.id.clone();
         self.channels.insert(channel_id.clone(), channel);
-        
+
         Ok(channel_id)
     }
 
@@ -619,8 +625,11 @@ impl Treasury {
         from_a_to_b: bool,
         amount: f64,
     ) -> Result<(), TreasuryError> {
-        let channel = self.channels.get_mut(channel_id).ok_or(TreasuryError::ChannelNotOpen)?;
-        
+        let channel = self
+            .channels
+            .get_mut(channel_id)
+            .ok_or(TreasuryError::ChannelNotOpen)?;
+
         if from_a_to_b {
             channel.transfer_a_to_b(amount)
         } else {
@@ -630,13 +639,16 @@ impl Treasury {
 
     /// Close a payment channel.
     pub fn close_channel(&mut self, channel_id: &str) -> Result<(f64, f64), TreasuryError> {
-        let channel = self.channels.get_mut(channel_id).ok_or(TreasuryError::ChannelNotOpen)?;
-        
+        let channel = self
+            .channels
+            .get_mut(channel_id)
+            .ok_or(TreasuryError::ChannelNotOpen)?;
+
         let (balance_a, balance_b) = channel.close();
         let currency = channel.currency;
         let party_a = channel.party_a.clone();
         let party_b = channel.party_b.clone();
-        
+
         // Return funds to wallets
         if let Some(wallet) = self.wallets.get_mut(&party_a) {
             wallet.deposit(currency, balance_a);
@@ -644,7 +656,7 @@ impl Treasury {
         if let Some(wallet) = self.wallets.get_mut(&party_b) {
             wallet.deposit(currency, balance_b);
         }
-        
+
         Ok((balance_a, balance_b))
     }
 
@@ -659,35 +671,48 @@ impl Treasury {
         duration_hours: i64,
     ) -> Result<String, TreasuryError> {
         // Check and lock funds
-        let wallet = self.wallets.get_mut(from_agent).ok_or(TreasuryError::AgentNotFound {
-            agent_id: from_agent.to_string(),
-        })?;
-        
+        let wallet = self
+            .wallets
+            .get_mut(from_agent)
+            .ok_or(TreasuryError::AgentNotFound {
+                agent_id: from_agent.to_string(),
+            })?;
+
         wallet.withdraw(currency, amount)?;
-        
+
         // Create escrow
-        let escrow = Escrow::new(from_agent, to_agent, amount, currency, condition, duration_hours);
+        let escrow = Escrow::new(
+            from_agent,
+            to_agent,
+            amount,
+            currency,
+            condition,
+            duration_hours,
+        );
         let escrow_id = escrow.id.clone();
         self.escrows.insert(escrow_id.clone(), escrow);
-        
+
         Ok(escrow_id)
     }
 
     /// Release escrow to recipient.
     pub fn release_escrow(&mut self, escrow_id: &str) -> Result<(), TreasuryError> {
-        let escrow = self.escrows.get_mut(escrow_id).ok_or(TreasuryError::PaymentFailed {
-            reason: "Escrow not found".to_string(),
-        })?;
-        
+        let escrow = self
+            .escrows
+            .get_mut(escrow_id)
+            .ok_or(TreasuryError::PaymentFailed {
+                reason: "Escrow not found".to_string(),
+            })?;
+
         let amount = escrow.release()?;
         let currency = escrow.currency;
         let to_agent = escrow.to_agent.clone();
-        
+
         // Credit recipient
         if let Some(wallet) = self.wallets.get_mut(&to_agent) {
             wallet.deposit(currency, amount);
         }
-        
+
         Ok(())
     }
 }
@@ -815,17 +840,22 @@ impl InsurancePolicy {
 
     /// Get available coverage (max minus pending claims).
     pub fn available_coverage(&self) -> f64 {
-        let pending_claims: f64 = self.claims
+        let pending_claims: f64 = self
+            .claims
             .iter()
             .filter(|c| matches!(c.status, ClaimStatus::Submitted | ClaimStatus::UnderReview))
             .map(|c| c.amount)
             .sum();
-        
+
         (self.max_coverage - pending_claims).max(0.0)
     }
 
     /// Submit a claim.
-    pub fn submit_claim(&mut self, amount: f64, reason: impl Into<String>) -> Result<String, TreasuryError> {
+    pub fn submit_claim(
+        &mut self,
+        amount: f64,
+        reason: impl Into<String>,
+    ) -> Result<String, TreasuryError> {
         if !self.is_active() {
             return Err(TreasuryError::PaymentFailed {
                 reason: "Policy not active".to_string(),
@@ -1026,7 +1056,7 @@ impl AgentLegalEntity {
     /// Register the entity (simulate filing).
     pub fn register(&mut self) -> Result<String, TreasuryError> {
         let requirements = self.entity_type.requirements();
-        
+
         if requirements.registered_agent_required && self.registered_agent.is_empty() {
             return Err(TreasuryError::PaymentFailed {
                 reason: "Registered agent required".to_string(),
@@ -1079,7 +1109,7 @@ mod tests {
         let btc = Currency::Btc;
         assert_eq!(btc.to_base_units(1.0), 100_000_000);
         assert_eq!(btc.from_base_units(100_000_000), 1.0);
-        
+
         let usd = Currency::Usd;
         assert_eq!(usd.to_base_units(100.50), 10050);
     }
@@ -1087,10 +1117,10 @@ mod tests {
     #[test]
     fn test_agent_wallet() {
         let mut wallet = AgentWallet::new("agent-1");
-        
+
         wallet.deposit(Currency::Credits, 100.0);
         assert_eq!(wallet.balance(Currency::Credits), 100.0);
-        
+
         wallet.withdraw(Currency::Credits, 30.0).unwrap();
         assert_eq!(wallet.balance(Currency::Credits), 70.0);
     }
@@ -1098,12 +1128,12 @@ mod tests {
     #[test]
     fn test_payment_channel() {
         let mut channel = PaymentChannel::new("alice", "bob", 100.0, Currency::Credits);
-        
+
         // Alice pays Bob 30
         channel.transfer_a_to_b(30.0).unwrap();
         assert_eq!(channel.balance_a, 70_000_000);
         assert_eq!(channel.balance_b, 30_000_000);
-        
+
         // Bob pays Alice back 10
         channel.transfer_b_to_a(10.0).unwrap();
         assert_eq!(channel.tx_count, 2);
@@ -1121,20 +1151,30 @@ mod tests {
     fn test_treasury_payments() {
         // SAFETY: Only used in tests, no concurrent access
         unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license") };
-        
+
         let mut treasury = Treasury::new("org-123").unwrap();
-        
+
         treasury.register_agent("agent-A");
         treasury.register_agent("agent-B");
-        
-        treasury.deposit("agent-A", Currency::Credits, 100.0).unwrap();
-        
-        let payment_id = treasury.pay("agent-A", "agent-B", 25.0, Currency::Credits).unwrap();
-        
+
+        treasury
+            .deposit("agent-A", Currency::Credits, 100.0)
+            .unwrap();
+
+        let payment_id = treasury
+            .pay("agent-A", "agent-B", 25.0, Currency::Credits)
+            .unwrap();
+
         assert!(!payment_id.is_empty());
-        assert_eq!(treasury.balance("agent-A", Currency::Credits).unwrap(), 75.0);
-        assert_eq!(treasury.balance("agent-B", Currency::Credits).unwrap(), 25.0);
-        
+        assert_eq!(
+            treasury.balance("agent-A", Currency::Credits).unwrap(),
+            75.0
+        );
+        assert_eq!(
+            treasury.balance("agent-B", Currency::Credits).unwrap(),
+            25.0
+        );
+
         // SAFETY: Only used in tests, no concurrent access
         unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY") };
     }
@@ -1147,11 +1187,11 @@ mod tests {
             50.0,
             Currency::Usdc,
             "delivery_confirmed",
-            24
+            24,
         );
-        
+
         assert_eq!(escrow.status, EscrowStatus::Locked);
-        
+
         let amount = escrow.release().unwrap();
         assert_eq!(amount, 50.0);
         assert_eq!(escrow.status, EscrowStatus::Released);
@@ -1160,7 +1200,7 @@ mod tests {
     #[test]
     fn test_l402_response() {
         let response = L402Result::new("lnbc1000n1...", 1000);
-        
+
         assert_eq!(response.status, 402);
         assert!(response.www_authenticate.contains("L402"));
     }
@@ -1174,9 +1214,9 @@ mod tests {
             CoverageType::Comprehensive,
             1_000_000.0,
             5_000.0,
-            "Munich Re"
+            "Munich Re",
         );
-        
+
         assert!(policy.is_active());
         assert_eq!(policy.available_coverage(), 1_000_000.0);
         assert_eq!(policy.deductible, 10_000.0); // 1% of 1M
@@ -1189,11 +1229,13 @@ mod tests {
             CoverageType::ErrorsOmissions,
             100_000.0,
             1_000.0,
-            "Lloyd's"
+            "Lloyd's",
         );
-        
-        let claim_id = policy.submit_claim(25_000.0, "Data breach incident").unwrap();
-        
+
+        let claim_id = policy
+            .submit_claim(25_000.0, "Data breach incident")
+            .unwrap();
+
         assert!(!claim_id.is_empty());
         assert_eq!(policy.status, PolicyStatus::ClaimInProgress);
         assert_eq!(policy.available_coverage(), 75_000.0);
@@ -1206,11 +1248,11 @@ mod tests {
             CoverageType::TransactionProtection,
             50_000.0,
             500.0,
-            "AgentKern Insurance"
+            "AgentKern Insurance",
         );
-        
+
         let verification = policy.verify_coverage("high_value_transfer", 10_000.0);
-        
+
         assert!(verification.covered);
         assert_eq!(verification.available_coverage, 50_000.0);
     }
@@ -1223,9 +1265,9 @@ mod tests {
             "agent-1",
             "Agent Alpha LLC",
             LegalEntityType::WyomingDaoLlc,
-            "Wyoming Registered Agents Inc"
+            "Wyoming Registered Agents Inc",
         );
-        
+
         assert_eq!(entity.jurisdiction, Jurisdiction::UsWyoming);
         assert_eq!(entity.status, EntityStatus::Pending);
         assert!(!entity.can_contract());
@@ -1237,11 +1279,11 @@ mod tests {
             "agent-1",
             "Agent Beta DAO",
             LegalEntityType::WyomingDaoLlc,
-            "WY Agents"
+            "WY Agents",
         );
-        
+
         let reg_number = entity.register().unwrap();
-        
+
         assert!(reg_number.starts_with("WY-"));
         assert_eq!(entity.status, EntityStatus::Active);
         assert!(entity.can_contract());
@@ -1252,9 +1294,8 @@ mod tests {
     fn test_entity_requirements() {
         let wyoming = LegalEntityType::WyomingDaoLlc;
         let reqs = wyoming.requirements();
-        
+
         assert!(reqs.registered_agent_required);
         assert!(reqs.smart_contract_governance);
     }
 }
-

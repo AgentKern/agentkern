@@ -4,13 +4,13 @@
 
 mod load_balancer;
 
-pub use load_balancer::{LoadBalancer, LoadBalanceStrategy, AgentLoad};
+pub use load_balancer::{AgentLoad, LoadBalanceStrategy, LoadBalancer};
 
-use std::sync::Arc;
 use crate::agent_card::AgentCard;
+use crate::error::NexusError;
 use crate::registry::AgentRegistry;
 use crate::types::Task;
-use crate::error::NexusError;
+use std::sync::Arc;
 
 /// Task router for matching tasks to agents.
 pub struct TaskRouter {
@@ -30,11 +30,13 @@ impl TaskRouter {
     /// Find the best agent for a task.
     pub async fn find_best_agent(&self, task: &Task) -> Result<AgentCard, NexusError> {
         let candidates = self.find_candidates(task).await?;
-        
+
         if candidates.is_empty() {
-            return Err(NexusError::NoMatchingAgent { task_type: task.task_type.clone() });
+            return Err(NexusError::NoMatchingAgent {
+                task_type: task.task_type.clone(),
+            });
         }
-        
+
         // Score candidates and pick best
         let mut scored: Vec<(AgentCard, u8)> = candidates
             .into_iter()
@@ -43,10 +45,10 @@ impl TaskRouter {
                 (card, score)
             })
             .collect();
-        
+
         // Sort by score descending
         scored.sort_by(|a, b| b.1.cmp(&a.1));
-        
+
         // If top candidates have same score, use round-robin
         let top_score = scored[0].1;
         let top_candidates: Vec<_> = scored
@@ -54,10 +56,12 @@ impl TaskRouter {
             .filter(|(_, s)| *s == top_score)
             .map(|(c, _)| c)
             .collect();
-        
-        let idx = self.round_robin_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let idx = self
+            .round_robin_counter
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let selected = &top_candidates[idx % top_candidates.len()];
-        
+
         Ok(selected.clone())
     }
 
@@ -67,7 +71,7 @@ impl TaskRouter {
             // Return all agents if no skills required
             return Ok(self.registry.list().await);
         }
-        
+
         // Find agents with at least one required skill
         let mut candidates = Vec::new();
         for skill in &task.required_skills {
@@ -78,7 +82,7 @@ impl TaskRouter {
                 }
             }
         }
-        
+
         Ok(candidates)
     }
 

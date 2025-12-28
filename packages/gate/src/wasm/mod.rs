@@ -7,10 +7,10 @@
 //!
 //! Policies are compiled to WASM and run in isolated sandboxes.
 
-#[cfg(feature = "wasm")]
-use wasmtime::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+#[cfg(feature = "wasm")]
+use wasmtime::*;
 
 /// Result of WASM policy evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,28 +50,42 @@ impl WasmPolicyEngine {
         let mut config = Config::new();
         config.async_support(true);
         config.consume_fuel(true); // Resource limiting
-        
+
         let engine = Engine::new(&config)?;
         let mut linker = Linker::new(&engine);
-        
+
         // Add host functions for policies to call
-        linker.func_wrap("env", "log", |caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
-            // Log function for policies
-            tracing::debug!("WASM policy log: ptr={}, len={}", ptr, len);
-        })?;
-        
-        linker.func_wrap("env", "get_action_len", |caller: Caller<'_, PolicyState>| -> i32 {
-            caller.data().action.len() as i32
-        })?;
-        
-        linker.func_wrap("env", "set_allowed", |mut caller: Caller<'_, PolicyState>, allowed: i32| {
-            caller.data_mut().result.allowed = allowed != 0;
-        })?;
-        
-        linker.func_wrap("env", "set_risk_score", |mut caller: Caller<'_, PolicyState>, score: i32| {
-            caller.data_mut().result.risk_score = score.clamp(0, 100) as u8;
-        })?;
-        
+        linker.func_wrap(
+            "env",
+            "log",
+            |caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
+                // Log function for policies
+                tracing::debug!("WASM policy log: ptr={}, len={}", ptr, len);
+            },
+        )?;
+
+        linker.func_wrap(
+            "env",
+            "get_action_len",
+            |caller: Caller<'_, PolicyState>| -> i32 { caller.data().action.len() as i32 },
+        )?;
+
+        linker.func_wrap(
+            "env",
+            "set_allowed",
+            |mut caller: Caller<'_, PolicyState>, allowed: i32| {
+                caller.data_mut().result.allowed = allowed != 0;
+            },
+        )?;
+
+        linker.func_wrap(
+            "env",
+            "set_risk_score",
+            |mut caller: Caller<'_, PolicyState>, score: i32| {
+                caller.data_mut().result.risk_score = score.clamp(0, 100) as u8;
+            },
+        )?;
+
         Ok(Self {
             engine,
             linker,
@@ -80,18 +94,28 @@ impl WasmPolicyEngine {
     }
 
     /// Load a policy from WASM bytes.
-    pub fn load_policy(&mut self, name: impl Into<String>, wasm_bytes: &[u8]) -> Result<(), anyhow::Error> {
+    pub fn load_policy(
+        &mut self,
+        name: impl Into<String>,
+        wasm_bytes: &[u8],
+    ) -> Result<(), anyhow::Error> {
         let name = name.into();
         let module = Module::new(&self.engine, wasm_bytes)?;
-        self.policies.insert(name.clone(), WasmPolicy { module, name });
+        self.policies
+            .insert(name.clone(), WasmPolicy { module, name });
         Ok(())
     }
 
     /// Load a policy from a WAT (WebAssembly Text) string.
-    pub fn load_policy_wat(&mut self, name: impl Into<String>, wat: &str) -> Result<(), anyhow::Error> {
+    pub fn load_policy_wat(
+        &mut self,
+        name: impl Into<String>,
+        wat: &str,
+    ) -> Result<(), anyhow::Error> {
         let name = name.into();
         let module = Module::new(&self.engine, wat)?;
-        self.policies.insert(name.clone(), WasmPolicy { module, name });
+        self.policies
+            .insert(name.clone(), WasmPolicy { module, name });
         Ok(())
     }
 
@@ -102,26 +126,37 @@ impl WasmPolicyEngine {
         action: &str,
         context: &serde_json::Value,
     ) -> Result<WasmPolicyResult, anyhow::Error> {
-        let policy = self.policies.get(policy_name)
+        let policy = self
+            .policies
+            .get(policy_name)
             .ok_or_else(|| anyhow::anyhow!("Policy not found: {}", policy_name))?;
 
-        let mut store = Store::new(&self.engine, PolicyState {
-            action: action.to_string(),
-            context: context.clone(),
-            result: WasmPolicyResult {
-                allowed: true,
-                risk_score: 0,
-                message: None,
+        let mut store = Store::new(
+            &self.engine,
+            PolicyState {
+                action: action.to_string(),
+                context: context.clone(),
+                result: WasmPolicyResult {
+                    allowed: true,
+                    risk_score: 0,
+                    message: None,
+                },
             },
-        });
-        
+        );
+
         // Set fuel limit for resource control
         store.set_fuel(10_000)?;
 
-        let instance = self.linker.instantiate_async(&mut store, &policy.module).await?;
-        
+        let instance = self
+            .linker
+            .instantiate_async(&mut store, &policy.module)
+            .await?;
+
         // Call the evaluate function
-        if let Some(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate").ok() {
+        if let Some(evaluate) = instance
+            .get_typed_func::<(), ()>(&mut store, "evaluate")
+            .ok()
+        {
             evaluate.call_async(&mut store, ()).await?;
         }
 
@@ -159,8 +194,14 @@ impl WasmPolicyEngine {
         Ok(Self)
     }
 
-    pub fn load_policy(&mut self, _name: impl Into<String>, _wasm_bytes: &[u8]) -> Result<(), anyhow::Error> {
-        Err(anyhow::anyhow!("WASM feature not enabled. Compile with --features wasm"))
+    pub fn load_policy(
+        &mut self,
+        _name: impl Into<String>,
+        _wasm_bytes: &[u8],
+    ) -> Result<(), anyhow::Error> {
+        Err(anyhow::anyhow!(
+            "WASM feature not enabled. Compile with --features wasm"
+        ))
     }
 
     pub async fn evaluate(
@@ -194,7 +235,7 @@ mod tests {
     #[tokio::test]
     async fn test_wasm_policy_evaluation() {
         let mut engine = WasmPolicyEngine::new().unwrap();
-        
+
         // Simple WAT policy that always allows
         let wat = r#"
             (module
@@ -208,15 +249,14 @@ mod tests {
                 )
             )
         "#;
-        
+
         engine.load_policy_wat("test-policy", wat).unwrap();
-        
-        let result = engine.evaluate(
-            "test-policy",
-            "test_action",
-            &serde_json::json!({}),
-        ).await.unwrap();
-        
+
+        let result = engine
+            .evaluate("test-policy", "test_action", &serde_json::json!({}))
+            .await
+            .unwrap();
+
         assert!(result.allowed);
         assert_eq!(result.risk_score, 10);
     }

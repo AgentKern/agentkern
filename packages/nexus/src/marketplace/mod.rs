@@ -11,9 +11,9 @@
 //! 4. Task Execution → Agent performs work
 //! 5. Settlement → Payment released
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 /// Bid on a task.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,7 +85,7 @@ impl Bid {
         // Factor in price, time, and confidence
         let time_factor = self.estimated_time_secs as f64 / 3600.0; // Hours
         let confidence_factor = (100 - self.confidence) as f64 / 100.0;
-        
+
         self.amount * (1.0 + time_factor * 0.1) * (1.0 + confidence_factor * 0.5)
     }
 }
@@ -185,7 +185,11 @@ impl TaskAuction {
         }
 
         // Check for duplicate bid from same agent
-        if self.bids.iter().any(|b| b.agent_id == bid.agent_id && b.status == BidStatus::Pending) {
+        if self
+            .bids
+            .iter()
+            .any(|b| b.agent_id == bid.agent_id && b.status == BidStatus::Pending)
+        {
             return Err(MarketplaceError::DuplicateBid);
         }
 
@@ -232,9 +236,9 @@ impl TaskAuction {
 
     /// Get winning bid.
     pub fn get_winning_bid(&self) -> Option<&Bid> {
-        self.winning_bid.as_ref().and_then(|id| {
-            self.bids.iter().find(|b| &b.id == id)
-        })
+        self.winning_bid
+            .as_ref()
+            .and_then(|id| self.bids.iter().find(|b| &b.id == id))
     }
 
     /// Start execution.
@@ -252,7 +256,7 @@ impl TaskAuction {
             return Err(MarketplaceError::NotInProgress);
         }
         self.status = AuctionStatus::Completed;
-        
+
         // Return amount to settle
         Ok(self.get_winning_bid().map(|b| b.amount).unwrap_or(0.0))
     }
@@ -327,25 +331,29 @@ impl Marketplace {
 
     /// List open auctions.
     pub fn list_open_auctions(&self) -> Vec<&TaskAuction> {
-        self.auctions.values()
+        self.auctions
+            .values()
             .filter(|a| a.status == AuctionStatus::Open)
             .collect()
     }
 
     /// List auctions requiring a skill.
     pub fn find_auctions_by_skill(&self, skill: &str) -> Vec<&TaskAuction> {
-        self.auctions.values()
+        self.auctions
+            .values()
             .filter(|a| a.status == AuctionStatus::Open)
-            .filter(|a| a.required_skills.iter().any(|s| 
-                s.eq_ignore_ascii_case(skill)
-            ))
+            .filter(|a| {
+                a.required_skills
+                    .iter()
+                    .any(|s| s.eq_ignore_ascii_case(skill))
+            })
             .collect()
     }
 
     /// Create settlement for completed auction.
     pub fn create_settlement(&mut self, auction: &TaskAuction) -> Option<String> {
         let winning_bid = auction.get_winning_bid()?;
-        
+
         let settlement = Settlement {
             id: uuid::Uuid::new_v4().to_string(),
             auction_id: auction.id.clone(),
@@ -364,31 +372,35 @@ impl Marketplace {
 
     /// Release settlement.
     pub fn release_settlement(&mut self, id: &str) -> Result<f64, MarketplaceError> {
-        let settlement = self.settlements.get_mut(id)
+        let settlement = self
+            .settlements
+            .get_mut(id)
             .ok_or(MarketplaceError::SettlementNotFound)?;
-        
+
         if settlement.status != SettlementStatus::Escrowed {
             return Err(MarketplaceError::InvalidSettlementState);
         }
 
         settlement.status = SettlementStatus::Released;
         settlement.settled_at = Some(Utc::now());
-        
+
         Ok(settlement.amount)
     }
 
     /// Refund settlement.
     pub fn refund_settlement(&mut self, id: &str) -> Result<f64, MarketplaceError> {
-        let settlement = self.settlements.get_mut(id)
+        let settlement = self
+            .settlements
+            .get_mut(id)
             .ok_or(MarketplaceError::SettlementNotFound)?;
-        
+
         if settlement.status != SettlementStatus::Escrowed {
             return Err(MarketplaceError::InvalidSettlementState);
         }
 
         settlement.status = SettlementStatus::Refunded;
         settlement.settled_at = Some(Utc::now());
-        
+
         Ok(settlement.amount)
     }
 }
@@ -429,7 +441,7 @@ mod tests {
         let bid = Bid::new("task-1", "agent-1", 100.0, 3600)
             .with_confidence(95)
             .with_message("I can do this!");
-        
+
         assert_eq!(bid.task_id, "task-1");
         assert_eq!(bid.confidence, 95);
         assert!(bid.message.is_some());
@@ -439,21 +451,16 @@ mod tests {
     fn test_bid_value_score() {
         let bid1 = Bid::new("task-1", "agent-1", 100.0, 3600).with_confidence(90);
         let bid2 = Bid::new("task-1", "agent-2", 100.0, 7200).with_confidence(80);
-        
+
         // bid1 should have lower (better) score (faster, more confident)
         assert!(bid1.value_score() < bid2.value_score());
     }
 
     #[test]
     fn test_auction_workflow() {
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Data analysis needed",
-            500.0,
-            24,
-            48,
-            "client-1"
-        ).with_skill("data-analysis");
+        let mut auction =
+            TaskAuction::new("task-1", "Data analysis needed", 500.0, 24, 48, "client-1")
+                .with_skill("data-analysis");
 
         // Submit bids
         let bid1 = Bid::new("task-1", "agent-1", 200.0, 3600).with_confidence(85);
@@ -468,7 +475,7 @@ mod tests {
 
         // Evaluate
         let winner = auction.evaluate().unwrap();
-        
+
         assert_eq!(auction.status, AuctionStatus::Awarded);
         assert!(auction.winning_bid.is_some());
     }
@@ -477,17 +484,11 @@ mod tests {
     fn test_marketplace() {
         let mut market = Marketplace::new();
 
-        let auction = TaskAuction::new(
-            "task-1",
-            "Need ML model",
-            1000.0,
-            12,
-            24,
-            "requester-1"
-        ).with_skill("machine-learning");
+        let auction = TaskAuction::new("task-1", "Need ML model", 1000.0, 12, 24, "requester-1")
+            .with_skill("machine-learning");
 
         let auction_id = market.create_auction(auction);
-        
+
         assert!(market.get_auction(&auction_id).is_some());
         assert_eq!(market.list_open_auctions().len(), 1);
         assert_eq!(market.find_auctions_by_skill("machine-learning").len(), 1);
@@ -497,14 +498,7 @@ mod tests {
     fn test_settlement() {
         let mut market = Marketplace::new();
 
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Quick task",
-            100.0,
-            1,
-            2,
-            "client-1"
-        );
+        let mut auction = TaskAuction::new("task-1", "Quick task", 100.0, 1, 2, "client-1");
 
         let bid = Bid::new("task-1", "worker-1", 50.0, 1800);
         auction.submit_bid(bid).unwrap();
@@ -520,14 +514,7 @@ mod tests {
 
     #[test]
     fn test_bid_exceeds_budget() {
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Limited budget",
-            100.0,
-            1,
-            1,
-            "client-1"
-        );
+        let mut auction = TaskAuction::new("task-1", "Limited budget", 100.0, 1, 1, "client-1");
 
         let expensive_bid = Bid::new("task-1", "agent-1", 150.0, 3600);
         let result = auction.submit_bid(expensive_bid);
@@ -537,14 +524,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_bid() {
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Test task",
-            200.0,
-            1,
-            1,
-            "client-1"
-        );
+        let mut auction = TaskAuction::new("task-1", "Test task", 200.0, 1, 1, "client-1");
 
         let bid1 = Bid::new("task-1", "agent-1", 100.0, 3600);
         let bid2 = Bid::new("task-1", "agent-1", 90.0, 3600);
@@ -557,14 +537,7 @@ mod tests {
 
     #[test]
     fn test_auction_cancelled_no_bids() {
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Unpopular task",
-            500.0,
-            1,
-            1,
-            "client-1"
-        );
+        let mut auction = TaskAuction::new("task-1", "Unpopular task", 500.0, 1, 1, "client-1");
 
         // Evaluate with no bids
         let winner = auction.evaluate();
@@ -577,14 +550,7 @@ mod tests {
     fn test_settlement_refund() {
         let mut market = Marketplace::new();
 
-        let mut auction = TaskAuction::new(
-            "task-1",
-            "Refundable",
-            100.0,
-            1,
-            1,
-            "client-1"
-        );
+        let mut auction = TaskAuction::new("task-1", "Refundable", 100.0, 1, 1, "client-1");
 
         let bid = Bid::new("task-1", "worker-1", 75.0, 1800);
         auction.submit_bid(bid).unwrap();
@@ -596,4 +562,3 @@ mod tests {
         assert_eq!(refund, 75.0);
     }
 }
-

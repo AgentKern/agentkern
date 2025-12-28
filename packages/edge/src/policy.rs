@@ -35,12 +35,12 @@ impl PolicyRule {
         if self.pattern == "*" {
             return true;
         }
-        
+
         if self.pattern.ends_with('*') {
             let prefix = &self.pattern[..self.pattern.len() - 1];
             return action.starts_with(prefix);
         }
-        
+
         action == self.pattern
     }
 }
@@ -70,7 +70,7 @@ mod tests {
             action: PolicyAction::Allow,
             priority: 1,
         };
-        
+
         assert!(rule.matches("read_sensor"));
         assert!(!rule.matches("write_sensor"));
     }
@@ -83,7 +83,7 @@ mod tests {
             action: PolicyAction::Allow,
             priority: 1,
         };
-        
+
         assert!(rule.matches("sensor.read"));
         assert!(rule.matches("sensor.write"));
         assert!(!rule.matches("actuator.write"));
@@ -97,7 +97,7 @@ mod tests {
             action: PolicyAction::Queue,
             priority: 100,
         };
-        
+
         assert!(rule.matches("anything"));
     }
 }

@@ -7,9 +7,9 @@
 //!
 //! This implements the distributed state ledger.
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use parking_lot::RwLock;
 use std::sync::Arc;
 
 /// Node in the state graph.
@@ -18,7 +18,7 @@ pub struct GraphNode {
     pub id: uuid::Uuid,
     pub node_type: NodeType,
     pub data: serde_json::Value,
-    pub vector: Option<Vec<f32>>,  // Vector embedding for similarity
+    pub vector: Option<Vec<f32>>, // Vector embedding for similarity
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub version: u64,
@@ -48,11 +48,11 @@ pub struct GraphEdge {
 /// Type of graph edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EdgeType {
-    Owns,       // Agent owns state
-    Caused,     // Action caused state change
-    Requires,   // Intent requires action
-    Relates,    // General relation
-    Similar,    // Vector similarity edge
+    Owns,     // Agent owns state
+    Caused,   // Action caused state change
+    Requires, // Intent requires action
+    Relates,  // General relation
+    Similar,  // Vector similarity edge
 }
 
 /// Vector similarity result.
@@ -66,7 +66,7 @@ pub struct SimilarityResult {
 pub struct GraphVectorDB {
     nodes: RwLock<HashMap<uuid::Uuid, GraphNode>>,
     edges: RwLock<Vec<GraphEdge>>,
-    agent_index: RwLock<HashMap<String, Vec<uuid::Uuid>>>,  // agent_id -> nodes
+    agent_index: RwLock<HashMap<String, Vec<uuid::Uuid>>>, // agent_id -> nodes
 }
 
 impl GraphVectorDB {
@@ -108,7 +108,9 @@ impl GraphVectorDB {
         let removed = self.nodes.write().remove(id).is_some();
         if removed {
             // Remove related edges
-            self.edges.write().retain(|e| e.from_node != *id && e.to_node != *id);
+            self.edges
+                .write()
+                .retain(|e| e.from_node != *id && e.to_node != *id);
         }
         removed
     }
@@ -120,7 +122,8 @@ impl GraphVectorDB {
 
     /// Get edges from a node.
     pub fn get_edges_from(&self, node_id: &uuid::Uuid) -> Vec<GraphEdge> {
-        self.edges.read()
+        self.edges
+            .read()
             .iter()
             .filter(|e| e.from_node == *node_id)
             .cloned()
@@ -129,7 +132,8 @@ impl GraphVectorDB {
 
     /// Get edges to a node.
     pub fn get_edges_to(&self, node_id: &uuid::Uuid) -> Vec<GraphEdge> {
-        self.edges.read()
+        self.edges
+            .read()
             .iter()
             .filter(|e| e.to_node == *node_id)
             .cloned()
@@ -144,11 +148,14 @@ impl GraphVectorDB {
             .filter_map(|node| {
                 node.vector.as_ref().map(|v| {
                     let score = cosine_similarity(vector, v);
-                    SimilarityResult { node_id: node.id, score }
+                    SimilarityResult {
+                        node_id: node.id,
+                        score,
+                    }
                 })
             })
             .collect();
-        
+
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results.truncate(limit);
         results
@@ -158,19 +165,17 @@ impl GraphVectorDB {
     pub fn get_agent_nodes(&self, agent_id: &str) -> Vec<GraphNode> {
         let index = self.agent_index.read();
         let nodes = self.nodes.read();
-        
-        index.get(agent_id)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| nodes.get(id).cloned())
-                    .collect()
-            })
+
+        index
+            .get(agent_id)
+            .map(|ids| ids.iter().filter_map(|id| nodes.get(id).cloned()).collect())
             .unwrap_or_default()
     }
 
     /// Add a node to agent index.
     pub fn index_agent_node(&self, agent_id: &str, node_id: uuid::Uuid) {
-        self.agent_index.write()
+        self.agent_index
+            .write()
             .entry(agent_id.to_string())
             .or_default()
             .push(node_id);
@@ -260,7 +265,7 @@ mod tests {
     #[test]
     fn test_graph_crud() {
         let db = GraphVectorDB::new();
-        
+
         // Insert node
         let node = GraphNode {
             id: uuid::Uuid::new_v4(),
@@ -272,17 +277,17 @@ mod tests {
             version: 1,
         };
         let id = db.insert_node(node);
-        
+
         // Get node
         let retrieved = db.get_node(&id).unwrap();
         assert_eq!(retrieved.data["key"], "value");
-        
+
         // Update node
         db.update_node(&id, serde_json::json!({"key": "updated"}));
         let updated = db.get_node(&id).unwrap();
         assert_eq!(updated.data["key"], "updated");
         assert_eq!(updated.version, 2);
-        
+
         // Delete node
         assert!(db.delete_node(&id));
         assert!(db.get_node(&id).is_none());
@@ -291,7 +296,7 @@ mod tests {
     #[test]
     fn test_vector_similarity() {
         let db = GraphVectorDB::new();
-        
+
         // Insert nodes with vectors
         for i in 0..5 {
             let node = GraphNode {
@@ -305,11 +310,11 @@ mod tests {
             };
             db.insert_node(node);
         }
-        
+
         // Find similar
         let query = vec![4.0, 0.0, 0.0];
         let results = db.find_similar(&query, 3);
-        
+
         assert_eq!(results.len(), 3);
         // Most similar should be index 4
     }
@@ -317,10 +322,10 @@ mod tests {
     #[test]
     fn test_agent_state() {
         let db = GraphVectorDB::new();
-        
+
         db.create_agent_state("agent-1", serde_json::json!({"status": "active"}));
         db.create_agent_state("agent-1", serde_json::json!({"status": "processing"}));
-        
+
         let nodes = db.get_agent_nodes("agent-1");
         assert_eq!(nodes.len(), 2);
     }
@@ -330,7 +335,7 @@ mod tests {
         let a = vec![1.0, 0.0, 0.0];
         let b = vec![1.0, 0.0, 0.0];
         assert!((cosine_similarity(&a, &b) - 1.0).abs() < 0.001);
-        
+
         let c = vec![0.0, 1.0, 0.0];
         assert!((cosine_similarity(&a, &c) - 0.0).abs() < 0.001);
     }

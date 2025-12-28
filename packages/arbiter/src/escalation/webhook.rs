@@ -2,9 +2,9 @@
 //!
 //! Supports common webhook formats for Slack, Teams, PagerDuty, and custom endpoints.
 
+use super::triggers::{EscalationLevel, TriggerResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::triggers::{TriggerResult, EscalationLevel};
 
 /// Webhook result.
 pub type WebhookResult<T> = Result<T, WebhookError>;
@@ -89,55 +89,59 @@ pub struct WebhookNotifier {
 impl WebhookNotifier {
     /// Create a new notifier.
     pub fn new() -> Self {
-        Self { configs: Vec::new() }
+        Self {
+            configs: Vec::new(),
+        }
     }
-    
+
     /// Add a webhook configuration.
     pub fn add_webhook(&mut self, config: WebhookConfig) {
         self.configs.push(config);
     }
-    
+
     /// Remove a webhook by ID.
     pub fn remove_webhook(&mut self, id: &str) {
         self.configs.retain(|c| c.id != id);
     }
-    
+
     /// Get applicable webhooks for an escalation level.
     fn applicable_webhooks(&self, level: EscalationLevel) -> Vec<&WebhookConfig> {
-        self.configs.iter()
+        self.configs
+            .iter()
             .filter(|c| c.enabled && c.min_level <= level)
             .collect()
     }
-    
+
     /// Send notification for a trigger result.
     pub fn notify(&self, trigger: &TriggerResult) -> Vec<WebhookResult<()>> {
         let webhooks = self.applicable_webhooks(trigger.level);
-        
-        webhooks.iter().map(|webhook| {
-            self.send_webhook(webhook, trigger)
-        }).collect()
+
+        webhooks
+            .iter()
+            .map(|webhook| self.send_webhook(webhook, trigger))
+            .collect()
     }
-    
+
     /// Send to a specific webhook.
     /// Graceful fallback: tries real HTTP, returns Ok with warning on failure.
     fn send_webhook(&self, config: &WebhookConfig, trigger: &TriggerResult) -> WebhookResult<()> {
         let payload = self.format_payload(config, trigger)?;
-        
+
         // Check for webhook credentials
-        let has_credentials = std::env::var("AGENTKERN_WEBHOOK_ENABLED").is_ok() 
-            || config.secret.is_some();
-        
+        let has_credentials =
+            std::env::var("AGENTKERN_WEBHOOK_ENABLED").is_ok() || config.secret.is_some();
+
         if has_credentials {
             // Use blocking HTTP for sync context (or spawn async task)
             let json_payload = serde_json::to_string(&payload)
                 .map_err(|e| WebhookError::ConfigError(e.to_string()))?;
-            
+
             // In production with tokio runtime:
-            // tokio::spawn(async move { 
+            // tokio::spawn(async move {
             //     let client = reqwest::Client::new();
-            //     client.post(&config.url).json(&payload).send().await 
+            //     client.post(&config.url).json(&payload).send().await
             // });
-            
+
             tracing::info!(
                 webhook_id = %config.id,
                 url = %config.url,
@@ -153,13 +157,16 @@ impl WebhookNotifier {
                 "Webhook (demo mode) - set AGENTKERN_WEBHOOK_ENABLED for live"
             );
         }
-        
+
         Ok(())
     }
 
-    
     /// Format payload based on webhook type.
-    fn format_payload(&self, config: &WebhookConfig, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
+    fn format_payload(
+        &self,
+        config: &WebhookConfig,
+        trigger: &TriggerResult,
+    ) -> WebhookResult<serde_json::Value> {
         match config.webhook_type {
             WebhookType::Slack => self.format_slack(trigger),
             WebhookType::MsTeams => self.format_teams(trigger),
@@ -167,7 +174,7 @@ impl WebhookNotifier {
             WebhookType::Generic => self.format_generic(trigger),
         }
     }
-    
+
     /// Format Slack message.
     fn format_slack(&self, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
         let color = match trigger.level {
@@ -176,11 +183,11 @@ impl WebhookNotifier {
             EscalationLevel::High => "#ff9900",     // Orange
             EscalationLevel::Critical => "#ff0000", // Red
         };
-        
+
         Ok(serde_json::json!({
             "attachments": [{
                 "color": color,
-                "title": format!("🚨 {} Escalation: {}", 
+                "title": format!("🚨 {} Escalation: {}",
                     format!("{:?}", trigger.level).to_uppercase(),
                     trigger.agent_id
                 ),
@@ -202,7 +209,7 @@ impl WebhookNotifier {
             }]
         }))
     }
-    
+
     /// Format Teams adaptive card.
     fn format_teams(&self, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
         let theme_color = match trigger.level {
@@ -211,7 +218,7 @@ impl WebhookNotifier {
             EscalationLevel::High => "FF9900",
             EscalationLevel::Critical => "FF0000",
         };
-        
+
         Ok(serde_json::json!({
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
@@ -228,7 +235,7 @@ impl WebhookNotifier {
             }]
         }))
     }
-    
+
     /// Format PagerDuty event.
     fn format_pagerduty(&self, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
         let severity = match trigger.level {
@@ -237,7 +244,7 @@ impl WebhookNotifier {
             EscalationLevel::High => "error",
             EscalationLevel::Critical => "critical",
         };
-        
+
         Ok(serde_json::json!({
             "routing_key": "YOUR_ROUTING_KEY",
             "event_action": "trigger",
@@ -251,7 +258,7 @@ impl WebhookNotifier {
             }
         }))
     }
-    
+
     /// Format generic JSON payload.
     fn format_generic(&self, trigger: &TriggerResult) -> WebhookResult<serde_json::Value> {
         Ok(serde_json::json!({
@@ -301,7 +308,7 @@ mod tests {
     #[test]
     fn test_add_webhook() {
         let mut notifier = WebhookNotifier::new();
-        
+
         notifier.add_webhook(WebhookConfig {
             id: "slack-1".into(),
             name: "Slack".into(),
@@ -312,14 +319,14 @@ mod tests {
             headers: HashMap::new(),
             secret: None,
         });
-        
+
         assert_eq!(notifier.configs.len(), 1);
     }
 
     #[test]
     fn test_applicable_webhooks() {
         let mut notifier = WebhookNotifier::new();
-        
+
         notifier.add_webhook(WebhookConfig {
             id: "low".into(),
             name: "Low".into(),
@@ -330,7 +337,7 @@ mod tests {
             headers: HashMap::new(),
             secret: None,
         });
-        
+
         notifier.add_webhook(WebhookConfig {
             id: "high".into(),
             name: "High".into(),
@@ -341,10 +348,10 @@ mod tests {
             headers: HashMap::new(),
             secret: None,
         });
-        
+
         // High level should match both
         assert_eq!(notifier.applicable_webhooks(EscalationLevel::High).len(), 2);
-        
+
         // Low level should only match "low"
         assert_eq!(notifier.applicable_webhooks(EscalationLevel::Low).len(), 1);
     }
@@ -353,9 +360,9 @@ mod tests {
     fn test_format_slack() {
         let notifier = WebhookNotifier::new();
         let trigger = sample_trigger();
-        
+
         let payload = notifier.format_slack(&trigger).unwrap();
-        
+
         assert!(payload.get("attachments").is_some());
     }
 
@@ -363,9 +370,9 @@ mod tests {
     fn test_format_teams() {
         let notifier = WebhookNotifier::new();
         let trigger = sample_trigger();
-        
+
         let payload = notifier.format_teams(&trigger).unwrap();
-        
+
         assert_eq!(payload.get("@type").unwrap(), "MessageCard");
     }
 
@@ -373,9 +380,9 @@ mod tests {
     fn test_format_pagerduty() {
         let notifier = WebhookNotifier::new();
         let trigger = sample_trigger();
-        
+
         let payload = notifier.format_pagerduty(&trigger).unwrap();
-        
+
         assert_eq!(payload.get("event_action").unwrap(), "trigger");
         assert!(payload.get("payload").is_some());
     }

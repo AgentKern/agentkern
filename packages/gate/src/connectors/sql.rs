@@ -5,12 +5,12 @@
 //! Default: Uses `sqlx::AnyPool` for database-agnostic connectivity.
 
 use super::sdk::{
-    LegacyConnector, ConnectorProtocol, ConnectorConfig, ConnectorHealth,
-    ConnectorResult, ConnectorError, A2ATaskPayload, LegacyMessage,
+    A2ATaskPayload, ConnectorConfig, ConnectorError, ConnectorHealth, ConnectorProtocol,
+    ConnectorResult, LegacyConnector, LegacyMessage,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::{AnyPool, Column, Row, TypeInfo};
 use std::collections::HashMap;
-use sqlx::{AnyPool, Row, Column, TypeInfo};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -56,16 +56,16 @@ impl SqlConnector {
         config.name = "SQL Connector".to_string();
         config.protocol = ConnectorProtocol::Sql;
         config.endpoint = endpoint.into();
-        
-        Self { 
+
+        Self {
             config,
             pool: Arc::new(RwLock::new(None)),
         }
     }
-    
+
     /// Create with custom config.
     pub fn with_config(config: ConnectorConfig) -> Self {
-        Self { 
+        Self {
             config,
             pool: Arc::new(RwLock::new(None)),
         }
@@ -75,39 +75,41 @@ impl SqlConnector {
     pub async fn connect(&self) -> ConnectorResult<()> {
         let endpoint = &self.config.endpoint;
         if endpoint.is_empty() {
-             return Ok(());
+            return Ok(());
         }
 
         // sqlx::AnyPool requires protocol prefix (postgres://, mysql://, sqlite://)
-        let pool = AnyPool::connect(endpoint).await
+        let pool = AnyPool::connect(endpoint)
+            .await
             .map_err(|e| ConnectorError::Internal(format!("Connection error: {}", e)))?;
-            
+
         let mut lock = self.pool.write().await;
         *lock = Some(pool);
-        
+
         Ok(())
     }
-    
+
     /// Parse SQL from A2A task params.
     fn parse_query(&self, params: &serde_json::Value) -> ConnectorResult<SqlQuery> {
         // Extract SQL string
-        let sql = params.get("sql")
+        let sql = params
+            .get("sql")
             .and_then(|v| v.as_str())
             .ok_or_else(|| ConnectorError::ParseError("Missing 'sql' parameter".into()))?
             .to_string();
-        
+
         // Determine query type
         let query_type = self.detect_query_type(&sql);
-        
+
         // Extract optional params
-        let query_params = params.get("params")
+        let query_params = params
+            .get("params")
             .and_then(|v| v.as_array())
             .map(|arr| arr.clone())
             .unwrap_or_default();
-        
-        let timeout = params.get("timeout_ms")
-            .and_then(|v| v.as_u64());
-        
+
+        let timeout = params.get("timeout_ms").and_then(|v| v.as_u64());
+
         Ok(SqlQuery {
             query_type,
             sql,
@@ -115,17 +117,23 @@ impl SqlConnector {
             timeout_ms: timeout,
         })
     }
-    
+
     /// Detect query type from SQL.
     fn detect_query_type(&self, sql: &str) -> SqlQueryType {
         let upper = sql.trim().to_uppercase();
-        if upper.starts_with("SELECT") { SqlQueryType::Select }
-        else if upper.starts_with("INSERT") { SqlQueryType::Insert }
-        else if upper.starts_with("UPDATE") { SqlQueryType::Update }
-        else if upper.starts_with("DELETE") { SqlQueryType::Delete }
-        else { SqlQueryType::Execute }
+        if upper.starts_with("SELECT") {
+            SqlQueryType::Select
+        } else if upper.starts_with("INSERT") {
+            SqlQueryType::Insert
+        } else if upper.starts_with("UPDATE") {
+            SqlQueryType::Update
+        } else if upper.starts_with("DELETE") {
+            SqlQueryType::Delete
+        } else {
+            SqlQueryType::Execute
+        }
     }
-    
+
     /// Map sqlx row to vector of JSON values.
     fn row_to_json(row: &sqlx::any::AnyRow, columns: &[String]) -> Vec<serde_json::Value> {
         let mut values = Vec::new();
@@ -134,18 +142,18 @@ impl SqlConnector {
             if let Ok(v) = row.try_get::<i64, _>(i) {
                 values.push(serde_json::Value::Number(v.into()));
             } else if let Ok(v) = row.try_get::<f64, _>(i) {
-                 if let Some(n) = serde_json::Number::from_f64(v) {
-                     values.push(serde_json::Value::Number(n));
-                 } else {
-                     values.push(serde_json::Value::Null);
-                 }
+                if let Some(n) = serde_json::Number::from_f64(v) {
+                    values.push(serde_json::Value::Number(n));
+                } else {
+                    values.push(serde_json::Value::Null);
+                }
             } else if let Ok(v) = row.try_get::<bool, _>(i) {
                 values.push(serde_json::Value::Bool(v));
             } else if let Ok(v) = row.try_get::<String, _>(i) {
                 values.push(serde_json::Value::String(v));
             } else {
                 // Fallback to null (or maybe string?)
-                values.push(serde_json::Value::Null); 
+                values.push(serde_json::Value::Null);
             }
         }
         values
@@ -157,24 +165,24 @@ impl LegacyConnector for SqlConnector {
     fn name(&self) -> &str {
         &self.config.name
     }
-    
+
     fn protocol(&self) -> ConnectorProtocol {
         self.config.protocol
     }
-    
+
     fn config(&self) -> &ConnectorConfig {
         &self.config
     }
-    
+
     async fn health_check(&self) -> ConnectorResult<ConnectorHealth> {
         let pool = self.pool.read().await;
-        
+
         if let Some(pool) = pool.as_ref() {
-             // Execute simple query to test connection
-             match sqlx::query("SELECT 1").execute(pool).await {
-                 Ok(_) => Ok(ConnectorHealth::healthy()),
-                 Err(e) => Ok(ConnectorHealth::unhealthy(format!("DB Ping failed: {}", e))),
-             }
+            // Execute simple query to test connection
+            match sqlx::query("SELECT 1").execute(pool).await {
+                Ok(_) => Ok(ConnectorHealth::healthy()),
+                Err(e) => Ok(ConnectorHealth::unhealthy(format!("DB Ping failed: {}", e))),
+            }
         } else {
             // Not connected
             Ok(ConnectorHealth {
@@ -187,16 +195,16 @@ impl LegacyConnector for SqlConnector {
             })
         }
     }
-    
+
     fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage> {
         let query = self.parse_query(&task.params)?;
-        
-        let data = serde_json::to_vec(&query)
-            .map_err(|e| ConnectorError::ParseError(e.to_string()))?;
-            
+
+        let data =
+            serde_json::to_vec(&query).map_err(|e| ConnectorError::ParseError(e.to_string()))?;
+
         let mut metadata = HashMap::new();
         metadata.insert("task_id".to_string(), task.id.clone());
-        
+
         Ok(LegacyMessage {
             data,
             message_type: match query.query_type {
@@ -206,7 +214,7 @@ impl LegacyConnector for SqlConnector {
             metadata,
         })
     }
-    
+
     fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload> {
         // SQL usually returns results, this might be a notification?
         // Basic impl: wrap message data as params
@@ -219,22 +227,23 @@ impl LegacyConnector for SqlConnector {
             target_agent: None,
         })
     }
-    
+
     async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
         // Deserialize Query
         let query: SqlQuery = serde_json::from_slice(&msg.data)
             .map_err(|e| ConnectorError::ParseError(e.to_string()))?;
-            
+
         // Ensure connected
         let pool_guard = self.pool.read().await;
-        let pool = pool_guard.as_ref().ok_or_else(|| 
-            ConnectorError::Internal("Database not connected".into()))?;
+        let pool = pool_guard
+            .as_ref()
+            .ok_or_else(|| ConnectorError::Internal("Database not connected".into()))?;
 
         let start = std::time::Instant::now();
-        
+
         // P1 Fix: Parameterized Queries to prevent SQL injection
         let mut query_builder = sqlx::query(&query.sql);
-        
+
         // Bind parameters dynamically
         for param in &query.params {
             match param {
@@ -258,22 +267,22 @@ impl LegacyConnector for SqlConnector {
         }
 
         let rows = query_builder
-             .fetch_all(pool)
-             .await
-             .map_err(|e| ConnectorError::Internal(format!("Execution error: {}", e)))?;
-             
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ConnectorError::Internal(format!("Execution error: {}", e)))?;
+
         let execution_time_ms = start.elapsed().as_millis() as u64;
 
         // Process results
         let mut result_rows = Vec::new();
         let mut columns = Vec::new();
-        
+
         if let Some(first_row) = rows.first() {
             for col in first_row.columns() {
                 columns.push(col.name().to_string());
             }
         }
-        
+
         for row in rows {
             result_rows.push(Self::row_to_json(&row, &columns));
         }
@@ -284,9 +293,9 @@ impl LegacyConnector for SqlConnector {
             rows: result_rows,
             execution_time_ms,
         };
-        
+
         let data = serde_json::to_vec(&result)
-             .map_err(|e| ConnectorError::Internal(format!("Serialization error: {}", e)))?;
+            .map_err(|e| ConnectorError::Internal(format!("Serialization error: {}", e)))?;
 
         Ok(LegacyMessage {
             data,

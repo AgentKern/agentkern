@@ -4,7 +4,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
-[![Tests](https://img.shields.io/badge/Tests-334%20passing-green.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-357%2B%20passing-green.svg)](#testing)
 
 ---
 
@@ -238,10 +238,10 @@ AgentKern is built for regulated industries:
 ## Testing
 
 ```bash
-# Run all tests (334 total)
-cd packages/gate && cargo test      # 127 tests
-cd ../synapse && cargo test         # 67 tests
-cd ../arbiter && cargo test         # 86 tests
+# Run all tests (357+ total)
+cd packages/gate && cargo test      # 124 tests
+cd ../synapse && cargo test         # 87 tests
+cd ../arbiter && cargo test         # 95 tests
 cd ../nexus && cargo test           # 54 tests
 ```
 

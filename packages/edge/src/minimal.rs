@@ -62,46 +62,46 @@ impl EdgeRuntime {
         if config.max_memory < 64 * 1024 {
             return Err(EdgeError::InsufficientMemory);
         }
-        
+
         Ok(Self {
             config,
             state: RuntimeState::Starting,
             policies: Vec::new(),
         })
     }
-    
+
     /// Start the runtime.
     pub fn start(&mut self) -> Result<(), EdgeError> {
         self.state = RuntimeState::Running;
         Ok(())
     }
-    
+
     /// Stop the runtime.
     pub fn stop(&mut self) -> Result<(), EdgeError> {
         self.state = RuntimeState::Stopping;
         Ok(())
     }
-    
+
     /// Get current state.
     pub fn state(&self) -> RuntimeState {
         self.state
     }
-    
+
     /// Enter offline mode.
     pub fn go_offline(&mut self) {
         self.state = RuntimeState::Offline;
     }
-    
+
     /// Check if online.
     pub fn is_online(&self) -> bool {
         self.state == RuntimeState::Running
     }
-    
+
     /// Add policy rule.
     pub fn add_policy(&mut self, rule: super::policy::PolicyRule) {
         self.policies.push(rule);
     }
-    
+
     /// Evaluate action against policies.
     pub fn evaluate(&self, action: &str) -> super::policy::PolicyAction {
         for rule in &self.policies {
@@ -111,13 +111,13 @@ impl EdgeRuntime {
         }
         super::policy::PolicyAction::Allow
     }
-    
+
     /// Get memory usage estimate.
     pub fn memory_usage(&self) -> usize {
         // Simplified estimate
         core::mem::size_of::<Self>() + self.policies.len() * 64
     }
-    
+
     /// Check memory constraints.
     pub fn is_constrained(&self) -> bool {
         self.memory_usage() > self.config.max_memory / 2
@@ -173,13 +173,13 @@ mod tests {
     fn test_edge_runtime_lifecycle() {
         let config = EdgeConfig::default();
         let mut runtime = EdgeRuntime::new(config).unwrap();
-        
+
         runtime.start().unwrap();
         assert_eq!(runtime.state(), RuntimeState::Running);
-        
+
         runtime.go_offline();
         assert_eq!(runtime.state(), RuntimeState::Offline);
-        
+
         runtime.stop().unwrap();
         assert_eq!(runtime.state(), RuntimeState::Stopping);
     }

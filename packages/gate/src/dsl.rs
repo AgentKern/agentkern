@@ -33,18 +33,18 @@ pub struct EvalContext {
 pub fn evaluate(condition: &str, ctx: &EvalContext) -> bool {
     // Split by logical operators (&&, ||)
     let parts: Vec<&str> = condition.split("&&").collect();
-    
+
     if parts.len() > 1 {
         // AND logic - all parts must be true
         return parts.iter().all(|part| evaluate_single(part.trim(), ctx));
     }
-    
+
     let parts: Vec<&str> = condition.split("||").collect();
     if parts.len() > 1 {
         // OR logic - any part can be true
         return parts.iter().any(|part| evaluate_single(part.trim(), ctx));
     }
-    
+
     evaluate_single(condition, ctx)
 }
 
@@ -52,15 +52,15 @@ pub fn evaluate(condition: &str, ctx: &EvalContext) -> bool {
 fn evaluate_single(expr: &str, ctx: &EvalContext) -> bool {
     // Parse comparison operators
     let operators = ["==", "!=", ">=", "<=", ">", "<"];
-    
+
     for op in operators {
         if let Some(idx) = expr.find(op) {
             let left = expr[..idx].trim();
             let right = expr[idx + op.len()..].trim();
-            
+
             let left_val = resolve_value(left, ctx);
             let right_val = resolve_value(right, ctx);
-            
+
             return match op {
                 "==" => values_equal(&left_val, &right_val),
                 "!=" => !values_equal(&left_val, &right_val),
@@ -78,7 +78,7 @@ fn evaluate_single(expr: &str, ctx: &EvalContext) -> bool {
             };
         }
     }
-    
+
     // No operator found - check if it's a truthy value
     let val = resolve_value(expr, ctx);
     is_truthy(&val)
@@ -87,19 +87,19 @@ fn evaluate_single(expr: &str, ctx: &EvalContext) -> bool {
 /// Resolve a value from the context or parse as literal.
 fn resolve_value(token: &str, ctx: &EvalContext) -> JsonValue {
     let token = token.trim();
-    
+
     // Check for built-in identifiers
     match token {
         "action" => return JsonValue::String(ctx.action.clone()),
         "agent_id" => return JsonValue::String(ctx.agent_id.clone()),
         _ => {}
     }
-    
+
     // Check for context.* path
     if let Some(path) = token.strip_prefix("context.") {
         return ctx.context.get(path).cloned().unwrap_or(JsonValue::Null);
     }
-    
+
     // Parse as literal
     // String literal (with quotes)
     if (token.starts_with('\'') && token.ends_with('\''))
@@ -107,7 +107,7 @@ fn resolve_value(token: &str, ctx: &EvalContext) -> JsonValue {
     {
         return JsonValue::String(token[1..token.len() - 1].to_string());
     }
-    
+
     // Boolean literal
     match token.to_lowercase().as_str() {
         "true" => return JsonValue::Bool(true),
@@ -115,7 +115,7 @@ fn resolve_value(token: &str, ctx: &EvalContext) -> JsonValue {
         "null" => return JsonValue::Null,
         _ => {}
     }
-    
+
     // Number literal
     if let Ok(n) = token.parse::<i64>() {
         return JsonValue::Number(n.into());
@@ -125,7 +125,7 @@ fn resolve_value(token: &str, ctx: &EvalContext) -> JsonValue {
             .map(JsonValue::Number)
             .unwrap_or(JsonValue::Null);
     }
-    
+
     JsonValue::Null
 }
 
@@ -135,7 +135,7 @@ fn values_equal(a: &JsonValue, b: &JsonValue) -> bool {
 
 fn compare_values(a: &JsonValue, b: &JsonValue) -> std::cmp::Ordering {
     use std::cmp::Ordering;
-    
+
     match (a, b) {
         (JsonValue::Number(a), JsonValue::Number(b)) => {
             let a_f = a.as_f64().unwrap_or(0.0);
@@ -165,7 +165,7 @@ mod tests {
     fn make_ctx(action: &str, amount: i64) -> EvalContext {
         let mut context = HashMap::new();
         context.insert("amount".to_string(), JsonValue::Number(amount.into()));
-        
+
         EvalContext {
             action: action.to_string(),
             agent_id: "test-agent".to_string(),
@@ -192,14 +192,23 @@ mod tests {
     #[test]
     fn test_and_logic() {
         let ctx = make_ctx("transfer_funds", 15000);
-        assert!(evaluate("action == 'transfer_funds' && context.amount > 10000", &ctx));
-        assert!(!evaluate("action == 'send_email' && context.amount > 10000", &ctx));
+        assert!(evaluate(
+            "action == 'transfer_funds' && context.amount > 10000",
+            &ctx
+        ));
+        assert!(!evaluate(
+            "action == 'send_email' && context.amount > 10000",
+            &ctx
+        ));
     }
 
     #[test]
     fn test_or_logic() {
         let ctx = make_ctx("send_email", 100);
-        assert!(evaluate("action == 'send_email' || action == 'transfer_funds'", &ctx));
+        assert!(evaluate(
+            "action == 'send_email' || action == 'transfer_funds'",
+            &ctx
+        ));
         assert!(!evaluate("action == 'delete' || action == 'drop'", &ctx));
     }
 }

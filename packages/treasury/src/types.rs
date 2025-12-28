@@ -80,7 +80,12 @@ impl Amount {
 
 impl std::fmt::Display for Amount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.width$}", self.to_float(), width = self.decimals as usize)
+        write!(
+            f,
+            "{:.width$}",
+            self.to_float(),
+            width = self.decimals as usize
+        )
     }
 }
 

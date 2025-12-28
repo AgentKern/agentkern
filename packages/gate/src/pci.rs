@@ -127,11 +127,11 @@ impl CardBrand {
     /// Detect card brand from PAN prefix.
     pub fn from_pan(pan: &str) -> Self {
         let digits: String = pan.chars().filter(|c| c.is_ascii_digit()).collect();
-        
+
         if digits.is_empty() {
             return Self::Unknown;
         }
-        
+
         match digits.chars().next().unwrap() {
             '4' => Self::Visa,
             '5' => Self::Mastercard,
@@ -173,23 +173,23 @@ impl PciValidator {
     /// Scan text for card data.
     pub fn scan_for_card_data(&self, text: &str) -> CardScanResult {
         let mut data_types = Vec::new();
-        
+
         // Extract digits only for PAN detection
         let digits: String = text.chars().filter(|c| c.is_ascii_digit()).collect();
-        
+
         // Check for PAN (13-19 digits)
         if digits.len() >= 13 && digits.len() <= 19 {
             if self.luhn_check(&digits) {
                 data_types.push(CardDataType::Pan);
             }
         }
-        
+
         // Check for CVV (3-4 digits in context)
         let text_lower = text.to_lowercase();
         if text_lower.contains("cvv") || text_lower.contains("cvc") || text_lower.contains("cid") {
             data_types.push(CardDataType::Cvv);
         }
-        
+
         // Check for expiry date patterns
         if text.contains('/') {
             let parts: Vec<&str> = text.split('/').collect();
@@ -197,7 +197,11 @@ impl PciValidator {
                 let first = parts[0].trim();
                 let second = parts[1].trim();
                 if first.len() <= 2 && (second.len() == 2 || second.len() == 4) {
-                    if first.parse::<u8>().map(|m| m >= 1 && m <= 12).unwrap_or(false) {
+                    if first
+                        .parse::<u8>()
+                        .map(|m| m >= 1 && m <= 12)
+                        .unwrap_or(false)
+                    {
                         data_types.push(CardDataType::ExpiryDate);
                     }
                 }
@@ -206,7 +210,7 @@ impl PciValidator {
 
         let has_sad = data_types.iter().any(|d| d.is_sensitive_auth_data());
         let contains_card_data = !data_types.is_empty();
-        
+
         let risk = if has_sad {
             RiskLevel::Critical
         } else if data_types.contains(&CardDataType::Pan) {
@@ -235,7 +239,7 @@ impl PciValidator {
     fn luhn_check(&self, digits: &str) -> bool {
         let mut sum = 0;
         let mut double = false;
-        
+
         for c in digits.chars().rev() {
             if let Some(d) = c.to_digit(10) {
                 let mut d = d;
@@ -251,42 +255,43 @@ impl PciValidator {
                 return false;
             }
         }
-        
+
         sum % 10 == 0
     }
 
     /// Mask a PAN for safe display (show first 6 and last 4).
     pub fn mask_pan(&self, pan: &str) -> String {
         let digits: String = pan.chars().filter(|c| c.is_ascii_digit()).collect();
-        
+
         if digits.len() < 13 {
             return "INVALID".to_string();
         }
-        
+
         let first6 = &digits[..6];
-        let last4 = &digits[digits.len()-4..];
+        let last4 = &digits[digits.len() - 4..];
         let masked_len = digits.len() - 10;
-        
-        format!("{}{}{}",first6, "*".repeat(masked_len), last4)
+
+        format!("{}{}{}", first6, "*".repeat(masked_len), last4)
     }
 
     /// Tokenize card data (returns a safe token).
     pub fn tokenize(&self, pan: &str, exp_month: u8, exp_year: u16) -> Result<CardToken, PciError> {
         let digits: String = pan.chars().filter(|c| c.is_ascii_digit()).collect();
-        
+
         if digits.len() < 13 || digits.len() > 19 {
             return Err(PciError::InvalidCardFormat);
         }
-        
+
         if !self.luhn_check(&digits) {
             return Err(PciError::InvalidCardFormat);
         }
 
-        let token = format!("tok_{}_{}", 
+        let token = format!(
+            "tok_{}_{}",
             uuid::Uuid::new_v4().to_string().replace('-', ""),
-            &digits[digits.len()-4..]
+            &digits[digits.len() - 4..]
         );
-        
+
         Ok(CardToken {
             token,
             masked_pan: self.mask_pan(&digits),
@@ -303,7 +308,7 @@ impl PciValidator {
     /// Validate that CVV is not being stored (PCI-DSS 3.2.2).
     pub fn reject_cvv_storage(&self, data: &str) -> Result<(), PciError> {
         let text_lower = data.to_lowercase();
-        
+
         if text_lower.contains("cvv") || text_lower.contains("cvc") {
             // Check if it's just a field name or actual data
             let has_digits = data.chars().any(|c| c.is_ascii_digit());
@@ -311,7 +316,7 @@ impl PciValidator {
                 return Err(PciError::CvvStorageViolation);
             }
         }
-        
+
         Ok(())
     }
 
@@ -319,20 +324,20 @@ impl PciValidator {
     pub fn validate_for_storage(&self, data: &str) -> Result<(), PciError> {
         // Check for CVV
         self.reject_cvv_storage(data)?;
-        
+
         // Scan for unencrypted card data
         let scan = self.scan_for_card_data(data);
-        
+
         if scan.has_sad {
             return Err(PciError::CvvStorageViolation);
         }
-        
+
         if scan.data_types_found.contains(&CardDataType::Pan) {
             return Err(PciError::CardDataExposed {
                 data_type: "PAN".to_string(),
             });
         }
-        
+
         Ok(())
     }
 }
@@ -344,11 +349,11 @@ mod tests {
     #[test]
     fn test_luhn_check() {
         let validator = PciValidator::new();
-        
+
         // Valid test card numbers
         assert!(validator.luhn_check("4111111111111111")); // Visa
         assert!(validator.luhn_check("5500000000000004")); // Mastercard
-        
+
         // Invalid
         assert!(!validator.luhn_check("1234567890123456"));
     }
@@ -356,7 +361,10 @@ mod tests {
     #[test]
     fn test_card_brand_detection() {
         assert_eq!(CardBrand::from_pan("4111111111111111"), CardBrand::Visa);
-        assert_eq!(CardBrand::from_pan("5500000000000004"), CardBrand::Mastercard);
+        assert_eq!(
+            CardBrand::from_pan("5500000000000004"),
+            CardBrand::Mastercard
+        );
         assert_eq!(CardBrand::from_pan("371449635398431"), CardBrand::Amex);
     }
 
@@ -364,7 +372,7 @@ mod tests {
     fn test_pan_masking() {
         let validator = PciValidator::new();
         let masked = validator.mask_pan("4111111111111111");
-        
+
         assert_eq!(masked, "411111******1111");
     }
 
@@ -372,7 +380,7 @@ mod tests {
     fn test_tokenization() {
         let validator = PciValidator::new();
         let result = validator.tokenize("4111111111111111", 12, 2025);
-        
+
         assert!(result.is_ok());
         let token = result.unwrap();
         assert!(token.token.starts_with("tok_"));
@@ -383,7 +391,7 @@ mod tests {
     #[test]
     fn test_cvv_storage_rejection() {
         let validator = PciValidator::new();
-        
+
         assert!(validator.reject_cvv_storage("cvv: 123").is_err());
         assert!(validator.reject_cvv_storage("cvc_field").is_ok()); // No digits
     }
@@ -391,9 +399,9 @@ mod tests {
     #[test]
     fn test_scan_for_card_data() {
         let validator = PciValidator::new();
-        
+
         let result = validator.scan_for_card_data("Card: 4111-1111-1111-1111, CVV: 123");
-        
+
         assert!(result.contains_card_data);
         assert!(result.has_sad);
         assert_eq!(result.risk, RiskLevel::Critical);
@@ -403,7 +411,7 @@ mod tests {
     fn test_no_card_data() {
         let validator = PciValidator::new();
         let result = validator.scan_for_card_data("No payment info here");
-        
+
         assert!(!result.contains_card_data);
         assert_eq!(result.risk, RiskLevel::None);
     }

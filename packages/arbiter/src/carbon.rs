@@ -111,65 +111,83 @@ impl CarbonScheduler {
     /// Create a new carbon scheduler with default region data.
     pub fn new() -> Self {
         let mut regions = HashMap::new();
-        
+
         // Green regions (100% renewable)
-        regions.insert("eu-north-1".to_string(), CarbonRegion {
-            id: "eu-north-1".to_string(),
-            name: "Stockholm (Sweden)".to_string(),
-            intensity: CarbonIntensity::Green,
-            renewable_pct: 98,
-            current_grams_per_kwh: 20,
-            is_green: true,
-        });
-        
-        regions.insert("eu-west-1-ireland".to_string(), CarbonRegion {
-            id: "eu-west-1-ireland".to_string(),
-            name: "Ireland (Wind)".to_string(),
-            intensity: CarbonIntensity::Green,
-            renewable_pct: 85,
-            current_grams_per_kwh: 80,
-            is_green: true,
-        });
-        
-        regions.insert("us-west-2-oregon".to_string(), CarbonRegion {
-            id: "us-west-2-oregon".to_string(),
-            name: "Oregon (Hydro)".to_string(),
-            intensity: CarbonIntensity::Green,
-            renewable_pct: 90,
-            current_grams_per_kwh: 50,
-            is_green: true,
-        });
-        
+        regions.insert(
+            "eu-north-1".to_string(),
+            CarbonRegion {
+                id: "eu-north-1".to_string(),
+                name: "Stockholm (Sweden)".to_string(),
+                intensity: CarbonIntensity::Green,
+                renewable_pct: 98,
+                current_grams_per_kwh: 20,
+                is_green: true,
+            },
+        );
+
+        regions.insert(
+            "eu-west-1-ireland".to_string(),
+            CarbonRegion {
+                id: "eu-west-1-ireland".to_string(),
+                name: "Ireland (Wind)".to_string(),
+                intensity: CarbonIntensity::Green,
+                renewable_pct: 85,
+                current_grams_per_kwh: 80,
+                is_green: true,
+            },
+        );
+
+        regions.insert(
+            "us-west-2-oregon".to_string(),
+            CarbonRegion {
+                id: "us-west-2-oregon".to_string(),
+                name: "Oregon (Hydro)".to_string(),
+                intensity: CarbonIntensity::Green,
+                renewable_pct: 90,
+                current_grams_per_kwh: 50,
+                is_green: true,
+            },
+        );
+
         // Low carbon regions
-        regions.insert("eu-central-1".to_string(), CarbonRegion {
-            id: "eu-central-1".to_string(),
-            name: "Frankfurt (Germany)".to_string(),
-            intensity: CarbonIntensity::Low,
-            renewable_pct: 55,
-            current_grams_per_kwh: 250,
-            is_green: false,
-        });
-        
+        regions.insert(
+            "eu-central-1".to_string(),
+            CarbonRegion {
+                id: "eu-central-1".to_string(),
+                name: "Frankfurt (Germany)".to_string(),
+                intensity: CarbonIntensity::Low,
+                renewable_pct: 55,
+                current_grams_per_kwh: 250,
+                is_green: false,
+            },
+        );
+
         // Medium carbon regions
-        regions.insert("us-east-1".to_string(), CarbonRegion {
-            id: "us-east-1".to_string(),
-            name: "Virginia (US)".to_string(),
-            intensity: CarbonIntensity::Medium,
-            renewable_pct: 30,
-            current_grams_per_kwh: 380,
-            is_green: false,
-        });
-        
+        regions.insert(
+            "us-east-1".to_string(),
+            CarbonRegion {
+                id: "us-east-1".to_string(),
+                name: "Virginia (US)".to_string(),
+                intensity: CarbonIntensity::Medium,
+                renewable_pct: 30,
+                current_grams_per_kwh: 380,
+                is_green: false,
+            },
+        );
+
         // High carbon regions
-        regions.insert("ap-south-1".to_string(), CarbonRegion {
-            id: "ap-south-1".to_string(),
-            name: "Mumbai (India)".to_string(),
-            intensity: CarbonIntensity::High,
-            renewable_pct: 20,
-            current_grams_per_kwh: 700,
-            is_green: false,
-        });
-        
+        regions.insert(
+            "ap-south-1".to_string(),
+            CarbonRegion {
+                id: "ap-south-1".to_string(),
+                name: "Mumbai (India)".to_string(),
+                intensity: CarbonIntensity::High,
+                renewable_pct: 20,
+                current_grams_per_kwh: 700,
+                is_green: false,
+            },
+        );
+
         Self {
             regions,
             total_emissions_grams: 0.0,
@@ -186,22 +204,16 @@ impl CarbonScheduler {
     pub fn select_greenest<'a>(&self, candidates: &[&'a str]) -> Option<&'a str> {
         candidates
             .iter()
-            .filter_map(|&id| {
-                self.regions.get(id).map(|r| (id, r.current_grams_per_kwh))
-            })
+            .filter_map(|&id| self.regions.get(id).map(|r| (id, r.current_grams_per_kwh)))
             .min_by_key(|(_, grams)| *grams)
             .map(|(id, _)| id)
     }
 
     /// Calculate emissions for a workload.
-    pub fn calculate_emissions(
-        &self,
-        region_id: &str,
-        energy_kwh: f64,
-    ) -> Option<f64> {
-        self.regions.get(region_id).map(|r| {
-            energy_kwh * r.current_grams_per_kwh as f64
-        })
+    pub fn calculate_emissions(&self, region_id: &str, energy_kwh: f64) -> Option<f64> {
+        self.regions
+            .get(region_id)
+            .map(|r| energy_kwh * r.current_grams_per_kwh as f64)
     }
 
     /// Record emissions for a transaction.
@@ -213,10 +225,10 @@ impl CarbonScheduler {
     ) -> Option<EmissionsRecord> {
         let region = self.regions.get(region_id)?;
         let carbon_grams = energy_kwh * region.current_grams_per_kwh as f64;
-        
+
         self.total_emissions_grams += carbon_grams;
         self.transaction_count += 1;
-        
+
         Some(EmissionsRecord {
             transaction_id,
             region: region_id.to_string(),
@@ -249,17 +261,18 @@ impl CarbonScheduler {
             Some(r) => r,
             None => return 0.0,
         };
-        
+
         // Average global grid intensity ~500 gCO2eq/kWh
         let average_intensity = 500.0;
         let actual_intensity = region.current_grams_per_kwh as f64;
-        
+
         (average_intensity - actual_intensity) * energy_kwh
     }
 
     /// Check if scheduling in off-peak hours is recommended.
     pub fn recommend_off_peak(&self, region_id: &str) -> bool {
-        self.regions.get(region_id)
+        self.regions
+            .get(region_id)
             .map(|r| r.intensity == CarbonIntensity::High || r.intensity == CarbonIntensity::Medium)
             .unwrap_or(false)
     }
@@ -283,7 +296,7 @@ mod tests {
     fn test_green_regions() {
         let scheduler = CarbonScheduler::new();
         let green = scheduler.green_regions();
-        
+
         assert!(!green.is_empty());
         assert!(green.iter().all(|r| r.is_green));
     }
@@ -291,10 +304,10 @@ mod tests {
     #[test]
     fn test_select_greenest() {
         let scheduler = CarbonScheduler::new();
-        
+
         let candidates = ["us-east-1", "eu-north-1", "ap-south-1"];
         let greenest = scheduler.select_greenest(&candidates);
-        
+
         // eu-north-1 (Stockholm) should be greenest
         assert_eq!(greenest, Some("eu-north-1"));
     }
@@ -302,11 +315,11 @@ mod tests {
     #[test]
     fn test_calculate_emissions() {
         let scheduler = CarbonScheduler::new();
-        
+
         // 1 kWh in Stockholm (20 gCO2/kWh)
         let emissions = scheduler.calculate_emissions("eu-north-1", 1.0);
         assert_eq!(emissions, Some(20.0));
-        
+
         // 1 kWh in Mumbai (700 gCO2/kWh)
         let emissions = scheduler.calculate_emissions("ap-south-1", 1.0);
         assert_eq!(emissions, Some(700.0));
@@ -315,13 +328,13 @@ mod tests {
     #[test]
     fn test_record_transaction() {
         let mut scheduler = CarbonScheduler::new();
-        
+
         let record = scheduler.record_transaction(
             "tx-1".to_string(),
             "eu-north-1",
             0.001, // 1 Wh
         );
-        
+
         assert!(record.is_some());
         let record = record.unwrap();
         assert_eq!(record.carbon_grams, 0.02); // 0.001 kWh * 20 g/kWh
@@ -330,7 +343,7 @@ mod tests {
     #[test]
     fn test_carbon_savings() {
         let scheduler = CarbonScheduler::new();
-        
+
         // Using Stockholm (20 g/kWh) vs global average (500 g/kWh)
         let savings = scheduler.carbon_savings("eu-north-1", 1.0);
         assert_eq!(savings, 480.0); // 500 - 20 = 480 gCO2 saved per kWh
@@ -339,10 +352,10 @@ mod tests {
     #[test]
     fn test_off_peak_recommendation() {
         let scheduler = CarbonScheduler::new();
-        
+
         // Green region - no off-peak needed
         assert!(!scheduler.recommend_off_peak("eu-north-1"));
-        
+
         // High carbon region - recommend off-peak
         assert!(scheduler.recommend_off_peak("ap-south-1"));
     }

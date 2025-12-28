@@ -52,10 +52,12 @@ pub struct LicenseClaims {
     pub tier: String,
 }
 
-fn default_tier() -> String { "demo".to_string() }
+fn default_tier() -> String {
+    "demo".to_string()
+}
 
 /// Enterprise license validation.
-/// 
+///
 /// Supports two modes:
 /// 1. **Offline**: JWT-based license token validated locally
 /// 2. **Online**: HTTP validation against license server
@@ -67,65 +69,79 @@ pub struct License {
 impl License {
     /// Create a new license from environment variable.
     pub fn from_env() -> Result<Self, LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::InvalidLicense("Empty key".into()));
         }
-        
+
         // Try JWT offline validation
         if let Ok(claims) = Self::validate_jwt_offline(&key) {
             tracing::info!(org = %claims.sub, tier = %claims.tier, "License validated (JWT)");
-            return Ok(Self { key, claims: Some(claims) });
+            return Ok(Self {
+                key,
+                claims: Some(claims),
+            });
         }
-        
+
         // Fallback: demo mode
         tracing::warn!("License not JWT format, running in demo mode");
         Ok(Self { key, claims: None })
     }
-    
+
     /// Validate JWT license token offline.
     fn validate_jwt_offline(token: &str) -> Result<LicenseClaims, LicenseError> {
-        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-        
+        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+
         let secret = std::env::var("AGENTKERN_LICENSE_SECRET")
             .unwrap_or_else(|_| "agentkern-demo-2025".into());
-        
+
         let key = DecodingKey::from_secret(secret.as_bytes());
         let mut validation = Validation::new(Algorithm::HS256);
         validation.set_issuer(&["agentkern.com"]);
-        
+
         let data = decode::<LicenseClaims>(token, &key, &validation)
             .map_err(|e| LicenseError::InvalidLicense(e.to_string()))?;
-        
+
         let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
-        
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         if data.claims.exp < now {
-            return Err(LicenseError::LicenseExpired { 
+            return Err(LicenseError::LicenseExpired {
                 expiry: chrono::DateTime::from_timestamp(data.claims.exp as i64, 0)
                     .map(|dt| dt.to_string())
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
             });
         }
-        
+
         Ok(data.claims)
     }
-    
+
     /// Validate license with HTTP server (async).
-    pub async fn validate_with_server(&self, server_url: &str) -> Result<LicenseClaims, LicenseError> {
+    pub async fn validate_with_server(
+        &self,
+        server_url: &str,
+    ) -> Result<LicenseClaims, LicenseError> {
         let client = reqwest::Client::new();
-        let resp = client.post(format!("{}/v1/validate", server_url))
+        let resp = client
+            .post(format!("{}/v1/validate", server_url))
             .header("Authorization", format!("Bearer {}", self.key))
-            .send().await
+            .send()
+            .await
             .map_err(|e| LicenseError::ServerError(e.to_string()))?;
-        
+
         if !resp.status().is_success() {
-            return Err(LicenseError::InvalidLicense(resp.text().await.unwrap_or_default()));
+            return Err(LicenseError::InvalidLicense(
+                resp.text().await.unwrap_or_default(),
+            ));
         }
-        
-        resp.json().await.map_err(|e| LicenseError::ServerError(e.to_string()))
+
+        resp.json()
+            .await
+            .map_err(|e| LicenseError::ServerError(e.to_string()))
     }
 
     /// Check if a feature is licensed.
@@ -134,16 +150,21 @@ impl License {
             if claims.tier == "enterprise" || claims.features.contains(&feature.to_string()) {
                 return Ok(());
             }
-            return Err(LicenseError::FeatureNotLicensed { feature: feature.into() });
+            return Err(LicenseError::FeatureNotLicensed {
+                feature: feature.into(),
+            });
         }
         // Demo mode: allow with warning
         tracing::warn!(feature = %feature, "Demo mode - feature access");
         Ok(())
     }
-    
+
     /// Get license tier.
     pub fn tier(&self) -> &str {
-        self.claims.as_ref().map(|c| c.tier.as_str()).unwrap_or("demo")
+        self.claims
+            .as_ref()
+            .map(|c| c.tier.as_str())
+            .unwrap_or("demo")
     }
 }
 
@@ -151,7 +172,6 @@ impl License {
 pub fn require_license(feature: &str) -> Result<(), LicenseError> {
     License::from_env()?.require(feature)
 }
-
 
 /// Multi-cell mesh configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,7 +234,7 @@ impl MeshCoordinator {
     /// Create a new mesh coordinator (requires enterprise license).
     pub fn new(config: MeshConfig) -> Result<Self, LicenseError> {
         require_license("MULTI_CELL_MESH")?;
-        
+
         Ok(Self {
             config,
             cells: vec![],
@@ -224,13 +244,13 @@ impl MeshCoordinator {
     /// Register a new cell in the mesh.
     pub fn register_cell(&mut self, cell: MeshCell) -> Result<(), LicenseError> {
         require_license("MULTI_CELL_MESH")?;
-        
+
         tracing::info!(
             cell_id = %cell.cell_id,
             region = %cell.region,
             "Cell registered in mesh"
         );
-        
+
         self.cells.push(cell);
         Ok(())
     }
@@ -247,7 +267,10 @@ impl MeshCoordinator {
 
     /// Get healthy cell count.
     pub fn healthy_cell_count(&self) -> usize {
-        self.cells.iter().filter(|c| c.status == CellStatus::Healthy).count()
+        self.cells
+            .iter()
+            .filter(|c| c.status == CellStatus::Healthy)
+            .count()
     }
 }
 
@@ -349,7 +372,7 @@ impl MitosisController {
     /// Create a new mitosis controller (requires enterprise license).
     pub fn new(policy: ScalingPolicy) -> Result<Self, LicenseError> {
         require_license("AUTONOMIC_MITOSIS")?;
-        
+
         Ok(Self {
             policy,
             last_scale_time: 0,
@@ -377,12 +400,15 @@ impl MitosisController {
         };
 
         // Check if we need to scale up
-        let cpu_overload = metrics.avg_cpu > self.policy.target_cpu + self.policy.scale_up_threshold;
-        let memory_overload = metrics.avg_memory > self.policy.target_memory + self.policy.scale_up_threshold;
+        let cpu_overload =
+            metrics.avg_cpu > self.policy.target_cpu + self.policy.scale_up_threshold;
+        let memory_overload =
+            metrics.avg_memory > self.policy.target_memory + self.policy.scale_up_threshold;
         let rps_overload = rps_per_cell > self.policy.target_rps_per_cell;
 
-        if (cpu_overload || memory_overload || rps_overload) && 
-           metrics.total_cells < self.policy.max_cells {
+        if (cpu_overload || memory_overload || rps_overload)
+            && metrics.total_cells < self.policy.max_cells
+        {
             // Calculate how many cells to add
             let cells_needed = if rps_overload {
                 let total_needed = (metrics.total_rps / self.policy.target_rps_per_cell).max(1);
@@ -391,9 +417,9 @@ impl MitosisController {
                 // Add 25% more capacity
                 (metrics.healthy_cells / 4).max(1)
             };
-            
+
             let cells_to_add = cells_needed.min(self.policy.max_cells - metrics.total_cells);
-            
+
             if cells_to_add > 0 {
                 self.last_scale_time = now;
                 return ScalingDecision::ScaleUp(cells_to_add);
@@ -401,17 +427,28 @@ impl MitosisController {
         }
 
         // Check if we can scale down
-        let cpu_underload = metrics.avg_cpu < self.policy.target_cpu.saturating_sub(self.policy.scale_down_threshold);
-        let memory_underload = metrics.avg_memory < self.policy.target_memory.saturating_sub(self.policy.scale_down_threshold);
+        let cpu_underload = metrics.avg_cpu
+            < self
+                .policy
+                .target_cpu
+                .saturating_sub(self.policy.scale_down_threshold);
+        let memory_underload = metrics.avg_memory
+            < self
+                .policy
+                .target_memory
+                .saturating_sub(self.policy.scale_down_threshold);
         let rps_underload = rps_per_cell < self.policy.target_rps_per_cell / 2;
 
-        if cpu_underload && memory_underload && rps_underload && 
-           metrics.total_cells > self.policy.min_cells {
+        if cpu_underload
+            && memory_underload
+            && rps_underload
+            && metrics.total_cells > self.policy.min_cells
+        {
             // Remove 25% of cells
             let cells_to_remove = (metrics.healthy_cells / 4)
                 .max(1)
                 .min(metrics.total_cells - self.policy.min_cells);
-            
+
             if cells_to_remove > 0 {
                 self.last_scale_time = now;
                 return ScalingDecision::ScaleDown(cells_to_remove);
@@ -454,25 +491,33 @@ mod tests {
 
     #[test]
     fn test_license_required() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_with_license() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key"); }
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key");
+        }
         let result = MeshCoordinator::new(MeshConfig::default());
         assert!(result.is_ok());
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_mitosis_scale_up() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
-        
+
         // High load metrics
         let metrics = MeshMetrics {
             total_cells: 5,
@@ -482,19 +527,23 @@ mod tests {
             total_rps: 10000,
             timestamp: 0,
         };
-        
+
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleUp(_)));
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_mitosis_scale_down() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut controller = MitosisController::new(ScalingPolicy::default()).unwrap();
-        
+
         // Low load metrics
         let metrics = MeshMetrics {
             total_cells: 10,
@@ -504,11 +553,13 @@ mod tests {
             total_rps: 1000,
             timestamp: 0,
         };
-        
+
         let decision = controller.evaluate(&metrics);
         assert!(matches!(decision, ScalingDecision::ScaleDown(_)));
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
@@ -519,4 +570,3 @@ mod tests {
         assert_eq!(policy.target_cpu, 70);
     }
 }
-

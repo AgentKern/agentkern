@@ -10,11 +10,11 @@
 //!
 //! This makes NLIP the third stable protocol after A2A and MCP.
 
+use super::ProtocolAdapter;
+use crate::error::NexusError;
+use crate::types::{NexusMessage, Protocol};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use crate::types::{Protocol, NexusMessage};
-use crate::error::NexusError;
-use super::ProtocolAdapter;
 
 /// NLIP Protocol adapter (ECMA-430).
 pub struct NLIPAdapter {
@@ -53,14 +53,17 @@ impl ProtocolAdapter for NLIPAdapter {
                 return true;
             }
             // Alternative: Check for NLIP-specific content types
-            if text.contains("\"contentType\"") && 
-               (text.contains("\"text/natural-language\"") ||
-                text.contains("\"application/nlip\"")) {
+            if text.contains("\"contentType\"")
+                && (text.contains("\"text/natural-language\"")
+                    || text.contains("\"application/nlip\""))
+            {
                 return true;
             }
             // Check for NLIP envelope structure
-            if text.contains("\"envelope\"") && text.contains("\"header\"") &&
-               text.contains("\"payload\"") {
+            if text.contains("\"envelope\"")
+                && text.contains("\"header\"")
+                && text.contains("\"payload\"")
+            {
                 return true;
             }
         }
@@ -68,15 +71,18 @@ impl ProtocolAdapter for NLIPAdapter {
     }
 
     async fn parse(&self, raw: &[u8]) -> Result<NexusMessage, NexusError> {
-        let text = std::str::from_utf8(raw)
-            .map_err(|e| NexusError::ParseError { message: e.to_string() })?;
-        
+        let text = std::str::from_utf8(raw).map_err(|e| NexusError::ParseError {
+            message: e.to_string(),
+        })?;
+
         let envelope: NLIPEnvelope = serde_json::from_str(text)?;
-        
+
         // Extract method from intent or use default
-        let method = envelope.header.intent
+        let method = envelope
+            .header
+            .intent
             .unwrap_or_else(|| "nlip/message".to_string());
-        
+
         // Build params from payload
         let params = serde_json::json!({
             "conversationId": envelope.header.conversation_id,
@@ -86,7 +92,7 @@ impl ProtocolAdapter for NLIPAdapter {
             "modality": envelope.payload.modality,
             "context": envelope.payload.context,
         });
-        
+
         Ok(NexusMessage {
             id: envelope.header.message_id.unwrap_or_default(),
             method,
@@ -102,14 +108,18 @@ impl ProtocolAdapter for NLIPAdapter {
 
     async fn serialize(&self, msg: &NexusMessage) -> Result<Vec<u8>, NexusError> {
         // Extract content from params
-        let content = msg.params.get("content")
+        let content = msg
+            .params
+            .get("content")
             .cloned()
-            .or_else(|| Some(serde_json::json!([{
-                "type": "text",
-                "value": msg.params.get("text").unwrap_or(&serde_json::Value::Null)
-            }])))
+            .or_else(|| {
+                Some(serde_json::json!([{
+                    "type": "text",
+                    "value": msg.params.get("text").unwrap_or(&serde_json::Value::Null)
+                }]))
+            })
             .unwrap_or(serde_json::Value::Array(vec![]));
-        
+
         let envelope = NLIPEnvelope {
             nlip_version: "1.0".to_string(),
             header: NLIPHeader {
@@ -127,9 +137,10 @@ impl ProtocolAdapter for NLIPAdapter {
                 context: None,
             },
         };
-        
-        serde_json::to_vec(&envelope)
-            .map_err(|e| NexusError::SerializeError { message: e.to_string() })
+
+        serde_json::to_vec(&envelope).map_err(|e| NexusError::SerializeError {
+            message: e.to_string(),
+        })
     }
 
     fn supports_streaming(&self) -> bool {
@@ -155,7 +166,9 @@ pub struct NLIPEnvelope {
     pub payload: NLIPPayload,
 }
 
-fn default_version() -> String { "1.0".to_string() }
+fn default_version() -> String {
+    "1.0".to_string()
+}
 
 /// NLIP Header (routing and metadata).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -257,15 +270,15 @@ mod tests {
     #[test]
     fn test_nlip_detection() {
         let adapter = NLIPAdapter::new();
-        
+
         // Valid NLIP message with version
         let valid = r#"{"nlipVersion":"1.0","header":{},"payload":{"content":[]}}"#;
         assert!(adapter.detect(valid.as_bytes()));
-        
+
         // Valid NLIP with envelope
         let envelope = r#"{"envelope":{"header":{},"payload":{}}}"#;
         assert!(adapter.detect(envelope.as_bytes()));
-        
+
         // Not NLIP (A2A message)
         let a2a = r#"{"jsonrpc":"2.0","method":"tasks/send"}"#;
         assert!(!adapter.detect(a2a.as_bytes()));
@@ -274,7 +287,7 @@ mod tests {
     #[tokio::test]
     async fn test_nlip_parse() {
         let adapter = NLIPAdapter::new();
-        
+
         let msg = r#"{
             "nlipVersion": "1.0",
             "header": {
@@ -289,9 +302,9 @@ mod tests {
                 "modality": "text"
             }
         }"#;
-        
+
         let parsed = adapter.parse(msg.as_bytes()).await.unwrap();
-        
+
         assert_eq!(parsed.id, "msg-123");
         assert_eq!(parsed.method, "query");
         assert_eq!(parsed.source_protocol, Protocol::EcmaNLIP);
@@ -302,15 +315,18 @@ mod tests {
     #[tokio::test]
     async fn test_nlip_serialize() {
         let adapter = NLIPAdapter::new();
-        
-        let mut msg = NexusMessage::new("nlip/respond", serde_json::json!({
-            "content": [{"type": "text", "value": "Response text"}]
-        }));
+
+        let mut msg = NexusMessage::new(
+            "nlip/respond",
+            serde_json::json!({
+                "content": [{"type": "text", "value": "Response text"}]
+            }),
+        );
         msg.source_agent = Some("bot-1".to_string());
-        
+
         let serialized = adapter.serialize(&msg).await.unwrap();
         let text = String::from_utf8(serialized).unwrap();
-        
+
         assert!(text.contains("nlipVersion"));
         assert!(text.contains("header"));
         assert!(text.contains("payload"));
@@ -325,7 +341,7 @@ mod tests {
         };
         let json = serde_json::to_string(&text).unwrap();
         assert!(json.contains("\"type\":\"text\""));
-        
+
         // Location content
         let loc = NLIPContent::Location {
             latitude: 37.7749,

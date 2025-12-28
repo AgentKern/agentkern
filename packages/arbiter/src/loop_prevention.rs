@@ -21,10 +21,10 @@
 //!
 //! AgentKern prevents this with multiple layers of protection.
 
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use chrono::{DateTime, Utc};
 
 /// Configuration for loop prevention.
 #[derive(Debug, Clone)]
@@ -227,7 +227,7 @@ impl LoopPreventer {
     /// Check and update pair rate.
     fn check_pair_rate(&self, pair: &(String, String)) -> Result<(), LoopPreventionError> {
         let mut tracker = self.pair_tracker.write();
-        
+
         // Reset counters if window expired
         if let Some(last_reset) = tracker.last_reset {
             if last_reset.elapsed() > Duration::from_secs(self.config.rate_window_secs) {
@@ -239,12 +239,13 @@ impl LoopPreventer {
         }
 
         // Get or create counter
-        let counter = tracker.counts
+        let counter = tracker
+            .counts
             .entry(pair.clone())
             .or_insert_with(|| AtomicU32::new(0));
-        
+
         let current = counter.fetch_add(1, Ordering::Relaxed);
-        
+
         if current >= self.config.max_pair_rate {
             return Err(LoopPreventionError::PairRateLimitExceeded {
                 from: pair.0.clone(),
@@ -343,7 +344,10 @@ mod tests {
         msg.add_hop("agent-d", 1.0);
 
         let result = preventer.check(&msg);
-        assert!(matches!(result, Err(LoopPreventionError::HopLimitExceeded { .. })));
+        assert!(matches!(
+            result,
+            Err(LoopPreventionError::HopLimitExceeded { .. })
+        ));
     }
 
     #[test]
@@ -355,7 +359,10 @@ mod tests {
         msg.add_hop("agent-a", 1.0); // Back to agent-a = loop!
 
         let result = preventer.check(&msg);
-        assert!(matches!(result, Err(LoopPreventionError::LoopDetected { .. })));
+        assert!(matches!(
+            result,
+            Err(LoopPreventionError::LoopDetected { .. })
+        ));
     }
 
     #[test]
@@ -370,8 +377,11 @@ mod tests {
         msg.accumulated_cost = 15.0;
 
         let result = preventer.check(&msg);
-        assert!(matches!(result, Err(LoopPreventionError::CostCeilingExceeded { .. })));
-        
+        assert!(matches!(
+            result,
+            Err(LoopPreventionError::CostCeilingExceeded { .. })
+        ));
+
         // Circuit should be open now
         assert!(preventer.stats().circuit_open);
     }
@@ -394,17 +404,20 @@ mod tests {
         let preventer = LoopPreventer::new(config);
 
         let mut msg = TrackedMessage::new("msg-1", "analysis-agent");
-        
+
         // Verification requests clarification → Analysis responds → repeat
         // With AgentKern, this would be caught on the 2nd round-trip
         msg.add_hop("verification-agent", 1.0);
         msg.add_hop("analysis-agent", 1.0); // Loop detected!
 
         let result = preventer.check(&msg);
-        
+
         // AgentKern catches the loop immediately
-        assert!(matches!(result, Err(LoopPreventionError::LoopDetected { .. })));
-        
+        assert!(matches!(
+            result,
+            Err(LoopPreventionError::LoopDetected { .. })
+        ));
+
         // The $47k would have been $2 instead
         assert!(msg.accumulated_cost < 5.0);
     }

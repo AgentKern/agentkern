@@ -2,9 +2,9 @@
 //!
 //! Manages waiting requests when resources are locked.
 
-use std::collections::HashMap;
-use std::cmp::Ordering;
 use chrono::{DateTime, Utc};
+use std::cmp::Ordering;
+use std::collections::HashMap;
 
 use crate::types::CoordinationRequest;
 
@@ -33,7 +33,7 @@ impl PartialOrd for QueueEntry {
 
 impl PartialEq for QueueEntry {
     fn eq(&self, other: &Self) -> bool {
-        self.request.agent_id == other.request.agent_id 
+        self.request.agent_id == other.request.agent_id
             && self.request.resource == other.request.resource
     }
 }
@@ -66,19 +66,24 @@ impl PriorityQueue {
             inserted_at: Utc::now(),
         };
 
-        let queue = self.queues.entry(request.resource.clone()).or_insert_with(Vec::new);
-        
+        let queue = self
+            .queues
+            .entry(request.resource.clone())
+            .or_insert_with(Vec::new);
+
         // Check if already in queue
         if queue.iter().any(|e| e.request.agent_id == request.agent_id) {
             // Update existing entry
             queue.retain(|e| e.request.agent_id != request.agent_id);
         }
-        
+
         queue.push(entry);
         queue.sort_by(|a, b| b.cmp(a)); // Sort descending (highest priority first)
-        
+
         // Return position (1-indexed)
-        queue.iter().position(|e| e.request.agent_id == request.agent_id)
+        queue
+            .iter()
+            .position(|e| e.request.agent_id == request.agent_id)
             .map(|p| p + 1)
             .unwrap_or(0)
     }
@@ -95,7 +100,8 @@ impl PriorityQueue {
 
     /// Get the next request in queue for a resource.
     pub fn peek(&self, resource: &str) -> Option<&CoordinationRequest> {
-        self.queues.get(resource)
+        self.queues
+            .get(resource)
             .and_then(|q| q.first())
             .map(|e| &e.request)
     }
@@ -112,7 +118,8 @@ impl PriorityQueue {
 
     /// Get the position of an agent in the queue for a resource.
     pub fn get_position(&self, agent_id: &str, resource: &str) -> Option<usize> {
-        self.queues.get(resource)
+        self.queues
+            .get(resource)
             .and_then(|q| q.iter().position(|e| e.request.agent_id == agent_id))
             .map(|p| p + 1) // 1-indexed
     }

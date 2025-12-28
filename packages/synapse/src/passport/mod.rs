@@ -9,15 +9,15 @@
 //! - Encrypted cross-cloud migration
 //! - GDPR Article 20 compliance export
 
-pub mod schema;
-pub mod layers;
 pub mod export;
-pub mod import;
 pub mod gdpr;
+pub mod import;
+pub mod layers;
+pub mod schema;
 
 // Re-exports
-pub use schema::{MemoryPassport, PassportVersion, PassportError};
-pub use layers::{MemoryLayers, EpisodicMemory, SemanticMemory, SkillMemory, PreferenceMemory};
-pub use export::{PassportExporter, ExportOptions, ExportFormat};
-pub use import::{PassportImporter, ImportOptions, ImportResult};
-pub use gdpr::{GdprExport, DataCategory, ProcessingEvent};
+pub use export::{ExportFormat, ExportOptions, PassportExporter};
+pub use gdpr::{DataCategory, GdprExport, ProcessingEvent};
+pub use import::{ImportOptions, ImportResult, PassportImporter};
+pub use layers::{EpisodicMemory, MemoryLayers, PreferenceMemory, SemanticMemory, SkillMemory};
+pub use schema::{MemoryPassport, PassportError, PassportVersion};

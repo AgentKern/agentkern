@@ -7,49 +7,49 @@
 //!   agentkern detect  # Show detected environment
 //!   agentkern config  # Show auto-generated config
 
-use agentkern_runtime::{detect_environment, auto_configure, VERSION};
+use agentkern_runtime::{auto_configure, detect_environment, VERSION};
 
 #[tokio::main]
 async fn main() {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     let args: Vec<String> = std::env::args().collect();
     let command = args.get(1).map(|s| s.as_str()).unwrap_or("run");
-    
+
     match command {
         "run" => {
             println!("AgentKern v{}", VERSION);
             println!("The Universal AI Agent Kernel");
             println!();
-            
+
             if let Err(e) = agentkern_runtime::run().await {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
         }
-        
+
         "detect" => {
             let env = detect_environment();
             println!("Detected Environment:");
             println!("{:#?}", env);
         }
-        
+
         "config" => {
             let env = detect_environment();
             let config = auto_configure(&env);
             println!("Auto-Generated Configuration:");
             println!("{:#?}", config);
         }
-        
+
         "version" | "-v" | "--version" => {
             println!("AgentKern v{}", VERSION);
         }
-        
+
         "help" | "-h" | "--help" => {
             print_help();
         }
-        
+
         _ => {
             eprintln!("Unknown command: {}", command);
             print_help();

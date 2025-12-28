@@ -15,11 +15,11 @@ pub enum IsolationMode {
     /// - Capability-based security
     /// - Truly universal binaries
     Wasm,
-    
+
     /// Container fallback (for legacy workloads)
     /// Only used when WASM is not available
     Container,
-    
+
     /// Process isolation (minimal)
     /// For development/testing only
     Process,
@@ -108,7 +108,7 @@ pub fn wasm_available() -> bool {
     // In practice, this is available on most platforms
     #[cfg(target_arch = "wasm32")]
     return true; // Already in WASM
-    
+
     #[cfg(not(target_arch = "wasm32"))]
     {
         // Check for wasmtime features

@@ -20,10 +20,10 @@
 //! drop(guard); // Release lock
 //! ```
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
-use parking_lot::RwLock;
 use thiserror::Error;
 
 /// Lock errors.
@@ -116,7 +116,7 @@ impl LockManager {
     /// Acquire a lock on a resource.
     pub async fn acquire(&self, resource: &str) -> Result<LockGuard, LockError> {
         let start = std::time::Instant::now();
-        
+
         loop {
             match self.try_acquire(resource).await {
                 Ok(guard) => return Ok(guard),
@@ -139,7 +139,9 @@ impl LockManager {
             LockMode::Redis => self.acquire_redis(resource).await,
             #[cfg(not(feature = "distributed"))]
             LockMode::Redis => {
-                tracing::warn!("Redis lock requested but distributed feature not enabled, using local");
+                tracing::warn!(
+                    "Redis lock requested but distributed feature not enabled, using local"
+                );
                 self.acquire_local(resource)
             }
         }
@@ -148,15 +150,15 @@ impl LockManager {
     /// Acquire local lock.
     fn acquire_local(&self, resource: &str) -> Result<LockGuard, LockError> {
         let mut locks = self.local_locks.write();
-        
+
         if locks.contains(resource) {
             return Err(LockError::AlreadyHeld);
         }
-        
+
         locks.insert(resource.to_string());
-        
+
         tracing::debug!(resource = %resource, mode = "local", "Lock acquired");
-        
+
         Ok(LockGuard {
             resource: resource.to_string(),
             local_locks: Some(self.local_locks.clone()),
@@ -168,19 +170,23 @@ impl LockManager {
     /// Acquire Redis distributed lock.
     #[cfg(feature = "distributed")]
     async fn acquire_redis(&self, resource: &str) -> Result<LockGuard, LockError> {
-        let redis_url = self.redis_url.as_ref()
+        let redis_url = self
+            .redis_url
+            .as_ref()
             .ok_or_else(|| LockError::RedisError("REDIS_URL not set".into()))?;
-        
+
         let rl = rslock::RedLock::new(vec![redis_url.as_str()]);
-        
-        let lock = rl.lock(
-            resource.as_bytes(), 
-            self.config.default_ttl.as_millis() as usize
-        ).await
+
+        let lock = rl
+            .lock(
+                resource.as_bytes(),
+                self.config.default_ttl.as_millis() as usize,
+            )
+            .await
             .map_err(|e| LockError::RedisError(format!("{:?}", e)))?;
-        
+
         tracing::debug!(resource = %resource, mode = "redis", "Distributed lock acquired");
-        
+
         Ok(LockGuard {
             resource: resource.to_string(),
             local_locks: None,
@@ -211,7 +217,7 @@ impl Drop for LockGuard {
             locks.remove(&self.resource);
             tracing::debug!(resource = %self.resource, "Local lock released");
         }
-        
+
         #[cfg(feature = "distributed")]
         if let Some((ref rl, ref lock)) = self.redis_lock {
             // Redis lock auto-expires by TTL, but we can unlock early
@@ -232,17 +238,17 @@ mod tests {
     #[tokio::test]
     async fn test_local_lock_acquire_release() {
         let manager = LockManager::new_auto();
-        
+
         let guard = manager.acquire("test-resource").await.unwrap();
         assert_eq!(manager.mode(), LockMode::Local);
-        
+
         // Lock should be held
         let try_again = manager.try_acquire("test-resource").await;
         assert!(matches!(try_again, Err(LockError::AlreadyHeld)));
-        
+
         // Release
         drop(guard);
-        
+
         // Should be able to acquire again
         let guard2 = manager.acquire("test-resource").await;
         assert!(guard2.is_ok());
@@ -251,14 +257,14 @@ mod tests {
     #[tokio::test]
     async fn test_multiple_resources() {
         let manager = LockManager::new_auto();
-        
+
         let guard1 = manager.acquire("resource-a").await.unwrap();
         let guard2 = manager.acquire("resource-b").await.unwrap();
-        
+
         // Both should be held
         assert!(manager.try_acquire("resource-a").await.is_err());
         assert!(manager.try_acquire("resource-b").await.is_err());
-        
+
         drop(guard1);
         drop(guard2);
     }

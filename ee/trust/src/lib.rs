@@ -12,9 +12,9 @@
 //! - Behavioral scoring
 //! - Cross-organization reputation sharing
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 mod license {
     #[derive(Debug, thiserror::Error)]
@@ -24,13 +24,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise trust feature accessed");
         Ok(())
     }
@@ -207,7 +207,7 @@ impl TrustNetwork {
     /// Create a new trust network (requires enterprise license).
     pub fn new() -> Result<Self, license::LicenseError> {
         license::require("TRUST_NETWORK")?;
-        
+
         Ok(Self {
             agents: HashMap::new(),
             trust_graph: HashMap::new(),
@@ -217,9 +217,10 @@ impl TrustNetwork {
     /// Register a new agent.
     pub fn register_agent(&mut self, agent_id: &str, org_id: &str) -> &AgentRecord {
         let now = Utc::now();
-        
-        self.agents.entry(agent_id.to_string()).or_insert_with(|| {
-            AgentRecord {
+
+        self.agents
+            .entry(agent_id.to_string())
+            .or_insert_with(|| AgentRecord {
                 agent_id: agent_id.to_string(),
                 org_id: org_id.to_string(),
                 reputation: ReputationScore::default(),
@@ -230,8 +231,7 @@ impl TrustNetwork {
                 last_activity: now,
                 blacklisted: false,
                 blacklist_reason: None,
-            }
-        })
+            })
     }
 
     /// Get agent reputation.
@@ -254,13 +254,13 @@ impl TrustNetwork {
             let new_score = (record.reputation.score as i32 + impact as i32)
                 .max(0)
                 .min(1000) as u16;
-            
+
             record.reputation.score = new_score;
             record.reputation.tier = TrustTier::from_score(new_score);
             record.reputation.updated_at = Utc::now();
             record.last_activity = Utc::now();
             record.total_actions += 1;
-            
+
             // Update counters based on event type
             match &event {
                 ReputationEvent::ActionSuccess { .. } => {
@@ -268,7 +268,7 @@ impl TrustNetwork {
                 }
                 ReputationEvent::PolicyViolation { .. } => {
                     record.violations += 1;
-                    
+
                     // Auto-blacklist after too many violations
                     if record.violations >= 10 {
                         record.blacklisted = true;
@@ -278,11 +278,11 @@ impl TrustNetwork {
                 }
                 _ => {}
             }
-            
+
             // Update confidence based on activity
             let confidence = ((record.total_actions as f64).log10() * 30.0).min(100.0) as u8;
             record.reputation.confidence = confidence;
-            
+
             tracing::info!(
                 agent_id = %agent_id,
                 score = new_score,
@@ -307,7 +307,7 @@ impl TrustNetwork {
             record.blacklist_reason = Some(reason.to_string());
             record.reputation.score = 0;
             record.reputation.tier = TrustTier::Blacklisted;
-            
+
             tracing::warn!(
                 agent_id = %agent_id,
                 reason = %reason,
@@ -336,13 +336,21 @@ impl TrustNetwork {
     pub fn get_stats(&self) -> TrustNetworkStats {
         let total = self.agents.len();
         let blacklisted = self.agents.values().filter(|a| a.blacklisted).count();
-        let trusted = self.agents.values().filter(|a| a.reputation.tier >= TrustTier::Trusted).count();
+        let trusted = self
+            .agents
+            .values()
+            .filter(|a| a.reputation.tier >= TrustTier::Trusted)
+            .count();
         let avg_score = if total > 0 {
-            self.agents.values().map(|a| a.reputation.score as u64).sum::<u64>() / total as u64
+            self.agents
+                .values()
+                .map(|a| a.reputation.score as u64)
+                .sum::<u64>()
+                / total as u64
         } else {
             0
         };
-        
+
         TrustNetworkStats {
             total_agents: total,
             blacklisted_agents: blacklisted,
@@ -383,44 +391,57 @@ mod tests {
 
     #[test]
     fn test_trust_network_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = TrustNetwork::new();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_reputation_events() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut network = TrustNetwork::new().unwrap();
         network.register_agent("agent-1", "org-1");
-        
+
         // Start at 500 (Unknown tier)
         assert_eq!(network.get_trust_tier("agent-1"), TrustTier::Unknown);
-        
+
         // Success events should increase score
-        network.record_event("agent-1", ReputationEvent::ActionSuccess {
-            action: "test".to_string(),
-            impact: 50,
-        });
-        
+        network.record_event(
+            "agent-1",
+            ReputationEvent::ActionSuccess {
+                action: "test".to_string(),
+                impact: 50,
+            },
+        );
+
         assert!(network.get_reputation("agent-1").unwrap().score > 500);
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_blacklisting() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut network = TrustNetwork::new().unwrap();
         network.register_agent("bad-agent", "org-1");
-        
+
         network.blacklist("bad-agent", "Malicious behavior");
-        
+
         assert!(!network.can_perform_high_risk("bad-agent"));
         assert_eq!(network.get_trust_tier("bad-agent"), TrustTier::Blacklisted);
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 }

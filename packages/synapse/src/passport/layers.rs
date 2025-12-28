@@ -27,7 +27,7 @@ impl MemoryLayers {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     /// Get total entry count.
     pub fn total_entries(&self) -> usize {
         self.episodic.entries.len()
@@ -35,7 +35,7 @@ impl MemoryLayers {
             + self.skills.skills.len()
             + self.preferences.items.len()
     }
-    
+
     /// Check if all layers are empty.
     pub fn is_empty(&self) -> bool {
         self.total_entries() == 0
@@ -84,7 +84,7 @@ impl EpisodicMemory {
             max_entries: max,
         }
     }
-    
+
     /// Add entry, evicting oldest if at capacity.
     pub fn add(&mut self, entry: EpisodicEntry) {
         if self.max_entries > 0 && self.entries.len() >= self.max_entries {
@@ -92,16 +92,19 @@ impl EpisodicMemory {
         }
         self.entries.push(entry);
     }
-    
+
     /// Get recent entries.
     pub fn recent(&self, count: usize) -> &[EpisodicEntry] {
         let start = self.entries.len().saturating_sub(count);
         &self.entries[start..]
     }
-    
+
     /// Filter by importance threshold.
     pub fn important(&self, threshold: f32) -> Vec<&EpisodicEntry> {
-        self.entries.iter().filter(|e| e.importance >= threshold).collect()
+        self.entries
+            .iter()
+            .filter(|e| e.importance >= threshold)
+            .collect()
     }
 }
 
@@ -149,15 +152,21 @@ impl SemanticMemory {
         }
         self.facts.insert(fact.id.clone(), fact);
     }
-    
+
     /// Get facts by category.
     pub fn by_category(&self, category: &str) -> Vec<&SemanticFact> {
-        self.facts.values().filter(|f| f.category == category).collect()
+        self.facts
+            .values()
+            .filter(|f| f.category == category)
+            .collect()
     }
-    
+
     /// Get facts by subject.
     pub fn by_subject(&self, subject: &str) -> Vec<&SemanticFact> {
-        self.facts.values().filter(|f| f.subject == subject).collect()
+        self.facts
+            .values()
+            .filter(|f| f.subject == subject)
+            .collect()
     }
 }
 
@@ -198,17 +207,20 @@ impl SkillMemory {
     pub fn learn(&mut self, skill: LearnedSkill) {
         self.skills.insert(skill.id.clone(), skill);
     }
-    
+
     /// Get skill by ID.
     pub fn get(&self, id: &str) -> Option<&LearnedSkill> {
         self.skills.get(id)
     }
-    
+
     /// List skills by proficiency.
     pub fn by_proficiency(&self, min: f32) -> Vec<&LearnedSkill> {
-        self.skills.values().filter(|s| s.proficiency >= min).collect()
+        self.skills
+            .values()
+            .filter(|s| s.proficiency >= min)
+            .collect()
     }
-    
+
     /// Record skill usage.
     pub fn record_usage(&mut self, id: &str) {
         if let Some(skill) = self.skills.get_mut(id) {
@@ -248,26 +260,37 @@ pub struct PreferenceItem {
 
 impl PreferenceMemory {
     /// Set a preference.
-    pub fn set(&mut self, key: impl Into<String>, value: serde_json::Value, category: impl Into<String>) {
+    pub fn set(
+        &mut self,
+        key: impl Into<String>,
+        value: serde_json::Value,
+        category: impl Into<String>,
+    ) {
         let key = key.into();
-        self.items.insert(key.clone(), PreferenceItem {
-            key,
-            value,
-            category: category.into(),
-            inferred: false,
-            confidence: None,
-            updated_at: chrono::Utc::now().timestamp_millis() as u64,
-        });
+        self.items.insert(
+            key.clone(),
+            PreferenceItem {
+                key,
+                value,
+                category: category.into(),
+                inferred: false,
+                confidence: None,
+                updated_at: chrono::Utc::now().timestamp_millis() as u64,
+            },
+        );
     }
-    
+
     /// Get a preference.
     pub fn get(&self, key: &str) -> Option<&serde_json::Value> {
         self.items.get(key).map(|p| &p.value)
     }
-    
+
     /// Get preferences by category.
     pub fn by_category(&self, category: &str) -> Vec<&PreferenceItem> {
-        self.items.values().filter(|p| p.category == category).collect()
+        self.items
+            .values()
+            .filter(|p| p.category == category)
+            .collect()
     }
 }
 
@@ -289,7 +312,7 @@ mod tests {
     #[test]
     fn test_episodic_memory() {
         let mut mem = EpisodicMemory::with_capacity(10);
-        
+
         mem.add(EpisodicEntry {
             id: "1".into(),
             timestamp: 1700000000000,
@@ -300,7 +323,7 @@ mod tests {
             context: HashMap::new(),
             embedding: None,
         });
-        
+
         assert_eq!(mem.entries.len(), 1);
         assert_eq!(mem.recent(5).len(), 1);
     }
@@ -308,7 +331,7 @@ mod tests {
     #[test]
     fn test_episodic_eviction() {
         let mut mem = EpisodicMemory::with_capacity(2);
-        
+
         for i in 0..3 {
             mem.add(EpisodicEntry {
                 id: i.to_string(),
@@ -321,7 +344,7 @@ mod tests {
                 embedding: None,
             });
         }
-        
+
         assert_eq!(mem.entries.len(), 2);
         assert_eq!(mem.entries[0].id, "1"); // First entry evicted
     }
@@ -329,7 +352,7 @@ mod tests {
     #[test]
     fn test_semantic_memory() {
         let mut mem = SemanticMemory::default();
-        
+
         mem.add_fact(SemanticFact {
             id: "fact-1".into(),
             category: "geography".into(),
@@ -341,7 +364,7 @@ mod tests {
             verified_at: None,
             embedding: None,
         });
-        
+
         assert_eq!(mem.facts.len(), 1);
         assert!(mem.categories.contains(&"geography".to_string()));
         assert_eq!(mem.by_subject("Paris").len(), 1);
@@ -350,7 +373,7 @@ mod tests {
     #[test]
     fn test_skill_memory() {
         let mut mem = SkillMemory::default();
-        
+
         mem.learn(LearnedSkill {
             id: "search".into(),
             name: "Web Search".into(),
@@ -361,10 +384,10 @@ mod tests {
             required_tools: vec!["search_api".into()],
             examples: vec![],
         });
-        
+
         assert!(mem.get("search").is_some());
         assert_eq!(mem.by_proficiency(0.7).len(), 1);
-        
+
         mem.record_usage("search");
         assert_eq!(mem.get("search").unwrap().usage_count, 101);
     }
@@ -372,10 +395,10 @@ mod tests {
     #[test]
     fn test_preference_memory() {
         let mut mem = PreferenceMemory::default();
-        
+
         mem.set("language", serde_json::json!("en"), "localization");
         mem.set("theme", serde_json::json!("dark"), "ui");
-        
+
         assert_eq!(mem.get("language"), Some(&serde_json::json!("en")));
         assert_eq!(mem.by_category("ui").len(), 1);
     }

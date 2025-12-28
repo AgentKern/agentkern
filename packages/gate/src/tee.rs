@@ -56,22 +56,22 @@ impl TeePlatform {
         if std::path::Path::new("/dev/tdx_guest").exists() {
             return Some(Self::IntelTdx);
         }
-        
+
         // Check for SEV
         if std::path::Path::new("/dev/sev-guest").exists() {
             return Some(Self::AmdSevSnp);
         }
-        
+
         // Check for SGX
         if std::path::Path::new("/dev/sgx_enclave").exists() {
             return Some(Self::IntelSgx);
         }
-        
+
         // Default to simulation in dev mode
         if cfg!(debug_assertions) {
             return Some(Self::Simulated);
         }
-        
+
         None
     }
 }
@@ -100,7 +100,7 @@ impl Attestation {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        
+
         Self {
             platform,
             quote: Vec::new(),
@@ -142,12 +142,20 @@ impl TdxReport {
                 reason: "Report too short".to_string(),
             });
         }
-        
+
         Ok(Self {
             report_type: bytes[0],
             version: bytes[1],
-            td_attributes: bytes[2..10].try_into().map_err(|_| TeeError::AttestationFailed { reason: "Invalid attributes length".to_string() })?,
-            xfam: bytes[10..18].try_into().map_err(|_| TeeError::AttestationFailed { reason: "Invalid xfam length".to_string() })?,
+            td_attributes: bytes[2..10]
+                .try_into()
+                .map_err(|_| TeeError::AttestationFailed {
+                    reason: "Invalid attributes length".to_string(),
+                })?,
+            xfam: bytes[10..18]
+                .try_into()
+                .map_err(|_| TeeError::AttestationFailed {
+                    reason: "Invalid xfam length".to_string(),
+                })?,
             mrtd: bytes[64..112].to_vec(),
             report_data: bytes[112..176].to_vec(),
         })
@@ -190,7 +198,7 @@ impl TeeRuntime {
     /// Detect and initialize TEE runtime.
     pub fn detect() -> Result<Self, TeeError> {
         let platform = TeePlatform::detect().ok_or(TeeError::NotAvailable)?;
-        
+
         // Get measurement from platform
         let measurement = match platform {
             TeePlatform::IntelTdx => Self::get_tdx_measurement()?,
@@ -201,11 +209,13 @@ impl TeeRuntime {
                 m[0..4].copy_from_slice(&pid.to_le_bytes());
                 m
             }
-            _ => return Err(TeeError::NotSupported {
-                feature: format!("{:?}", platform),
-            }),
+            _ => {
+                return Err(TeeError::NotSupported {
+                    feature: format!("{:?}", platform),
+                })
+            }
         };
-        
+
         Ok(Self {
             platform,
             measurement,
@@ -216,7 +226,7 @@ impl TeeRuntime {
     /// Create a simulated runtime (for development).
     pub fn simulated() -> Self {
         let measurement = vec![0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
-        
+
         Self {
             platform: TeePlatform::Simulated,
             measurement,
@@ -251,9 +261,9 @@ impl TeeRuntime {
     pub fn get_attestation(&self, user_data: &[u8]) -> Result<Attestation, TeeError> {
         let mut ud = user_data.to_vec();
         ud.truncate(64);
-        
+
         let mut attestation = Attestation::new(self.platform, &self.measurement, ud);
-        
+
         // Generate quote based on platform
         match self.platform {
             TeePlatform::IntelTdx => {
@@ -267,11 +277,13 @@ impl TeeRuntime {
                 attestation.quote = vec![0x51, 0xAA, 0xBB, 0xCC];
                 attestation.quote.extend_from_slice(&self.measurement);
             }
-            _ => return Err(TeeError::NotSupported {
-                feature: "attestation".to_string(),
-            }),
+            _ => {
+                return Err(TeeError::NotSupported {
+                    feature: "attestation".to_string(),
+                })
+            }
         }
-        
+
         Ok(attestation)
     }
 
@@ -302,7 +314,7 @@ impl TeeRuntime {
         for (i, byte) in ciphertext.iter_mut().enumerate() {
             *byte ^= self.measurement[i % self.measurement.len()];
         }
-        
+
         Ok(SealedData {
             ciphertext,
             tag: vec![0u8; 16],
@@ -323,7 +335,9 @@ impl TeeRuntime {
     /// Store a secret in protected memory.
     pub fn store_secret(&mut self, name: &str, secret: &[u8]) -> Result<(), TeeError> {
         let sealed = self.seal(secret, SealingPolicy::SealToMeasurement)?;
-        let sealed_bytes = serde_json::to_vec(&sealed).map_err(|e| TeeError::SealingFailed { reason: e.to_string() })?;
+        let sealed_bytes = serde_json::to_vec(&sealed).map_err(|e| TeeError::SealingFailed {
+            reason: e.to_string(),
+        })?;
         self.secrets.insert(name.to_string(), sealed_bytes);
         Ok(())
     }
@@ -333,13 +347,12 @@ impl TeeRuntime {
         let sealed_bytes = self.secrets.get(name).ok_or(TeeError::UnsealingFailed {
             reason: "Secret not found".to_string(),
         })?;
-        
-        let sealed: SealedData = serde_json::from_slice(sealed_bytes).map_err(|_| {
-            TeeError::UnsealingFailed {
+
+        let sealed: SealedData =
+            serde_json::from_slice(sealed_bytes).map_err(|_| TeeError::UnsealingFailed {
                 reason: "Invalid sealed data".to_string(),
-            }
-        })?;
-        
+            })?;
+
         self.unseal(&sealed)
     }
 }
@@ -369,17 +382,17 @@ impl AttestationVerifier {
         if attestation.platform == TeePlatform::Simulated && !self.allow_simulated {
             return Err(TeeError::QuoteVerificationFailed);
         }
-        
+
         if !self.trusted_measurements.is_empty() {
             if !self.trusted_measurements.contains(&attestation.measurement) {
                 return Ok(false);
             }
         }
-        
+
         if attestation.quote.is_empty() {
             return Err(TeeError::QuoteVerificationFailed);
         }
-        
+
         Ok(true)
     }
 }
@@ -450,7 +463,7 @@ mod tests {
     fn test_attestation() {
         let runtime = TeeRuntime::simulated();
         let attestation = runtime.get_attestation(b"test data").unwrap();
-        
+
         assert_eq!(attestation.platform, TeePlatform::Simulated);
         assert!(!attestation.quote.is_empty());
     }
@@ -459,20 +472,22 @@ mod tests {
     fn test_seal_unseal() {
         let runtime = TeeRuntime::simulated();
         let data = b"secret message";
-        
-        let sealed = runtime.seal(data, SealingPolicy::SealToMeasurement).unwrap();
+
+        let sealed = runtime
+            .seal(data, SealingPolicy::SealToMeasurement)
+            .unwrap();
         let unsealed = runtime.unseal(&sealed).unwrap();
-        
+
         assert_eq!(unsealed, data);
     }
 
     #[test]
     fn test_secret_storage() {
         let mut runtime = TeeRuntime::simulated();
-        
+
         runtime.store_secret("api_key", b"sk_live_123").unwrap();
         let retrieved = runtime.get_secret("api_key").unwrap();
-        
+
         assert_eq!(retrieved, b"sk_live_123");
     }
 
@@ -480,19 +495,19 @@ mod tests {
     fn test_attestation_verifier() {
         let runtime = TeeRuntime::simulated();
         let attestation = runtime.get_attestation(b"test").unwrap();
-        
+
         let verifier = AttestationVerifier::new();
         let result = verifier.verify(&attestation).unwrap();
-        
+
         assert!(result);
     }
 
     #[test]
     fn test_enclave() {
         let enclave = Enclave::simulated("test-enclave");
-        
+
         assert_eq!(enclave.id(), "test-enclave");
-        
+
         let attestation = enclave.attest(b"nonce").unwrap();
         assert!(!attestation.quote.is_empty());
     }

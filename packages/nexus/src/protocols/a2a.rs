@@ -8,11 +8,11 @@
 //! - Discovery: Agent Cards at /.well-known/agent.json
 //! - Task lifecycle: submitted → working → completed/failed/canceled
 
+use super::ProtocolAdapter;
+use crate::error::NexusError;
+use crate::types::{NexusMessage, Protocol, TaskStatus};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use crate::types::{Protocol, NexusMessage, TaskStatus};
-use crate::error::NexusError;
-use super::ProtocolAdapter;
 
 /// A2A Protocol adapter.
 pub struct A2AAdapter {
@@ -57,11 +57,12 @@ impl ProtocolAdapter for A2AAdapter {
     }
 
     async fn parse(&self, raw: &[u8]) -> Result<NexusMessage, NexusError> {
-        let text = std::str::from_utf8(raw)
-            .map_err(|e| NexusError::ParseError { message: e.to_string() })?;
-        
+        let text = std::str::from_utf8(raw).map_err(|e| NexusError::ParseError {
+            message: e.to_string(),
+        })?;
+
         let rpc: A2AJsonRpcMessage = serde_json::from_str(text)?;
-        
+
         Ok(NexusMessage {
             id: rpc.id.unwrap_or_default(),
             method: rpc.method,
@@ -82,9 +83,10 @@ impl ProtocolAdapter for A2AAdapter {
             method: msg.method.clone(),
             params: Some(msg.params.clone()),
         };
-        
-        serde_json::to_vec(&rpc)
-            .map_err(|e| NexusError::SerializeError { message: e.to_string() })
+
+        serde_json::to_vec(&rpc).map_err(|e| NexusError::SerializeError {
+            message: e.to_string(),
+        })
     }
 
     fn supports_streaming(&self) -> bool {
@@ -181,11 +183,11 @@ mod tests {
     #[test]
     fn test_a2a_detection() {
         let adapter = A2AAdapter::new();
-        
+
         // Valid A2A message
         let valid = r#"{"jsonrpc":"2.0","id":"1","method":"tasks/send","params":{}}"#;
         assert!(adapter.detect(valid.as_bytes()));
-        
+
         // Not A2A (different method)
         let invalid = r#"{"jsonrpc":"2.0","method":"other/method"}"#;
         assert!(!adapter.detect(invalid.as_bytes()));
@@ -194,10 +196,11 @@ mod tests {
     #[tokio::test]
     async fn test_a2a_parse() {
         let adapter = A2AAdapter::new();
-        
-        let msg = r#"{"jsonrpc":"2.0","id":"req-1","method":"tasks/send","params":{"task":"hello"}}"#;
+
+        let msg =
+            r#"{"jsonrpc":"2.0","id":"req-1","method":"tasks/send","params":{"task":"hello"}}"#;
         let parsed = adapter.parse(msg.as_bytes()).await.unwrap();
-        
+
         assert_eq!(parsed.method, "tasks/send");
         assert_eq!(parsed.id, "req-1");
         assert_eq!(parsed.source_protocol, Protocol::GoogleA2A);
@@ -206,10 +209,10 @@ mod tests {
     #[tokio::test]
     async fn test_a2a_serialize() {
         let adapter = A2AAdapter::new();
-        
+
         let msg = NexusMessage::new("tasks/create", serde_json::json!({"name": "test"}));
         let serialized = adapter.serialize(&msg).await.unwrap();
-        
+
         let text = String::from_utf8(serialized).unwrap();
         assert!(text.contains("\"jsonrpc\":\"2.0\""));
         assert!(text.contains("tasks/create"));
@@ -217,7 +220,13 @@ mod tests {
 
     #[test]
     fn test_task_state_conversion() {
-        assert!(matches!(TaskStatus::from(A2ATaskState::Completed), TaskStatus::Completed));
-        assert!(matches!(TaskStatus::from(A2ATaskState::Failed), TaskStatus::Failed));
+        assert!(matches!(
+            TaskStatus::from(A2ATaskState::Completed),
+            TaskStatus::Completed
+        ));
+        assert!(matches!(
+            TaskStatus::from(A2ATaskState::Failed),
+            TaskStatus::Failed
+        ));
     }
 }

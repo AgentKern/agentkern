@@ -28,7 +28,7 @@ impl RiskLevel {
     pub fn requires_fria(&self) -> bool {
         matches!(self, Self::HighRisk)
     }
-    
+
     /// Check if this level requires conformity assessment.
     pub fn requires_conformity(&self) -> bool {
         matches!(self, Self::HighRisk)
@@ -271,12 +271,12 @@ impl EuAiActExporter {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Generate compliance report.
     pub fn generate_report(&self, doc: &TechnicalDocumentation) -> ComplianceReport {
         let mut findings: Vec<ComplianceFinding> = Vec::new();
         let mut score = 100i32;
-        
+
         // Check Article 9: Risk Management
         if doc.risk_management.risks.is_empty() {
             findings.push(ComplianceFinding {
@@ -287,7 +287,7 @@ impl EuAiActExporter {
             });
             score -= 20;
         }
-        
+
         // Check Article 10: Data Governance
         if doc.data.bias_mitigation.detection_methods.is_empty() {
             findings.push(ComplianceFinding {
@@ -298,7 +298,7 @@ impl EuAiActExporter {
             });
             score -= 10;
         }
-        
+
         // Check Article 13: Transparency
         if doc.description.purpose.is_empty() {
             findings.push(ComplianceFinding {
@@ -309,7 +309,7 @@ impl EuAiActExporter {
             });
             score -= 15;
         }
-        
+
         // Check Article 14: Human Oversight
         if doc.human_oversight.stop_mechanism.is_empty() {
             findings.push(ComplianceFinding {
@@ -320,18 +320,21 @@ impl EuAiActExporter {
             });
             score -= 10;
         }
-        
+
         // Check Article 15: Accuracy and Robustness
         if doc.risk_management.testing.coverage_percentage < 80.0 {
             findings.push(ComplianceFinding {
                 article: "15".into(),
                 requirement: "Testing coverage".into(),
                 status: ComplianceStatus::PartiallyCompliant,
-                detail: format!("Test coverage {}% below 80% threshold", doc.risk_management.testing.coverage_percentage),
+                detail: format!(
+                    "Test coverage {}% below 80% threshold",
+                    doc.risk_management.testing.coverage_percentage
+                ),
             });
             score -= 5;
         }
-        
+
         let status = if score >= 90 {
             OverallStatus::Compliant
         } else if score >= 70 {
@@ -339,7 +342,7 @@ impl EuAiActExporter {
         } else {
             OverallStatus::NonCompliant
         };
-        
+
         ComplianceReport {
             generated_at: chrono::Utc::now().to_rfc3339(),
             system_name: doc.description.name.clone(),
@@ -351,33 +354,33 @@ impl EuAiActExporter {
             requires_conformity: doc.description.risk_level.requires_conformity(),
         }
     }
-    
+
     /// Export to JSON.
     pub fn export_json(&self, doc: &TechnicalDocumentation) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(doc)
     }
-    
+
     /// Export to human-readable text.
     pub fn export_text(&self, doc: &TechnicalDocumentation) -> String {
         let report = self.generate_report(doc);
-        
+
         let mut text = String::new();
         text.push_str("═══════════════════════════════════════════════════════════════\n");
         text.push_str("              EU AI ACT COMPLIANCE REPORT\n");
         text.push_str("═══════════════════════════════════════════════════════════════\n\n");
-        
+
         text.push_str(&format!("System: {}\n", report.system_name));
         text.push_str(&format!("Risk Level: {:?}\n", report.risk_level));
         text.push_str(&format!("Status: {:?}\n", report.overall_status));
         text.push_str(&format!("Score: {}%\n\n", report.score));
-        
+
         if report.requires_fria {
             text.push_str("⚠️  FRIA (Fundamental Rights Impact Assessment) REQUIRED\n");
         }
         if report.requires_conformity {
             text.push_str("⚠️  Conformity Assessment REQUIRED\n");
         }
-        
+
         text.push_str("\n--- FINDINGS ---\n\n");
         for finding in &report.findings {
             let icon = match finding.status {
@@ -385,12 +388,15 @@ impl EuAiActExporter {
                 ComplianceStatus::PartiallyCompliant => "⚠️",
                 ComplianceStatus::NonCompliant => "❌",
             };
-            text.push_str(&format!("{} Article {}: {}\n", icon, finding.article, finding.requirement));
+            text.push_str(&format!(
+                "{} Article {}: {}\n",
+                icon, finding.article, finding.requirement
+            ));
             text.push_str(&format!("   {}\n\n", finding.detail));
         }
-        
+
         text.push_str(&format!("\nGenerated: {}\n", report.generated_at));
-        
+
         text
     }
 }
@@ -543,7 +549,9 @@ mod tests {
                 monitoring_frequency: "Real-time with alerting".into(),
             },
             performance: PerformanceMetrics {
-                accuracy: [("precision".into(), 0.95), ("recall".into(), 0.92)].into_iter().collect(),
+                accuracy: [("precision".into(), 0.95), ("recall".into(), 0.92)]
+                    .into_iter()
+                    .collect(),
                 robustness: vec!["Adversarial testing".into(), "Chaos engineering".into()],
                 consistency: "99.9% consistent responses".into(),
                 limitations: vec!["May hallucinate on rare topics".into()],
@@ -570,9 +578,9 @@ mod tests {
     fn test_generate_report() {
         let exporter = EuAiActExporter::new();
         let doc = sample_documentation();
-        
+
         let report = exporter.generate_report(&doc);
-        
+
         assert_eq!(report.system_name, "AgentKern Agent");
         assert_eq!(report.risk_level, RiskLevel::HighRisk);
         assert!(report.requires_fria);
@@ -582,9 +590,9 @@ mod tests {
     fn test_compliance_score() {
         let exporter = EuAiActExporter::new();
         let doc = sample_documentation();
-        
+
         let report = exporter.generate_report(&doc);
-        
+
         // Should be mostly compliant
         assert!(report.score >= 80);
     }
@@ -593,9 +601,9 @@ mod tests {
     fn test_export_json() {
         let exporter = EuAiActExporter::new();
         let doc = sample_documentation();
-        
+
         let json = exporter.export_json(&doc).unwrap();
-        
+
         assert!(json.contains("AgentKern Agent"));
         assert!(json.contains("high_risk"));
     }
@@ -604,9 +612,9 @@ mod tests {
     fn test_export_text() {
         let exporter = EuAiActExporter::new();
         let doc = sample_documentation();
-        
+
         let text = exporter.export_text(&doc);
-        
+
         assert!(text.contains("EU AI ACT COMPLIANCE REPORT"));
         assert!(text.contains("AgentKern Agent"));
     }
@@ -617,9 +625,9 @@ mod tests {
         let mut doc = sample_documentation();
         doc.risk_management.risks.clear();
         doc.human_oversight.stop_mechanism.clear();
-        
+
         let report = exporter.generate_report(&doc);
-        
+
         assert!(report.score < 80);
         assert!(report.findings.iter().any(|f| f.article == "9"));
     }

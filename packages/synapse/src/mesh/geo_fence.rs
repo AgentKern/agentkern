@@ -49,12 +49,12 @@ impl GeoFence {
             rules: Vec::new(),
             default_policy: TransferPolicy::Allow,
         };
-        
+
         // Apply default rules based on region
         fence.apply_regional_defaults();
         fence
     }
-    
+
     /// Apply regional defaults.
     fn apply_regional_defaults(&mut self) {
         match self.local_region {
@@ -89,19 +89,19 @@ impl GeoFence {
             }
         }
     }
-    
+
     /// Add a custom residency rule.
     pub fn add_rule(&mut self, rule: ResidencyRule) {
         self.rules.push(rule);
     }
-    
+
     /// Check if data can be transferred to target region.
     pub fn can_transfer(&self, target: DataRegion, data_id: &str) -> bool {
         // Same region is always allowed
         if target == self.local_region {
             return true;
         }
-        
+
         // Check rules in order
         for rule in &self.rules {
             if self.matches_pattern(&rule.pattern, data_id) {
@@ -113,17 +113,17 @@ impl GeoFence {
                 };
             }
         }
-        
+
         // Use default policy
         self.default_policy != TransferPolicy::Block
     }
-    
+
     /// Get the transfer policy for data.
     pub fn get_policy(&self, data_id: &str, target: DataRegion) -> TransferPolicy {
         if target == self.local_region {
             return TransferPolicy::Allow;
         }
-        
+
         for rule in &self.rules {
             if self.matches_pattern(&rule.pattern, data_id) {
                 if rule.allowed_regions.contains(&target) {
@@ -132,10 +132,10 @@ impl GeoFence {
                 return rule.policy;
             }
         }
-        
+
         self.default_policy
     }
-    
+
     /// Simple pattern matching (supports * wildcard).
     fn matches_pattern(&self, pattern: &str, data_id: &str) -> bool {
         if pattern == "*" {
@@ -147,7 +147,7 @@ impl GeoFence {
         }
         pattern == data_id
     }
-    
+
     /// Get local region.
     pub fn local_region(&self) -> DataRegion {
         self.local_region
@@ -161,10 +161,10 @@ mod tests {
     #[test]
     fn test_eu_gdpr_blocks_pii() {
         let fence = GeoFence::new(DataRegion::EuFrankfurt);
-        
+
         // PII should be blocked from leaving EU
         assert!(!fence.can_transfer(DataRegion::UsEast, "pii:user:123"));
-        
+
         // PII within EU is allowed
         assert!(fence.can_transfer(DataRegion::EuIreland, "pii:user:123"));
     }
@@ -172,10 +172,10 @@ mod tests {
     #[test]
     fn test_mena_blocks_all() {
         let fence = GeoFence::new(DataRegion::MenaRiyadh);
-        
+
         // Everything blocked from leaving
         assert!(!fence.can_transfer(DataRegion::UsEast, "any:data"));
-        
+
         // Within MENA is allowed
         assert!(fence.can_transfer(DataRegion::MenaDubai, "any:data"));
     }
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_us_liberal() {
         let fence = GeoFence::new(DataRegion::UsEast);
-        
+
         // No default restrictions
         assert!(fence.can_transfer(DataRegion::EuFrankfurt, "user:123"));
         assert!(fence.can_transfer(DataRegion::MenaRiyadh, "data:abc"));
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn test_same_region() {
         let fence = GeoFence::new(DataRegion::EuFrankfurt);
-        
+
         // Same region always allowed
         assert!(fence.can_transfer(DataRegion::EuFrankfurt, "pii:secret"));
     }
@@ -205,7 +205,7 @@ mod tests {
             policy: TransferPolicy::Block,
             allowed_regions: vec![DataRegion::UsEast, DataRegion::UsWest],
         });
-        
+
         assert!(!fence.can_transfer(DataRegion::EuFrankfurt, "health:record:123"));
         assert!(fence.can_transfer(DataRegion::UsWest, "health:record:123"));
     }

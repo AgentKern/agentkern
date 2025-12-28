@@ -64,12 +64,12 @@ pub struct LatencyBreakdown {
 }
 
 /// Data residency region for sovereignty compliance.
-/// 
+///
 /// Per December 2025 research on AWS/Azure regional strategies:
 /// - Tier 1: Major regulatory blocs with strict localization
 /// - Tier 2: Emerging sovereignty blocs with specific laws
 /// - Tier 3: Regional fallbacks for broader compliance
-/// 
+///
 /// Reference: GLOBAL_GAPS.md, ENGINEERING_STANDARD.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -77,38 +77,34 @@ pub enum DataRegion {
     // ═══════════════════════════════════════════════════════════════
     // Tier 1: Major Regulatory Blocs (strict localization required)
     // ═══════════════════════════════════════════════════════════════
-    
     /// United States (HIPAA, CCPA, SOX, Sales Tax)
     Us,
     /// European Union (GDPR, EU Data Act 2025, VAT)
     Eu,
     /// China (PIPL - requires in-country processing)
     Cn,
-    
+
     // ═══════════════════════════════════════════════════════════════
     // Tier 2: Emerging Sovereignty Blocs (country-specific laws)
     // ═══════════════════════════════════════════════════════════════
-    
     /// Middle East & North Africa (GCC Vision 2030, Saudi PDPL, Islamic Finance/Takaful)
     Mena,
     /// India (DPDP Act 2023 - strict consent, purpose limitation)
     India,
     /// Brazil (LGPD - similar to GDPR)
     Brazil,
-    
+
     // ═══════════════════════════════════════════════════════════════
     // Tier 3: Regional Fallbacks (less strict, grouped compliance)
     // ═══════════════════════════════════════════════════════════════
-    
     /// Asia-Pacific (Singapore PDPA, Japan APPI, Korea PIPA, Australia Privacy Act)
     AsiaPac,
     /// Africa (varying data localization by country)
     Africa,
-    
+
     // ═══════════════════════════════════════════════════════════════
     // Default
     // ═══════════════════════════════════════════════════════════════
-    
     /// Global (no specific residency, universal policies)
     Global,
 }
@@ -118,7 +114,7 @@ impl DataRegion {
     pub fn requires_localization(&self) -> bool {
         matches!(self, Self::Cn | Self::Eu | Self::India | Self::Mena)
     }
-    
+
     /// Returns the privacy law name for this region.
     pub fn privacy_law(&self) -> &'static str {
         match self {
@@ -140,6 +136,5 @@ impl Default for DataRegion {
         Self::Global
     }
 }
-
 
 pub type AgentId = String;

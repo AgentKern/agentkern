@@ -52,32 +52,32 @@ impl ServiceMode {
     /// 5. Default -> Demo (graceful fallback)
     pub fn detect(feature: &str) -> Self {
         let feature_upper = feature.to_uppercase();
-        
+
         // Check if explicitly disabled
         if env::var(format!("AGENTKERN_{}_DISABLED", feature_upper)).is_ok() {
             tracing::info!(feature = %feature, "Feature explicitly disabled");
             return Self::Disabled;
         }
-        
+
         // Check if demo mode forced
         if env::var(format!("AGENTKERN_{}_DEMO", feature_upper)).is_ok() {
             tracing::debug!(feature = %feature, "Demo mode forced via env");
             return Self::Demo;
         }
-        
+
         // Check if global offline mode
         if env::var("AGENTKERN_OFFLINE").is_ok() {
             tracing::debug!(feature = %feature, "Offline mode active");
             return Self::Offline;
         }
-        
+
         // Check for API credentials (multiple patterns)
         let api_key_patterns = [
             format!("AGENTKERN_{}_API_KEY", feature_upper),
             format!("{}_API_KEY", feature_upper),
             format!("AGENTKERN_{}_KEY", feature_upper),
         ];
-        
+
         for pattern in &api_key_patterns {
             if let Ok(key) = env::var(pattern) {
                 if !key.is_empty() {
@@ -86,31 +86,31 @@ impl ServiceMode {
                 }
             }
         }
-        
+
         // Default to demo mode (graceful fallback)
         tracing::debug!(
-            feature = %feature, 
+            feature = %feature,
             "No credentials found, using demo mode. Set {}_API_KEY for live.",
             feature_upper
         );
         Self::Demo
     }
-    
+
     /// Is this mode operational (can return data)?
     pub fn is_operational(&self) -> bool {
         matches!(self, Self::Live | Self::Demo | Self::Offline)
     }
-    
+
     /// Is this live production mode?
     pub fn is_live(&self) -> bool {
         matches!(self, Self::Live)
     }
-    
+
     /// Should we use mock/fallback data?
     pub fn use_fallback(&self) -> bool {
         matches!(self, Self::Demo | Self::Offline)
     }
-    
+
     /// Get human-readable status message.
     pub fn status_message(&self, feature: &str) -> String {
         match self {
@@ -132,20 +132,20 @@ impl ServiceMode {
 pub trait GracefulFallback {
     /// Get current service mode.
     fn mode(&self) -> ServiceMode;
-    
+
     /// Get feature name for environment variable lookups.
     fn feature_name() -> &'static str;
-    
+
     /// Check if service is available (not disabled).
     fn is_available(&self) -> bool {
         self.mode().is_operational()
     }
-    
+
     /// Check if using real credentials.
     fn is_live(&self) -> bool {
         self.mode().is_live()
     }
-    
+
     /// Get status message.
     fn status(&self) -> String {
         self.mode().status_message(Self::feature_name())
@@ -163,14 +163,22 @@ pub struct FallbackResult<T> {
 impl<T> FallbackResult<T> {
     /// Create live result (real data).
     pub fn live(data: T) -> Self {
-        Self { data, mode: ServiceMode::Live, is_fallback: false }
+        Self {
+            data,
+            mode: ServiceMode::Live,
+            is_fallback: false,
+        }
     }
-    
+
     /// Create demo/fallback result (mock data).
     pub fn fallback(data: T) -> Self {
-        Self { data, mode: ServiceMode::Demo, is_fallback: true }
+        Self {
+            data,
+            mode: ServiceMode::Demo,
+            is_fallback: true,
+        }
     }
-    
+
     /// Map the data.
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> FallbackResult<U> {
         FallbackResult {
@@ -195,7 +203,7 @@ mod tests {
         std::env::remove_var("AGENTKERN_TEST_API_KEY");
         std::env::remove_var("AGENTKERN_TEST_DISABLED");
         std::env::remove_var("AGENTKERN_OFFLINE");
-        
+
         let mode = ServiceMode::detect("test");
         assert_eq!(mode, ServiceMode::Demo);
         assert!(mode.is_operational());

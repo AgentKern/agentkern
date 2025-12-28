@@ -150,7 +150,7 @@ impl TakafulValidator {
                 result.recommendations.push(
                     "Replace interest-based financing with Murabaha (cost-plus) or Musharakah (profit-sharing)".to_string()
                 );
-                
+
                 if self.strict_mode {
                     return Err(TakafulError::RibaDetected);
                 }
@@ -161,19 +161,19 @@ impl TakafulValidator {
         if !details.has_underlying_asset {
             result.gharar_risk = RiskLevel::High;
             result.score = result.score.saturating_sub(20);
-            result.recommendations.push(
-                "Ensure transaction has a tangible underlying asset".to_string()
-            );
+            result
+                .recommendations
+                .push("Ensure transaction has a tangible underlying asset".to_string());
         }
 
         // Check for Maysir (gambling)
         if details.guaranteed_outcome && details.transaction_type == TransactionType::Insurance {
             result.has_maysir = true;
             result.score = result.score.saturating_sub(30);
-            result.recommendations.push(
-                "Convert to Takaful model with mutual risk sharing".to_string()
-            );
-            
+            result
+                .recommendations
+                .push("Convert to Takaful model with mutual risk sharing".to_string());
+
             if self.strict_mode {
                 return Err(TakafulError::MaysirDetected);
             }
@@ -184,9 +184,9 @@ impl TakafulValidator {
             TransactionType::Takaful | TransactionType::Musharakah => {
                 if details.risk_sharing_pct < 50.0 {
                     result.score = result.score.saturating_sub(10);
-                    result.recommendations.push(
-                        "Increase risk sharing ratio for better compliance".to_string()
-                    );
+                    result
+                        .recommendations
+                        .push("Increase risk sharing ratio for better compliance".to_string());
                 }
             }
             TransactionType::Murabaha => {
@@ -194,7 +194,7 @@ impl TakafulValidator {
                     result.score = result.score.saturating_sub(10);
                     result.gharar_risk = RiskLevel::Medium;
                     result.recommendations.push(
-                        "Consider reducing profit margin to align with market rates".to_string()
+                        "Consider reducing profit margin to align with market rates".to_string(),
                     );
                 }
             }
@@ -212,7 +212,7 @@ impl TakafulValidator {
         TransactionDetails {
             transaction_type: TransactionType::Takaful,
             amount: details.amount,
-            interest_rate: None, // Remove interest
+            interest_rate: None,       // Remove interest
             profit_margin: Some(10.0), // Standard Takaful margin
             guaranteed_outcome: false,
             risk_sharing_pct: 100.0, // Full mutual risk sharing
@@ -224,11 +224,11 @@ impl TakafulValidator {
     pub fn is_compliant_type(&self, tx_type: TransactionType) -> bool {
         matches!(
             tx_type,
-            TransactionType::Takaful |
-            TransactionType::Murabaha |
-            TransactionType::Musharakah |
-            TransactionType::Ijara |
-            TransactionType::Trade
+            TransactionType::Takaful
+                | TransactionType::Murabaha
+                | TransactionType::Musharakah
+                | TransactionType::Ijara
+                | TransactionType::Trade
         )
     }
 }
@@ -245,7 +245,7 @@ mod tests {
             interest_rate: Some(5.0),
             ..Default::default()
         };
-        
+
         let result = validator.validate(&details).unwrap();
         assert!(result.has_riba);
         assert!(!result.compliant);
@@ -263,7 +263,7 @@ mod tests {
             risk_sharing_pct: 100.0,
             has_underlying_asset: true,
         };
-        
+
         let result = validator.validate(&details).unwrap();
         assert!(result.compliant);
         assert!(!result.has_riba);
@@ -277,7 +277,7 @@ mod tests {
             interest_rate: Some(5.0),
             ..Default::default()
         };
-        
+
         let result = validator.validate(&details);
         assert!(matches!(result, Err(TakafulError::RibaDetected)));
     }
@@ -293,7 +293,7 @@ mod tests {
             risk_sharing_pct: 0.0,
             ..Default::default()
         };
-        
+
         let takaful = validator.convert_to_takaful(&conventional);
         assert_eq!(takaful.transaction_type, TransactionType::Takaful);
         assert!(takaful.interest_rate.is_none());
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn test_compliant_types() {
         let validator = TakafulValidator::new();
-        
+
         assert!(validator.is_compliant_type(TransactionType::Takaful));
         assert!(validator.is_compliant_type(TransactionType::Murabaha));
         assert!(!validator.is_compliant_type(TransactionType::Insurance));

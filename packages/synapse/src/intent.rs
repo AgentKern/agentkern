@@ -71,7 +71,11 @@ pub struct IntentPath {
 
 impl IntentPath {
     /// Create a new intent path.
-    pub fn new(agent_id: impl Into<String>, intent: impl Into<String>, expected_steps: u32) -> Self {
+    pub fn new(
+        agent_id: impl Into<String>,
+        intent: impl Into<String>,
+        expected_steps: u32,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
@@ -89,7 +93,11 @@ impl IntentPath {
     }
 
     /// Record a step in the path.
-    pub fn record_step(&mut self, action: impl Into<String>, result: Option<String>) -> &IntentStep {
+    pub fn record_step(
+        &mut self,
+        action: impl Into<String>,
+        result: Option<String>,
+    ) -> &IntentStep {
         self.current_step += 1;
         let mut step = IntentStep::new(self.current_step, action);
         if let Some(r) = result {
@@ -126,7 +134,7 @@ mod tests {
     #[test]
     fn test_intent_path_new() {
         let path = IntentPath::new("agent-1", "Process customer order", 5);
-        
+
         assert_eq!(path.agent_id, "agent-1");
         assert_eq!(path.original_intent, "Process customer order");
         assert_eq!(path.expected_steps, 5);
@@ -137,12 +145,12 @@ mod tests {
     #[test]
     fn test_intent_path_record_step() {
         let mut path = IntentPath::new("agent-1", "Test", 3);
-        
+
         path.record_step("validate_input", Some("success".to_string()));
         assert_eq!(path.current_step, 1);
         assert_eq!(path.history.len(), 1);
         assert_eq!(path.history[0].action, "validate_input");
-        
+
         path.record_step("process_data", None);
         assert_eq!(path.current_step, 2);
     }
@@ -150,14 +158,14 @@ mod tests {
     #[test]
     fn test_intent_path_completion() {
         let mut path = IntentPath::new("agent-1", "Test", 2);
-        
+
         assert!(!path.is_complete());
         path.record_step("step1", None);
         assert!(!path.is_complete());
         path.record_step("step2", None);
         assert!(path.is_complete());
         assert!(!path.is_overrun());
-        
+
         path.record_step("step3", None);
         assert!(path.is_overrun());
     }
@@ -165,7 +173,7 @@ mod tests {
     #[test]
     fn test_progress_percent() {
         let mut path = IntentPath::new("agent-1", "Test", 4);
-        
+
         assert_eq!(path.progress_percent(), 0.0);
         path.record_step("step1", None);
         assert_eq!(path.progress_percent(), 25.0);

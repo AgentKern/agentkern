@@ -282,7 +282,7 @@ impl FhirClient {
         resource_id: &str,
     ) -> AuditEvent {
         let now = chrono::Utc::now().to_rfc3339();
-        
+
         AuditEvent {
             resource_type: "AuditEvent".to_string(),
             id: uuid::Uuid::new_v4().to_string(),
@@ -363,19 +363,19 @@ mod tests {
             prefix: None,
             suffix: None,
         };
-        
+
         assert_eq!(name.display(), "John Michael Smith");
     }
 
     #[test]
     fn test_resource_url() {
         let client = FhirClient::new("https://fhir.example.com");
-        
+
         assert_eq!(
             client.resource_url(ResourceType::Patient, Some("123")),
             "https://fhir.example.com/Patient/123"
         );
-        
+
         assert_eq!(
             client.resource_url(ResourceType::Observation, None),
             "https://fhir.example.com/Observation"
@@ -391,7 +391,7 @@ mod tests {
             ResourceType::Patient,
             "patient-123",
         );
-        
+
         assert_eq!(event.resource_type, "AuditEvent");
         assert_eq!(event.action, AuditAction::R);
         assert!(!event.agent.is_empty());
@@ -403,12 +403,18 @@ mod tests {
             resource_type: "Consent".to_string(),
             id: "consent-1".to_string(),
             status: ConsentStatus::Active,
-            scope: CodeableConcept { coding: vec![], text: Some("patient-privacy".to_string()) },
-            patient: Reference { reference: Some("Patient/123".to_string()), display: None },
+            scope: CodeableConcept {
+                coding: vec![],
+                text: Some("patient-privacy".to_string()),
+            },
+            patient: Reference {
+                reference: Some("Patient/123".to_string()),
+                display: None,
+            },
             date_time: Some("2025-01-01".to_string()),
             performer: vec![],
         };
-        
+
         assert_eq!(consent.status, ConsentStatus::Active);
     }
 }

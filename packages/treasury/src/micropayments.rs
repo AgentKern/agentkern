@@ -4,13 +4,13 @@
 //! This module aggregates micropayments for efficient batch settlement.
 
 use chrono::{DateTime, Duration, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use uuid::Uuid;
 
-use crate::types::{Amount, AgentId, TransactionId};
+use crate::types::{AgentId, Amount, TransactionId};
 
 /// Pending micropayment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,13 +107,15 @@ impl MicropaymentAggregator {
 
         // Check if we should batch
         let total: i64 = receiver_payments.iter().map(|p| p.amount.value).sum();
-        let oldest = receiver_payments.first().map(|p| p.created_at).unwrap_or(Utc::now());
+        let oldest = receiver_payments
+            .first()
+            .map(|p| p.created_at)
+            .unwrap_or(Utc::now());
         let age = Utc::now() - oldest;
 
-        let should_batch = 
-            total >= self.config.immediate_threshold.value ||
-            receiver_payments.len() >= self.config.max_batch_size ||
-            age >= self.config.max_batch_age;
+        let should_batch = total >= self.config.immediate_threshold.value
+            || receiver_payments.len() >= self.config.max_batch_size
+            || age >= self.config.max_batch_age;
 
         if should_batch {
             let payments = std::mem::take(receiver_payments);
@@ -123,11 +125,11 @@ impl MicropaymentAggregator {
                 total: Amount::new(total, payment.amount.decimals),
                 created_at: Utc::now(),
             };
-            
+
             // Store ready batch
             let mut ready = self.ready_batches.write();
             ready.push(batch.clone());
-            
+
             return Some(batch);
         }
 
@@ -143,7 +145,8 @@ impl MicropaymentAggregator {
     /// Get total pending amount for a receiver.
     pub fn pending_amount(&self, receiver: &str, decimals: u8) -> Amount {
         let pending = self.pending.read();
-        let total: i64 = pending.get(receiver)
+        let total: i64 = pending
+            .get(receiver)
             .map(|v| v.iter().map(|p| p.amount.value).sum())
             .unwrap_or(0);
         Amount::new(total, decimals)
@@ -193,7 +196,7 @@ mod tests {
     #[test]
     fn test_immediate_settlement() {
         let aggregator = MicropaymentAggregator::default();
-        
+
         let payment = PendingPayment {
             id: Uuid::new_v4(),
             from: "agent-1".to_string(),
@@ -202,7 +205,7 @@ mod tests {
             reference: None,
             created_at: Utc::now(),
         };
-        
+
         let batch = aggregator.add_payment(payment);
         assert!(batch.is_some());
         assert_eq!(batch.unwrap().payments.len(), 1);
@@ -216,7 +219,7 @@ mod tests {
             max_batch_age: Duration::minutes(5),
         };
         let aggregator = MicropaymentAggregator::new(config);
-        
+
         // Add micropayments below threshold
         for i in 0..2 {
             let payment = PendingPayment {
@@ -230,7 +233,7 @@ mod tests {
             let batch = aggregator.add_payment(payment);
             assert!(batch.is_none());
         }
-        
+
         // Third payment should trigger batch
         let payment = PendingPayment {
             id: Uuid::new_v4(),
@@ -248,7 +251,7 @@ mod tests {
     #[test]
     fn test_flush_all() {
         let aggregator = MicropaymentAggregator::default();
-        
+
         for i in 0..5 {
             let payment = PendingPayment {
                 id: Uuid::new_v4(),
@@ -260,7 +263,7 @@ mod tests {
             };
             aggregator.add_payment(payment);
         }
-        
+
         let batches = aggregator.flush_all();
         assert_eq!(batches.len(), 1);
         assert_eq!(batches[0].payments.len(), 5);

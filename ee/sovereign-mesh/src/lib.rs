@@ -25,13 +25,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise sovereign feature accessed");
         Ok(())
     }
@@ -69,22 +69,25 @@ impl SovereignMesh {
     /// Create a new sovereign mesh (requires enterprise license).
     pub fn new() -> Result<Self, license::LicenseError> {
         license::require("SOVEREIGN_MESH")?;
-        
+
         Ok(Self {
             cells: HashMap::new(),
         })
     }
 
     /// Register a sovereign cell.
-    pub fn register_cell(&mut self, config: SovereignCellConfig) -> Result<(), license::LicenseError> {
+    pub fn register_cell(
+        &mut self,
+        config: SovereignCellConfig,
+    ) -> Result<(), license::LicenseError> {
         license::require("SOVEREIGN_MESH")?;
-        
+
         tracing::info!(
             cell_id = %config.cell_id,
             region = %config.region,
             "Sovereign cell registered"
         );
-        
+
         self.cells.insert(config.cell_id.clone(), config);
         Ok(())
     }
@@ -93,20 +96,24 @@ impl SovereignMesh {
     pub fn can_sync(&self, from_cell: &str, to_cell: &str) -> SyncDecision {
         let from = match self.cells.get(from_cell) {
             Some(c) => c,
-            None => return SyncDecision {
-                allowed: false,
-                reason: format!("Source cell {} not registered", from_cell),
-                attestation_id: None,
-            },
+            None => {
+                return SyncDecision {
+                    allowed: false,
+                    reason: format!("Source cell {} not registered", from_cell),
+                    attestation_id: None,
+                };
+            }
         };
 
         let to = match self.cells.get(to_cell) {
             Some(c) => c,
-            None => return SyncDecision {
-                allowed: false,
-                reason: format!("Target cell {} not registered", to_cell),
-                attestation_id: None,
-            },
+            None => {
+                return SyncDecision {
+                    allowed: false,
+                    reason: format!("Target cell {} not registered", to_cell),
+                    attestation_id: None,
+                };
+            }
         };
 
         // Check if target is blocked
@@ -122,8 +129,8 @@ impl SovereignMesh {
         }
 
         // Check if target is in allowed list (if list is non-empty)
-        if !from.allowed_sync_targets.is_empty() 
-            && !from.allowed_sync_targets.contains(&to.region) {
+        if !from.allowed_sync_targets.is_empty() && !from.allowed_sync_targets.contains(&to.region)
+        {
             return SyncDecision {
                 allowed: false,
                 reason: format!(
@@ -152,36 +159,44 @@ mod tests {
 
     #[test]
     fn test_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = SovereignMesh::new();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_sync_blocking() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
-        
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
+
         let mut mesh = SovereignMesh::new().unwrap();
-        
+
         mesh.register_cell(SovereignCellConfig {
             cell_id: "cell-eu".to_string(),
             region: "eu".to_string(),
             allowed_sync_targets: vec![],
             blocked_sync_targets: vec!["cn".to_string()],
             attestation_enabled: true,
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         mesh.register_cell(SovereignCellConfig {
             cell_id: "cell-cn".to_string(),
             region: "cn".to_string(),
             allowed_sync_targets: vec![],
             blocked_sync_targets: vec![],
             attestation_enabled: false,
-        }).unwrap();
-        
+        })
+        .unwrap();
+
         let decision = mesh.can_sync("cell-eu", "cell-cn");
         assert!(!decision.allowed);
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 }

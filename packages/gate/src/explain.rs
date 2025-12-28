@@ -18,8 +18,8 @@
 //! OSS: Rule-based explanations, basic SHAP
 //! Enterprise: Advanced SHAP with GPU, LIME, custom ML explainers
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Explanation method enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -180,10 +180,7 @@ impl ExplainabilityEngine {
     pub fn new() -> Self {
         Self {
             default_method: ExplanationMethod::RuleBased,
-            available_methods: vec![
-                ExplanationMethod::RuleBased,
-                ExplanationMethod::Shap,
-            ],
+            available_methods: vec![ExplanationMethod::RuleBased, ExplanationMethod::Shap],
         }
     }
 
@@ -205,7 +202,11 @@ impl ExplainabilityEngine {
     }
 
     /// Generate an explanation using a specific method.
-    pub fn explain_with(&self, method: &ExplanationMethod, context: &ExplainContext) -> Explanation {
+    pub fn explain_with(
+        &self,
+        method: &ExplanationMethod,
+        context: &ExplainContext,
+    ) -> Explanation {
         match method {
             ExplanationMethod::RuleBased => self.explain_rule_based(context),
             ExplanationMethod::Shap => self.explain_shap(context),
@@ -228,14 +229,22 @@ impl ExplainabilityEngine {
                 "The action '{}' by agent '{}' was {} based on default policy.",
                 context.action,
                 context.agent_id,
-                if context.allowed { "allowed" } else { "blocked" }
+                if context.allowed {
+                    "allowed"
+                } else {
+                    "blocked"
+                }
             )
         } else {
             format!(
                 "The action '{}' by agent '{}' was {} because rules [{}] matched.",
                 context.action,
                 context.agent_id,
-                if context.allowed { "allowed" } else { "blocked" },
+                if context.allowed {
+                    "allowed"
+                } else {
+                    "blocked"
+                },
                 context.applied_rules.join(", ")
             )
         };
@@ -243,10 +252,8 @@ impl ExplainabilityEngine {
         let mut explanation = Explanation::rule_based(&summary, &detail);
 
         for rule in &context.applied_rules {
-            explanation = explanation.with_contribution(
-                rule.clone(),
-                if context.allowed { 1.0 } else { -1.0 },
-            );
+            explanation = explanation
+                .with_contribution(rule.clone(), if context.allowed { 1.0 } else { -1.0 });
         }
 
         if !context.allowed {
@@ -262,10 +269,16 @@ impl ExplainabilityEngine {
     /// SHAP-style explanation.
     fn explain_shap(&self, context: &ExplainContext) -> Explanation {
         let mut contributions = Vec::new();
-        
+
         for (feature, value) in &context.features {
             let importance = match value {
-                serde_json::Value::Bool(b) => if *b { 0.5 } else { -0.5 },
+                serde_json::Value::Bool(b) => {
+                    if *b {
+                        0.5
+                    } else {
+                        -0.5
+                    }
+                }
                 serde_json::Value::Number(n) => {
                     let v = n.as_f64().unwrap_or(0.0);
                     (v / 100.0).clamp(-1.0, 1.0)
@@ -279,7 +292,7 @@ impl ExplainabilityEngine {
                 }
                 _ => 0.0,
             };
-            
+
             contributions.push(Contribution {
                 feature: feature.clone(),
                 value: importance,
@@ -294,7 +307,10 @@ impl ExplainabilityEngine {
                 "SHAP analysis: {} was {} (top factor: {})",
                 context.action,
                 context.outcome,
-                contributions.first().map(|c| c.feature.as_str()).unwrap_or("none")
+                contributions
+                    .first()
+                    .map(|c| c.feature.as_str())
+                    .unwrap_or("none")
             ),
             natural_language: format!(
                 "Feature importance analysis shows {} factors influenced this decision.",
@@ -368,9 +384,9 @@ mod tests {
     fn test_rule_based_explanation() {
         let engine = ExplainabilityEngine::new();
         let context = test_context(true);
-        
+
         let explanation = engine.explain(&context);
-        
+
         assert_eq!(explanation.method, ExplanationMethod::RuleBased);
         assert!(explanation.summary.contains("ALLOWED"));
         assert!(explanation.natural_language.contains("email_policy"));
@@ -380,9 +396,9 @@ mod tests {
     fn test_shap_explanation() {
         let engine = ExplainabilityEngine::new();
         let context = test_context(false);
-        
+
         let explanation = engine.explain_with(&ExplanationMethod::Shap, &context);
-        
+
         assert_eq!(explanation.method, ExplanationMethod::Shap);
         assert!(!explanation.contributions.is_empty());
     }
@@ -393,7 +409,7 @@ mod tests {
             .with_contribution("feature1", 0.8)
             .with_counterfactual("If X", "Then Y")
             .with_provenance("step1", "check", "pass");
-        
+
         assert_eq!(exp.contributions.len(), 1);
         assert_eq!(exp.counterfactuals.len(), 1);
         assert_eq!(exp.provenance.len(), 1);
@@ -402,13 +418,25 @@ mod tests {
     #[test]
     fn test_contribution_sorting() {
         let mut contributions = vec![
-            Contribution { feature: "low".into(), value: 0.1, description: None },
-            Contribution { feature: "high".into(), value: 0.9, description: None },
-            Contribution { feature: "negative".into(), value: -0.7, description: None },
+            Contribution {
+                feature: "low".into(),
+                value: 0.1,
+                description: None,
+            },
+            Contribution {
+                feature: "high".into(),
+                value: 0.9,
+                description: None,
+            },
+            Contribution {
+                feature: "negative".into(),
+                value: -0.7,
+                description: None,
+            },
         ];
-        
+
         contributions.sort_by(|a, b| b.value.abs().partial_cmp(&a.value.abs()).unwrap());
-        
+
         assert_eq!(contributions[0].feature, "high");
         assert_eq!(contributions[1].feature, "negative");
     }
@@ -417,7 +445,7 @@ mod tests {
     fn test_available_methods() {
         let engine = ExplainabilityEngine::new();
         let methods = engine.available_methods();
-        
+
         assert!(methods.contains(&ExplanationMethod::RuleBased));
         assert!(methods.contains(&ExplanationMethod::Shap));
     }

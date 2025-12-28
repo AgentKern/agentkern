@@ -54,18 +54,20 @@
 //! ```
 
 pub mod balance;
-pub mod transfer;
 pub mod budget;
+pub mod carbon; // Innovation #8: Carbon Footprint Ledger
+pub mod lock;
 pub mod micropayments;
-pub mod types;
-pub mod carbon;  // Innovation #8: Carbon Footprint Ledger
-pub mod lock;    // Per Code Quality Audit: Distributed locking
+pub mod transfer;
+pub mod types; // Per Code Quality Audit: Distributed locking
 
 // Re-exports
-pub use balance::{BalanceLedger, AgentBalance, Currency};
-pub use transfer::{TransferEngine, TransferRequest, TransferResult, TransferStatus};
-pub use budget::{BudgetManager, SpendingLimit, BudgetPeriod};
+pub use balance::{AgentBalance, BalanceLedger, Currency};
+pub use budget::{BudgetManager, BudgetPeriod, SpendingLimit};
+pub use carbon::{
+    CarbonBudget, CarbonFootprint, CarbonLedger, CarbonRegion, CarbonUsage, ComputeType,
+};
+pub use lock::{LockConfig, LockError, LockGuard, LockManager, LockMode};
 pub use micropayments::{MicropaymentAggregator, PendingPayment};
-pub use types::{Amount, TransactionId, AgentId};
-pub use carbon::{CarbonLedger, CarbonFootprint, CarbonBudget, CarbonRegion, ComputeType, CarbonUsage};
-pub use lock::{LockManager, LockGuard, LockConfig, LockMode, LockError};
+pub use transfer::{TransferEngine, TransferRequest, TransferResult, TransferStatus};
+pub use types::{AgentId, Amount, TransactionId};

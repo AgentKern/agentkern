@@ -2,19 +2,18 @@
 //!
 //! HTTP server for the Synapse state store.
 
-use std::sync::Arc;
 use axum::{
-    Router,
-    routing::{get, post},
-    extract::{State, Path},
-    Json,
+    extract::{Path, State},
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use agentkern_synapse::{StateStore, StateUpdate, IntentPath};
+use agentkern_synapse::{IntentPath, StateStore, StateUpdate};
 
 /// Application state
 struct AppState {
@@ -63,9 +62,9 @@ async fn main() {
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3002".to_string());
     let addr = format!("0.0.0.0:{}", port);
-    
+
     tracing::info!("🧠 AgentKern-Synapse server running on http://{}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -81,7 +80,10 @@ async fn get_state(
     State(state): State<Arc<AppState>>,
     Path(agent_id): Path<String>,
 ) -> Result<Json<agentkern_synapse::AgentState>, StatusCode> {
-    state.store.get_state(&agent_id).await
+    state
+        .store
+        .get_state(&agent_id)
+        .await
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -103,7 +105,10 @@ async fn get_intent(
     State(state): State<Arc<AppState>>,
     Path(agent_id): Path<String>,
 ) -> Result<Json<IntentPath>, StatusCode> {
-    state.store.get_intent(&agent_id).await
+    state
+        .store
+        .get_intent(&agent_id)
+        .await
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -113,7 +118,12 @@ async fn start_intent(
     Path(agent_id): Path<String>,
     Json(req): Json<StartIntentRequest>,
 ) -> Json<IntentPath> {
-    Json(state.store.start_intent(agent_id, req.intent, req.expected_steps).await)
+    Json(
+        state
+            .store
+            .start_intent(agent_id, req.intent, req.expected_steps)
+            .await,
+    )
 }
 
 async fn record_step(
@@ -121,7 +131,10 @@ async fn record_step(
     Path(agent_id): Path<String>,
     Json(req): Json<RecordStepRequest>,
 ) -> Result<Json<IntentPath>, StatusCode> {
-    state.store.record_step(&agent_id, req.action, req.result).await
+    state
+        .store
+        .record_step(&agent_id, req.action, req.result)
+        .await
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
 }
@@ -130,11 +143,16 @@ async fn check_drift(
     State(state): State<Arc<AppState>>,
     Path(agent_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    state.store.check_drift(&agent_id).await
-        .map(|r| Json(serde_json::json!({
-            "drifted": r.drifted,
-            "score": r.score,
-            "reason": r.reason
-        })))
+    state
+        .store
+        .check_drift(&agent_id)
+        .await
+        .map(|r| {
+            Json(serde_json::json!({
+                "drifted": r.drifted,
+                "score": r.score,
+                "reason": r.reason
+            }))
+        })
         .ok_or(StatusCode::NOT_FOUND)
 }

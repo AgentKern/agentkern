@@ -3,26 +3,21 @@
 //! HTTP server for the Gate verification engine.
 //! Uses Axum for high-performance HTTP handling.
 
-use std::sync::Arc;
+use axum::error_handling::HandleErrorLayer;
 use axum::{
-    Router,
-    routing::{get, post},
     extract::State,
-    Json,
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use axum::error_handling::HandleErrorLayer;
+use std::sync::Arc;
+use tower::{buffer::BufferLayer, limit::RateLimitLayer, BoxError, ServiceBuilder};
 use tower_http::trace::TraceLayer;
-use tower::{ServiceBuilder, BoxError, buffer::BufferLayer, limit::RateLimitLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use agentkern_gate::{
-    GateEngine,
-    Policy,
-    VerificationResult,
-};
-use agentkern_multitenancy::{TenantContext, PlanTier};
+use agentkern_gate::{GateEngine, Policy, VerificationResult};
+use agentkern_multitenancy::{PlanTier, TenantContext};
 
 /// Application state
 struct AppState {
@@ -62,7 +57,7 @@ async fn main() {
         .route("/policies", get(list_policies).post(register_policy))
         .layer(TraceLayer::new_for_http())
         // P0: Rate Limiting Enforcement (100 RPM default)
-        // Note: RateLimit requires Buffer to be cloneable for Axum, 
+        // Note: RateLimit requires Buffer to be cloneable for Axum,
         // and HandleErrorLayer to map errors to Infallible
         .layer(
             ServiceBuilder::new()
@@ -73,7 +68,7 @@ async fn main() {
                     )
                 }))
                 .layer(BufferLayer::new(1024))
-                .layer(RateLimitLayer::new(100, std::time::Duration::from_secs(60)))
+                .layer(RateLimitLayer::new(100, std::time::Duration::from_secs(60))),
         )
         // P2: Authentication Middleware (simple implementation)
         .layer(axum::middleware::from_fn(auth_middleware))
@@ -81,9 +76,9 @@ async fn main() {
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".to_string());
     let addr = format!("0.0.0.0:{}", port);
-    
+
     tracing::info!("🚀 AgentKern-Gate server running on http://{}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -98,7 +93,8 @@ async fn auth_middleware(
         return Ok(next.run(req).await);
     }
 
-    let auth_header = req.headers()
+    let auth_header = req
+        .headers()
         .get("Authorization")
         .and_then(|h| h.to_str().ok());
 
@@ -110,7 +106,7 @@ async fn auth_middleware(
             if token.is_empty() {
                 return Err(StatusCode::UNAUTHORIZED);
             }
-            
+
             tracing::debug!("Authenticated request with token: [REDACTED]");
             Ok(next.run(req).await)
         }
@@ -133,19 +129,17 @@ async fn verify(
     Json(req): Json<VerifyRequest>,
 ) -> Result<Json<VerificationResult>, StatusCode> {
     use agentkern_gate::engine::VerificationRequestBuilder;
-    
+
     let mut builder = VerificationRequestBuilder::new(req.agent_id, req.action);
     for (key, value) in req.context {
         builder = builder.context(key, value);
     }
-    
+
     let result = state.engine.verify(builder.build()).await;
     Ok(Json(result))
 }
 
-async fn list_policies(
-    State(state): State<Arc<AppState>>,
-) -> Json<Vec<Policy>> {
+async fn list_policies(State(state): State<Arc<AppState>>) -> Json<Vec<Policy>> {
     let policies = state.engine.get_policies().await;
     Json(policies)
 }

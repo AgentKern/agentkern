@@ -3,8 +3,8 @@
 //! This connector simulates legacy system interactions for testing.
 
 use super::sdk::{
-    LegacyConnector, ConnectorProtocol, ConnectorConfig, ConnectorHealth,
-    ConnectorResult, ConnectorError, A2ATaskPayload, LegacyMessage,
+    A2ATaskPayload, ConnectorConfig, ConnectorError, ConnectorHealth, ConnectorProtocol,
+    ConnectorResult, LegacyConnector, LegacyMessage,
 };
 use std::collections::HashMap;
 
@@ -21,20 +21,20 @@ impl MockConnector {
         let mut config = ConnectorConfig::default();
         config.name = name.into();
         config.protocol = ConnectorProtocol::Sql; // Mock as SQL
-        
+
         Self {
             config,
             should_fail: false,
             latency_ms: 0,
         }
     }
-    
+
     /// Set whether operations should fail.
     pub fn with_failure(mut self, fail: bool) -> Self {
         self.should_fail = fail;
         self
     }
-    
+
     /// Set simulated latency.
     pub fn with_latency(mut self, ms: u64) -> Self {
         self.latency_ms = ms;
@@ -47,61 +47,60 @@ impl LegacyConnector for MockConnector {
     fn name(&self) -> &str {
         &self.config.name
     }
-    
+
     fn protocol(&self) -> ConnectorProtocol {
         self.config.protocol
     }
-    
+
     fn config(&self) -> &ConnectorConfig {
         &self.config
     }
-    
+
     async fn health_check(&self) -> ConnectorResult<ConnectorHealth> {
         if self.should_fail {
-             Ok(ConnectorHealth::unhealthy("Mock failure enabled"))
+            Ok(ConnectorHealth::unhealthy("Mock failure enabled"))
         } else {
             let mut health = ConnectorHealth::healthy();
             health.latency_ms = Some(self.latency_ms);
             Ok(health)
         }
     }
-    
+
     fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage> {
         if self.should_fail {
             return Err(ConnectorError::ConnectionFailed("Mock failure".into()));
         }
-        
+
         // Simple mock translation - serialize task as JSON
-        let data = serde_json::to_vec(task)
-            .map_err(|e| ConnectorError::ParseError(e.to_string()))?;
-        
+        let data =
+            serde_json::to_vec(task).map_err(|e| ConnectorError::ParseError(e.to_string()))?;
+
         Ok(LegacyMessage {
             data,
             message_type: format!("MOCK_{}", task.method.to_uppercase()),
             metadata: HashMap::new(),
         })
     }
-    
+
     fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload> {
         if self.should_fail {
             return Err(ConnectorError::ConnectionFailed("Mock failure".into()));
         }
-        
+
         // Try to parse as JSON
-        serde_json::from_slice(&msg.data)
-            .map_err(|e| ConnectorError::ParseError(e.to_string()))
+        serde_json::from_slice(&msg.data).map_err(|e| ConnectorError::ParseError(e.to_string()))
     }
-    
+
     async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
         if self.should_fail {
             return Err(ConnectorError::ConnectionFailed("Mock failure".into()));
         }
-        
+
         // Simulate latency
         if self.latency_ms > 0 {
             tokio::time::sleep(tokio::time::Duration::from_millis(self.latency_ms)).await;
         }
-        
+
         // Echo back with RESPONSE prefix
         Ok(LegacyMessage {
             data: msg.data.clone(),
@@ -150,7 +149,7 @@ mod tests {
             source_agent: None,
             target_agent: None,
         };
-        
+
         let msg = connector.translate_to_legacy(&task).unwrap();
         assert_eq!(msg.message_type, "MOCK_QUERY");
     }
@@ -163,7 +162,7 @@ mod tests {
             message_type: "TEST".into(),
             metadata: HashMap::new(),
         };
-        
+
         let response = connector.execute(&msg).await.unwrap();
         assert_eq!(response.message_type, "RESPONSE_TEST");
     }

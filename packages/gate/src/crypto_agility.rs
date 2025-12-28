@@ -62,7 +62,7 @@ pub enum Algorithm {
     EcdsaP256,
     EcdsaP384,
     Ed25519,
-    
+
     // Post-Quantum algorithms (NIST PQC)
     Dilithium2,
     Dilithium3,
@@ -70,7 +70,7 @@ pub enum Algorithm {
     Kyber512,
     Kyber768,
     Kyber1024,
-    
+
     // Hybrid combinations
     HybridEcdsaDilithium,
 }
@@ -96,8 +96,12 @@ impl Algorithm {
     pub fn is_post_quantum(&self) -> bool {
         matches!(
             self,
-            Self::Dilithium2 | Self::Dilithium3 | Self::Dilithium5 |
-            Self::Kyber512 | Self::Kyber768 | Self::Kyber1024
+            Self::Dilithium2
+                | Self::Dilithium3
+                | Self::Dilithium5
+                | Self::Kyber512
+                | Self::Kyber768
+                | Self::Kyber1024
         )
     }
 
@@ -165,7 +169,7 @@ impl CryptoProvider {
             CryptoMode::PostQuantum => (Algorithm::Dilithium3, Algorithm::Kyber768),
             CryptoMode::Hybrid => (Algorithm::HybridEcdsaDilithium, Algorithm::Kyber768),
         };
-        
+
         Self {
             mode,
             signing_algorithm: signing,
@@ -189,39 +193,39 @@ impl CryptoProvider {
     }
 
     /// Generate a new key pair using real cryptographic libraries.
-    /// 
+    ///
     /// Classical: ed25519-dalek (always)
     /// Post-Quantum: ML-DSA (when `pqc` feature enabled)
     pub fn generate_keypair(&self) -> Result<KeyPair, CryptoError> {
         use ed25519_dalek::SigningKey;
         use rand::rngs::OsRng;
-        
+
         let key_id = uuid::Uuid::new_v4().to_string();
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| CryptoError::KeyGeneration(e.to_string()))?
             .as_secs();
-        
+
         // Generate Ed25519 key pair (classical)
         let signing_key = SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
-        
+
         // Encode keys as base64
         let public_key = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            verifying_key.as_bytes()
+            verifying_key.as_bytes(),
         );
         let private_key = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            signing_key.as_bytes()
+            signing_key.as_bytes(),
         );
-        
+
         tracing::debug!(
             algorithm = ?self.signing_algorithm,
             key_id = %key_id,
             "Generated new key pair"
         );
-        
+
         Ok(KeyPair {
             algorithm: self.signing_algorithm,
             public_key,
@@ -232,51 +236,49 @@ impl CryptoProvider {
     }
 
     /// Sign a message using real cryptographic libraries.
-    /// 
+    ///
     /// Classical: ed25519-dalek
     /// Hybrid: ed25519 + ML-DSA (NIST FIPS 204) when `pqc` feature enabled
     pub fn sign(&self, message: &[u8], keypair: &KeyPair) -> Result<Signature, CryptoError> {
-        use ed25519_dalek::{Signer, SigningKey};
         use base64::Engine;
-        
+        use ed25519_dalek::{Signer, SigningKey};
+
         // Decode private key
         let private_bytes = base64::engine::general_purpose::STANDARD
             .decode(&keypair.private_key)
             .map_err(|_| CryptoError::InvalidKeyFormat)?;
-        
+
         let signing_key = SigningKey::try_from(private_bytes.as_slice())
             .map_err(|e| CryptoError::SigningFailed(e.to_string()))?;
-        
+
         // Create Ed25519 signature (classical component)
         let classical_sig = signing_key.sign(message);
-        let classical_b64 = base64::engine::general_purpose::STANDARD
-            .encode(classical_sig.to_bytes());
-        
+        let classical_b64 =
+            base64::engine::general_purpose::STANDARD.encode(classical_sig.to_bytes());
+
         // Handle different modes
         let (value, classical_component, pq_component) = match self.mode {
-            CryptoMode::Classical => {
-                (classical_b64.clone(), Some(classical_b64), None)
-            },
+            CryptoMode::Classical => (classical_b64.clone(), Some(classical_b64), None),
             CryptoMode::PostQuantum => {
                 // When PQC-only, still use Ed25519 as fallback (graceful degradation)
                 // Real ML-DSA would be gated behind #[cfg(feature = "pqc")]
                 let pq_placeholder = self.generate_pq_signature(message);
                 (pq_placeholder.clone(), None, Some(pq_placeholder))
-            },
+            }
             CryptoMode::Hybrid => {
                 // Hybrid: combine Ed25519 + PQ signature
                 let pq_sig = self.generate_pq_signature(message);
                 let combined = format!("{}:{}", classical_b64, pq_sig);
                 (combined, Some(classical_b64), Some(pq_sig))
-            },
+            }
         };
-        
+
         tracing::debug!(
             mode = ?self.mode,
             key_id = %keypair.key_id,
             "Message signed"
         );
-        
+
         Ok(Signature {
             algorithm: self.signing_algorithm,
             value,
@@ -285,7 +287,7 @@ impl CryptoProvider {
             pq_component,
         })
     }
-    
+
     /// Generate post-quantum signature component.
     /// When `pqc` feature enabled, uses real ML-DSA (FIPS 204).
     /// Otherwise, uses deterministic hash-based fallback.
@@ -294,17 +296,17 @@ impl CryptoProvider {
         {
             // Real ML-DSA implementation would go here
             // ml_dsa::sign(message, &pq_key)
-            use sha2::{Sha256, Digest};
+            use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(b"ML-DSA-65-");
             hasher.update(message);
             base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
         }
-        
+
         #[cfg(not(feature = "pqc"))]
         {
             // Graceful fallback: deterministic hash-based signature
-            use sha2::{Sha256, Digest};
+            use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(b"PQ-FALLBACK-");
             hasher.update(message);
@@ -313,31 +315,37 @@ impl CryptoProvider {
     }
 
     /// Verify a signature using real cryptographic libraries.
-    pub fn verify(&self, message: &[u8], signature: &Signature, public_key: &str) -> Result<bool, CryptoError> {
-        use ed25519_dalek::{Verifier, VerifyingKey};
+    pub fn verify(
+        &self,
+        message: &[u8],
+        signature: &Signature,
+        public_key: &str,
+    ) -> Result<bool, CryptoError> {
         use base64::Engine;
-        
+        use ed25519_dalek::{Verifier, VerifyingKey};
+
         // Decode public key
         let pub_bytes = base64::engine::general_purpose::STANDARD
             .decode(public_key)
             .map_err(|_| CryptoError::InvalidKeyFormat)?;
-        
+
         let verifying_key = VerifyingKey::try_from(pub_bytes.as_slice())
             .map_err(|_| CryptoError::InvalidKeyFormat)?;
-        
+
         // Verify classical component (if present)
         if let Some(ref classical_b64) = signature.classical_component {
             let sig_bytes = base64::engine::general_purpose::STANDARD
                 .decode(classical_b64)
                 .map_err(|_| CryptoError::VerificationFailed)?;
-            
+
             let sig = ed25519_dalek::Signature::try_from(sig_bytes.as_slice())
                 .map_err(|_| CryptoError::VerificationFailed)?;
-            
-            verifying_key.verify(message, &sig)
+
+            verifying_key
+                .verify(message, &sig)
                 .map_err(|_| CryptoError::VerificationFailed)?;
         }
-        
+
         // For hybrid mode, both components must be present
         if self.mode == CryptoMode::Hybrid {
             if signature.classical_component.is_none() || signature.pq_component.is_none() {
@@ -345,28 +353,26 @@ impl CryptoProvider {
             }
             // PQ component verification would go here with real ML-DSA
         }
-        
+
         tracing::debug!(
             mode = ?self.mode,
             key_id = %signature.key_id,
             "Signature verified"
         );
-        
+
         Ok(true)
     }
 
     /// Check if the current configuration is quantum-safe.
     pub fn is_quantum_safe(&self) -> bool {
-        self.signing_algorithm.is_post_quantum() || 
-        self.signing_algorithm.is_hybrid()
+        self.signing_algorithm.is_post_quantum() || self.signing_algorithm.is_hybrid()
     }
-    
+
     /// Check if PQC feature is compiled in.
     pub fn has_pqc_support() -> bool {
         cfg!(feature = "pqc")
     }
 }
-
 
 /// Configuration for crypto-agility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -404,10 +410,10 @@ mod tests {
     fn test_crypto_modes() {
         let classical = CryptoProvider::new(CryptoMode::Classical);
         assert!(!classical.is_quantum_safe());
-        
+
         let pq = CryptoProvider::new(CryptoMode::PostQuantum);
         assert!(pq.is_quantum_safe());
-        
+
         let hybrid = CryptoProvider::new(CryptoMode::Hybrid);
         assert!(hybrid.is_quantum_safe());
     }
@@ -416,7 +422,7 @@ mod tests {
     fn test_keypair_generation() {
         let provider = CryptoProvider::new(CryptoMode::Hybrid);
         let keypair = provider.generate_keypair().unwrap();
-        
+
         assert!(!keypair.key_id.is_empty());
         assert!(!keypair.public_key.is_empty());
     }
@@ -425,15 +431,16 @@ mod tests {
     fn test_sign_and_verify() {
         let provider = CryptoProvider::new(CryptoMode::Hybrid);
         let keypair = provider.generate_keypair().unwrap();
-        
+
         let message = b"Hello, quantum-safe world!";
-        let signature = provider.sign(message, &keypair)
+        let signature = provider
+            .sign(message, &keypair)
             .map_err(|e| format!("Signing failed: {}", e))
             .expect("Signing failed in test");
-        
+
         assert!(signature.classical_component.is_some());
         assert!(signature.pq_component.is_some());
-        
+
         let result = provider.verify(message, &signature, &keypair.public_key);
         assert!(result.is_ok());
     }

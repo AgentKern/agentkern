@@ -6,18 +6,13 @@
 //! Provides escalation triggers when agents hit trust thresholds,
 //! webhook notifications, and human approval workflows.
 
+pub mod approval;
 pub mod triggers;
 pub mod webhook;
-pub mod approval;
 
 // Re-exports
+pub use approval::{ApprovalDecision, ApprovalRequest, ApprovalStatus, ApprovalWorkflow};
 pub use triggers::{
-    EscalationTrigger, TriggerType, TriggerConfig, TriggerResult,
-    TrustThreshold, EscalationLevel,
+    EscalationLevel, EscalationTrigger, TriggerConfig, TriggerResult, TriggerType, TrustThreshold,
 };
-pub use webhook::{
-    WebhookNotifier, WebhookConfig, WebhookPayload, WebhookResult,
-};
-pub use approval::{
-    ApprovalWorkflow, ApprovalRequest, ApprovalDecision, ApprovalStatus,
-};
+pub use webhook::{WebhookConfig, WebhookNotifier, WebhookPayload, WebhookResult};

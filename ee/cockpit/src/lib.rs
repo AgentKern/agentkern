@@ -22,13 +22,13 @@ mod license {
     }
 
     pub fn require(feature: &str) -> Result<(), LicenseError> {
-        let key = std::env::var("AGENTKERN_LICENSE_KEY")
-            .map_err(|_| LicenseError::LicenseRequired)?;
-        
+        let key =
+            std::env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
         if key.is_empty() {
             return Err(LicenseError::LicenseRequired);
         }
-        
+
         tracing::debug!(feature = %feature, "Enterprise cockpit feature accessed");
         Ok(())
     }
@@ -206,7 +206,9 @@ impl CockpitService {
     /// Create a new cockpit service (requires enterprise license).
     pub fn new(org_id: impl Into<String>) -> Result<Self, license::LicenseError> {
         license::require("COCKPIT")?;
-        Ok(Self { org_id: org_id.into() })
+        Ok(Self {
+            org_id: org_id.into(),
+        })
     }
 
     /// Get dashboard statistics.
@@ -288,7 +290,10 @@ impl CockpitService {
                 last_seen: chrono::Utc::now().timestamp() as u64 - 300,
                 region: "ap-south-1".to_string(),
             },
-        ].into_iter().take(limit).collect()
+        ]
+        .into_iter()
+        .take(limit)
+        .collect()
     }
 }
 
@@ -306,33 +311,43 @@ mod tests {
 
     #[test]
     fn test_cockpit_requires_license() {
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         let result = CockpitService::new("org-123");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_cockpit_with_license() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
         let result = CockpitService::new("org-123");
         assert!(result.is_ok());
-        
+
         let service = result.unwrap();
         let stats = service.get_stats();
         assert!(stats.active_agents > 0);
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 
     #[test]
     fn test_compliance_status() {
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license"); }
+        unsafe {
+            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
+        }
         let service = CockpitService::new("org-123").unwrap();
-        
+
         let status = service.get_compliance_status();
         assert!(!status.is_empty());
         assert!(status.iter().any(|s| s.framework == "HIPAA"));
-        
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY"); }
+
+        unsafe {
+            std::env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
     }
 }

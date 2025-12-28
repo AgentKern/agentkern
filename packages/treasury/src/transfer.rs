@@ -4,14 +4,14 @@
 //! This module implements 2-phase commit for safe agent-to-agent transfers.
 
 use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use uuid::Uuid;
 
 use crate::balance::{BalanceLedger, LedgerError};
-use crate::types::{Amount, AgentId, TransactionId};
+use crate::types::{AgentId, Amount, TransactionId};
 
 /// Transfer request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,15 +152,21 @@ impl TransferEngine {
         // Store pending transfer
         {
             let mut pending = self.pending.write();
-            pending.insert(transaction_id, PendingTransfer {
-                request: request.clone(),
+            pending.insert(
                 transaction_id,
-                created_at: Utc::now(),
-            });
+                PendingTransfer {
+                    request: request.clone(),
+                    transaction_id,
+                    created_at: Utc::now(),
+                },
+            );
         }
 
         // Phase 2: Commit transfer
-        match self.ledger.commit_transfer(&request.from, &request.to, request.amount) {
+        match self
+            .ledger
+            .commit_transfer(&request.from, &request.to, request.amount)
+        {
             Ok(()) => {
                 // Remove from pending
                 {
@@ -187,7 +193,7 @@ impl TransferEngine {
             Err(e) => {
                 // Rollback: release held funds
                 let _ = self.ledger.release(&request.from, request.amount);
-                
+
                 // Remove from pending
                 {
                     let mut pending = self.pending.write();
@@ -209,7 +215,8 @@ impl TransferEngine {
         match pending_transfer {
             Some(pt) => {
                 // Release held funds
-                self.ledger.release(&pt.request.from, pt.request.amount)
+                self.ledger
+                    .release(&pt.request.from, pt.request.amount)
                     .map_err(|e| TransferError::LedgerError(e.to_string()))?;
                 Ok(())
             }
@@ -240,27 +247,29 @@ mod tests {
     fn setup() -> TransferEngine {
         let ledger = Arc::new(BalanceLedger::new(Currency::VMC));
         // Pre-fund agent-1
-        ledger.deposit("agent-1", Amount::from_float(1000.0, 6)).unwrap();
+        ledger
+            .deposit("agent-1", Amount::from_float(1000.0, 6))
+            .unwrap();
         TransferEngine::new(ledger)
     }
 
     #[tokio::test]
     async fn test_successful_transfer() {
         let engine = setup();
-        
+
         let request = TransferRequest::new("agent-1", "agent-2", Amount::from_float(100.0, 6));
         let result = engine.transfer(request).await;
-        
+
         assert_eq!(result.status, TransferStatus::Completed);
     }
 
     #[tokio::test]
     async fn test_insufficient_funds() {
         let engine = setup();
-        
+
         let request = TransferRequest::new("agent-1", "agent-2", Amount::from_float(2000.0, 6));
         let result = engine.transfer(request).await;
-        
+
         assert_eq!(result.status, TransferStatus::Failed);
         assert!(result.error.unwrap().contains("Insufficient"));
     }
@@ -268,13 +277,13 @@ mod tests {
     #[tokio::test]
     async fn test_idempotency() {
         let engine = setup();
-        
+
         let request = TransferRequest::new("agent-1", "agent-2", Amount::from_float(50.0, 6))
             .with_idempotency_key("test-key-1");
-        
+
         let result1 = engine.transfer(request.clone()).await;
         let result2 = engine.transfer(request).await;
-        
+
         // Same transaction ID returned
         assert_eq!(result1.transaction_id, result2.transaction_id);
     }
@@ -282,10 +291,10 @@ mod tests {
     #[tokio::test]
     async fn test_self_transfer() {
         let engine = setup();
-        
+
         let request = TransferRequest::new("agent-1", "agent-1", Amount::from_float(50.0, 6));
         let result = engine.transfer(request).await;
-        
+
         assert_eq!(result.status, TransferStatus::Failed);
     }
 }

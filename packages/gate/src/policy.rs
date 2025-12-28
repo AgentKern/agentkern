@@ -28,8 +28,8 @@
 //!     action: audit
 //! ```
 
-use serde::{Deserialize, Serialize};
 use crate::types::DataRegion;
+use serde::{Deserialize, Serialize};
 
 /// A AgentKern policy definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,8 +54,12 @@ pub struct Policy {
     pub rules: Vec<PolicyRule>,
 }
 
-fn default_priority() -> i32 { 0 }
-fn default_enabled() -> bool { true }
+fn default_priority() -> i32 {
+    0
+}
+fn default_enabled() -> bool {
+    true
+}
 
 /// Individual policy rule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
