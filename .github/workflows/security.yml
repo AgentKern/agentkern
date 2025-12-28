@@ -101,22 +101,21 @@ jobs:
       - name: Install cargo-audit
         run: cargo install cargo-audit
       
-      - name: Audit Gate dependencies
-        working-directory: packages/gate
+      - name: Audit Rust workspace dependencies
         run: cargo audit
         continue-on-error: true
       
-      - name: Audit Synapse dependencies
-        working-directory: packages/synapse
-        run: cargo audit
-        continue-on-error: true
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       
-      - name: Audit Arbiter dependencies
-        working-directory: packages/arbiter
-        run: cargo audit
-        continue-on-error: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       
-      - name: npm audit SDK
+      - name: Audit npm dependencies
         working-directory: packages/sdk
         run: npm audit --audit-level=high
         continue-on-error: true
