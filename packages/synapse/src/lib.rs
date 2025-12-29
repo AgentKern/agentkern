@@ -94,3 +94,9 @@ pub mod encryption;
 pub use encryption::{
     EncryptedEnvelope, EncryptionAlgorithm, EncryptionConfig, EncryptionEngine, EncryptionError,
 };
+
+// Zero-Trust Secure Passports (Field-Level Encryption)
+pub mod secure_passport;
+pub use secure_passport::{
+    AccessGrant, EncryptedField, FieldSensitivity, SecurePassport, SecurePassportError,
+};
