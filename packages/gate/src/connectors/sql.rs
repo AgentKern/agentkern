@@ -9,7 +9,7 @@ use super::sdk::{
     ConnectorResult, LegacyConnector, LegacyMessage,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{AnyPool, Column, Row, TypeInfo};
+use sqlx::{AnyPool, Column, Row};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

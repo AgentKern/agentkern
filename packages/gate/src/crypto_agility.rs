@@ -250,6 +250,11 @@ impl CryptoProvider {
         self.signing_algorithm = algorithm;
     }
 
+    /// Get key exchange algorithm.
+    pub fn key_exchange_algorithm(&self) -> Algorithm {
+        self.key_exchange_algorithm
+    }
+
     /// Generate a new key pair using real cryptographic libraries.
     ///
     /// Classical: ed25519-dalek (always)
@@ -597,6 +602,11 @@ impl HybridKeyExchange {
     /// Check if the hybrid key exchange is ready for use.
     pub fn is_ready(&self) -> bool {
         self.x25519_secret.is_some()
+    }
+
+    /// Check if ML-KEM key material is available.
+    pub fn has_mlkem_key(&self) -> bool {
+        self.mlkem_dk_bytes.is_some()
     }
 
     /// Get algorithm identifier.

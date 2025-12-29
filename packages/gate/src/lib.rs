@@ -1,5 +1,3 @@
-#![allow(unused)]
-#![allow(dead_code)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::derivable_impls)]
 #![allow(clippy::manual_range_contains)]

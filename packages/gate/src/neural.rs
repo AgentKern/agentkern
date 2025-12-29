@@ -404,10 +404,14 @@ impl PolicyEmbedding {
 /// Otherwise, uses a mock implementation for testing.
 #[derive(Debug)]
 pub struct InferenceSession {
+    /// Configuration for the inference session (used in feature-gated code).
+    #[allow(dead_code)]
     config: ModelConfig,
     #[cfg(feature = "neural")]
     session: Option<ort::Session>,
+    /// Tracks load state in mock mode (used in feature-gated code).
     #[cfg(not(feature = "neural"))]
+    #[allow(dead_code)]
     loaded: bool,
 }
 

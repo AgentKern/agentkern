@@ -170,6 +170,11 @@ impl PciValidator {
         }
     }
 
+    /// Check if test mode is enabled.
+    pub fn is_test_mode(&self) -> bool {
+        self.allow_test_numbers
+    }
+
     /// Scan text for card data.
     pub fn scan_for_card_data(&self, text: &str) -> CardScanResult {
         let mut data_types = Vec::new();
