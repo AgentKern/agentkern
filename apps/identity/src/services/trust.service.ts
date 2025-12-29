@@ -51,6 +51,7 @@ export interface TrustEvent {
   reason: string;
   timestamp: Date;
   relatedAgentId?: string;
+  responseTimeMs?: number;       // Dec 2025: Track actual response times
 }
 
 export enum TrustEventType {
@@ -206,6 +207,7 @@ export class TrustService {
   async recordTransactionSuccess(
     agentId: string,
     relatedAgentId?: string,
+    responseTimeMs?: number,
   ): Promise<TrustScore> {
     return this.recordEvent(agentId, {
       id: uuidv4(),
@@ -214,6 +216,7 @@ export class TrustService {
       reason: 'Transaction completed successfully',
       timestamp: new Date(),
       relatedAgentId,
+      responseTimeMs,
     });
   }
 
@@ -312,7 +315,7 @@ export class TrustService {
         totalTransactions > 0
           ? (successEvents.length / totalTransactions) * 100
           : 100,
-      averageResponseTime: 0, // TODO: Track from actual response times
+      averageResponseTime: this.calculateAverageResponseTime(events),
       policyCompliance:
         totalActions > 0
           ? ((totalActions - violationEvents.length) / totalActions) * 100
@@ -349,6 +352,28 @@ export class TrustService {
     const now = new Date();
     const diffMs = now.getTime() - registration.timestamp.getTime();
     return Math.floor(diffMs / (1000 * 60 * 60 * 24)); // Days
+  }
+
+  /**
+   * Calculate average response time from transaction events.
+   * Dec 2025: Fixed TODO - now tracks actual response times.
+   */
+  private calculateAverageResponseTime(events: TrustEvent[]): number {
+    const eventsWithTiming = events.filter(
+      (e) =>
+        (e.type === TrustEventType.TRANSACTION_SUCCESS ||
+          e.type === TrustEventType.TRANSACTION_FAILURE) &&
+        e.responseTimeMs !== undefined,
+    );
+
+    if (eventsWithTiming.length === 0) return 0;
+
+    const totalMs = eventsWithTiming.reduce(
+      (sum, e) => sum + (e.responseTimeMs || 0),
+      0,
+    );
+
+    return Math.round(totalMs / eventsWithTiming.length);
   }
 
   private calculateTrustLevel(score: number): TrustLevel {

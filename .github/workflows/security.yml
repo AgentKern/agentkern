@@ -247,3 +247,55 @@ jobs:
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
+
+  # ============================================
+  # Code Quality Analysis (SonarQube - Dec 2025)
+  # Per Roadmap: Track technical debt "interest"
+  # ============================================
+  code-quality:
+    name: Code Quality (SonarQube)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for SonarQube analysis
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Run TypeScript tests with coverage
+        working-directory: apps/identity
+        run: pnpm test:cov || true
+        continue-on-error: true
+      
+      - name: SonarQube Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=AgentKern_agentkern
+            -Dsonar.organization=agentkern
+            -Dsonar.sources=apps/identity/src,packages/sdk/src
+            -Dsonar.typescript.lcov.reportPaths=apps/identity/coverage/lcov.info
+            -Dsonar.qualitygate.wait=true
+        continue-on-error: true
+      
+      - name: Quality Gate Status
+        run: |
+          echo "## Code Quality Report" >> $GITHUB_STEP_SUMMARY
+          echo "SonarQube analysis complete. Check SonarCloud for details." >> $GITHUB_STEP_SUMMARY
+          echo "[View Dashboard](https://sonarcloud.io/dashboard?id=AgentKern_agentkern)" >> $GITHUB_STEP_SUMMARY
