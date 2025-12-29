@@ -3,13 +3,15 @@
 //! Per ARCHITECTURE.md: "Nano-Isolation"
 //! - Microsecond startup vs milliseconds for containers
 //! - Capability-based security model
-//! - Hot-swappable policy modules
+//! WASM Components for AgentKern Gate
 //!
-//! Policies are compiled to WASM and run in isolated sandboxes.
+//! Hot-swappable policy modules and capability routing.
 
 pub mod registry;
+pub mod loader;
 
-pub use registry::{Capability, RegistryError, RegistryStats, WasmActorMeta, WasmInvokeResult, WasmRegistry};
+pub use registry::{Capability, RegistryError, WasmActorMeta, WasmRegistry, RegistryStats};
+pub use loader::{load_policies, check_prompt, PromptCheckResult, PROMPT_GUARD_WASM};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
