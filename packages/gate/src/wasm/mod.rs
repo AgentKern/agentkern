@@ -7,6 +7,10 @@
 //!
 //! Policies are compiled to WASM and run in isolated sandboxes.
 
+pub mod registry;
+
+pub use registry::{Capability, RegistryError, RegistryStats, WasmActorMeta, WasmInvokeResult, WasmRegistry};
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 #[cfg(feature = "wasm")]
