@@ -44,6 +44,10 @@ wasmtime = { version = "40.0", optional = true }
 ort = { version = "2.0.0-rc.10", optional = true }
 ndarray = { version = "0.16", optional = true }
 
+# BPE Tokenizer (Dec 2025 - replaces SimpleTokenizer for OOV resistance)
+# Uses cl100k_base encoding (100K tokens, GPT-4 compatible)
+tiktoken-rs = "0.9"
+
 # Actor framework
 actix = { version = "0.13", optional = true }
 
