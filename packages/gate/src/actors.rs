@@ -75,9 +75,29 @@ impl PolicyCell {
     }
 
     #[cfg(feature = "wasm")]
-    pub fn load_wasm(&mut self, _bytes: &[u8]) -> Result<(), String> {
-        // TODO: Load WASM module
-        Ok(())
+    pub fn load_wasm(&mut self, bytes: &[u8]) -> Result<(), String> {
+        use wasmtime::{Engine, Module};
+        
+        let engine = Engine::default();
+        match Module::new(&engine, bytes) {
+            Ok(module) => {
+                tracing::info!(
+                    policy = %self.name,
+                    size_bytes = bytes.len(),
+                    "WASM policy module loaded successfully"
+                );
+                self.wasm_module = Some(module);
+                Ok(())
+            }
+            Err(e) => {
+                tracing::error!(
+                    policy = %self.name,
+                    error = %e,
+                    "Failed to load WASM policy module"
+                );
+                Err(format!("Failed to compile WASM module: {}", e))
+            }
+        }
     }
 
     pub fn evaluate(&mut self, _action: &str, _context: &serde_json::Value) -> PolicyResult {
