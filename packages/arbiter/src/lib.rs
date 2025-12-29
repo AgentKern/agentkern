@@ -63,6 +63,7 @@ pub mod antifragile; // Anti-Fragile Self-Healing Engine
 pub mod chaos; // Chaos Testing / Fault Injection
 pub mod loop_prevention; // Runaway Loop Prevention ($47k incident)
 pub mod dr_scheduler; // Automated DR Drill Scheduler (2026 Roadmap)
+pub mod bulkhead; // Bulkhead Pattern for Agent Isolation
 
 // Phase 2: Human-in-the-Loop Escalation
 pub mod escalation; // Escalation triggers, webhooks, approval workflow

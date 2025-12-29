@@ -54,6 +54,7 @@ pub mod polyglot; // Native Language Support
 
 // COMPETITIVE_LANDSCAPE.md modules
 pub mod crdt; // Conflict-Free Replicated Data Types
+pub mod state_snapshot; // Chain-anchored immutable state backups
 
 // Re-exports
 pub use adaptive::{AdaptiveExecutor, ExecutionMetrics, ExecutionStrategy};
