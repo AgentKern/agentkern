@@ -44,6 +44,7 @@ pub mod hipaa; // HIPAA Healthcare Compliance (Section 2)
 pub mod mtls; // Zero-Trust mTLS (Section 5)
 pub mod pci; // PCI-DSS Payment Compliance (Section 2)
 pub mod shariah_compliance; // Shariah (Islamic Finance) Compliance (Section 2) // FHIR R4 Healthcare Integration (Section 2)
+pub mod global_privacy; // Global Privacy Registry (GDPR, CCPA, LGPD, PIPL, PDPA, NDMO)
 
 // MANDATE.md Section 6: Prompt Defense
 pub mod carbon;
@@ -77,6 +78,9 @@ pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
 pub use shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
+};
+pub use global_privacy::{
+    GlobalPrivacyRegistry, Jurisdiction, PrivacyCheckResult, PrivacyError, Regulation, TransferStatus,
 };
 pub use sovereign::{DataTransfer, SovereignController, TransferDecision};
 pub use tee::Enclave;
