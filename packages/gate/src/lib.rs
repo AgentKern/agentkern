@@ -50,6 +50,7 @@ pub use agentkern_governance::industry::{healthcare, finance};
 // MANDATE.md Section 6: Prompt Defense
 pub mod carbon;
 pub mod prompt_guard; // Prompt injection detection // Energy-Aware Veto (ESG)
+pub mod context_guard; // RAG memory injection protection
 
 // Roadmap modules
 pub mod explain; // Explainability Engine
