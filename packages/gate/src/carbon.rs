@@ -22,10 +22,14 @@ pub struct CarbonCheckResult {
 /// Carbon Policy Controller.
 ///
 /// Interacts with the Treasury's Carbon Ledger to enforce
-/// environmental guardrails.
+/// environmental guardrails with optional real-time WattTime data.
 pub struct CarbonVeto {
     ledger: CarbonLedger,
     default_region: CarbonRegion,
+    /// Optional WattTime client for dynamic grid intensity
+    watttime: Option<agentkern_treasury::watttime::WattTimeClient>,
+    /// Location for WattTime lookups
+    location: Option<(f64, f64)>,
 }
 
 impl CarbonVeto {
@@ -34,6 +38,8 @@ impl CarbonVeto {
         Self {
             ledger,
             default_region: CarbonRegion::UsAverage,
+            watttime: None,
+            location: None,
         }
     }
 
@@ -43,7 +49,14 @@ impl CarbonVeto {
         self
     }
 
-    /// Evaluate an action against carbon budgets.
+    /// Enable dynamic carbon intensity via WattTime API.
+    pub fn with_watttime(mut self, client: agentkern_treasury::watttime::WattTimeClient, lat: f64, lon: f64) -> Self {
+        self.watttime = Some(client);
+        self.location = Some((lat, lon));
+        self
+    }
+
+    /// Evaluate an action against carbon budgets (sync, uses static intensity).
     pub fn evaluate(
         &self,
         agent_id: &AgentId,
@@ -54,17 +67,15 @@ impl CarbonVeto {
         let budget = match self.ledger.get_budget(agent_id) {
             Some(b) => b,
             None => {
-                // If no budget is set, we allow the action but log it
-                // (or we could be strict and deny by default)
                 return CarbonCheckResult {
                     allowed: true,
-                    estimated_co2: 0.0, // Should be estimation
+                    estimated_co2: 0.0,
                     message: None,
                 };
             }
         };
 
-        // Estimate footprint
+        // Estimate footprint using default region
         let footprint = CarbonLedger::estimate(compute_estimate, duration_ms, self.default_region);
         let co2_grams = footprint
             .co2_grams
@@ -72,11 +83,57 @@ impl CarbonVeto {
             .parse::<f64>()
             .unwrap_or(0.0);
 
-        // Check if recording would exceed budget
-        // We use record() without actually committing if we just want a check
-        // But the ledger's record() method already does the check.
-        // For a "veto", we simulate the recording.
+        self.check_budget(agent_id, &budget, co2_grams)
+    }
 
+    /// Evaluate with real-time WattTime intensity (async).
+    pub async fn evaluate_dynamic(
+        &self,
+        agent_id: &AgentId,
+        _action: &str,
+        compute_estimate: ComputeType,
+        duration_ms: u64,
+    ) -> CarbonCheckResult {
+        let budget = match self.ledger.get_budget(agent_id) {
+            Some(b) => b,
+            None => {
+                return CarbonCheckResult {
+                    allowed: true,
+                    estimated_co2: 0.0,
+                    message: None,
+                };
+            }
+        };
+
+        // Get dynamic intensity from WattTime if available
+        let intensity = if let (Some(client), Some((lat, lon))) = (&self.watttime, self.location) {
+            match client.get_intensity(lat, lon).await {
+                Ok(i) => i,
+                Err(_) => 400, // Fallback to US average
+            }
+        } else {
+            400 // Static fallback
+        };
+
+        // Use Dynamic region with real-time intensity
+        let region = CarbonRegion::Dynamic(intensity);
+        let footprint = CarbonLedger::estimate(compute_estimate, duration_ms, region);
+        let co2_grams = footprint
+            .co2_grams
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0);
+
+        self.check_budget(agent_id, &budget, co2_grams)
+    }
+
+    /// Check if action would exceed budget.
+    fn check_budget(
+        &self,
+        agent_id: &AgentId,
+        budget: &agentkern_treasury::carbon::CarbonBudget,
+        co2_grams: f64,
+    ) -> CarbonCheckResult {
         let daily = self.ledger.get_daily_usage(agent_id);
         let budget_limit = budget
             .daily_limit_grams
