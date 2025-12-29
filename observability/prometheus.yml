@@ -1,0 +1,49 @@
+# Prometheus Configuration
+# Scrapes metrics from OTel Collector and AgentKern services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'agentkern-monitor'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # OTel Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+        labels:
+          service: 'otel-collector'
+
+  # Gate metrics (eBPF telemetry)
+  - job_name: 'gate'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          service: 'gate'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Arbiter metrics (coordination)
+  - job_name: 'arbiter'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          service: 'arbiter'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Identity service
+  - job_name: 'identity'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+        labels:
+          service: 'identity'
+    metrics_path: '/metrics'

@@ -53,6 +53,7 @@ pub mod prompt_guard; // Prompt injection detection // Energy-Aware Veto (ESG)
 
 // Roadmap modules
 pub mod explain; // Explainability Engine
+pub mod feature_flags; // Privacy-first feature toggles
 
 // Phase 2: Legacy Bridge Connectors
 pub mod connectors; // Legacy system connectors (SAP, SWIFT, SQL)

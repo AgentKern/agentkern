@@ -1,0 +1,50 @@
+# Tempo Configuration
+# Distributed tracing backend
+
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+    jaeger:
+      protocols:
+        thrift_http:
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 48h
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+  processor:
+    span_metrics:
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [span-metrics]
