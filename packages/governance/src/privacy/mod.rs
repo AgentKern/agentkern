@@ -7,6 +7,6 @@
 //! - PIPL (China)
 //! - Cross-Border Data Transfer (CBDT) rules
 
-mod global_registry;
+pub mod global_registry;
 
 pub use global_registry::*;

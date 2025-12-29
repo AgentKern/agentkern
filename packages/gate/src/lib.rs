@@ -37,14 +37,12 @@ pub mod sovereign; // Data Sovereignty & Geo-Fencing (Section 1)
 // EXECUTION_MANDATE.md modules
 pub mod budget; // Gas Limits & Budgets (Section 6)
 pub mod crypto_agility; // Quantum-Safe Crypto (Section 3)
-// NOTE: fhir is being consolidated into `agentkern-governance::industry::healthcare`
-pub mod fhir; // FHIR R4 Healthcare Integration
 pub mod mtls; // Zero-Trust mTLS (Section 5)
-// NOTE: global_privacy is being consolidated into `agentkern-governance::privacy`
-pub mod global_privacy; // Global Privacy Registry (GDPR, CCPA, LGPD, PIPL, PDPA, NDMO)
 
-// Compliance modules (extracted to agentkern-compliance crate)
-// NOTE: These are being consolidated into `agentkern-governance::industry`
+// Re-export compliance modules from governance (single source of truth)
+pub use agentkern_governance::industry::healthcare::fhir;
+pub use agentkern_governance::privacy::global_registry as global_privacy;
+pub use agentkern_governance::industry::{healthcare, finance};
 pub use agentkern_compliance::{hipaa, pci, shariah_compliance};
 
 // MANDATE.md Section 6: Prompt Defense

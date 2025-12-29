@@ -77,6 +77,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 name = "agentkern-arbiter"
 version = "0.1.0"
 dependencies = [
+ "agentkern-governance",
  "anyhow",
  "async-trait",
  "axum 0.8.8",
@@ -158,13 +159,7 @@ dependencies = [
 name = "agentkern-compliance"
 version = "0.1.0"
 dependencies = [
- "rust_decimal",
- "rust_decimal_macros",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tracing",
- "uuid",
+ "agentkern-governance",
 ]
 
 [[package]]
@@ -181,6 +176,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "agentkern-compliance",
+ "agentkern-governance",
  "agentkern-multitenancy",
  "agentkern-parsers",
  "agentkern-treasury",

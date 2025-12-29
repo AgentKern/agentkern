@@ -4,8 +4,8 @@
 //! - Shariah Compliance (Islamic Finance)
 //! - Basel III (Banking regulation)
 
-mod pci;
-mod shariah;
+pub mod pci;
+pub mod shariah;
 
 pub use pci::*;
 pub use shariah::*;

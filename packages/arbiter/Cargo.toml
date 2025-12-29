@@ -60,5 +60,8 @@ parking_lot = "0.12"
 # System calls for thread affinity (Thread-per-Core)
 libc = "0.2"
 
+# Re-export governance modules
+agentkern-governance = { path = "../governance" }
+
 [dev-dependencies]
 tokio-test = "0.4"
