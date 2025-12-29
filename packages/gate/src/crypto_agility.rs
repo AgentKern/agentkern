@@ -261,7 +261,7 @@ impl CryptoProvider {
     /// Post-Quantum: ML-DSA (when `pqc` feature enabled)
     pub fn generate_keypair(&self) -> Result<KeyPair, CryptoError> {
         use ed25519_dalek::SigningKey;
-        use rand::rngs::OsRng;
+        use rand::RngCore;
 
         let key_id = uuid::Uuid::new_v4().to_string();
         let timestamp = std::time::SystemTime::now()
@@ -270,7 +270,11 @@ impl CryptoProvider {
             .as_secs();
 
         // Generate Ed25519 key pair (classical)
-        let signing_key = SigningKey::generate(&mut OsRng);
+        // Use rand 0.9's OsRng to generate secret bytes, then create SigningKey from bytes
+        // This avoids rand_core version mismatch between rand 0.9 and ed25519-dalek's rand_core 0.6
+        let mut secret_bytes = [0u8; 32];
+        rand::rng().fill_bytes(&mut secret_bytes);
+        let signing_key = SigningKey::from_bytes(&secret_bytes);
         let verifying_key = signing_key.verifying_key();
 
         // Encode keys as base64
@@ -528,7 +532,7 @@ impl HybridKeyExchange {
 
         // Generate X25519 keypair
         let mut x25519_secret = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut x25519_secret);
+        rand::rng().fill_bytes(&mut x25519_secret);
 
         // Compute X25519 public key using curve25519
         let x25519_public = Self::x25519_base_point_mult(&x25519_secret);

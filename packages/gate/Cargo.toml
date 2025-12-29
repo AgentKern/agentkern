@@ -70,7 +70,8 @@ anyhow = "1.0.95"
 
 # Classical cryptography (always enabled)
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
-rand = "0.8"
+# Upgraded to 0.9 for rand_core 0.9 compatibility with ML-KEM (FIPS 203)
+rand = "0.9"
 sha2 = "0.10.8"
 base64 = "0.22"
 
@@ -82,6 +83,7 @@ ml-kem = { version = "0.3.0-pre.2", optional = true }
 ml-dsa = { version = "0.1.0-rc.2", optional = true }
 
 # Internal dependencies
+agentkern-compliance = { path = "../compliance" }
 agentkern-parsers = { path = "../parsers" }
 agentkern-treasury = { path = "../treasury" }
 agentkern-multitenancy = { path = "../../ee/multitenancy" }

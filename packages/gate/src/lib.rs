@@ -37,12 +37,12 @@ pub mod sovereign; // Data Sovereignty & Geo-Fencing (Section 1)
 // EXECUTION_MANDATE.md modules
 pub mod budget; // Gas Limits & Budgets (Section 6)
 pub mod crypto_agility; // Quantum-Safe Crypto (Section 3)
-pub mod fhir;
-pub mod hipaa; // HIPAA Healthcare Compliance (Section 2)
+pub mod fhir; // FHIR R4 Healthcare Integration
 pub mod mtls; // Zero-Trust mTLS (Section 5)
-pub mod pci; // PCI-DSS Payment Compliance (Section 2)
-pub mod shariah_compliance; // Shariah (Islamic Finance) Compliance (Section 2) // FHIR R4 Healthcare Integration (Section 2)
 pub mod global_privacy; // Global Privacy Registry (GDPR, CCPA, LGPD, PIPL, PDPA, NDMO)
+
+// Compliance modules (extracted to agentkern-compliance crate)
+pub use agentkern_compliance::{hipaa, pci, shariah_compliance};
 
 // MANDATE.md Section 6: Prompt Defense
 pub mod carbon;
@@ -68,13 +68,13 @@ pub use connectors::{
 pub use crypto_agility::{Algorithm, CryptoMode, CryptoProvider};
 pub use engine::GateEngine;
 pub use explain::{ExplainContext, ExplainabilityEngine, Explanation, ExplanationMethod};
-pub use hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
+pub use agentkern_compliance::hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
 pub use mtls::{CertificateInfo, CertificateValidator, MtlsConfig};
 pub use observability::{GateMetrics, ObservabilityPlane};
-pub use pci::{CardBrand, CardToken, PciError, PciValidator};
+pub use agentkern_compliance::pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
-pub use shariah_compliance::{
+pub use agentkern_compliance::shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 };
 pub use global_privacy::{

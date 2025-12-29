@@ -50,6 +50,8 @@ pub enum CarbonRegion {
     India,
     /// Custom region with specified intensity
     Custom(u32),
+    /// Dynamic intensity from WattTime API (real-time)
+    Dynamic(u32),
 }
 
 impl CarbonRegion {
@@ -67,6 +69,7 @@ impl CarbonRegion {
             CarbonRegion::China => 550,
             CarbonRegion::India => 700,
             CarbonRegion::Custom(intensity) => *intensity,
+            CarbonRegion::Dynamic(intensity) => *intensity,
         }
     }
 
@@ -84,6 +87,7 @@ impl CarbonRegion {
             CarbonRegion::China => "China",
             CarbonRegion::India => "India",
             CarbonRegion::Custom(_) => "Custom",
+            CarbonRegion::Dynamic(_) => "Dynamic (WattTime)",
         }
     }
 }

@@ -60,6 +60,7 @@ pub mod lock;
 pub mod micropayments;
 pub mod transfer;
 pub mod types; // Per Code Quality Audit: Distributed locking
+pub mod watttime; // 2026 Roadmap: Dynamic carbon intensity
 
 // Re-exports
 pub use balance::{AgentBalance, BalanceLedger, Currency};
@@ -71,3 +72,4 @@ pub use lock::{LockConfig, LockError, LockGuard, LockManager, LockMode};
 pub use micropayments::{MicropaymentAggregator, PendingPayment};
 pub use transfer::{TransferEngine, TransferRequest, TransferResult, TransferStatus};
 pub use types::{AgentId, Amount, TransactionId};
+pub use watttime::{WattTimeClient, WattTimeConfig, WattTimeError};
