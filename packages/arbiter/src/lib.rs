@@ -50,6 +50,8 @@ pub mod raft; // Raft Consensus for Atomic Business Locks
 pub mod thread_per_core; // Thread-per-Core for minimal latency
 
 // ISO 42001 Compliance (per GLOBAL_GAPS.md §3)
+// NOTE: These modules are being consolidated into `agentkern-governance::ai`
+// For new development, prefer `agentkern_governance::ai::*`
 pub mod audit; // Audit Ledger for compliance traceability
 pub mod iso42001; // ISO 42001 AIMS automated reporting
 
@@ -66,6 +68,7 @@ pub mod loop_prevention; // Runaway Loop Prevention ($47k incident)
 pub mod escalation; // Escalation triggers, webhooks, approval workflow
 
 // Phase 3: Security Hardening & Compliance
+// NOTE: eu_ai_act is being consolidated into `agentkern-governance::ai::eu_ai_act`
 pub mod cost;
 pub mod eu_ai_act; // EU AI Act (Aug 2025) compliance export // Cost attribution dashboard
 
