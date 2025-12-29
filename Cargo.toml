@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     # ===========================================================================
     # CORE PILLARS (6 Pillars of AgentKern)
+    # Note: Identity is in apps/identity (TypeScript) - future Rust port planned
     # ===========================================================================
     # 🛡️ Gate - Policy & Safety ("Is this action allowed?")
     "crates/gate",
@@ -15,16 +16,20 @@ members = [
     "crates/nexus",
     # 💰 Treasury - Payments & Budgets ("How do agents pay? What's the limit?")
     "crates/treasury",
-    # ⚡ Runtime - WASM Execution
-    "crates/runtime",
+    # 🪪 Identity - apps/identity (TypeScript)
     
     # ===========================================================================
-    # DOMAIN & INFRASTRUCTURE CRATES
+    # INFRASTRUCTURE CRATES
     # ===========================================================================
-    "crates/governance",      # Compliance & Regulations (DDD)
-    "crates/edge",            # Edge runtime
+    "crates/runtime",         # WASM Execution runtime
+    "crates/edge",            # Edge deployment
     "crates/native-binding",  # Native bindings
     "crates/parsers",         # Message parsers (IDOC, SWIFT, HL7)
+    
+    # ===========================================================================
+    # DOMAIN CRATES (DDD Bounded Contexts)
+    # ===========================================================================
+    "crates/governance",      # Compliance & Regulations
     
     # ===========================================================================
     # ENTERPRISE EDITION (Commercial)
