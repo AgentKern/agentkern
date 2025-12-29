@@ -1,0 +1,89 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Drift Alerts (Critical)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [{ "expr": "synapse_drift_alerts_total{severity=\"critical\"}", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "title": "Drift Alerts (Warning)",
+      "type": "stat",
+      "targets": [{ "expr": "synapse_drift_alerts_total{severity=\"warning\"}", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "title": "Active Intent Paths",
+      "type": "stat",
+      "targets": [{ "expr": "synapse_intent_paths_active", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 4,
+      "title": "Context Injection Attempts",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(gate_context_chunks_flagged_total[5m])", "legendFormat": "flagged/s", "refId": "A" },
+        { "expr": "rate(gate_context_rejected_total[5m])", "legendFormat": "rejected/s", "refId": "B" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 5,
+      "title": "Prompt Threat Distribution",
+      "type": "piechart",
+      "targets": [{ "expr": "gate_prompt_threat_level", "legendFormat": "{{level}}", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 6,
+      "title": "Carbon Veto Decisions",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "gate_carbon_allowed_total", "legendFormat": "allowed", "refId": "A" },
+        { "expr": "gate_carbon_denied_total", "legendFormat": "denied", "refId": "B" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 7,
+      "title": "Agent Behavioral Anomalies",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "synapse_goal_drift_detected_total", "legendFormat": "Goal Drift", "refId": "A" },
+        { "expr": "synapse_circular_behavior_total", "legendFormat": "Circular", "refId": "B" },
+        { "expr": "synapse_trajectory_variance_total", "legendFormat": "Unstable", "refId": "C" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["agentkern", "ai-audit", "drift"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "AgentKern AI Governance",
+  "uid": "agentkern-ai-governance",
+  "version": 1
+}
