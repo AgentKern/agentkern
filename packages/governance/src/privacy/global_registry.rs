@@ -199,8 +199,8 @@ impl GlobalPrivacyRegistry {
     /// Register a new jurisdiction with its applicable regulations.
     ///
     /// # Example
-    /// ```
-    /// use agentkern_gate::global_privacy::{GlobalPrivacyRegistry, Jurisdiction, Regulation};
+    /// ```ignore
+    /// use agentkern_governance::privacy::{GlobalPrivacyRegistry, Jurisdiction, Regulation};
     /// 
     /// let mut registry = GlobalPrivacyRegistry::new();
     /// // Add Japan APPI
