@@ -545,32 +545,29 @@ impl HybridKeyExchange {
             &x25519_public,
         );
 
-        // Generate ML-KEM-768 keypair
-        // NOTE: ml-kem 0.3.0-pre.2 requires rand_core 0.9 CryptoRng but workspace uses rand 0.8
-        // Using deterministic derivation until dependency is aligned
+        // Generate ML-KEM-768 keypair using pqcrypto-mlkem (stable)
+        // FIPS 203 compliant implementation
         #[cfg(feature = "pqc")]
         {
-            use sha2::{Digest, Sha256};
+            use pqcrypto_mlkem::mlkem768;
+            use pqcrypto_traits::kem::{PublicKey, SecretKey};
 
-            // Derive ML-KEM seed deterministically from X25519 secret
-            // This is a PLACEHOLDER - real impl should use ml_kem::KemCore::generate
-            let mut hasher = Sha256::new();
-            hasher.update(b"MLKEM768_SEED:");
-            hasher.update(&x25519_secret);
-            let seed = hasher.finalize();
+            // Generate real ML-KEM-768 keypair
+            let (pk, sk) = mlkem768::keypair();
 
-            // Store seed for future decapsulation
-            self.mlkem_dk_bytes = Some(seed.to_vec());
+            // Store secret key for decapsulation
+            self.mlkem_dk_bytes = Some(sk.as_bytes().to_vec());
 
-            // Derive public key representation
-            let mut ek_hasher = Sha256::new();
-            ek_hasher.update(b"MLKEM768_EK:");
-            ek_hasher.update(&seed);
-            let ek_hash = ek_hasher.finalize();
-
+            // Encode public key
             let mlkem_pub_b64 = base64::Engine::encode(
                 &base64::engine::general_purpose::STANDARD,
-                &ek_hash,
+                pk.as_bytes(),
+            );
+
+            tracing::debug!(
+                pk_size = pk.as_bytes().len(),
+                sk_size = sk.as_bytes().len(),
+                "ML-KEM-768 keypair generated (pqcrypto-mlkem stable)"
             );
 
             Ok((x25519_pub_b64, mlkem_pub_b64))
