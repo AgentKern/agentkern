@@ -62,6 +62,7 @@ pub mod killswitch; // Kill Switch for agent termination (Section 6) // Carbon-A
 pub mod antifragile; // Anti-Fragile Self-Healing Engine
 pub mod chaos; // Chaos Testing / Fault Injection
 pub mod loop_prevention; // Runaway Loop Prevention ($47k incident)
+pub mod dr_scheduler; // Automated DR Drill Scheduler (2026 Roadmap)
 
 // Phase 2: Human-in-the-Loop Escalation
 pub mod escalation; // Escalation triggers, webhooks, approval workflow

@@ -23,8 +23,10 @@ actors = ["actix"]
 pqc = ["ml-kem", "ml-dsa"]
 # SQL Connector
 sql = ["sqlx"]
+# OpenTelemetry distributed tracing
+otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-opentelemetry"]
 # Full feature set
-full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql"]
+full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql", "otel"]
 
 [dependencies]
 # Async runtime (Dec 2025 - verified tokio 1.48.0)
@@ -59,6 +61,13 @@ tower-http = { version = "0.6", features = ["cors", "trace", "limit"] }
 # Tracing/observability
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+
+# OpenTelemetry (Dec 2025 - distributed tracing)
+# Feature-gated for optional OTLP export to Jaeger/Tempo
+opentelemetry = { version = "0.27", optional = true }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"], optional = true }
+opentelemetry-otlp = { version = "0.27", features = ["http-proto"], optional = true }
+tracing-opentelemetry = { version = "0.28", optional = true }
 
 # Error handling (Dec 2025)
 thiserror = "2.0"

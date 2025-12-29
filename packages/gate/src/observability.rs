@@ -464,6 +464,124 @@ impl Default for AlertSuppressor {
     }
 }
 
+// ============================================================================
+// OpenTelemetry SDK Tracer (Roadmap 2026 - Distributed Tracing)
+// ============================================================================
+
+/// OpenTelemetry tracer configuration.
+#[derive(Debug, Clone)]
+pub struct OtelConfig {
+    /// Service name for traces
+    pub service_name: String,
+    /// OTLP endpoint (e.g., "http://localhost:4317" for gRPC, "http://localhost:4318/v1/traces" for HTTP)
+    pub endpoint: String,
+    /// Use HTTP (true) or gRPC (false)
+    pub use_http: bool,
+}
+
+impl Default for OtelConfig {
+    fn default() -> Self {
+        Self {
+            service_name: "agentkern-gate".to_string(),
+            endpoint: "http://localhost:4318/v1/traces".to_string(),
+            use_http: true,
+        }
+    }
+}
+
+/// Initialize OpenTelemetry tracer with OTLP export.
+/// 
+/// Call this at application startup to enable distributed tracing.
+/// Traces will be exported to the configured OTLP endpoint (Jaeger, Tempo, etc.).
+/// 
+/// # Example
+/// 
+/// ```rust,ignore
+/// use agentkern_gate::observability::{init_otel_tracer, OtelConfig};
+/// 
+/// #[tokio::main]
+/// async fn main() {
+///     let config = OtelConfig {
+///         service_name: "my-agent-service".to_string(),
+///         endpoint: "http://jaeger:4318/v1/traces".to_string(),
+///         use_http: true,
+///     };
+///     
+///     if let Err(e) = init_otel_tracer(config) {
+///         tracing::warn!("Failed to init OTel tracer: {}", e);
+///     }
+/// }
+/// ```
+#[cfg(feature = "otel")]
+pub fn init_otel_tracer(config: OtelConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use opentelemetry::KeyValue;
+    use opentelemetry_sdk::Resource;
+    use opentelemetry_sdk::trace::TracerProvider;
+    use opentelemetry_otlp::WithExportConfig;
+    
+    // Build OTLP exporter
+    let exporter = opentelemetry_otlp::new_exporter()
+        .http()
+        .with_endpoint(&config.endpoint);
+    
+    // Create TracerProvider with batch exporter
+    let tracer_provider = TracerProvider::builder()
+        .with_batch_exporter(
+            exporter.build_span_exporter()?,
+            opentelemetry_sdk::runtime::Tokio,
+        )
+        .with_resource(Resource::new(vec![
+            KeyValue::new("service.name", config.service_name.clone()),
+            KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
+        ]))
+        .build();
+    
+    // Set global tracer provider
+    opentelemetry::global::set_tracer_provider(tracer_provider);
+    
+    // Integrate with tracing crate
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    
+    let telemetry = tracing_opentelemetry::layer()
+        .with_tracer(opentelemetry::global::tracer("agentkern"));
+    
+    tracing_subscriber::registry()
+        .with(telemetry)
+        .with(tracing_subscriber::fmt::layer())
+        .try_init()
+        .ok(); // Ignore error if subscriber already set
+    
+    tracing::info!(
+        service = %config.service_name,
+        endpoint = %config.endpoint,
+        "OpenTelemetry tracer initialized"
+    );
+    
+    Ok(())
+}
+
+/// Shutdown OpenTelemetry tracer gracefully.
+/// Call this before application exit to flush pending traces.
+#[cfg(feature = "otel")]
+pub fn shutdown_otel_tracer() {
+    opentelemetry::global::shutdown_tracer_provider();
+    tracing::info!("OpenTelemetry tracer shutdown complete");
+}
+
+/// Placeholder for non-otel builds.
+#[cfg(not(feature = "otel"))]
+pub fn init_otel_tracer(_config: OtelConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tracing::warn!("OpenTelemetry not enabled - build with `--features otel` to enable");
+    Ok(())
+}
+
+/// Placeholder for non-otel builds.
+#[cfg(not(feature = "otel"))]
+pub fn shutdown_otel_tracer() {
+    // No-op when OTel not enabled
+}
+
 impl Default for ObservabilityPlane {
     fn default() -> Self {
         Self::new()

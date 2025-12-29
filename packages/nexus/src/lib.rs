@@ -48,6 +48,7 @@
 //! ```
 
 pub mod agent_card;
+pub mod chaos_proxy; // LLM provider chaos simulation
 pub mod discovery;
 pub mod error;
 pub mod marketplace;
