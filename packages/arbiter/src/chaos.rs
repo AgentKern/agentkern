@@ -316,6 +316,136 @@ impl ChaosStats {
     }
 }
 
+// ============================================================================
+// CHAOS MESH EXPORT (Kubernetes Integration)
+// ============================================================================
+
+use serde::{Deserialize, Serialize};
+
+/// Chaos Mesh experiment type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum ChaosMeshKind {
+    NetworkChaos,
+    PodChaos,
+    StressChaos,
+    IOChaos,
+    HTTPChaos,
+}
+
+/// Chaos Mesh experiment export for Kubernetes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChaosMeshExport {
+    #[serde(rename = "apiVersion")]
+    pub api_version: String,
+    pub kind: ChaosMeshKind,
+    pub metadata: ChaosMeshMetadata,
+    pub spec: ChaosMeshSpec,
+}
+
+/// Kubernetes metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChaosMeshMetadata {
+    pub name: String,
+    pub namespace: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub labels: Option<std::collections::HashMap<String, String>>,
+}
+
+/// Chaos Mesh spec (generic).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChaosMeshSpec {
+    pub action: String,
+    pub mode: String,
+    pub selector: ChaosMeshSelector,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delay: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loss: Option<String>,
+}
+
+/// Pod selector for Chaos Mesh.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChaosMeshSelector {
+    pub namespaces: Vec<String>,
+    #[serde(rename = "labelSelectors")]
+    pub label_selectors: std::collections::HashMap<String, String>,
+}
+
+impl ChaosMeshExport {
+    /// Create a network latency experiment from ChaosConfig.
+    pub fn from_config(config: &ChaosConfig, name: &str, namespace: &str) -> Self {
+        let (min_ms, max_ms) = config.latency_range_ms;
+        let avg_latency = format!("{}ms", (min_ms + max_ms) / 2);
+
+        Self {
+            api_version: "chaos-mesh.org/v1alpha1".to_string(),
+            kind: ChaosMeshKind::NetworkChaos,
+            metadata: ChaosMeshMetadata {
+                name: name.to_string(),
+                namespace: namespace.to_string(),
+                labels: Some({
+                    let mut labels = std::collections::HashMap::new();
+                    labels.insert("app".to_string(), "agentkern".to_string());
+                    labels.insert("chaos-type".to_string(), "latency".to_string());
+                    labels
+                }),
+            },
+            spec: ChaosMeshSpec {
+                action: "delay".to_string(),
+                mode: "all".to_string(),
+                selector: ChaosMeshSelector {
+                    namespaces: vec![namespace.to_string()],
+                    label_selectors: {
+                        let mut selectors = std::collections::HashMap::new();
+                        selectors.insert("app".to_string(), "agentkern".to_string());
+                        selectors
+                    },
+                },
+                duration: Some("60s".to_string()),
+                delay: Some(avg_latency),
+                loss: None,
+            },
+        }
+    }
+
+    /// Create a pod kill experiment.
+    pub fn pod_kill(name: &str, namespace: &str, target_app: &str) -> Self {
+        Self {
+            api_version: "chaos-mesh.org/v1alpha1".to_string(),
+            kind: ChaosMeshKind::PodChaos,
+            metadata: ChaosMeshMetadata {
+                name: name.to_string(),
+                namespace: namespace.to_string(),
+                labels: None,
+            },
+            spec: ChaosMeshSpec {
+                action: "pod-kill".to_string(),
+                mode: "one".to_string(),
+                selector: ChaosMeshSelector {
+                    namespaces: vec![namespace.to_string()],
+                    label_selectors: {
+                        let mut selectors = std::collections::HashMap::new();
+                        selectors.insert("app".to_string(), target_app.to_string());
+                        selectors
+                    },
+                },
+                duration: None,
+                delay: None,
+                loss: None,
+            },
+        }
+    }
+
+    /// Export as YAML for kubectl apply.
+    pub fn to_yaml(&self) -> Result<String, serde_json::Error> {
+        // Use JSON as intermediate since serde_yaml may not be available
+        serde_json::to_string_pretty(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -410,6 +410,212 @@ impl CircuitBreaker {
     }
 }
 
+// ============================================================================
+// PREDICTIVE CIRCUIT BREAKER (Innovation: opens BEFORE cascade)
+// ============================================================================
+
+/// Failure velocity tracker for predictive opening.
+#[derive(Debug, Clone)]
+pub struct FailureVelocity {
+    /// Timestamps of recent failures (rolling window)
+    failure_times: Vec<DateTime<Utc>>,
+    /// Window size in seconds
+    window_secs: i64,
+    /// Velocity threshold (failures/minute) to trigger prediction
+    threshold: f64,
+}
+
+impl FailureVelocity {
+    pub fn new(window_secs: i64, threshold: f64) -> Self {
+        Self {
+            failure_times: Vec::new(),
+            window_secs,
+            threshold,
+        }
+    }
+
+    /// Record a failure timestamp.
+    pub fn record(&mut self) {
+        let now = Utc::now();
+        self.failure_times.push(now);
+        
+        // Prune old entries outside window
+        let cutoff = now - Duration::seconds(self.window_secs);
+        self.failure_times.retain(|t| *t > cutoff);
+    }
+
+    /// Get current velocity (failures per minute).
+    pub fn velocity(&self) -> f64 {
+        if self.failure_times.is_empty() {
+            return 0.0;
+        }
+        
+        let count = self.failure_times.len() as f64;
+        let window_minutes = self.window_secs as f64 / 60.0;
+        count / window_minutes
+    }
+
+    /// Check if velocity exceeds threshold (cascade predicted).
+    pub fn is_accelerating(&self) -> bool {
+        self.velocity() > self.threshold
+    }
+}
+
+/// Predictive Circuit Breaker - opens BEFORE cascade failures occur.
+///
+/// Unlike a standard circuit breaker that opens after N failures,
+/// this tracks failure velocity (failures/minute) and opens when
+/// it detects acceleration, preventing cascade before it happens.
+#[derive(Debug)]
+pub struct PredictiveCircuitBreaker {
+    name: String,
+    state: CircuitState,
+    /// Standard failure tracking
+    failure_count: u32,
+    success_count: u32,
+    failure_threshold: u32,
+    success_threshold: u32,
+    /// Predictive: velocity-based detection
+    velocity: FailureVelocity,
+    /// Last state change
+    last_state_change: DateTime<Utc>,
+    /// Reset timeout
+    reset_timeout: Duration,
+}
+
+impl PredictiveCircuitBreaker {
+    /// Create a new predictive circuit breaker.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            state: CircuitState::Closed,
+            failure_count: 0,
+            success_count: 0,
+            failure_threshold: 5,
+            success_threshold: 3,
+            velocity: FailureVelocity::new(60, 10.0), // 10 failures/min = cascade
+            last_state_change: Utc::now(),
+            reset_timeout: Duration::seconds(30),
+        }
+    }
+
+    /// Create with custom velocity threshold.
+    pub fn with_velocity_threshold(mut self, failures_per_minute: f64) -> Self {
+        self.velocity.threshold = failures_per_minute;
+        self
+    }
+
+    /// Check if requests should be allowed.
+    pub fn is_allowed(&mut self) -> bool {
+        match self.state {
+            CircuitState::Closed => {
+                // PREDICTIVE: Check if velocity suggests imminent cascade
+                if self.velocity.is_accelerating() {
+                    tracing::warn!(
+                        circuit = %self.name,
+                        velocity = self.velocity.velocity(),
+                        "Circuit PREDICTIVELY opened - cascade detected"
+                    );
+                    self.state = CircuitState::Open;
+                    self.last_state_change = Utc::now();
+                    return false;
+                }
+                true
+            }
+            CircuitState::Open => {
+                if Utc::now() - self.last_state_change > self.reset_timeout {
+                    self.state = CircuitState::HalfOpen;
+                    self.success_count = 0;
+                    self.last_state_change = Utc::now();
+                    return true;
+                }
+                false
+            }
+            CircuitState::HalfOpen => true,
+        }
+    }
+
+    /// Record a success.
+    pub fn record_success(&mut self) {
+        match self.state {
+            CircuitState::Closed => {
+                self.failure_count = 0;
+            }
+            CircuitState::HalfOpen => {
+                self.success_count += 1;
+                if self.success_count >= self.success_threshold {
+                    self.state = CircuitState::Closed;
+                    self.failure_count = 0;
+                    self.last_state_change = Utc::now();
+                    tracing::info!(circuit = %self.name, "Circuit closed - service recovered");
+                }
+            }
+            CircuitState::Open => {}
+        }
+    }
+
+    /// Record a failure.
+    pub fn record_failure(&mut self) {
+        self.failure_count += 1;
+        self.velocity.record();
+
+        match self.state {
+            CircuitState::Closed => {
+                // Standard: open after threshold
+                if self.failure_count >= self.failure_threshold {
+                    self.state = CircuitState::Open;
+                    self.last_state_change = Utc::now();
+                    tracing::warn!(circuit = %self.name, "Circuit opened - threshold exceeded");
+                }
+            }
+            CircuitState::HalfOpen => {
+                self.state = CircuitState::Open;
+                self.last_state_change = Utc::now();
+                tracing::warn!(circuit = %self.name, "Circuit reopened - recovery failed");
+            }
+            CircuitState::Open => {}
+        }
+    }
+
+    /// Get current state.
+    pub fn state(&self) -> CircuitState {
+        self.state
+    }
+
+    /// Get current failure velocity (failures/minute).
+    pub fn velocity(&self) -> f64 {
+        self.velocity.velocity()
+    }
+
+    /// Export Prometheus metrics for this circuit.
+    pub fn prometheus_metrics(&self) -> String {
+        format!(
+            r#"# HELP agentkern_circuit_state Circuit breaker state (0=closed, 1=open, 2=half_open)
+# TYPE agentkern_circuit_state gauge
+agentkern_circuit_state{{circuit="{}"}} {}
+
+# HELP agentkern_circuit_velocity Failure velocity (failures/minute)
+# TYPE agentkern_circuit_velocity gauge
+agentkern_circuit_velocity{{circuit="{}"}} {:.2}
+
+# HELP agentkern_circuit_failures Total failures recorded
+# TYPE agentkern_circuit_failures counter
+agentkern_circuit_failures{{circuit="{}"}} {}
+"#,
+            self.name,
+            match self.state {
+                CircuitState::Closed => 0,
+                CircuitState::Open => 1,
+                CircuitState::HalfOpen => 2,
+            },
+            self.name,
+            self.velocity.velocity(),
+            self.name,
+            self.failure_count,
+        )
+    }
+}
+
 /// Antifragile engine - learns from failures.
 pub struct AntifragileEngine {
     /// Failure history

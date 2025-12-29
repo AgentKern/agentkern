@@ -314,6 +314,156 @@ pub enum OtelStatus {
     Unset,
 }
 
+// ============================================================================
+// ALERT SUPPRESSION (Prevent Alert Storms)
+// ============================================================================
+
+/// Alert for suppression tracking.
+#[derive(Debug, Clone)]
+pub struct Alert {
+    pub id: String,
+    pub service: String,
+    pub severity: AlertSeverity,
+    pub message: String,
+    pub timestamp: std::time::Instant,
+    pub fingerprint: String,
+}
+
+/// Alert severity levels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AlertSeverity {
+    Info,
+    Warning,
+    Error,
+    Critical,
+}
+
+/// Grouped incident for suppressed alerts.
+#[derive(Debug, Clone)]
+pub struct Incident {
+    pub id: String,
+    pub root_cause: String,
+    pub affected_services: Vec<String>,
+    pub alert_count: usize,
+    pub first_seen: std::time::Instant,
+    pub last_seen: std::time::Instant,
+    pub severity: AlertSeverity,
+}
+
+/// Alert Suppressor - prevents alert storms during outages.
+///
+/// Groups related alerts into incidents based on:
+/// - Service affinity (same service = same incident)
+/// - Time proximity (alerts within window are related)
+/// - Fingerprint matching (same error signature)
+#[derive(Debug)]
+pub struct AlertSuppressor {
+    /// Active incidents
+    incidents: parking_lot::Mutex<Vec<Incident>>,
+    /// Suppression window (alerts within this window get grouped)
+    window_secs: u64,
+    /// Maximum alerts before suppression kicks in
+    suppression_threshold: usize,
+}
+
+impl AlertSuppressor {
+    /// Create a new alert suppressor.
+    pub fn new() -> Self {
+        Self {
+            incidents: parking_lot::Mutex::new(Vec::new()),
+            window_secs: 60,
+            suppression_threshold: 5,
+        }
+    }
+
+    /// Create with custom settings.
+    pub fn with_settings(window_secs: u64, threshold: usize) -> Self {
+        Self {
+            incidents: parking_lot::Mutex::new(Vec::new()),
+            window_secs,
+            suppression_threshold: threshold,
+        }
+    }
+
+    /// Process an alert - returns true if alert should be sent, false if suppressed.
+    pub fn process(&self, alert: Alert) -> bool {
+        let mut incidents = self.incidents.lock();
+        let now = std::time::Instant::now();
+
+        // Find or create incident for this alert
+        let incident_idx = incidents.iter().position(|i| {
+            i.affected_services.contains(&alert.service) ||
+            i.root_cause == alert.fingerprint ||
+            now.duration_since(i.last_seen).as_secs() < self.window_secs
+        });
+
+        match incident_idx {
+            Some(idx) => {
+                // Update existing incident
+                let incident = &mut incidents[idx];
+                incident.alert_count += 1;
+                incident.last_seen = now;
+                if !incident.affected_services.contains(&alert.service) {
+                    incident.affected_services.push(alert.service);
+                }
+                if alert.severity > incident.severity {
+                    incident.severity = alert.severity;
+                }
+
+                // Suppress if over threshold
+                incident.alert_count <= self.suppression_threshold
+            }
+            None => {
+                // Create new incident
+                let incident_id = format!("incident-{}", incidents.len());
+                incidents.push(Incident {
+                    id: incident_id,
+                    root_cause: alert.fingerprint,
+                    affected_services: vec![alert.service],
+                    alert_count: 1,
+                    first_seen: now,
+                    last_seen: now,
+                    severity: alert.severity,
+                });
+                true // First alert always fires
+            }
+        }
+    }
+
+    /// Get active incidents.
+    pub fn active_incidents(&self) -> Vec<Incident> {
+        let incidents = self.incidents.lock();
+        let now = std::time::Instant::now();
+        
+        incidents
+            .iter()
+            .filter(|i| now.duration_since(i.last_seen).as_secs() < self.window_secs * 2)
+            .cloned()
+            .collect()
+    }
+
+    /// Get suppression stats.
+    pub fn stats(&self) -> (usize, usize) {
+        let incidents = self.incidents.lock();
+        let total_alerts: usize = incidents.iter().map(|i| i.alert_count).sum();
+        let suppressed = total_alerts.saturating_sub(incidents.len() * self.suppression_threshold);
+        (total_alerts, suppressed)
+    }
+
+    /// Clear old incidents.
+    pub fn cleanup(&self) {
+        let mut incidents = self.incidents.lock();
+        let now = std::time::Instant::now();
+        incidents.retain(|i| now.duration_since(i.last_seen).as_secs() < self.window_secs * 5);
+    }
+}
+
+impl Default for AlertSuppressor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Default for ObservabilityPlane {
     fn default() -> Self {
         Self::new()
