@@ -183,6 +183,7 @@ dependencies = [
  "ml-dsa",
  "ml-kem",
  "ndarray",
+ "once_cell",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -209,6 +210,7 @@ dependencies = [
  "unicode-normalization",
  "uuid",
  "wasmtime",
+ "wat",
 ]
 
 [[package]]

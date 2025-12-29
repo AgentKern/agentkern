@@ -25,6 +25,7 @@ pub mod types;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod observability;
+pub mod metrics; // Production Prometheus metrics
 pub mod runtime; // Native Tokio io_uring runtime
 pub mod tee; // Hardware Enclaves (TDX/SEV) // eBPF-compatible tracing
 
