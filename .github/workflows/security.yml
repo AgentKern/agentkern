@@ -9,14 +9,14 @@ on:
 
 jobs:
   # ============================================
-  # SBOM Generation (SLSA Level 4)
+  # SBOM Generation (SLSA Level 3)
   # ============================================
-  sbom:
-    name: Generate SBOM
+  sbom-rust:
+    name: Generate Rust SBOM
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -39,14 +39,123 @@ jobs:
         run: |
           cargo sbom --output-format cyclone_dx_json_1_6 > arbiter-sbom.json
       
-      - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v6
+      - name: Upload Rust SBOM artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: sbom
+          name: sbom-rust
           path: |
             packages/gate/gate-sbom.json
             packages/synapse/synapse-sbom.json
             packages/arbiter/arbiter-sbom.json
+
+  # ============================================
+  # TypeScript SBOM Generation (NEW)
+  # ============================================
+  sbom-typescript:
+    name: Generate TypeScript SBOM
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Install CycloneDX npm
+        run: npm install -g @cyclonedx/cyclonedx-npm
+      
+      - name: Generate SBOM for Identity
+        working-directory: apps/identity
+        run: |
+          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file identity-sbom.json
+      
+      - name: Generate SBOM for Gateway
+        working-directory: apps/gateway
+        run: |
+          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file gateway-sbom.json
+      
+      - name: Generate SBOM for SDK
+        working-directory: packages/sdk
+        run: |
+          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file sdk-sbom.json
+      
+      - name: Upload TypeScript SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-typescript
+          path: |
+            apps/identity/identity-sbom.json
+            apps/gateway/gateway-sbom.json
+            packages/sdk/sdk-sbom.json
+
+  # ============================================
+  # Vulnerability Scanning (Trivy)
+  # ============================================
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: [sbom-rust, sbom-typescript]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Rust SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-rust
+          path: sbom-rust/
+      
+      - name: Download TypeScript SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-typescript
+          path: sbom-typescript/
+      
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # ============================================
+  # SLSA Provenance Attestation (NEW)
+  # ============================================
+  provenance:
+    name: SLSA Provenance
+    runs-on: ubuntu-latest
+    needs: [sbom-rust, sbom-typescript]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all SBOMs
+        uses: actions/download-artifact@v4
+        with:
+          path: sbom/
+      
+      - name: Generate SLSA Provenance Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'sbom/**/*.json'
 
   # ============================================
   # Sigstore/Cosign Signing
@@ -54,7 +163,7 @@ jobs:
   sign:
     name: Sign Artifacts
     runs-on: ubuntu-latest
-    needs: [sbom]
+    needs: [sbom-rust, sbom-typescript, provenance]
     if: startsWith(github.ref, 'refs/tags/v')
     
     permissions:
@@ -62,25 +171,25 @@ jobs:
       contents: read
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v3
       
-      - name: Download SBOM
+      - name: Download all SBOMs
         uses: actions/download-artifact@v4
         with:
-          name: sbom
           path: sbom/
       
-      - name: Sign SBOMs with Cosign (keyless)
+      - name: Sign all SBOMs with Cosign (keyless)
         run: |
-          cosign sign-blob sbom/packages/gate/gate-sbom.json --output-signature sbom/packages/gate/gate-sbom.sig
-          cosign sign-blob sbom/packages/synapse/synapse-sbom.json --output-signature sbom/packages/synapse/synapse-sbom.sig
-          cosign sign-blob sbom/packages/arbiter/arbiter-sbom.json --output-signature sbom/packages/arbiter/arbiter-sbom.sig
+          for file in $(find sbom/ -name "*.json"); do
+            echo "Signing $file"
+            cosign sign-blob "$file" --output-signature "${file}.sig" --yes
+          done
       
       - name: Upload signed artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-signed
           path: sbom/
@@ -93,7 +202,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -128,7 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -138,4 +247,3 @@ jobs:
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
-
