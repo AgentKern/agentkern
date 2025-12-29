@@ -21,7 +21,7 @@ members = [
     "ee/sovereign-mesh",
     "ee/sso",
     "ee/treasury",
-    "ee/trust", "packages/parsers", "packages/compliance",
+    "ee/trust", "packages/parsers", "packages/compliance", "packages/governance",
 ]
 
 
