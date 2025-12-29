@@ -82,3 +82,9 @@ pub use passport::{
     GdprExport, MemoryLayers, MemoryPassport, PassportError, PassportExporter, PassportImporter,
     PassportVersion,
 };
+
+// AI Security: RAG Context Guard (per AI-Native Audit 2026)
+pub mod context_guard;
+pub use context_guard::{
+    ContextAnalysisResult, ContextGuard, ContextGuardConfig, DetectedThreat, ThreatType,
+};
