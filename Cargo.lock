@@ -168,6 +168,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "agentkern-multitenancy",
+ "agentkern-parsers",
  "agentkern-treasury",
  "anyhow",
  "async-trait",
@@ -259,6 +260,16 @@ dependencies = [
  "tracing",
  "uuid",
  "wiremock",
+]
+
+[[package]]
+name = "agentkern-parsers"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
 ]
 
 [[package]]

@@ -1,13 +1,7 @@
 //! Protocol Parsers - Parse legacy protocol message formats
 //!
-//! These parsers are Open Source (Community tier) to enable testing
-//! and development. Production connectors require Enterprise license.
+//! Extracted to `agentkern-parsers` crate for modularity.
+//! High performance, WASM-ready parsing for enterprise protocols.
 
-pub mod copybook;
-pub mod idoc;
-pub mod swift_mt;
+pub use agentkern_parsers::*;
 
-// Re-exports
-pub use copybook::{CopybookField, CopybookParser, CopybookRecord};
-pub use idoc::{IDocMessage, IDocParser, IDocSegment};
-pub use swift_mt::{SwiftField, SwiftMtMessage, SwiftMtParser};
