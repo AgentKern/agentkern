@@ -88,3 +88,9 @@ pub mod context_guard;
 pub use context_guard::{
     ContextAnalysisResult, ContextGuard, ContextGuardConfig, DetectedThreat, ThreatType,
 };
+
+// Encryption-at-Rest (P1: Harvest Now, Decrypt Later mitigation)
+pub mod encryption;
+pub use encryption::{
+    EncryptedEnvelope, EncryptionAlgorithm, EncryptionConfig, EncryptionEngine, EncryptionError,
+};
