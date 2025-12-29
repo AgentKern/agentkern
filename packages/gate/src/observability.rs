@@ -217,6 +217,101 @@ agentkern_gate_policies_evaluated {}
             m.policies_evaluated,
         )
     }
+
+    // ========================================================================
+    // OpenTelemetry Export (OTLP-compatible)
+    // ========================================================================
+
+    /// Export traces in OpenTelemetry format for Jaeger/Tempo.
+    pub fn export_otel(&self) -> OtelExport {
+        let traces = self.get_traces(1000);
+        let trace_id = self.generate_trace_id();
+        
+        let spans: Vec<OtelSpan> = traces.iter().map(|t| OtelSpan {
+            trace_id: trace_id.clone(),
+            span_id: format!("{:016x}", t.timestamp_ns),
+            parent_span_id: None,
+            name: format!("{:?}", t.event_type),
+            start_time_unix_nano: t.timestamp_ns,
+            end_time_unix_nano: t.timestamp_ns + (t.latency_us * 1000),
+            attributes: vec![
+                OtelAttribute { key: "agent_id".to_string(), value: t.agent_id.clone() },
+                OtelAttribute { key: "action".to_string(), value: t.action.clone() },
+                OtelAttribute { key: "allowed".to_string(), value: t.allowed.to_string() },
+                OtelAttribute { key: "risk_score".to_string(), value: t.risk_score.to_string() },
+            ],
+            status: if t.allowed { OtelStatus::Ok } else { OtelStatus::Error },
+        }).collect();
+
+        OtelExport {
+            resource: OtelResource {
+                service_name: "agentkern-gate".to_string(),
+                service_version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            spans,
+        }
+    }
+
+    /// Generate a 128-bit trace ID.
+    fn generate_trace_id(&self) -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        format!("{:032x}", now)
+    }
+
+    /// Export as OTLP JSON (for HTTP push to collectors).
+    pub fn export_otlp_json(&self) -> String {
+        serde_json::to_string(&self.export_otel()).unwrap_or_default()
+    }
+}
+
+// ============================================================================
+// OpenTelemetry Structures
+// ============================================================================
+
+/// OpenTelemetry export payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OtelExport {
+    pub resource: OtelResource,
+    pub spans: Vec<OtelSpan>,
+}
+
+/// OpenTelemetry resource (service info).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OtelResource {
+    pub service_name: String,
+    pub service_version: String,
+}
+
+/// OpenTelemetry span.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OtelSpan {
+    pub trace_id: String,
+    pub span_id: String,
+    pub parent_span_id: Option<String>,
+    pub name: String,
+    pub start_time_unix_nano: u64,
+    pub end_time_unix_nano: u64,
+    pub attributes: Vec<OtelAttribute>,
+    pub status: OtelStatus,
+}
+
+/// OpenTelemetry attribute.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OtelAttribute {
+    pub key: String,
+    pub value: String,
+}
+
+/// OpenTelemetry span status.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum OtelStatus {
+    Ok,
+    Error,
+    Unset,
 }
 
 impl Default for ObservabilityPlane {
@@ -269,5 +364,47 @@ mod tests {
 
         let prom = plane.prometheus_metrics();
         assert!(prom.contains("agentkern_gate_requests_total"));
+    }
+
+    #[test]
+    fn test_otel_export() {
+        let plane = ObservabilityPlane::new();
+
+        plane.trace(TraceEvent {
+            timestamp_ns: 1234567890,
+            event_type: TraceEventType::SymbolicEval,
+            agent_id: "agent-otel".to_string(),
+            action: "validate".to_string(),
+            latency_us: 200,
+            allowed: true,
+            risk_score: 25,
+            metadata: HashMap::new(),
+        });
+
+        let export = plane.export_otel();
+        assert_eq!(export.resource.service_name, "agentkern-gate");
+        assert_eq!(export.spans.len(), 1);
+        assert_eq!(export.spans[0].name, "SymbolicEval");
+        assert!(matches!(export.spans[0].status, OtelStatus::Ok));
+    }
+
+    #[test]
+    fn test_otel_json_export() {
+        let plane = ObservabilityPlane::new();
+        plane.trace(TraceEvent {
+            timestamp_ns: 9876543210,
+            event_type: TraceEventType::NeuralEval,
+            agent_id: "agent-json".to_string(),
+            action: "classify".to_string(),
+            latency_us: 500,
+            allowed: false,
+            risk_score: 85,
+            metadata: HashMap::new(),
+        });
+
+        let json = plane.export_otlp_json();
+        assert!(json.contains("agentkern-gate"));
+        assert!(json.contains("NeuralEval"));
+        assert!(json.contains("trace_id"));
     }
 }
