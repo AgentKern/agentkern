@@ -446,6 +446,249 @@ pub enum ComplianceStatus {
 }
 
 // ============================================================================
+// 2026 ROADMAP: Incident Reporting (Per Audit Gap Analysis)
+// ============================================================================
+
+/// EU AI Act Incident Report (Article 62).
+///
+/// Per Audit: "Automate reporting to EU national regulators via standardized A2A protocols"
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IncidentReport {
+    /// Unique incident ID
+    pub incident_id: String,
+    /// System affected
+    pub system_name: String,
+    /// Provider information
+    pub provider: ProviderInfo,
+    /// Incident type
+    pub incident_type: IncidentType,
+    /// Description of the incident
+    pub description: String,
+    /// Affected users count
+    pub affected_users: Option<u64>,
+    /// Severity level
+    pub severity: IncidentSeverity,
+    /// Corrective actions taken
+    pub corrective_actions: Vec<String>,
+    /// Timestamp of incident
+    pub occurred_at: String,
+    /// Timestamp of report
+    pub reported_at: String,
+}
+
+/// Types of incidents per Article 62.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IncidentType {
+    /// Serious incident causing death or injury
+    SeriousIncident,
+    /// Malfunction leading to safety risk
+    SafetyMalfunction,
+    /// Fundamental rights violation
+    RightsViolation,
+    /// Significant bias detected
+    BiasIncident,
+    /// Security breach
+    SecurityBreach,
+}
+
+/// Incident severity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum IncidentSeverity {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+/// Incident reporter for EU national authorities.
+pub struct IncidentReporter {
+    /// Provider information
+    provider: ProviderInfo,
+    /// Reporting endpoint (per member state)
+    endpoints: HashMap<String, String>,
+}
+
+impl IncidentReporter {
+    /// Create a new incident reporter.
+    pub fn new(provider: ProviderInfo) -> Self {
+        let mut endpoints = HashMap::new();
+        // EU Member State notified bodies (placeholder URLs)
+        endpoints.insert("DE".into(), "https://ai-registry.bfdi.de/incidents".into());
+        endpoints.insert("FR".into(), "https://ai-registry.cnil.fr/incidents".into());
+        endpoints.insert("NL".into(), "https://ai-registry.autoriteitpersoonsgegevens.nl/incidents".into());
+        endpoints.insert("IT".into(), "https://ai-registry.gpdp.it/incidents".into());
+        endpoints.insert("ES".into(), "https://ai-registry.aepd.es/incidents".into());
+
+        Self { provider, endpoints }
+    }
+
+    /// Generate an incident report.
+    pub fn create_report(
+        &self,
+        system_name: &str,
+        incident_type: IncidentType,
+        description: &str,
+        severity: IncidentSeverity,
+    ) -> IncidentReport {
+        IncidentReport {
+            incident_id: uuid::Uuid::new_v4().to_string(),
+            system_name: system_name.into(),
+            provider: self.provider.clone(),
+            incident_type,
+            description: description.into(),
+            affected_users: None,
+            severity,
+            corrective_actions: Vec::new(),
+            occurred_at: chrono::Utc::now().to_rfc3339(),
+            reported_at: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+
+    /// Submit incident to relevant authority (async placeholder).
+    /// In production: Uses A2A protocol to submit to national regulator.
+    pub fn submit_report(&self, report: &IncidentReport, member_state: &str) -> Result<String, String> {
+        if let Some(endpoint) = self.endpoints.get(member_state) {
+            // In production: HTTP POST to regulator endpoint
+            tracing::info!(
+                incident_id = %report.incident_id,
+                member_state = member_state,
+                endpoint = %endpoint,
+                "Submitting incident report to EU authority"
+            );
+            Ok(format!("ACK-{}", &report.incident_id[..8]))
+        } else {
+            Err(format!("No endpoint configured for member state: {}", member_state))
+        }
+    }
+
+    /// Export report as JSON for manual submission.
+    pub fn export_json(&self, report: &IncidentReport) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(report)
+    }
+}
+
+// ============================================================================
+// 2026 ROADMAP: Live Bias Detection (Per Audit Gap Analysis)
+// ============================================================================
+
+/// Live bias detection result.
+///
+/// Per Audit: "Integrate the Arbiter bias detection service with live training data streams"
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BiasDetectionResult {
+    /// Metric name
+    pub metric: String,
+    /// Protected attribute (e.g., gender, race, age)
+    pub protected_attribute: String,
+    /// Measured value
+    pub value: f64,
+    /// Threshold for concern
+    pub threshold: f64,
+    /// Whether bias is detected
+    pub bias_detected: bool,
+    /// Recommended action
+    pub recommendation: String,
+}
+
+/// Live bias detector for training data streams.
+pub struct LiveBiasDetector {
+    /// Thresholds per metric
+    thresholds: HashMap<String, f64>,
+}
+
+impl LiveBiasDetector {
+    /// Create a new bias detector with default thresholds.
+    pub fn new() -> Self {
+        let mut thresholds = HashMap::new();
+        // Common fairness metrics thresholds
+        thresholds.insert("demographic_parity".into(), 0.8);
+        thresholds.insert("equalized_odds".into(), 0.8);
+        thresholds.insert("predictive_parity".into(), 0.8);
+        thresholds.insert("statistical_parity_difference".into(), 0.1);
+        thresholds.insert("disparate_impact".into(), 0.8);
+
+        Self { thresholds }
+    }
+
+    /// Analyze a training data batch for bias.
+    pub fn analyze_batch(
+        &self,
+        metric: &str,
+        protected_attribute: &str,
+        group_a_rate: f64,
+        group_b_rate: f64,
+    ) -> BiasDetectionResult {
+        let value = if group_b_rate > 0.0 {
+            group_a_rate / group_b_rate
+        } else {
+            1.0
+        };
+
+        let threshold = *self.thresholds.get(metric).unwrap_or(&0.8);
+        let bias_detected = value < threshold || value > (1.0 / threshold);
+
+        let recommendation = if bias_detected {
+            format!(
+                "Bias detected in '{}' for attribute '{}'. Consider rebalancing training data or applying fairness constraints.",
+                metric, protected_attribute
+            )
+        } else {
+            "No significant bias detected.".into()
+        };
+
+        BiasDetectionResult {
+            metric: metric.into(),
+            protected_attribute: protected_attribute.into(),
+            value,
+            threshold,
+            bias_detected,
+            recommendation,
+        }
+    }
+
+    /// Stream handler for live training data.
+    /// Returns bias alerts for real-time monitoring.
+    pub fn on_training_batch(
+        &self,
+        batch_id: &str,
+        metrics: Vec<(String, String, f64, f64)>, // (metric, attr, group_a, group_b)
+    ) -> Vec<BiasDetectionResult> {
+        let results: Vec<_> = metrics
+            .into_iter()
+            .map(|(metric, attr, ga, gb)| self.analyze_batch(&metric, &attr, ga, gb))
+            .collect();
+
+        // Log any bias alerts
+        for result in &results {
+            if result.bias_detected {
+                tracing::warn!(
+                    batch_id = batch_id,
+                    metric = %result.metric,
+                    attribute = %result.protected_attribute,
+                    value = result.value,
+                    "Bias detected in training batch"
+                );
+            }
+        }
+
+        results
+    }
+
+    /// Set custom threshold for a metric.
+    pub fn set_threshold(&mut self, metric: &str, threshold: f64) {
+        self.thresholds.insert(metric.into(), threshold);
+    }
+}
+
+impl Default for LiveBiasDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================================
 // TESTS
 // ============================================================================
 
