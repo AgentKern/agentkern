@@ -326,7 +326,7 @@ impl EncryptionEngine {
         // In production, use proper key wrapping (RFC 3394) or hybrid PQC
         let mut hasher = Sha256::new();
         hasher.update(b"KEY_WRAP:");
-        hasher.update(&self.master_key);
+        hasher.update(self.master_key);
         let wrap_key = hasher.finalize();
 
         let mut wrapped = Vec::with_capacity(32);
@@ -345,7 +345,7 @@ impl EncryptionEngine {
 
         let mut hasher = Sha256::new();
         hasher.update(b"KEY_WRAP:");
-        hasher.update(&self.master_key);
+        hasher.update(self.master_key);
         let wrap_key = hasher.finalize();
 
         let mut dek = [0u8; 32];

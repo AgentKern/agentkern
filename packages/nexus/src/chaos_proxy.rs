@@ -270,17 +270,17 @@ impl ChaosProxy {
             return Ok(());
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Inject latency if configured
         if let Some((min_ms, max_ms)) = provider_config.latency_range_ms {
-            let latency = rng.gen_range(min_ms..=max_ms);
+            let latency = rng.random_range(min_ms..=max_ms);
             tokio::time::sleep(Duration::from_millis(latency)).await;
             self.latency_injected.fetch_add(1, Ordering::Relaxed);
         }
 
         // Check failure probability
-        let roll: f64 = rng.gen();
+        let roll: f64 = rng.random();
         if roll < provider_config.failure_rate {
             self.failures_injected.fetch_add(1, Ordering::Relaxed);
 
@@ -293,7 +293,7 @@ impl ChaosProxy {
             }
 
             // Select random failure type
-            let failure_idx = rng.gen_range(0..provider_config.failure_types.len());
+            let failure_idx = rng.random_range(0..provider_config.failure_types.len());
             let failure = provider_config.failure_types[failure_idx].clone();
 
             tracing::warn!(

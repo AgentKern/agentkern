@@ -149,6 +149,7 @@ impl AuditReport {
 }
 
 /// Report generator with scheduling.
+#[allow(dead_code)]
 pub struct ReportGenerator {
     organization_id: String,
 }

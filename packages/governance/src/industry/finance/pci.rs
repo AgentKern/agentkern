@@ -183,11 +183,10 @@ impl PciValidator {
         let digits: String = text.chars().filter(|c| c.is_ascii_digit()).collect();
 
         // Check for PAN (13-19 digits)
-        if digits.len() >= 13 && digits.len() <= 19 {
-            if self.luhn_check(&digits) {
+        if digits.len() >= 13 && digits.len() <= 19
+            && self.luhn_check(&digits) {
                 data_types.push(CardDataType::Pan);
             }
-        }
 
         // Check for CVV (3-4 digits in context)
         let text_lower = text.to_lowercase();
@@ -201,15 +200,14 @@ impl PciValidator {
             if parts.len() >= 2 {
                 let first = parts[0].trim();
                 let second = parts[1].trim();
-                if first.len() <= 2 && (second.len() == 2 || second.len() == 4) {
-                    if first
+                if first.len() <= 2 && (second.len() == 2 || second.len() == 4)
+                    && first
                         .parse::<u8>()
-                        .map(|m| m >= 1 && m <= 12)
+                        .map(|m| (1..=12).contains(&m))
                         .unwrap_or(false)
                     {
                         data_types.push(CardDataType::ExpiryDate);
                     }
-                }
             }
         }
 

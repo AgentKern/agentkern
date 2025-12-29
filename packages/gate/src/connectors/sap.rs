@@ -16,6 +16,7 @@ use std::collections::HashMap;
 /// - BAPI invocation
 /// - IDOC processing
 /// - Transaction handling
+#[allow(dead_code)]
 pub struct SapRfcConnector {
     config: ConnectorConfig,
     /// SAP system ID
@@ -80,7 +81,7 @@ impl SapRfcConnector {
     pub async fn call_rfc(
         &self,
         function_name: &str,
-        import_params: HashMap<String, serde_json::Value>,
+        _import_params: HashMap<String, serde_json::Value>,
     ) -> ConnectorResult<HashMap<String, serde_json::Value>> {
         // In production: use SAP NW RFC SDK or PyRFC
         tracing::info!(

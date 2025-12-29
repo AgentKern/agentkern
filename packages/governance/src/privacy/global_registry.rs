@@ -225,7 +225,7 @@ impl GlobalPrivacyRegistry {
     ) {
         self.cbdt_matrix
             .entry(source)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(destination, status);
     }
 

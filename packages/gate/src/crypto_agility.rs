@@ -542,7 +542,7 @@ impl HybridKeyExchange {
 
         let x25519_pub_b64 = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &x25519_public,
+            x25519_public,
         );
 
         // Generate ML-KEM-768 keypair using pqcrypto-mlkem (stable)
@@ -578,7 +578,7 @@ impl HybridKeyExchange {
             // Fallback: return placeholder for ML-KEM
             let placeholder = base64::Engine::encode(
                 &base64::engine::general_purpose::STANDARD,
-                &[0u8; 32],
+                [0u8; 32],
             );
             Ok((x25519_pub_b64, placeholder))
         }

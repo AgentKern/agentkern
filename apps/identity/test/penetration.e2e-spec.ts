@@ -1,31 +1,61 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { AppModule } from '../src/app.module';
-import { AgentRecordEntity } from '../src/entities/agent-record.entity';
-import { MeshPeerEntity, NodeIdentityEntity } from '../src/entities/mesh-node.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from '../src/app.controller';
+import { AppService } from '../src/app.service';
+import { ProofController } from '../src/controllers/proof.controller';
+import { MeshController } from '../src/controllers/mesh.controller';
+import { DnsController } from '../src/controllers/dns.controller';
+import { ProofVerificationService } from '../src/services/proof-verification.service';
+import { ProofSigningService } from '../src/services/proof-signing.service';
+import { AuditLoggerService } from '../src/services/audit-logger.service';
+import { DnsResolutionService } from '../src/services/dns-resolution.service';
+import { MeshNodeService } from '../src/services/mesh-node.service';
+import { MeshGateway } from '../src/gateways/mesh.gateway';
 import { TrustRecordEntity } from '../src/entities/trust-record.entity';
 import { AuditEventEntity } from '../src/entities/audit-event.entity';
+import { PolicyEntity } from '../src/entities/policy.entity';
+import { AgentRecordEntity } from '../src/entities/agent-record.entity';
+import { MeshPeerEntity, NodeIdentityEntity } from '../src/entities/mesh-node.entity';
+
+const ALL_ENTITIES = [
+  TrustRecordEntity,
+  AuditEventEntity,
+  PolicyEntity,
+  AgentRecordEntity,
+  MeshPeerEntity,
+  NodeIdentityEntity,
+];
 
 describe('Security Penetration Tests (Automated)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-    .overrideProvider(getRepositoryToken(AgentRecordEntity))
-    .useValue({ find: jest.fn().mockResolvedValue([]), findOne: jest.fn(), save: jest.fn(), create: jest.fn() })
-    .overrideProvider(getRepositoryToken(MeshPeerEntity))
-    .useValue({ find: jest.fn().mockResolvedValue([]), save: jest.fn() })
-    .overrideProvider(getRepositoryToken(NodeIdentityEntity))
-    .useValue({ findOne: jest.fn(), save: jest.fn() })
-    .overrideProvider(getRepositoryToken(TrustRecordEntity))
-    .useValue({ find: jest.fn().mockResolvedValue([]), findOne: jest.fn(), save: jest.fn(), create: jest.fn() })
-    .overrideProvider(getRepositoryToken(AuditEventEntity))
-    .useValue({ save: jest.fn() })
-    .compile();
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        TypeOrmModule.forRoot({
+          type: 'sqlite',
+          database: ':memory:',
+          entities: ALL_ENTITIES,
+          synchronize: true,
+          dropSchema: true,
+        }),
+        TypeOrmModule.forFeature(ALL_ENTITIES),
+      ],
+      controllers: [AppController, ProofController, MeshController, DnsController],
+      providers: [
+        AppService,
+        ProofVerificationService,
+        ProofSigningService,
+        AuditLoggerService,
+        DnsResolutionService,
+        MeshNodeService,
+        MeshGateway,
+      ],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));

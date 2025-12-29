@@ -212,13 +212,12 @@ impl SwiftMtParser {
 
     /// Extract field tag from line (e.g., ":20:" -> ("20", "value")).
     fn extract_field_tag<'a>(&self, line: &'a str) -> Option<(String, &'a str)> {
-        if line.starts_with(':') && line.len() > 3 {
-            if let Some(end) = line[1..].find(':') {
+        if line.starts_with(':') && line.len() > 3
+            && let Some(end) = line[1..].find(':') {
                 let tag = &line[1..end + 1];
                 let value = &line[end + 2..];
                 return Some((tag.to_string(), value));
             }
-        }
         None
     }
 

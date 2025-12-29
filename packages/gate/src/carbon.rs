@@ -107,10 +107,7 @@ impl CarbonVeto {
 
         // Get dynamic intensity from WattTime if available
         let intensity = if let (Some(client), Some((lat, lon))) = (&self.watttime, self.location) {
-            match client.get_intensity(lat, lon).await {
-                Ok(i) => i,
-                Err(_) => 400, // Fallback to US average
-            }
+            (client.get_intensity(lat, lon).await).unwrap_or(400)
         } else {
             400 // Static fallback
         };

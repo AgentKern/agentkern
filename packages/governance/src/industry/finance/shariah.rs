@@ -151,8 +151,8 @@ impl ShariahComplianceValidator {
         };
 
         // Check for Riba (interest)
-        if let Some(rate) = details.interest_rate {
-            if rate > 0.0 {
+        if let Some(rate) = details.interest_rate
+            && rate > 0.0 {
                 result.has_riba = true;
                 result.compliant = false;
                 result.score = result.score.saturating_sub(50);
@@ -164,7 +164,6 @@ impl ShariahComplianceValidator {
                     return Err(ShariahComplianceError::RibaDetected);
                 }
             }
-        }
 
         // Check for Gharar (excessive uncertainty)
         if !details.has_underlying_asset {

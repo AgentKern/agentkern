@@ -404,7 +404,7 @@ impl DriftDetector {
             let variance = self.check_trajectory_variance(path);
             if variance > 30 {
                 score = score.saturating_add(variance);
-                reasons.push(format!("High trajectory variance: agent behavior unstable"));
+                reasons.push("High trajectory variance: agent behavior unstable".to_string());
             }
         }
 

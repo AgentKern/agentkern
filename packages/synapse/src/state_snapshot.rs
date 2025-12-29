@@ -376,7 +376,7 @@ impl SnapshotManager {
         // In production: call actual blockchain API
         let anchor = ChainAnchor {
             chain: self.config.anchor_chain,
-            tx_hash: format!("0x{}", snapshot.merkle_root[..40].to_string()),
+            tx_hash: format!("0x{}", &snapshot.merkle_root[..40]),
             block_number: chrono::Utc::now().timestamp() as u64,
             anchored_at: Utc::now(),
         };

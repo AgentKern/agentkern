@@ -159,23 +159,29 @@ pub fn to_json(report: &Iso42001Report) -> Result<String, serde_json::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+    
+    // Mutex to ensure tests modifying env vars don't run concurrently
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_export_requires_license() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::remove_var("AGENTKERN_LICENSE_KEY");
         }
         let result = export_iso42001("Test Org", "ai-system-1", Utc::now(), Utc::now(), vec![]);
-        assert!(result.is_err());
+        assert!(result.is_err(), "Export should fail without license key");
     }
 
     #[test]
     fn test_export_with_license() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }
         let result = export_iso42001("Test Org", "ai-system-1", Utc::now(), Utc::now(), vec![]);
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Export should succeed with license key");
         unsafe {
             std::env::remove_var("AGENTKERN_LICENSE_KEY");
         }

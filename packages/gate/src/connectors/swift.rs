@@ -16,6 +16,7 @@ use std::collections::HashMap;
 /// - GPI payment tracking
 /// - UETR (Unique End-to-End Transaction Reference) management
 /// - gpi Tracker integration
+#[allow(dead_code)]
 pub struct SwiftGpiConnector {
     config: ConnectorConfig,
     /// BIC code of the institution
