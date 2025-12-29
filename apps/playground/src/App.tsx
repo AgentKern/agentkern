@@ -179,7 +179,7 @@ export default function App() {
           <span>AgentKern Playground</span>
         </div>
         <nav className="nav">
-          <a href="https://github.com/daretechie/agentkern" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/AgentKern/agentkern" target="_blank" rel="noopener noreferrer">
             GitHub
           </a>
           <a href="../docs/" target="_blank" rel="noopener noreferrer">
