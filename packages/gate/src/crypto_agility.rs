@@ -55,7 +55,10 @@ impl Default for CryptoMode {
     }
 }
 
-/// Cryptographic algorithm.
+/// Cryptographic algorithm per NIST FIPS standards.
+/// 
+/// - ML-DSA: FIPS 204 (formerly CRYSTALS-Dilithium)
+/// - ML-KEM: FIPS 203 (formerly CRYSTALS-Kyber)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Algorithm {
     // Classical algorithms
@@ -63,15 +66,42 @@ pub enum Algorithm {
     EcdsaP384,
     Ed25519,
 
-    // Post-Quantum algorithms (NIST PQC)
-    Dilithium2,
-    Dilithium3,
-    Dilithium5,
-    Kyber512,
-    Kyber768,
-    Kyber1024,
+    // Post-Quantum Digital Signatures (NIST FIPS 204)
+    /// ML-DSA-44: 128-bit security (Category 1)
+    MlDsa44,
+    /// ML-DSA-65: 192-bit security (Category 3)
+    MlDsa65,
+    /// ML-DSA-87: 256-bit security (Category 5)
+    MlDsa87,
 
-    // Hybrid combinations
+    // Post-Quantum Key Encapsulation (NIST FIPS 203)
+    /// ML-KEM-512: 128-bit security (Category 1)
+    MlKem512,
+    /// ML-KEM-768: 192-bit security (Category 3) - RECOMMENDED
+    MlKem768,
+    /// ML-KEM-1024: 256-bit security (Category 5)
+    MlKem1024,
+
+    // Hybrid combinations (Classical + PQ)
+    /// Ed25519 + ML-DSA-65 composite signature
+    HybridEd25519MlDsa,
+    /// X25519 + ML-KEM-768 hybrid key exchange  
+    HybridX25519MlKem,
+
+    // Legacy aliases (deprecated, will be removed)
+    #[serde(alias = "Dilithium2")]
+    Dilithium2,
+    #[serde(alias = "Dilithium3")]
+    Dilithium3,
+    #[serde(alias = "Dilithium5")]
+    Dilithium5,
+    #[serde(alias = "Kyber512")]
+    Kyber512,
+    #[serde(alias = "Kyber768")]
+    Kyber768,
+    #[serde(alias = "Kyber1024")]
+    Kyber1024,
+    #[serde(alias = "HybridEcdsaDilithium")]
     HybridEcdsaDilithium,
 }
 
@@ -82,13 +112,17 @@ impl Algorithm {
             Self::EcdsaP256 => 128,
             Self::EcdsaP384 => 192,
             Self::Ed25519 => 128,
-            Self::Dilithium2 => 128,
-            Self::Dilithium3 => 192,
-            Self::Dilithium5 => 256,
-            Self::Kyber512 => 128,
-            Self::Kyber768 => 192,
-            Self::Kyber1024 => 256,
-            Self::HybridEcdsaDilithium => 256, // Max of both
+            // ML-DSA (FIPS 204)
+            Self::MlDsa44 | Self::Dilithium2 => 128,
+            Self::MlDsa65 | Self::Dilithium3 => 192,
+            Self::MlDsa87 | Self::Dilithium5 => 256,
+            // ML-KEM (FIPS 203)
+            Self::MlKem512 | Self::Kyber512 => 128,
+            Self::MlKem768 | Self::Kyber768 => 192,
+            Self::MlKem1024 | Self::Kyber1024 => 256,
+            // Hybrids
+            Self::HybridEd25519MlDsa | Self::HybridEcdsaDilithium => 256,
+            Self::HybridX25519MlKem => 192,
         }
     }
 
@@ -96,7 +130,13 @@ impl Algorithm {
     pub fn is_post_quantum(&self) -> bool {
         matches!(
             self,
-            Self::Dilithium2
+            Self::MlDsa44
+                | Self::MlDsa65
+                | Self::MlDsa87
+                | Self::MlKem512
+                | Self::MlKem768
+                | Self::MlKem1024
+                | Self::Dilithium2
                 | Self::Dilithium3
                 | Self::Dilithium5
                 | Self::Kyber512
@@ -107,9 +147,27 @@ impl Algorithm {
 
     /// Check if this is a hybrid algorithm.
     pub fn is_hybrid(&self) -> bool {
-        matches!(self, Self::HybridEcdsaDilithium)
+        matches!(
+            self,
+            Self::HybridEd25519MlDsa | Self::HybridX25519MlKem | Self::HybridEcdsaDilithium
+        )
+    }
+
+    /// Convert legacy algorithm names to NIST FIPS names.
+    pub fn to_nist_name(&self) -> Self {
+        match self {
+            Self::Dilithium2 => Self::MlDsa44,
+            Self::Dilithium3 => Self::MlDsa65,
+            Self::Dilithium5 => Self::MlDsa87,
+            Self::Kyber512 => Self::MlKem512,
+            Self::Kyber768 => Self::MlKem768,
+            Self::Kyber1024 => Self::MlKem1024,
+            Self::HybridEcdsaDilithium => Self::HybridEd25519MlDsa,
+            other => *other,
+        }
     }
 }
+
 
 /// A cryptographic key pair.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1124,7 +1124,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96eb4cdd6cf1b31d671e9efe75c5d1ec614776856cefbe109ca373554a6d514f"
 dependencies = [
- "hybrid-array 0.4.5",
+ "hybrid-array",
 ]
 
 [[package]]
@@ -1785,7 +1785,8 @@ version = "0.2.0-rc.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6165b8029cdc3e765b74d3548f85999ee799d5124877ce45c2c85ca78e4d4aa"
 dependencies = [
- "hybrid-array 0.4.5",
+ "hybrid-array",
+ "rand_core 0.10.0-rc-3",
 ]
 
 [[package]]
@@ -2657,19 +2658,11 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hybrid-array"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2d35805454dc9f8662a98d6d61886ffe26bd465f5960e0e55345c70d5c0d2a9"
-dependencies = [
- "typenum",
-]
-
-[[package]]
-name = "hybrid-array"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f471e0a81b2f90ffc0cb2f951ae04da57de8baa46fa99112b062a5173a5088d0"
 dependencies = [
+ "subtle",
  "typenum",
 ]
 
@@ -3069,15 +3062,6 @@ dependencies = [
 
 [[package]]
 name = "keccak"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
-dependencies = [
- "cpufeatures",
-]
-
-[[package]]
-name = "keccak"
 version = "0.2.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d546793a04a1d3049bd192856f804cfe96356e2cf36b54b4e575155babe9f41"
@@ -3087,11 +3071,12 @@ dependencies = [
 
 [[package]]
 name = "kem"
-version = "0.3.0-pre.0"
+version = "0.4.0-pre.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b8645470337db67b01a7f966decf7d0bafedbae74147d33e641c67a91df239f"
+checksum = "fd5b5199da7d6db120ea6d910c82c83e7b49ccf87c6f64c1069d334e60eadbe1"
 dependencies = [
- "rand_core 0.6.4",
+ "crypto-common 0.2.0-rc.8",
+ "rand_core 0.9.3",
  "zeroize",
 ]
 
@@ -3370,24 +3355,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb6c592d7a88fe8a0f866e37c9940792e5b204fe74f73dd78fa56b5c3ee9830"
 dependencies = [
  "const-oid 0.10.1",
- "hybrid-array 0.4.5",
+ "hybrid-array",
  "num-traits",
  "pkcs8 0.11.0-rc.8",
  "rand_core 0.10.0-rc-3",
- "sha3 0.11.0-rc.3",
+ "sha3",
  "signature 3.0.0-rc.6",
 ]
 
 [[package]]
 name = "ml-kem"
-version = "0.2.1"
+version = "0.3.0-pre.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97befee0c869cb56f3118f49d0f9bb68c9e3f380dec23c1100aedc4ec3ba239a"
+checksum = "f9f13cd59336171067bfd7b9ac2d38646539d1167f75db226037cf8f8973bbce"
 dependencies = [
- "hybrid-array 0.2.3",
+ "hybrid-array",
  "kem",
- "rand_core 0.6.4",
- "sha3 0.10.8",
+ "rand_core 0.9.3",
+ "sha3",
+ "subtle",
 ]
 
 [[package]]
@@ -5261,22 +5247,12 @@ dependencies = [
 
 [[package]]
 name = "sha3"
-version = "0.10.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
-dependencies = [
- "digest 0.10.7",
- "keccak 0.1.5",
-]
-
-[[package]]
-name = "sha3"
 version = "0.11.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2103ca0e6f4e9505eae906de5e5883e06fc3b2232fb5d6914890c7bbcb62f478"
 dependencies = [
  "digest 0.11.0-rc.5",
- "keccak 0.2.0-rc.0",
+ "keccak",
 ]
 
 [[package]]

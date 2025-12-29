@@ -75,9 +75,10 @@ sha2 = "0.10.8"
 base64 = "0.22"
 
 # Post-Quantum cryptography (feature-gated, NIST FIPS 203/204)
-# ML-KEM (formerly CRYSTALS-Kyber) for key encapsulation
-ml-kem = { version = "0.2.0-rc.3", optional = true }
-# ML-DSA (formerly CRYSTALS-Dilithium) for digital signatures
+# CRITICAL: Required for 2027+ quantum threat mitigation
+# ML-KEM (FIPS 203) for key encapsulation - replaces RSA/ECDH
+ml-kem = { version = "0.3.0-pre.2", optional = true }
+# ML-DSA (FIPS 204) for digital signatures - replaces RSA/ECDSA  
 ml-dsa = { version = "0.1.0-rc.2", optional = true }
 
 # Internal dependencies
