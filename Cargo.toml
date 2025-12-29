@@ -4,32 +4,32 @@ resolver = "2"
 members = [
     # ===========================================================================
     # CORE PILLARS (6 Pillars of AgentKern)
-    # Note: Identity is in apps/identity (TypeScript) - future Rust port planned
+    # Note: Identity is in apps/identity (TypeScript)
     # ===========================================================================
     # 🛡️ Gate - Policy & Safety ("Is this action allowed?")
-    "crates/gate",
+    "packages/gate",
     # 🧠 Synapse - Memory & State ("What was the goal? Has agent drifted?")
-    "crates/synapse",
+    "packages/synapse",
     # ⚖️ Arbiter - Coordination & Control ("Two agents want same resource—who wins?")
-    "crates/arbiter",
+    "packages/arbiter",
     # 🔀 Nexus - Protocols & Routing ("How do multi-vendor agents talk?")
-    "crates/nexus",
+    "packages/nexus",
     # 💰 Treasury - Payments & Budgets ("How do agents pay? What's the limit?")
-    "crates/treasury",
+    "packages/treasury",
     # 🪪 Identity - apps/identity (TypeScript)
     
     # ===========================================================================
-    # INFRASTRUCTURE CRATES
+    # INFRASTRUCTURE
     # ===========================================================================
-    "crates/runtime",         # WASM Execution runtime
-    "crates/edge",            # Edge deployment
-    "crates/native-binding",  # Native bindings
-    "crates/parsers",         # Message parsers (IDOC, SWIFT, HL7)
+    "packages/runtime",         # WASM Execution runtime
+    "packages/edge",            # Edge deployment
+    "packages/native-binding",  # Native bindings
+    "packages/parsers",         # Message parsers (IDOC, SWIFT, HL7)
     
     # ===========================================================================
-    # DOMAIN CRATES (DDD Bounded Contexts)
+    # DOMAIN (DDD Bounded Contexts)
     # ===========================================================================
-    "crates/governance",      # Compliance & Regulations
+    "packages/governance",      # Compliance & Regulations
     
     # ===========================================================================
     # ENTERPRISE EDITION (Commercial)
