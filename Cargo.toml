@@ -2,17 +2,33 @@
 resolver = "2"
 
 members = [
-    # Core Packages (Apache 2.0)
-    "packages/gate",
-    "packages/synapse",
-    "packages/arbiter",
-    "packages/nexus",
-    "packages/treasury",
-    "packages/runtime",
-    "packages/edge",
-    "packages/native-binding",
+    # ===========================================================================
+    # CORE PILLARS (6 Pillars of AgentKern)
+    # ===========================================================================
+    # 🛡️ Gate - Policy & Safety ("Is this action allowed?")
+    "crates/gate",
+    # 🧠 Synapse - Memory & State ("What was the goal? Has agent drifted?")
+    "crates/synapse",
+    # ⚖️ Arbiter - Coordination & Control ("Two agents want same resource—who wins?")
+    "crates/arbiter",
+    # 🔀 Nexus - Protocols & Routing ("How do multi-vendor agents talk?")
+    "crates/nexus",
+    # 💰 Treasury - Payments & Budgets ("How do agents pay? What's the limit?")
+    "crates/treasury",
+    # ⚡ Runtime - WASM Execution
+    "crates/runtime",
     
-    # Enterprise Edition (Commercial)
+    # ===========================================================================
+    # DOMAIN & INFRASTRUCTURE CRATES
+    # ===========================================================================
+    "crates/governance",      # Compliance & Regulations (DDD)
+    "crates/edge",            # Edge runtime
+    "crates/native-binding",  # Native bindings
+    "crates/parsers",         # Message parsers (IDOC, SWIFT, HL7)
+    
+    # ===========================================================================
+    # ENTERPRISE EDITION (Commercial)
+    # ===========================================================================
     "ee/audit-export",
     "ee/billing",
     "ee/cloud",
@@ -21,7 +37,7 @@ members = [
     "ee/sovereign-mesh",
     "ee/sso",
     "ee/treasury",
-    "ee/trust", "packages/parsers", "packages/compliance", "packages/governance",
+    "ee/trust",
 ]
 
 
@@ -34,20 +50,15 @@ repository = "https://github.com/AgentKern/agentkern"
 authors = ["AgentKern Team"]
 
 [workspace.dependencies]
-# ============================================================================
-# DEPENDENCY VERSIONS - December 2025 (Latest Stable)
-# Verified against crates.io on 2025-12-29
-# ============================================================================
-
-# Async Runtime (Dec 2025 - tokio 1.48.0)
+# Async Runtime
 tokio = { version = "1.48", features = ["full"] }
 async-trait = "0.1.83"
 
-# Serialization (Dec 2025 - serde 1.0.228)
+# Serialization
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
 
-# Error Handling (Dec 2025)
+# Error Handling
 thiserror = "2.0.17"
 anyhow = "1.0.95"
 
@@ -56,42 +67,36 @@ sha2 = "0.10.8"
 hmac = "0.12.1"
 ring = "0.17.8"
 
-# HTTP (Dec 2025 - axum 0.8.8)
+# HTTP
 reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
 axum = "0.8.8"
 
-# Database (Dec 2025 - sqlx 0.8.6)
+# Database
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "sqlite"] }
 
-# Tracing (Dec 2025)
+# Tracing
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["json"] }
 
 # Time
 chrono = { version = "0.4.39", features = ["serde"] }
 
-# Decimal for financial and carbon calculations
+# Decimal
 rust_decimal = { version = "1.39", features = ["serde"] }
 rust_decimal_macros = "1.39"
 
-# UUID (Dec 2025)
+# UUID
 uuid = { version = "1.19", features = ["v4", "serde"] }
 
-# WASM (Dec 2025 - wasmtime 40.0.0)
+# WASM
 wasmtime = "40.0"
 
-# Random (Dec 2025 - rand 0.9.2 for rand_core 0.9 compat)
+# Random
 rand = "0.9"
 
-# Neural (ONNX)
+# Neural
 ort = "2.0.0-rc.10"
 ndarray = "0.16"
-
-# TEE - add when using hardware
-# tdx-guest = "0.1"
-# sev = "0.1"
-
-
 
 
 [profile.release]

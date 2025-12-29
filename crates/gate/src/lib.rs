@@ -41,9 +41,11 @@ pub mod mtls; // Zero-Trust mTLS (Section 5)
 
 // Re-export compliance modules from governance (single source of truth)
 pub use agentkern_governance::industry::healthcare::fhir;
+pub use agentkern_governance::industry::healthcare::hipaa;
+pub use agentkern_governance::industry::finance::pci;
+pub use agentkern_governance::industry::finance::shariah as shariah_compliance;
 pub use agentkern_governance::privacy::global_registry as global_privacy;
 pub use agentkern_governance::industry::{healthcare, finance};
-pub use agentkern_compliance::{hipaa, pci, shariah_compliance};
 
 // MANDATE.md Section 6: Prompt Defense
 pub mod carbon;
@@ -69,13 +71,13 @@ pub use connectors::{
 pub use crypto_agility::{Algorithm, CryptoMode, CryptoProvider};
 pub use engine::GateEngine;
 pub use explain::{ExplainContext, ExplainabilityEngine, Explanation, ExplanationMethod};
-pub use agentkern_compliance::hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
+pub use hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
 pub use mtls::{CertificateInfo, CertificateValidator, MtlsConfig};
 pub use observability::{GateMetrics, ObservabilityPlane};
-pub use agentkern_compliance::pci::{CardBrand, CardToken, PciError, PciValidator};
+pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
-pub use agentkern_compliance::shariah_compliance::{
+pub use shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 };
 pub use global_privacy::{

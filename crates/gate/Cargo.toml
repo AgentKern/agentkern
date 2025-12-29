@@ -83,7 +83,6 @@ ml-kem = { version = "0.3.0-pre.2", optional = true }
 ml-dsa = { version = "0.1.0-rc.2", optional = true }
 
 # Internal dependencies
-agentkern-compliance = { path = "../compliance" }
 agentkern-governance = { path = "../governance" }
 agentkern-parsers = { path = "../parsers" }
 agentkern-treasury = { path = "../treasury" }

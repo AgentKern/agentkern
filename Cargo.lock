@@ -156,13 +156,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-compliance"
-version = "0.1.0"
-dependencies = [
- "agentkern-governance",
-]
-
-[[package]]
 name = "agentkern-edge"
 version = "0.1.0"
 dependencies = [
@@ -175,7 +168,6 @@ name = "agentkern-gate"
 version = "0.1.0"
 dependencies = [
  "actix",
- "agentkern-compliance",
  "agentkern-governance",
  "agentkern-multitenancy",
  "agentkern-parsers",
