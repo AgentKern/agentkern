@@ -80,10 +80,21 @@ pub struct EncryptedField {
     pub name: String,
     /// Sensitivity level
     pub sensitivity: FieldSensitivity,
-    /// Encrypted envelope (if encrypted)
+    /// Encrypted envelope (if encrypted) - used for Internal/Confidential
     pub envelope: Option<EncryptedEnvelope>,
     /// Plaintext value (if public)
     pub plaintext: Option<serde_json::Value>,
+    /// TEE-sealed data bytes (for Secret sensitivity)
+    /// When present, the field is sealed with hardware keys via Gate's TeeRuntime.
+    /// To unseal: import agentkern_gate::tee::TeeRuntime and call unseal().
+    pub tee_sealed: Option<Vec<u8>>,
+}
+
+impl EncryptedField {
+    /// Check if this field requires TEE for access.
+    pub fn requires_tee(&self) -> bool {
+        self.sensitivity == FieldSensitivity::Secret && self.tee_sealed.is_some()
+    }
 }
 
 /// Memory Passport: Encrypted agent state container.
@@ -145,6 +156,7 @@ impl SecurePassport {
                     sensitivity,
                     envelope: None,
                     plaintext: Some(value.clone()),
+                    tee_sealed: None,
                 },
                 _ => {
                     let envelope = engine.encrypt_value(value)?;
@@ -153,6 +165,7 @@ impl SecurePassport {
                         sensitivity,
                         envelope: Some(envelope),
                         plaintext: None,
+                        tee_sealed: None,
                     }
                 }
             };
@@ -282,6 +295,7 @@ impl SecurePassport {
                 sensitivity,
                 envelope: None,
                 plaintext: Some(value),
+                tee_sealed: None,
             },
             _ => {
                 let envelope = engine.encrypt_value(&value)?;
@@ -290,6 +304,7 @@ impl SecurePassport {
                     sensitivity,
                     envelope: Some(envelope),
                     plaintext: None,
+                    tee_sealed: None,
                 }
             }
         };
@@ -300,7 +315,57 @@ impl SecurePassport {
 
         Ok(())
     }
+
+    /// Set a field with TEE-sealed storage (for FieldSensitivity::Secret).
+    ///
+    /// This stores the raw sealed bytes from Gate's TeeRuntime.seal().
+    /// Use this for maximum security where secrets never leave the TEE.
+    ///
+    /// # Example
+    /// ```ignore
+    /// use agentkern_gate::tee::{TeeRuntime, SealingPolicy};
+    ///
+    /// let tee = TeeRuntime::detect()?;
+    /// let sealed = tee.seal(b"api_key_value", SealingPolicy::SealToMeasurement)?;
+    /// let sealed_bytes = serde_json::to_vec(&sealed)?;
+    ///
+    /// passport.set_tee_sealed_field("api_key", sealed_bytes);
+    /// ```
+    pub fn set_tee_sealed_field(
+        &mut self,
+        field_name: impl Into<String>,
+        sealed_data: Vec<u8>,
+    ) {
+        let name = field_name.into();
+
+        let field = EncryptedField {
+            name: name.clone(),
+            sensitivity: FieldSensitivity::Secret,
+            envelope: None,
+            plaintext: None,
+            tee_sealed: Some(sealed_data),
+        };
+
+        self.fields.insert(name, field);
+        self.updated_at = Utc::now();
+        self.version += 1;
+    }
+
+    /// Get TEE-sealed data for a field (caller must unseal with TeeRuntime).
+    pub fn get_tee_sealed(&self, field_name: &str) -> Option<&Vec<u8>> {
+        self.fields.get(field_name).and_then(|f| f.tee_sealed.as_ref())
+    }
+
+    /// List all fields that require TEE access.
+    pub fn tee_protected_fields(&self) -> Vec<&str> {
+        self.fields
+            .iter()
+            .filter(|(_, f)| f.requires_tee())
+            .map(|(name, _)| name.as_str())
+            .collect()
+    }
 }
+
 
 // ============================================================================
 // ERRORS
