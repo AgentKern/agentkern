@@ -71,7 +71,10 @@ export class AgentKernIdentityCallbackHandler {
       this.lastProof = proof;
       return proof.header;
     } catch (error) {
-      console.error('[AgentKernIdentity] Failed to create proof for tool:', context.toolName, error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[AgentKernIdentity] Failed to create proof for tool:', context.toolName, error);
+      }
       return null;
     }
   }
@@ -80,10 +83,11 @@ export class AgentKernIdentityCallbackHandler {
    * Called after a tool execution completes
    */
   async onToolEnd(context: ToolCallContext, success: boolean): Promise<void> {
-    // In production, report verification result to mesh
-    if (this.lastProof) {
-      console.debug(`[AgentKernIdentity] Tool ${context.toolName} completed:`, success ? 'success' : 'failure');
-    }
+      // In production, report verification result to mesh
+      if (this.lastProof && process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug(`[AgentKernIdentity] Tool ${context.toolName} completed:`, success ? 'success' : 'failure');
+      }
   }
 
   /**
@@ -97,17 +101,17 @@ export class AgentKernIdentityCallbackHandler {
 /**
  * Wrap a LangChain-style tool to automatically add AgentKernIdentity
  */
-export function wrapTool<T extends (...args: any[]) => Promise<any>>(
+export function wrapTool<T extends (...args: unknown[]) => Promise<unknown>>(
   tool: T,
   toolName: string,
   config: LangChainAgentConfig,
 ): T {
   const handler = new AgentKernIdentityCallbackHandler(config);
 
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     const context: ToolCallContext = {
       toolName,
-      toolInput: args[0] || {},
+      toolInput: (args[0] as Record<string, unknown>) || {},
     };
 
     // Generate proof before execution
@@ -115,7 +119,7 @@ export function wrapTool<T extends (...args: any[]) => Promise<any>>(
 
     try {
       // Execute the original tool
-      const result = await tool(...args);
+      const result = await tool(...args as any[]);
 
       // Report success
       await handler.onToolEnd(context, true);

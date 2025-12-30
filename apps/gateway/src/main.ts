@@ -6,6 +6,7 @@
  */
 
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 
@@ -27,8 +28,9 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 AgentKern Gateway running on http://localhost:${port}`);
-  console.log(`📖 API Docs: http://localhost:${port}/api/v1`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀 AgentKern Gateway running on http://localhost:${port}`);
+  logger.log(`📖 API Docs: http://localhost:${port}/api/v1`);
 }
 
 bootstrap();

@@ -5,7 +5,7 @@
  * Per ARCHITECTURE: Implements Atomic Business Locks.
  */
 
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 
 interface BusinessLock {
   resource: string;
@@ -39,6 +39,8 @@ interface QueueEntry {
 
 @Injectable()
 export class ArbiterService {
+  private readonly logger = new Logger(ArbiterService.name);
+  
   // In-memory lock store (replace with Redis/distributed lock in production)
   private readonly locks = new Map<string, BusinessLock>();
   private readonly queue: QueueEntry[] = [];
@@ -81,7 +83,7 @@ export class ArbiterService {
       // Check priority - higher priority can preempt
       if (priority > existingLock.priority) {
         // Preempt the existing lock
-        console.log(`Agent ${agentId} preempted lock on ${resource} from ${existingLock.lockedBy}`);
+        this.logger.log(`Agent ${agentId} preempted lock on ${resource} from ${existingLock.lockedBy}`);
       } else {
         return null;
       }
