@@ -168,7 +168,12 @@ impl DRScheduler {
     }
 
     /// Schedule a monthly DR drill.
-    pub fn schedule_monthly_drill(&self, environment: &str, region: &str, drill_type: DrillType) -> Uuid {
+    pub fn schedule_monthly_drill(
+        &self,
+        environment: &str,
+        region: &str,
+        drill_type: DrillType,
+    ) -> Uuid {
         let id = Uuid::new_v4();
         let next_run = self.next_first_of_month();
 
@@ -274,7 +279,10 @@ impl DRScheduler {
     }
 
     /// Execute drill simulation.
-    async fn execute_drill(&self, drill_type: DrillType) -> (bool, Option<String>, DRDrillMetrics, Option<u64>) {
+    async fn execute_drill(
+        &self,
+        drill_type: DrillType,
+    ) -> (bool, Option<String>, DRDrillMetrics, Option<u64>) {
         // Simulate drill duration based on type
         let delay = match drill_type {
             DrillType::RegionalFailover => tokio::time::Duration::from_millis(500),
@@ -297,7 +305,10 @@ impl DRScheduler {
         };
 
         let recovery_time = Some(
-            (metrics.detection_time_ms + metrics.failover_initiation_ms + metrics.traffic_reroute_ms) / 1000
+            (metrics.detection_time_ms
+                + metrics.failover_initiation_ms
+                + metrics.traffic_reroute_ms)
+                / 1000,
         );
 
         // Simulate success (95% success rate in staging)
@@ -371,9 +382,11 @@ mod tests {
     #[tokio::test]
     async fn test_run_drill() {
         let scheduler = DRScheduler::staging();
-        
-        let result = scheduler.run_drill(DrillType::ServiceRestart, "staging").await;
-        
+
+        let result = scheduler
+            .run_drill(DrillType::ServiceRestart, "staging")
+            .await;
+
         assert!(result.duration_secs < 60);
         assert_eq!(result.environment, "staging");
     }
@@ -381,13 +394,10 @@ mod tests {
     #[test]
     fn test_schedule_monthly_drill() {
         let scheduler = DRScheduler::staging();
-        
-        let id = scheduler.schedule_monthly_drill(
-            "staging",
-            "us-east-1",
-            DrillType::RegionalFailover
-        );
-        
+
+        let id =
+            scheduler.schedule_monthly_drill("staging", "us-east-1", DrillType::RegionalFailover);
+
         let drills = scheduler.scheduled_drills();
         assert_eq!(drills.len(), 1);
         assert_eq!(drills[0].id, id);
@@ -397,15 +407,12 @@ mod tests {
     #[test]
     fn test_cancel_drill() {
         let scheduler = DRScheduler::staging();
-        
-        let id = scheduler.schedule_monthly_drill(
-            "staging",
-            "us-west-2",
-            DrillType::DatabaseFailover
-        );
-        
+
+        let id =
+            scheduler.schedule_monthly_drill("staging", "us-west-2", DrillType::DatabaseFailover);
+
         assert!(scheduler.cancel_drill(id));
-        
+
         let drills = scheduler.scheduled_drills();
         assert!(!drills[0].active);
     }

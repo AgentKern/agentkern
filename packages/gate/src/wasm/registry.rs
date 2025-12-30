@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 #[cfg(feature = "wasm")]
-use wasmtime::{Engine, Module, Store, Instance, Linker};
+use wasmtime::{Engine, Instance, Linker, Module, Store};
 
 /// Capability declaration for a WASM module.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,14 +100,14 @@ impl WasmRegistry {
     /// Create a new registry.
     pub fn new() -> Result<Self, RegistryError> {
         use wasmtime::Config;
-        
+
         let mut config = Config::new();
         config.async_support(true);
         config.consume_fuel(true);
-        
-        let engine = Engine::new(&config)
-            .map_err(|e| RegistryError::CompilationFailed(e.to_string()))?;
-        
+
+        let engine =
+            Engine::new(&config).map_err(|e| RegistryError::CompilationFailed(e.to_string()))?;
+
         Ok(Self {
             engine: Arc::new(engine),
             actors: RwLock::new(HashMap::new()),
@@ -127,10 +127,10 @@ impl WasmRegistry {
     ) -> Result<WasmActorMeta, RegistryError> {
         let name = name.into();
         let version = version.into();
-        
+
         let module = Module::new(&*self.engine, wasm_bytes)
             .map_err(|e| RegistryError::CompilationFailed(e.to_string()))?;
-        
+
         let meta = WasmActorMeta {
             name: name.clone(),
             version,
@@ -140,13 +140,13 @@ impl WasmRegistry {
             invocations: 0,
             avg_latency_us: 0,
         };
-        
+
         let actor = WasmActor {
             meta: meta.clone(),
             module,
             engine: Arc::clone(&self.engine),
         };
-        
+
         // Update actor registry
         {
             let mut actors = self.actors.write();
@@ -157,7 +157,7 @@ impl WasmRegistry {
             }
             actors.insert(name.clone(), Arc::new(actor));
         }
-        
+
         // Update capability index
         {
             let mut index = self.capability_index.write();
@@ -168,14 +168,14 @@ impl WasmRegistry {
                     .push(name.clone());
             }
         }
-        
+
         Ok(meta)
     }
 
     /// Unregister an actor.
     pub fn unregister(&self, name: &str) -> bool {
         let removed = self.actors.write().remove(name).is_some();
-        
+
         if removed {
             // Clean capability index
             let mut index = self.capability_index.write();
@@ -184,7 +184,7 @@ impl WasmRegistry {
             }
             tracing::info!(actor = %name, "Unregistered WASM actor");
         }
-        
+
         removed
     }
 
@@ -194,32 +194,39 @@ impl WasmRegistry {
         name: &str,
         input: &[u8],
     ) -> Result<WasmInvokeResult, RegistryError> {
-        let actor = self.actors.read()
+        let actor = self
+            .actors
+            .read()
             .get(name)
             .cloned()
             .ok_or_else(|| RegistryError::NotFound(name.to_string()))?;
-        
+
         let start = std::time::Instant::now();
-        
+
         // Create store with input data
         let mut store = Store::new(&*actor.engine, input.to_vec());
         store.set_fuel(100_000).ok();
-        
+
         // Create linker and instantiate
         let linker = Linker::<Vec<u8>>::new(&*actor.engine);
-        let instance = linker.instantiate_async(&mut store, &actor.module)
+        let instance = linker
+            .instantiate_async(&mut store, &actor.module)
             .await
             .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
-        
+
         // Call evaluate function
-        if let Some(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate").ok() {
-            evaluate.call_async(&mut store, ())
+        if let Some(evaluate) = instance
+            .get_typed_func::<(), ()>(&mut store, "evaluate")
+            .ok()
+        {
+            evaluate
+                .call_async(&mut store, ())
                 .await
                 .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
         }
-        
+
         let latency = start.elapsed().as_micros() as u64;
-        
+
         Ok(WasmInvokeResult {
             success: true,
             output: store.data().clone(),
@@ -229,7 +236,8 @@ impl WasmRegistry {
 
     /// Route by capability - find actors that provide a capability.
     pub fn route_by_capability(&self, capability: &str) -> Vec<String> {
-        self.capability_index.read()
+        self.capability_index
+            .read()
             .get(capability)
             .cloned()
             .unwrap_or_default()
@@ -242,15 +250,17 @@ impl WasmRegistry {
         input: &[u8],
     ) -> Result<WasmInvokeResult, RegistryError> {
         let actors = self.route_by_capability(capability);
-        let actor_name = actors.first()
+        let actor_name = actors
+            .first()
             .ok_or_else(|| RegistryError::CapabilityNotFound(capability.to_string()))?;
-        
+
         self.invoke(actor_name, input).await
     }
 
     /// List all registered actors.
     pub fn list_actors(&self) -> Vec<WasmActorMeta> {
-        self.actors.read()
+        self.actors
+            .read()
             .values()
             .map(|a| a.meta.clone())
             .collect()
@@ -300,7 +310,9 @@ impl WasmRegistry {
         _wasm_bytes: &[u8],
         _capabilities: Vec<Capability>,
     ) -> Result<WasmActorMeta, RegistryError> {
-        Err(RegistryError::InvalidModule("WASM feature not enabled".to_string()))
+        Err(RegistryError::InvalidModule(
+            "WASM feature not enabled".to_string(),
+        ))
     }
 
     pub fn route_by_capability(&self, _capability: &str) -> Vec<String> {
@@ -352,19 +364,21 @@ mod tests {
     #[tokio::test]
     async fn test_register_and_route() {
         let registry = WasmRegistry::new().unwrap();
-        
+
         // Simple WAT module
         let wat = r#"(module (func (export "evaluate")))"#;
         let wasm_bytes = wat::parse_str(wat).unwrap();
-        
+
         let caps = vec![Capability {
             name: "test_cap".to_string(),
             input_schema: None,
             output_schema: None,
         }];
-        
-        registry.register("test-actor", "1.0.0", &wasm_bytes, caps).unwrap();
-        
+
+        registry
+            .register("test-actor", "1.0.0", &wasm_bytes, caps)
+            .unwrap();
+
         let actors = registry.route_by_capability("test_cap");
         assert_eq!(actors, vec!["test-actor"]);
     }

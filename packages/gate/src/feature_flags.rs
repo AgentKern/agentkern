@@ -293,7 +293,7 @@ mod tests {
     fn test_unknown_flag() {
         let flags = FeatureFlags::new();
         let ctx = EvalContext::for_agent("agent-1");
-        
+
         // Unknown flags default to disabled
         assert!(!flags.is_enabled("nonexistent", &ctx));
     }

@@ -220,9 +220,21 @@ impl InfrastructureEvidenceCollector {
     pub fn summary(&self) -> EvidenceSummary {
         EvidenceSummary {
             total: self.evidence.len(),
-            passed: self.evidence.iter().filter(|e| e.status == EvidenceStatus::Passed).count(),
-            failed: self.evidence.iter().filter(|e| e.status == EvidenceStatus::Failed).count(),
-            needs_review: self.evidence.iter().filter(|e| e.status == EvidenceStatus::NeedsReview).count(),
+            passed: self
+                .evidence
+                .iter()
+                .filter(|e| e.status == EvidenceStatus::Passed)
+                .count(),
+            failed: self
+                .evidence
+                .iter()
+                .filter(|e| e.status == EvidenceStatus::Failed)
+                .count(),
+            needs_review: self
+                .evidence
+                .iter()
+                .filter(|e| e.status == EvidenceStatus::NeedsReview)
+                .count(),
             frameworks: self.frameworks.clone(),
         }
     }

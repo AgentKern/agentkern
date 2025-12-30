@@ -226,22 +226,41 @@ agentkern_gate_policies_evaluated {}
     pub fn export_otel(&self) -> OtelExport {
         let traces = self.get_traces(1000);
         let trace_id = self.generate_trace_id();
-        
-        let spans: Vec<OtelSpan> = traces.iter().map(|t| OtelSpan {
-            trace_id: trace_id.clone(),
-            span_id: format!("{:016x}", t.timestamp_ns),
-            parent_span_id: None,
-            name: format!("{:?}", t.event_type),
-            start_time_unix_nano: t.timestamp_ns,
-            end_time_unix_nano: t.timestamp_ns + (t.latency_us * 1000),
-            attributes: vec![
-                OtelAttribute { key: "agent_id".to_string(), value: t.agent_id.clone() },
-                OtelAttribute { key: "action".to_string(), value: t.action.clone() },
-                OtelAttribute { key: "allowed".to_string(), value: t.allowed.to_string() },
-                OtelAttribute { key: "risk_score".to_string(), value: t.risk_score.to_string() },
-            ],
-            status: if t.allowed { OtelStatus::Ok } else { OtelStatus::Error },
-        }).collect();
+
+        let spans: Vec<OtelSpan> = traces
+            .iter()
+            .map(|t| OtelSpan {
+                trace_id: trace_id.clone(),
+                span_id: format!("{:016x}", t.timestamp_ns),
+                parent_span_id: None,
+                name: format!("{:?}", t.event_type),
+                start_time_unix_nano: t.timestamp_ns,
+                end_time_unix_nano: t.timestamp_ns + (t.latency_us * 1000),
+                attributes: vec![
+                    OtelAttribute {
+                        key: "agent_id".to_string(),
+                        value: t.agent_id.clone(),
+                    },
+                    OtelAttribute {
+                        key: "action".to_string(),
+                        value: t.action.clone(),
+                    },
+                    OtelAttribute {
+                        key: "allowed".to_string(),
+                        value: t.allowed.to_string(),
+                    },
+                    OtelAttribute {
+                        key: "risk_score".to_string(),
+                        value: t.risk_score.to_string(),
+                    },
+                ],
+                status: if t.allowed {
+                    OtelStatus::Ok
+                } else {
+                    OtelStatus::Error
+                },
+            })
+            .collect();
 
         OtelExport {
             resource: OtelResource {
@@ -392,9 +411,9 @@ impl AlertSuppressor {
 
         // Find or create incident for this alert
         let incident_idx = incidents.iter().position(|i| {
-            i.affected_services.contains(&alert.service) ||
-            i.root_cause == alert.fingerprint ||
-            now.duration_since(i.last_seen).as_secs() < self.window_secs
+            i.affected_services.contains(&alert.service)
+                || i.root_cause == alert.fingerprint
+                || now.duration_since(i.last_seen).as_secs() < self.window_secs
         });
 
         match incident_idx {
@@ -434,7 +453,7 @@ impl AlertSuppressor {
     pub fn active_incidents(&self) -> Vec<Incident> {
         let incidents = self.incidents.lock();
         let now = std::time::Instant::now();
-        
+
         incidents
             .iter()
             .filter(|i| now.duration_since(i.last_seen).as_secs() < self.window_secs * 2)
@@ -490,15 +509,15 @@ impl Default for OtelConfig {
 }
 
 /// Initialize OpenTelemetry tracer with OTLP export.
-/// 
+///
 /// Call this at application startup to enable distributed tracing.
 /// Traces will be exported to the configured OTLP endpoint (Jaeger, Tempo, etc.).
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,ignore
 /// use agentkern_gate::observability::{init_otel_tracer, OtelConfig};
-/// 
+///
 /// #[tokio::main]
 /// async fn main() {
 ///     let config = OtelConfig {
@@ -513,17 +532,19 @@ impl Default for OtelConfig {
 /// }
 /// ```
 #[cfg(feature = "otel")]
-pub fn init_otel_tracer(config: OtelConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn init_otel_tracer(
+    config: OtelConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use opentelemetry::KeyValue;
-    use opentelemetry_sdk::Resource;
-    use opentelemetry_sdk::trace::TracerProvider;
     use opentelemetry_otlp::WithExportConfig;
-    
+    use opentelemetry_sdk::trace::TracerProvider;
+    use opentelemetry_sdk::Resource;
+
     // Build OTLP exporter
     let exporter = opentelemetry_otlp::new_exporter()
         .http()
         .with_endpoint(&config.endpoint);
-    
+
     // Create TracerProvider with batch exporter
     let tracer_provider = TracerProvider::builder()
         .with_batch_exporter(
@@ -535,29 +556,29 @@ pub fn init_otel_tracer(config: OtelConfig) -> Result<(), Box<dyn std::error::Er
             KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
         ]))
         .build();
-    
+
     // Set global tracer provider
     opentelemetry::global::set_tracer_provider(tracer_provider);
-    
+
     // Integrate with tracing crate
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
-    
-    let telemetry = tracing_opentelemetry::layer()
-        .with_tracer(opentelemetry::global::tracer("agentkern"));
-    
+
+    let telemetry =
+        tracing_opentelemetry::layer().with_tracer(opentelemetry::global::tracer("agentkern"));
+
     tracing_subscriber::registry()
         .with(telemetry)
         .with(tracing_subscriber::fmt::layer())
         .try_init()
         .ok(); // Ignore error if subscriber already set
-    
+
     tracing::info!(
         service = %config.service_name,
         endpoint = %config.endpoint,
         "OpenTelemetry tracer initialized"
     );
-    
+
     Ok(())
 }
 
@@ -571,7 +592,9 @@ pub fn shutdown_otel_tracer() {
 
 /// Placeholder for non-otel builds.
 #[cfg(not(feature = "otel"))]
-pub fn init_otel_tracer(_config: OtelConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn init_otel_tracer(
+    _config: OtelConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing::warn!("OpenTelemetry not enabled - build with `--features otel` to enable");
     Ok(())
 }

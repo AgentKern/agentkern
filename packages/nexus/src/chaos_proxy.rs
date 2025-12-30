@@ -100,7 +100,10 @@ impl LLMFailure {
     pub fn message(&self) -> String {
         match self {
             Self::RateLimited { retry_after_secs } => {
-                format!("Rate limit exceeded. Retry after {} seconds.", retry_after_secs)
+                format!(
+                    "Rate limit exceeded. Retry after {} seconds.",
+                    retry_after_secs
+                )
             }
             Self::ServiceUnavailable => "Service temporarily unavailable.".to_string(),
             Self::Timeout { duration_ms } => {
@@ -135,7 +138,9 @@ impl Default for ProviderChaosConfig {
         Self {
             failure_rate: 0.1, // 10% default
             failure_types: vec![
-                LLMFailure::RateLimited { retry_after_secs: 30 },
+                LLMFailure::RateLimited {
+                    retry_after_secs: 30,
+                },
                 LLMFailure::ServiceUnavailable,
                 LLMFailure::Timeout { duration_ms: 30000 },
             ],
@@ -165,15 +170,22 @@ impl ChaosProxyConfig {
 
     /// Add a provider with a specific failure rate.
     pub fn with_provider(mut self, provider: LLMProvider, failure_rate: f64) -> Self {
-        self.providers.insert(provider, ProviderChaosConfig {
-            failure_rate,
-            ..Default::default()
-        });
+        self.providers.insert(
+            provider,
+            ProviderChaosConfig {
+                failure_rate,
+                ..Default::default()
+            },
+        );
         self
     }
 
     /// Add a provider with full configuration.
-    pub fn with_provider_config(mut self, provider: LLMProvider, config: ProviderChaosConfig) -> Self {
+    pub fn with_provider_config(
+        mut self,
+        provider: LLMProvider,
+        config: ProviderChaosConfig,
+    ) -> Self {
         self.providers.insert(provider, config);
         self
     }
@@ -351,7 +363,7 @@ mod tests {
     #[tokio::test]
     async fn test_disabled_proxy() {
         let proxy = ChaosProxy::disabled();
-        
+
         for _ in 0..100 {
             let result = proxy.maybe_fail(LLMProvider::OpenAI).await;
             assert!(result.is_ok());
@@ -360,23 +372,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_chaos_injection() {
-        let config = ChaosProxyConfig::new()
-            .with_provider_config(LLMProvider::OpenAI, ProviderChaosConfig {
+        let config = ChaosProxyConfig::new().with_provider_config(
+            LLMProvider::OpenAI,
+            ProviderChaosConfig {
                 failure_rate: 1.0, // 100% failure for testing
-                failure_types: vec![LLMFailure::RateLimited { retry_after_secs: 30 }],
+                failure_types: vec![LLMFailure::RateLimited {
+                    retry_after_secs: 30,
+                }],
                 latency_range_ms: None,
                 enabled: true,
-            });
-        
+            },
+        );
+
         let proxy = ChaosProxy::new(config);
         let result = proxy.maybe_fail(LLMProvider::OpenAI).await;
-        
+
         assert!(result.is_err());
     }
 
     #[test]
     fn test_llm_failure_status_codes() {
-        assert_eq!(LLMFailure::RateLimited { retry_after_secs: 30 }.status_code(), 429);
+        assert_eq!(
+            LLMFailure::RateLimited {
+                retry_after_secs: 30
+            }
+            .status_code(),
+            429
+        );
         assert_eq!(LLMFailure::ServiceUnavailable.status_code(), 503);
         assert_eq!(LLMFailure::AuthenticationError.status_code(), 401);
     }
@@ -385,8 +407,15 @@ mod tests {
     fn test_config_presets() {
         let mild = ChaosProxyConfig::mild();
         assert!(mild.providers.contains_key(&LLMProvider::OpenAI));
-        
+
         let extreme = ChaosProxyConfig::extreme();
-        assert_eq!(extreme.providers.get(&LLMProvider::OpenAI).unwrap().failure_rate, 0.30);
+        assert_eq!(
+            extreme
+                .providers
+                .get(&LLMProvider::OpenAI)
+                .unwrap()
+                .failure_rate,
+            0.30
+        );
     }
 }

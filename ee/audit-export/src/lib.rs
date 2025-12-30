@@ -160,7 +160,7 @@ pub fn to_json(report: &Iso42001Report) -> Result<String, serde_json::Error> {
 mod tests {
     use super::*;
     use std::sync::Mutex;
-    
+
     // Mutex to ensure tests modifying env vars don't run concurrently
     static ENV_MUTEX: Mutex<()> = Mutex::new(());
 

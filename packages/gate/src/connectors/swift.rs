@@ -69,7 +69,8 @@ impl SwiftGpiConnector {
     /// Parse MT103 payment message.
     pub fn parse_mt103(&self, raw: &str) -> ConnectorResult<MT103Payment> {
         let parser = agentkern_parsers::SwiftMtParser::new();
-        let parsed = parser.parse(raw)
+        let parsed = parser
+            .parse(raw)
             .map_err(|e| ConnectorError::ParseError(e.to_string()))?;
 
         // Extract fields from parsed message
@@ -80,8 +81,14 @@ impl SwiftGpiConnector {
             receiver_bic: parsed.receiver_bic.clone().unwrap_or_default(),
             amount: amount_info.1.to_string(),
             currency: amount_info.0,
-            value_date: parsed.get_field("32A").map(|f| f.value.clone()).unwrap_or_default(),
-            reference: parsed.get_field("20").map(|f| f.value.clone()).unwrap_or_default(),
+            value_date: parsed
+                .get_field("32A")
+                .map(|f| f.value.clone())
+                .unwrap_or_default(),
+            reference: parsed
+                .get_field("20")
+                .map(|f| f.value.clone())
+                .unwrap_or_default(),
             uetr: None, // UETR may be in field 121
         })
     }
@@ -92,7 +99,7 @@ impl SwiftGpiConnector {
 
         // In production: call SWIFT GPI Tracker API
         // https://developer.swift.com/gpi-tracker-api
-        
+
         Ok(GpiTrackingStatus {
             uetr: uetr.to_string(),
             transaction_status: TransactionStatus::Accepted,

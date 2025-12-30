@@ -25,5 +25,5 @@ pub mod privacy;
 
 // Re-export commonly used types from each domain
 pub use ai::{EuAiActExporter, RiskLevel, TechnicalDocumentation};
-pub use audit::{AuditLedger, AuditRecord, AuditOutcome, InfrastructureEvidenceCollector};
+pub use audit::{AuditLedger, AuditOutcome, AuditRecord, InfrastructureEvidenceCollector};
 pub use privacy::GlobalPrivacyRegistry;

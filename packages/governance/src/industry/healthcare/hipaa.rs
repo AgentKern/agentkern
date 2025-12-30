@@ -248,9 +248,10 @@ impl HipaaValidator {
 
         // Check for phone pattern
         if (text_lower.contains("phone") || text.chars().filter(|c| c.is_numeric()).count() >= 10)
-            && (text.contains('-') || text.contains('(')) {
-                identifiers.push(PhiIdentifier::PhoneNumber);
-            }
+            && (text.contains('-') || text.contains('('))
+        {
+            identifiers.push(PhiIdentifier::PhoneNumber);
+        }
 
         // Check for date of birth
         if text_lower.contains("dob") || text_lower.contains("date of birth") {

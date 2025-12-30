@@ -50,7 +50,12 @@ impl CarbonVeto {
     }
 
     /// Enable dynamic carbon intensity via WattTime API.
-    pub fn with_watttime(mut self, client: agentkern_treasury::watttime::WattTimeClient, lat: f64, lon: f64) -> Self {
+    pub fn with_watttime(
+        mut self,
+        client: agentkern_treasury::watttime::WattTimeClient,
+        lat: f64,
+        lon: f64,
+    ) -> Self {
         self.watttime = Some(client);
         self.location = Some((lat, lon));
         self

@@ -56,7 +56,7 @@ impl Default for CryptoMode {
 }
 
 /// Cryptographic algorithm per NIST FIPS standards.
-/// 
+///
 /// - ML-DSA: FIPS 204 (formerly CRYSTALS-Dilithium)
 /// - ML-KEM: FIPS 203 (formerly CRYSTALS-Kyber)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -167,7 +167,6 @@ impl Algorithm {
         }
     }
 }
-
 
 /// A cryptographic key pair.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -540,10 +539,8 @@ impl HybridKeyExchange {
         self.x25519_secret = Some(x25519_secret);
         self.x25519_public = Some(x25519_public);
 
-        let x25519_pub_b64 = base64::Engine::encode(
-            &base64::engine::general_purpose::STANDARD,
-            x25519_public,
-        );
+        let x25519_pub_b64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, x25519_public);
 
         // Generate ML-KEM-768 keypair using pqcrypto-mlkem (stable)
         // FIPS 203 compliant implementation
@@ -559,10 +556,8 @@ impl HybridKeyExchange {
             self.mlkem_dk_bytes = Some(sk.as_bytes().to_vec());
 
             // Encode public key
-            let mlkem_pub_b64 = base64::Engine::encode(
-                &base64::engine::general_purpose::STANDARD,
-                pk.as_bytes(),
-            );
+            let mlkem_pub_b64 =
+                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, pk.as_bytes());
 
             tracing::debug!(
                 pk_size = pk.as_bytes().len(),
@@ -576,10 +571,8 @@ impl HybridKeyExchange {
         #[cfg(not(feature = "pqc"))]
         {
             // Fallback: return placeholder for ML-KEM
-            let placeholder = base64::Engine::encode(
-                &base64::engine::general_purpose::STANDARD,
-                [0u8; 32],
-            );
+            let placeholder =
+                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 32]);
             Ok((x25519_pub_b64, placeholder))
         }
     }

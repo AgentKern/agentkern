@@ -517,11 +517,17 @@ impl IncidentReporter {
         // EU Member State notified bodies (placeholder URLs)
         endpoints.insert("DE".into(), "https://ai-registry.bfdi.de/incidents".into());
         endpoints.insert("FR".into(), "https://ai-registry.cnil.fr/incidents".into());
-        endpoints.insert("NL".into(), "https://ai-registry.autoriteitpersoonsgegevens.nl/incidents".into());
+        endpoints.insert(
+            "NL".into(),
+            "https://ai-registry.autoriteitpersoonsgegevens.nl/incidents".into(),
+        );
         endpoints.insert("IT".into(), "https://ai-registry.gpdp.it/incidents".into());
         endpoints.insert("ES".into(), "https://ai-registry.aepd.es/incidents".into());
 
-        Self { provider, endpoints }
+        Self {
+            provider,
+            endpoints,
+        }
     }
 
     /// Generate an incident report.
@@ -548,7 +554,11 @@ impl IncidentReporter {
 
     /// Submit incident to relevant authority (async placeholder).
     /// In production: Uses A2A protocol to submit to national regulator.
-    pub fn submit_report(&self, report: &IncidentReport, member_state: &str) -> Result<String, String> {
+    pub fn submit_report(
+        &self,
+        report: &IncidentReport,
+        member_state: &str,
+    ) -> Result<String, String> {
         if let Some(endpoint) = self.endpoints.get(member_state) {
             // In production: HTTP POST to regulator endpoint
             tracing::info!(
@@ -559,7 +569,10 @@ impl IncidentReporter {
             );
             Ok(format!("ACK-{}", &report.incident_id[..8]))
         } else {
-            Err(format!("No endpoint configured for member state: {}", member_state))
+            Err(format!(
+                "No endpoint configured for member state: {}",
+                member_state
+            ))
         }
     }
 

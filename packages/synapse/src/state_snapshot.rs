@@ -363,10 +363,7 @@ impl SnapshotManager {
     }
 
     /// Anchor snapshot to blockchain.
-    pub async fn anchor_snapshot(
-        &self,
-        snapshot_id: Uuid,
-    ) -> Result<ChainAnchor, SnapshotError> {
+    pub async fn anchor_snapshot(&self, snapshot_id: Uuid) -> Result<ChainAnchor, SnapshotError> {
         let mut snapshots = self.snapshots.write();
         let snapshot = snapshots
             .get_mut(&snapshot_id)
@@ -401,11 +398,7 @@ impl SnapshotManager {
 
     /// Get total storage used.
     pub fn total_storage_bytes(&self) -> u64 {
-        self.snapshots
-            .read()
-            .values()
-            .map(|s| s.size_bytes)
-            .sum()
+        self.snapshots.read().values().map(|s| s.size_bytes).sum()
     }
 }
 
@@ -448,10 +441,13 @@ mod tests {
     #[tokio::test]
     async fn test_create_and_restore() {
         let manager = SnapshotManager::default();
-        
+
         let data = b"test state data".to_vec();
-        let snapshot = manager.create_snapshot("agent-1", data.clone()).await.unwrap();
-        
+        let snapshot = manager
+            .create_snapshot("agent-1", data.clone())
+            .await
+            .unwrap();
+
         assert_eq!(snapshot.status, SnapshotStatus::Complete);
         assert!(!snapshot.merkle_root.is_empty());
 
@@ -462,12 +458,12 @@ mod tests {
     #[tokio::test]
     async fn test_verify_integrity() {
         let manager = SnapshotManager::default();
-        
+
         let snapshot = manager
             .create_snapshot("agent-2", b"important data".to_vec())
             .await
             .unwrap();
-        
+
         assert!(manager.verify(&snapshot).unwrap());
     }
 

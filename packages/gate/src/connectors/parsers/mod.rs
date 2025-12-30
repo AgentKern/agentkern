@@ -4,4 +4,3 @@
 //! High performance, WASM-ready parsing for enterprise protocols.
 
 pub use agentkern_parsers::*;
-

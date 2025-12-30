@@ -4,8 +4,8 @@
 //! - HITECH (Health Information Technology for Economic and Clinical Health)
 //! - HL7/FHIR interoperability
 
-pub mod hipaa;
 pub mod fhir;
+pub mod hipaa;
 
-pub use hipaa::*;
 pub use fhir::*;
+pub use hipaa::*;

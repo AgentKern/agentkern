@@ -438,7 +438,7 @@ impl FailureVelocity {
     pub fn record(&mut self) {
         let now = Utc::now();
         self.failure_times.push(now);
-        
+
         // Prune old entries outside window
         let cutoff = now - Duration::seconds(self.window_secs);
         self.failure_times.retain(|t| *t > cutoff);
@@ -449,7 +449,7 @@ impl FailureVelocity {
         if self.failure_times.is_empty() {
             return 0.0;
         }
-        
+
         let count = self.failure_times.len() as f64;
         let window_minutes = self.window_secs as f64 / 60.0;
         count / window_minutes

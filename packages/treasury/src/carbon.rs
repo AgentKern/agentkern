@@ -150,9 +150,9 @@ impl GpuModel {
         match self {
             GpuModel::H100 => 80,
             GpuModel::A100 => 75,
-            GpuModel::T4 => 90,   // Inference-optimized
+            GpuModel::T4 => 90, // Inference-optimized
             GpuModel::V100 => 70,
-            GpuModel::L4 => 85,   // Inference-optimized
+            GpuModel::L4 => 85, // Inference-optimized
             GpuModel::Mi300x => 75,
             GpuModel::TpuV5e => 85,
         }
@@ -162,13 +162,13 @@ impl GpuModel {
     pub fn carbon_efficiency_ratio(&self) -> f64 {
         // CO2 per TFLOP relative to T4
         match self {
-            GpuModel::T4 => 1.0,      // Baseline
-            GpuModel::L4 => 0.9,      // Slightly better
-            GpuModel::A100 => 1.5,    // Higher power but more throughput
-            GpuModel::H100 => 1.8,    // Highest power
-            GpuModel::V100 => 2.0,    // Legacy, less efficient
-            GpuModel::Mi300x => 2.1,  // Very high power
-            GpuModel::TpuV5e => 0.8,  // Cloud-optimized
+            GpuModel::T4 => 1.0,     // Baseline
+            GpuModel::L4 => 0.9,     // Slightly better
+            GpuModel::A100 => 1.5,   // Higher power but more throughput
+            GpuModel::H100 => 1.8,   // Highest power
+            GpuModel::V100 => 2.0,   // Legacy, less efficient
+            GpuModel::Mi300x => 2.1, // Very high power
+            GpuModel::TpuV5e => 0.8, // Cloud-optimized
         }
     }
 }
@@ -177,12 +177,12 @@ impl ComputeType {
     /// Typical power draw in watts.
     pub fn typical_watts(&self) -> u32 {
         match self {
-            ComputeType::Cpu => 150,              // Server CPU
-            ComputeType::Gpu => 400,              // Default to A100
+            ComputeType::Cpu => 150, // Server CPU
+            ComputeType::Gpu => 400, // Default to A100
             ComputeType::GpuModel(model) => model.tdp_watts(),
-            ComputeType::Tpu => 300,              // TPU v4
-            ComputeType::Network => 10,           // Per operation
-            ComputeType::Storage => 5,            // Per operation
+            ComputeType::Tpu => 300,    // TPU v4
+            ComputeType::Network => 10, // Per operation
+            ComputeType::Storage => 5,  // Per operation
         }
     }
 
@@ -232,24 +232,24 @@ impl SolarCurve {
     pub fn for_region(region: CarbonRegion) -> Self {
         match region {
             CarbonRegion::Nordic => Self {
-                peak_hour_utc: 11,        // Solar + wind peaks earlier
-                peak_duration_hours: 6,   // Long renewable window
-                peak_reduction_pct: 50,   // Very clean grid
+                peak_hour_utc: 11,      // Solar + wind peaks earlier
+                peak_duration_hours: 6, // Long renewable window
+                peak_reduction_pct: 50, // Very clean grid
             },
             CarbonRegion::France => Self {
                 peak_hour_utc: 12,
                 peak_duration_hours: 4,
-                peak_reduction_pct: 25,   // Nuclear base, solar supplement
+                peak_reduction_pct: 25, // Nuclear base, solar supplement
             },
             CarbonRegion::UsWest => Self {
-                peak_hour_utc: 19,        // 12:00 PT = 19:00 UTC
-                peak_duration_hours: 5,   // California solar peak
+                peak_hour_utc: 19,      // 12:00 PT = 19:00 UTC
+                peak_duration_hours: 5, // California solar peak
                 peak_reduction_pct: 40,
             },
             CarbonRegion::Germany => Self {
                 peak_hour_utc: 12,
                 peak_duration_hours: 4,
-                peak_reduction_pct: 35,   // High solar capacity
+                peak_reduction_pct: 35, // High solar capacity
             },
             _ => Self::default(),
         }
@@ -265,7 +265,7 @@ impl SolarCurve {
     /// Check if a specific hour is within the peak window.
     pub fn is_peak_hour(&self, hour_utc: u8) -> bool {
         let end_hour = (self.peak_hour_utc + self.peak_duration_hours) % 24;
-        
+
         if self.peak_hour_utc < end_hour {
             hour_utc >= self.peak_hour_utc && hour_utc < end_hour
         } else {
@@ -287,11 +287,11 @@ impl SolarCurve {
     pub fn hours_until_peak(&self) -> u8 {
         let now = Utc::now();
         let current_hour = now.hour() as u8;
-        
+
         if self.is_peak_hour(current_hour) {
             return 0;
         }
-        
+
         if current_hour < self.peak_hour_utc {
             self.peak_hour_utc - current_hour
         } else {
@@ -635,7 +635,7 @@ impl CarbonLedger {
     pub fn export_metrics(&self) -> CarbonMetrics {
         let fleet = self.get_fleet_usage();
         let solar = SolarCurve::default();
-        
+
         CarbonMetrics {
             total_co2_grams: fleet.total_co2_grams.to_string().parse().unwrap_or(0.0),
             total_energy_kwh: fleet.total_energy_kwh.to_string().parse().unwrap_or(0.0),
@@ -674,12 +674,30 @@ impl CarbonMetrics {
     /// Export as OpenTelemetry key-value attributes.
     pub fn export_otlp_attributes(&self) -> Vec<(&'static str, String)> {
         vec![
-            ("agentkern.carbon.co2_grams", self.total_co2_grams.to_string()),
-            ("agentkern.carbon.energy_kwh", self.total_energy_kwh.to_string()),
-            ("agentkern.carbon.water_liters", self.total_water_liters.to_string()),
-            ("agentkern.carbon.action_count", self.action_count.to_string()),
-            ("agentkern.carbon.renewable_peak", self.is_renewable_peak.to_string()),
-            ("agentkern.carbon.recommended_region", self.recommended_region.clone()),
+            (
+                "agentkern.carbon.co2_grams",
+                self.total_co2_grams.to_string(),
+            ),
+            (
+                "agentkern.carbon.energy_kwh",
+                self.total_energy_kwh.to_string(),
+            ),
+            (
+                "agentkern.carbon.water_liters",
+                self.total_water_liters.to_string(),
+            ),
+            (
+                "agentkern.carbon.action_count",
+                self.action_count.to_string(),
+            ),
+            (
+                "agentkern.carbon.renewable_peak",
+                self.is_renewable_peak.to_string(),
+            ),
+            (
+                "agentkern.carbon.recommended_region",
+                self.recommended_region.clone(),
+            ),
         ]
     }
 
@@ -713,7 +731,6 @@ impl CarbonMetrics {
 // ============================================================================
 // ERRORS
 // ============================================================================
-
 
 /// Carbon ledger errors.
 #[derive(Debug, Clone, thiserror::Error)]

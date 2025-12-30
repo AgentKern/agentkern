@@ -50,9 +50,9 @@ pub mod raft; // Raft Consensus for Atomic Business Locks
 pub mod thread_per_core; // Thread-per-Core for minimal latency
 
 // Re-export compliance modules from governance (single source of truth)
-pub use agentkern_governance::audit;
-pub use agentkern_governance::ai::iso42001;
 pub use agentkern_governance::ai::eu_ai_act;
+pub use agentkern_governance::ai::iso42001;
+pub use agentkern_governance::audit;
 
 // EXECUTION_MANDATE.md modules
 pub mod carbon;
@@ -60,10 +60,10 @@ pub mod killswitch; // Kill Switch for agent termination (Section 6) // Carbon-A
 
 // Roadmap modules
 pub mod antifragile; // Anti-Fragile Self-Healing Engine
+pub mod bulkhead;
 pub mod chaos; // Chaos Testing / Fault Injection
-pub mod loop_prevention; // Runaway Loop Prevention ($47k incident)
 pub mod dr_scheduler; // Automated DR Drill Scheduler (2026 Roadmap)
-pub mod bulkhead; // Bulkhead Pattern for Agent Isolation
+pub mod loop_prevention; // Runaway Loop Prevention ($47k incident) // Bulkhead Pattern for Agent Isolation
 
 // Phase 2: Human-in-the-Loop Escalation
 pub mod escalation; // Escalation triggers, webhooks, approval workflow

@@ -77,7 +77,7 @@ impl PolicyCell {
     #[cfg(feature = "wasm")]
     pub fn load_wasm(&mut self, bytes: &[u8]) -> Result<(), String> {
         use wasmtime::{Engine, Module};
-        
+
         let engine = Engine::default();
         match Module::new(&engine, bytes) {
             Ok(module) => {

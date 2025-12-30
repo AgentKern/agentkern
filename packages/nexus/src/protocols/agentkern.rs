@@ -3,8 +3,8 @@
 //! This adapter handles the core AgentKern protocol for direct agent communication.
 
 use super::adapter::ProtocolAdapter;
-use crate::NexusError;
 use crate::types::{NexusMessage, Protocol};
+use crate::NexusError;
 
 /// AgentKern native protocol adapter.
 ///

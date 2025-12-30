@@ -93,7 +93,7 @@ impl GlobalPrivacyRegistry {
     /// Create a new registry with default 2026 global privacy rules.
     pub fn new() -> Self {
         let mut cbdt_matrix = HashMap::new();
-        
+
         // EU Rules
         let mut eu_out = HashMap::new();
         eu_out.insert(Jurisdiction::Brazil, TransferStatus::Allowed); // Adequacy
@@ -120,13 +120,16 @@ impl GlobalPrivacyRegistry {
         reg_map.insert(Jurisdiction::Singapore, vec![Regulation::Pdpa]);
         reg_map.insert(Jurisdiction::SaudiArabia, vec![Regulation::Ndmo]);
 
-        Self { cbdt_matrix, reg_map }
+        Self {
+            cbdt_matrix,
+            reg_map,
+        }
     }
 
     /// Validate if data can move from source to destination.
     pub fn validate_transfer(
-        &self, 
-        source: Jurisdiction, 
+        &self,
+        source: Jurisdiction,
         destination: Jurisdiction,
         data_sensitivity: u8,
     ) -> PrivacyCheckResult {
@@ -137,10 +140,11 @@ impl GlobalPrivacyRegistry {
                 regulations: self.reg_map.get(&source).cloned().unwrap_or_default(),
                 risk_score: data_sensitivity / 2, // Low risk for local
                 mitigations: Vec::new(),
-            }
+            };
         }
 
-        let status = self.cbdt_matrix
+        let status = self
+            .cbdt_matrix
             .get(&source)
             .and_then(|m| m.get(&destination))
             .copied()
@@ -177,7 +181,7 @@ impl GlobalPrivacyRegistry {
     /// Calculate privacy risk for a specific regulation.
     pub fn calculate_risk(&self, reg: Regulation, has_pii: bool, in_tee: bool) -> u8 {
         let mut score: u8 = if has_pii { 50 } else { 10 };
-        
+
         match reg {
             Regulation::Gdpr => score += 20,
             Regulation::Pipl => score += 30, // High regulatory pressure
@@ -201,12 +205,16 @@ impl GlobalPrivacyRegistry {
     /// # Example
     /// ```ignore
     /// use agentkern_governance::privacy::{GlobalPrivacyRegistry, Jurisdiction, Regulation};
-    /// 
+    ///
     /// let mut registry = GlobalPrivacyRegistry::new();
     /// // Add Japan APPI
     /// registry.register_jurisdiction(Jurisdiction::Global, vec![Regulation::Gdpr]); // Placeholder
     /// ```
-    pub fn register_jurisdiction(&mut self, jurisdiction: Jurisdiction, regulations: Vec<Regulation>) {
+    pub fn register_jurisdiction(
+        &mut self,
+        jurisdiction: Jurisdiction,
+        regulations: Vec<Regulation>,
+    ) {
         self.reg_map.insert(jurisdiction, regulations);
     }
 
@@ -218,10 +226,10 @@ impl GlobalPrivacyRegistry {
     /// registry.register_cbdt_rule(Jurisdiction::Japan, Jurisdiction::Eu, TransferStatus::Allowed);
     /// ```
     pub fn register_cbdt_rule(
-        &mut self, 
-        source: Jurisdiction, 
-        destination: Jurisdiction, 
-        status: TransferStatus
+        &mut self,
+        source: Jurisdiction,
+        destination: Jurisdiction,
+        status: TransferStatus,
     ) {
         self.cbdt_matrix
             .entry(source)
@@ -273,7 +281,7 @@ mod tests {
     fn test_eu_to_brazil_allowed() {
         let registry = GlobalPrivacyRegistry::new();
         let result = registry.validate_transfer(Jurisdiction::Eu, Jurisdiction::Brazil, 50);
-        
+
         assert!(result.is_allowed);
         assert_eq!(result.transfer_status, TransferStatus::Allowed);
         assert!(result.regulations.contains(&Regulation::Gdpr));
@@ -283,7 +291,7 @@ mod tests {
     fn test_china_localization_prohibited() {
         let registry = GlobalPrivacyRegistry::new();
         let result = registry.validate_transfer(Jurisdiction::China, Jurisdiction::Global, 50);
-        
+
         assert!(!result.is_allowed);
         assert_eq!(result.transfer_status, TransferStatus::Prohibited);
         assert!(result.mitigations[0].contains("BLOCKED"));
@@ -293,7 +301,7 @@ mod tests {
     fn test_eu_to_us_restricted() {
         let registry = GlobalPrivacyRegistry::new();
         let result = registry.validate_transfer(Jurisdiction::Eu, Jurisdiction::UsFederal, 50);
-        
+
         assert!(result.is_allowed);
         assert_eq!(result.transfer_status, TransferStatus::Restricted);
         assert!(result.mitigations.iter().any(|m| m.contains("SCCs")));
@@ -302,10 +310,10 @@ mod tests {
     #[test]
     fn test_risk_scoring_with_tee() {
         let registry = GlobalPrivacyRegistry::new();
-        
+
         let risk_high = registry.calculate_risk(Regulation::Gdpr, true, false);
         let risk_low = registry.calculate_risk(Regulation::Gdpr, true, true);
-        
+
         assert!(risk_low < risk_high);
         assert_eq!(risk_high, 70);
         assert_eq!(risk_low, 30);
@@ -321,10 +329,14 @@ mod tests {
     #[test]
     fn test_dynamic_cbdt_registration() {
         let mut registry = GlobalPrivacyRegistry::new();
-        
+
         // Add Singapore -> EU as Allowed (hypothetical adequacy)
-        registry.register_cbdt_rule(Jurisdiction::Singapore, Jurisdiction::Eu, TransferStatus::Allowed);
-        
+        registry.register_cbdt_rule(
+            Jurisdiction::Singapore,
+            Jurisdiction::Eu,
+            TransferStatus::Allowed,
+        );
+
         let result = registry.validate_transfer(Jurisdiction::Singapore, Jurisdiction::Eu, 50);
         assert!(result.is_allowed);
         assert_eq!(result.transfer_status, TransferStatus::Allowed);
@@ -333,12 +345,20 @@ mod tests {
     #[test]
     fn test_bulk_cbdt_config() {
         let mut registry = GlobalPrivacyRegistry::new();
-        
+
         registry.load_cbdt_config(vec![
-            (Jurisdiction::Brazil, Jurisdiction::Eu, TransferStatus::Allowed),
-            (Jurisdiction::Brazil, Jurisdiction::China, TransferStatus::Restricted),
+            (
+                Jurisdiction::Brazil,
+                Jurisdiction::Eu,
+                TransferStatus::Allowed,
+            ),
+            (
+                Jurisdiction::Brazil,
+                Jurisdiction::China,
+                TransferStatus::Restricted,
+            ),
         ]);
-        
+
         let result = registry.validate_transfer(Jurisdiction::Brazil, Jurisdiction::Eu, 50);
         assert_eq!(result.transfer_status, TransferStatus::Allowed);
     }
@@ -346,7 +366,7 @@ mod tests {
     #[test]
     fn test_has_regulation() {
         let registry = GlobalPrivacyRegistry::new();
-        
+
         assert!(registry.has_regulation(Jurisdiction::Eu, Regulation::Gdpr));
         assert!(!registry.has_regulation(Jurisdiction::Eu, Regulation::Ccpa));
         assert!(registry.has_regulation(Jurisdiction::UsCalifornia, Regulation::Ccpa));

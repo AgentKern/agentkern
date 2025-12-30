@@ -81,9 +81,7 @@ impl EncryptedEnvelope {
             return !self.ciphertext.is_empty();
         }
         // Regular encrypted envelope
-        !self.ciphertext.is_empty()
-            && !self.wrapped_dek.is_empty()
-            && !self.nonce.is_empty()
+        !self.ciphertext.is_empty() && !self.wrapped_dek.is_empty() && !self.nonce.is_empty()
     }
 }
 
@@ -135,11 +133,11 @@ impl EncryptionEngine {
     /// Create an encryption engine with custom configuration.
     pub fn with_config(config: EncryptionConfig) -> Self {
         use rand::RngCore;
-        
+
         // Generate a random master key (in production, load from KMS)
         let mut master_key = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut master_key);
-        
+
         let key_id = uuid::Uuid::new_v4().to_string();
 
         Self {
@@ -227,7 +225,10 @@ impl EncryptionEngine {
     }
 
     /// Encrypt and serialize a value.
-    pub fn encrypt_value<T: Serialize>(&self, value: &T) -> Result<EncryptedEnvelope, EncryptionError> {
+    pub fn encrypt_value<T: Serialize>(
+        &self,
+        value: &T,
+    ) -> Result<EncryptedEnvelope, EncryptionError> {
         let plaintext = serde_json::to_vec(value)
             .map_err(|e| EncryptionError::SerializationFailed(e.to_string()))?;
         self.encrypt(&plaintext)
@@ -289,7 +290,9 @@ impl EncryptionEngine {
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, EncryptionError> {
         if ciphertext.len() < 16 {
-            return Err(EncryptionError::DecryptionFailed("Ciphertext too short".into()));
+            return Err(EncryptionError::DecryptionFailed(
+                "Ciphertext too short".into(),
+            ));
         }
 
         let (encrypted_data, tag) = ciphertext.split_at(ciphertext.len() - 16);
@@ -302,7 +305,9 @@ impl EncryptionEngine {
         let computed_tag = mac_hasher.finalize();
 
         if &computed_tag[..16] != tag {
-            return Err(EncryptionError::DecryptionFailed("Authentication failed".into()));
+            return Err(EncryptionError::DecryptionFailed(
+                "Authentication failed".into(),
+            ));
         }
 
         // Decrypt
@@ -340,7 +345,9 @@ impl EncryptionEngine {
     /// Unwrap a DEK using the master KEK.
     fn unwrap_key(&self, wrapped_dek: &[u8]) -> Result<[u8; 32], EncryptionError> {
         if wrapped_dek.len() != 32 {
-            return Err(EncryptionError::DecryptionFailed("Invalid wrapped key length".into()));
+            return Err(EncryptionError::DecryptionFailed(
+                "Invalid wrapped key length".into(),
+            ));
         }
 
         let mut hasher = Sha256::new();
@@ -439,7 +446,7 @@ mod tests {
         let plaintext = b"test data";
 
         let mut envelope = engine.encrypt(plaintext).unwrap();
-        
+
         // Tamper with ciphertext
         let mut ciphertext = base64::engine::general_purpose::STANDARD
             .decode(&envelope.ciphertext)

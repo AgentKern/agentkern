@@ -73,7 +73,10 @@ impl ResourceQuota {
         match self {
             Self::ApiCalls { limit, current } => current >= limit,
             Self::Tokens { limit, current } => current >= limit,
-            Self::Cost { limit_micros, current } => current >= limit_micros,
+            Self::Cost {
+                limit_micros,
+                current,
+            } => current >= limit_micros,
             Self::Memory { .. } | Self::CpuTime { .. } => false, // Enforced by runtime
         }
     }
@@ -83,7 +86,10 @@ impl ResourceQuota {
         match self {
             Self::ApiCalls { limit, current } => 1.0 - (*current as f64 / *limit as f64).min(1.0),
             Self::Tokens { limit, current } => 1.0 - (*current as f64 / *limit as f64).min(1.0),
-            Self::Cost { limit_micros, current } => 1.0 - (*current as f64 / *limit_micros as f64).min(1.0),
+            Self::Cost {
+                limit_micros,
+                current,
+            } => 1.0 - (*current as f64 / *limit_micros as f64).min(1.0),
             Self::Memory { .. } | Self::CpuTime { .. } => 1.0,
         }
     }
@@ -95,7 +101,11 @@ pub enum BulkheadRejection {
     /// Too many concurrent requests
     MaxConcurrentExceeded { current: usize, max: usize },
     /// Quota exceeded
-    QuotaExceeded { quota_type: String, current: u64, limit: u64 },
+    QuotaExceeded {
+        quota_type: String,
+        current: u64,
+        limit: u64,
+    },
     /// Agent is suspended
     AgentSuspended { reason: String },
     /// Timeout waiting for permit
@@ -108,7 +118,11 @@ impl std::fmt::Display for BulkheadRejection {
             Self::MaxConcurrentExceeded { current, max } => {
                 write!(f, "Max concurrent requests exceeded ({}/{})", current, max)
             }
-            Self::QuotaExceeded { quota_type, current, limit } => {
+            Self::QuotaExceeded {
+                quota_type,
+                current,
+                limit,
+            } => {
                 write!(f, "Quota exceeded: {} ({}/{})", quota_type, current, limit)
             }
             Self::AgentSuspended { reason } => {
@@ -181,7 +195,10 @@ impl BulkheadConfig {
     pub fn premium() -> Self {
         Self {
             max_concurrent: 50,
-            quotas: vec![ResourceQuota::api_calls(10_000), ResourceQuota::tokens(1_000_000)],
+            quotas: vec![
+                ResourceQuota::api_calls(10_000),
+                ResourceQuota::tokens(1_000_000),
+            ],
             ..Default::default()
         }
     }
@@ -189,7 +206,10 @@ impl BulkheadConfig {
     pub fn enterprise() -> Self {
         Self {
             max_concurrent: 200,
-            quotas: vec![ResourceQuota::api_calls(100_000), ResourceQuota::tokens(10_000_000)],
+            quotas: vec![
+                ResourceQuota::api_calls(100_000),
+                ResourceQuota::tokens(10_000_000),
+            ],
             ..Default::default()
         }
     }
@@ -326,9 +346,10 @@ impl Bulkhead {
                     ResourceQuota::Tokens { limit, current } => {
                         ("tokens".to_string(), *current, *limit)
                     }
-                    ResourceQuota::Cost { limit_micros, current } => {
-                        ("cost".to_string(), *current, *limit_micros)
-                    }
+                    ResourceQuota::Cost {
+                        limit_micros,
+                        current,
+                    } => ("cost".to_string(), *current, *limit_micros),
                     _ => continue,
                 };
                 return Err(BulkheadRejection::QuotaExceeded {
@@ -507,7 +528,7 @@ mod tests {
     #[tokio::test]
     async fn test_basic_acquire() {
         let bulkhead = Bulkhead::new("agent-1", BulkheadConfig::default());
-        
+
         let permit = bulkhead.acquire().await;
         assert!(permit.is_ok());
 
@@ -523,20 +544,26 @@ mod tests {
 
         let _p1 = bulkhead.try_acquire().unwrap();
         let _p2 = bulkhead.try_acquire().unwrap();
-        
+
         // Third should fail
         let p3 = bulkhead.try_acquire();
-        assert!(matches!(p3, Err(BulkheadRejection::MaxConcurrentExceeded { .. })));
+        assert!(matches!(
+            p3,
+            Err(BulkheadRejection::MaxConcurrentExceeded { .. })
+        ));
     }
 
     #[test]
     fn test_suspension() {
         let bulkhead = Bulkhead::new("agent-3", BulkheadConfig::default());
-        
+
         bulkhead.suspend("Policy violation");
-        
+
         let result = bulkhead.try_acquire();
-        assert!(matches!(result, Err(BulkheadRejection::AgentSuspended { .. })));
+        assert!(matches!(
+            result,
+            Err(BulkheadRejection::AgentSuspended { .. })
+        ));
 
         bulkhead.resume();
         let result = bulkhead.try_acquire();
@@ -555,10 +582,10 @@ mod tests {
     #[test]
     fn test_manager() {
         let manager = BulkheadManager::default();
-        
+
         let b1 = manager.get_or_create("agent-a");
         let b2 = manager.get_or_create("agent-a");
-        
+
         // Should be same instance
         assert!(Arc::ptr_eq(&b1, &b2));
     }

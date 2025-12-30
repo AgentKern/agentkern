@@ -7,24 +7,25 @@ use super::registry::{Capability, RegistryError, WasmRegistry};
 use std::path::{Path, PathBuf};
 
 /// Pre-built WASM policy paths (relative to crate root).
-pub const PROMPT_GUARD_WASM: &str = "wasm-policies/prompt-guard/target/wasm32-unknown-unknown/release/prompt_guard_wasm.wasm";
+pub const PROMPT_GUARD_WASM: &str =
+    "wasm-policies/prompt-guard/target/wasm32-unknown-unknown/release/prompt_guard_wasm.wasm";
 
 /// Load all built WASM policies into the registry.
 pub fn load_policies(registry: &WasmRegistry, base_path: &Path) -> Result<usize, RegistryError> {
     let mut loaded = 0;
-    
+
     // Prompt Guard
     let prompt_guard_path = base_path.join(PROMPT_GUARD_WASM);
     if prompt_guard_path.exists() {
         load_prompt_guard(registry, &prompt_guard_path)?;
         loaded += 1;
     }
-    
+
     // Future: Add more policies here
     // - carbon_check
     // - compliance_hipaa
     // - explain_engine
-    
+
     Ok(loaded)
 }
 
@@ -32,7 +33,7 @@ pub fn load_policies(registry: &WasmRegistry, base_path: &Path) -> Result<usize,
 fn load_prompt_guard(registry: &WasmRegistry, path: &PathBuf) -> Result<(), RegistryError> {
     let wasm_bytes = std::fs::read(path)
         .map_err(|e| RegistryError::InvalidModule(format!("Failed to read: {}", e)))?;
-    
+
     let capabilities = vec![
         Capability {
             name: "prompt_guard".to_string(),
@@ -59,9 +60,9 @@ fn load_prompt_guard(registry: &WasmRegistry, path: &PathBuf) -> Result<(), Regi
             output_schema: None,
         },
     ];
-    
+
     registry.register("prompt-guard", "1.0.0", &wasm_bytes, capabilities)?;
-    
+
     tracing::info!("Loaded prompt_guard WASM policy");
     Ok(())
 }
@@ -77,20 +78,22 @@ pub async fn check_prompt(
         "prompt": prompt,
         "context": context
     });
-    
+
     let input_bytes = serde_json::to_vec(&input).unwrap_or_default();
-    
-    let result = registry.invoke_capability("prompt_guard", &input_bytes).await?;
-    
+
+    let result = registry
+        .invoke_capability("prompt_guard", &input_bytes)
+        .await?;
+
     // Parse output
-    let output: PromptCheckResult = serde_json::from_slice(&result.output)
-        .unwrap_or_else(|_| PromptCheckResult {
+    let output: PromptCheckResult =
+        serde_json::from_slice(&result.output).unwrap_or_else(|_| PromptCheckResult {
             safe: true,
             threat_level: "Unknown".to_string(),
             score: 0,
             latency_us: result.latency_us,
         });
-    
+
     Ok(PromptCheckResult {
         latency_us: result.latency_us,
         ..output
@@ -110,7 +113,7 @@ pub struct PromptCheckResult {
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    
+
     #[test]
     fn test_policy_paths() {
         assert!(PROMPT_GUARD_WASM.ends_with(".wasm"));

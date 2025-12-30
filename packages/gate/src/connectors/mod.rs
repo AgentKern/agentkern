@@ -14,10 +14,10 @@
 pub mod mock;
 pub mod parsers;
 pub mod registry;
-pub mod sap;    // Production SAP RFC connector
+pub mod sap; // Production SAP RFC connector
 pub mod sdk;
 pub mod sql;
-pub mod swift;  // Production SWIFT GPI connector
+pub mod swift; // Production SWIFT GPI connector
 
 // Re-exports
 pub use mock::MockConnector;

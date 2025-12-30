@@ -269,7 +269,11 @@ impl SecurePassport {
             FieldSensitivity::Public => field.plaintext.clone(),
             _ => {
                 if let Some(envelope) = &field.envelope {
-                    Some(engine.decrypt_value(envelope).map_err(SecurePassportError::from)?)
+                    Some(
+                        engine
+                            .decrypt_value(envelope)
+                            .map_err(SecurePassportError::from)?,
+                    )
                 } else {
                     None
                 }
@@ -331,11 +335,7 @@ impl SecurePassport {
     ///
     /// passport.set_tee_sealed_field("api_key", sealed_bytes);
     /// ```
-    pub fn set_tee_sealed_field(
-        &mut self,
-        field_name: impl Into<String>,
-        sealed_data: Vec<u8>,
-    ) {
+    pub fn set_tee_sealed_field(&mut self, field_name: impl Into<String>, sealed_data: Vec<u8>) {
         let name = field_name.into();
 
         let field = EncryptedField {
@@ -353,7 +353,9 @@ impl SecurePassport {
 
     /// Get TEE-sealed data for a field (caller must unseal with TeeRuntime).
     pub fn get_tee_sealed(&self, field_name: &str) -> Option<&Vec<u8>> {
-        self.fields.get(field_name).and_then(|f| f.tee_sealed.as_ref())
+        self.fields
+            .get(field_name)
+            .and_then(|f| f.tee_sealed.as_ref())
     }
 
     /// List all fields that require TEE access.
@@ -365,7 +367,6 @@ impl SecurePassport {
             .collect()
     }
 }
-
 
 // ============================================================================
 // ERRORS
@@ -459,7 +460,10 @@ mod tests {
 
         // Unauthorized agent cannot access
         let result = passport.get_field("secret", "did:key:z6MkUnauthorized", &engine);
-        assert!(matches!(result, Err(SecurePassportError::AccessDenied { .. })));
+        assert!(matches!(
+            result,
+            Err(SecurePassportError::AccessDenied { .. })
+        ));
 
         // Grant access
         passport.grant_access(AccessGrant::read_only(
@@ -479,20 +483,20 @@ mod tests {
         let engine = EncryptionEngine::new();
 
         let mut state = AgentState::new("agent-1");
-        state.state.insert("name".to_string(), serde_json::json!("TestAgent"));
-        state.state.insert("api_key".to_string(), serde_json::json!("secret-key"));
+        state
+            .state
+            .insert("name".to_string(), serde_json::json!("TestAgent"));
+        state
+            .state
+            .insert("api_key".to_string(), serde_json::json!("secret-key"));
 
         let mut sensitivity = HashMap::new();
         sensitivity.insert("name".to_string(), FieldSensitivity::Public);
         sensitivity.insert("api_key".to_string(), FieldSensitivity::Secret);
 
-        let passport = SecurePassport::from_agent_state(
-            &state,
-            "did:key:z6MkTest",
-            &engine,
-            &sensitivity,
-        )
-        .unwrap();
+        let passport =
+            SecurePassport::from_agent_state(&state, "did:key:z6MkTest", &engine, &sensitivity)
+                .unwrap();
 
         // Name should be public
         let name_field = passport.fields.get("name").unwrap();

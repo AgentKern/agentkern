@@ -41,12 +41,7 @@ pub enum SapConnectionType {
 
 impl SapRfcConnector {
     /// Create a new SAP RFC connector.
-    pub fn new(
-        config: ConnectorConfig,
-        system_id: String,
-        client: String,
-        user: String,
-    ) -> Self {
+    pub fn new(config: ConnectorConfig, system_id: String, client: String, user: String) -> Self {
         Self {
             config,
             system_id,
@@ -109,7 +104,8 @@ impl SapRfcConnector {
         // Parse IDOC using agentkern-parsers
         let raw = String::from_utf8_lossy(idoc_data);
         let parser = agentkern_parsers::IDocParser::new();
-        let idoc = parser.parse(&raw)
+        let idoc = parser
+            .parse(&raw)
             .map_err(|e| ConnectorError::ParseError(e.to_string()))?;
 
         tracing::info!(
@@ -119,7 +115,10 @@ impl SapRfcConnector {
         );
 
         // Placeholder: return IDOC number
-        Ok(format!("IDOC_{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase()))
+        Ok(format!(
+            "IDOC_{}",
+            uuid::Uuid::new_v4().to_string()[..8].to_uppercase()
+        ))
     }
 }
 
@@ -169,12 +168,10 @@ impl LegacyConnector for SapRfcConnector {
 
     async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
         // Execute RFC based on message type
-        let result = self
-            .call_rfc(&msg.message_type, HashMap::new())
-            .await?;
+        let result = self.call_rfc(&msg.message_type, HashMap::new()).await?;
 
-        let data = serde_json::to_vec(&result)
-            .map_err(|e| ConnectorError::Internal(e.to_string()))?;
+        let data =
+            serde_json::to_vec(&result).map_err(|e| ConnectorError::Internal(e.to_string()))?;
 
         Ok(LegacyMessage {
             data,

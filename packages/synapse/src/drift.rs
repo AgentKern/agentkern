@@ -328,7 +328,7 @@ impl DriftDetector {
     }
 
     /// Check an intent path for drift.
-    /// 
+    ///
     /// Enhanced with semantic behavioral analysis per AI Audit 2026.
     pub fn check(&self, path: &IntentPath) -> DriftResult {
         let mut score = 0u8;
@@ -426,18 +426,22 @@ impl DriftDetector {
     fn check_goal_drift(&self, path: &IntentPath) -> u8 {
         // If we have intent embedding, check if recent actions are drifting away
         if let Some(intent_emb) = &path.intent_embedding {
-            let recent: Vec<_> = path.history.iter()
+            let recent: Vec<_> = path
+                .history
+                .iter()
                 .rev()
                 .take(3)
                 .filter_map(|s| s.embedding.as_ref())
                 .collect();
-            
+
             if recent.len() >= 2 {
                 // Calculate average similarity of recent steps to original intent
-                let avg_sim: f32 = recent.iter()
+                let avg_sim: f32 = recent
+                    .iter()
                     .map(|emb| cosine_similarity(intent_emb, emb))
-                    .sum::<f32>() / recent.len() as f32;
-                
+                    .sum::<f32>()
+                    / recent.len() as f32;
+
                 // If recent steps are diverging from intent
                 if avg_sim < 0.4 {
                     return ((0.4 - avg_sim) * 50.0) as u8;
@@ -450,13 +454,11 @@ impl DriftDetector {
     /// Check for anomalous behavioral patterns.
     fn check_behavioral_patterns(&self, path: &IntentPath) -> u8 {
         let mut score = 0u8;
-        
+
         // Pattern 1: Circular behavior (repeating same actions)
         if path.history.len() >= 4 {
-            let actions: Vec<_> = path.history.iter()
-                .map(|s| s.action.as_str())
-                .collect();
-            
+            let actions: Vec<_> = path.history.iter().map(|s| s.action.as_str()).collect();
+
             // Check for cycles of length 2
             for window in actions.windows(4) {
                 if window[0] == window[2] && window[1] == window[3] {
@@ -465,7 +467,7 @@ impl DriftDetector {
                 }
             }
         }
-        
+
         // Pattern 2: Rapid action bursts (too many actions too fast)
         if path.history.len() >= 10 {
             let recent: Vec<_> = path.history.iter().rev().take(10).collect();
@@ -477,41 +479,42 @@ impl DriftDetector {
                 }
             }
         }
-        
+
         score
     }
 
     /// Check trajectory variance - how much agent behavior varies between steps.
     fn check_trajectory_variance(&self, path: &IntentPath) -> u8 {
-        let embeddings: Vec<_> = path.history.iter()
+        let embeddings: Vec<_> = path
+            .history
+            .iter()
             .filter_map(|s| s.embedding.as_ref())
             .collect();
-        
+
         if embeddings.len() < 3 {
             return 0;
         }
-        
+
         // Calculate step-to-step similarity
         let mut similarities = Vec::new();
         for pair in embeddings.windows(2) {
             similarities.push(cosine_similarity(pair[0], pair[1]));
         }
-        
+
         // Calculate variance
         if similarities.is_empty() {
             return 0;
         }
-        
+
         let mean: f32 = similarities.iter().sum::<f32>() / similarities.len() as f32;
-        let variance: f32 = similarities.iter()
-            .map(|s| (s - mean).powi(2))
-            .sum::<f32>() / similarities.len() as f32;
-        
+        let variance: f32 = similarities.iter().map(|s| (s - mean).powi(2)).sum::<f32>()
+            / similarities.len() as f32;
+
         // High variance = unstable behavior
         if variance > 0.15 {
             return ((variance - 0.15) * 100.0).min(30.0) as u8;
         }
-        
+
         0
     }
 

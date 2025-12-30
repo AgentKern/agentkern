@@ -152,18 +152,19 @@ impl ShariahComplianceValidator {
 
         // Check for Riba (interest)
         if let Some(rate) = details.interest_rate
-            && rate > 0.0 {
-                result.has_riba = true;
-                result.compliant = false;
-                result.score = result.score.saturating_sub(50);
-                result.recommendations.push(
+            && rate > 0.0
+        {
+            result.has_riba = true;
+            result.compliant = false;
+            result.score = result.score.saturating_sub(50);
+            result.recommendations.push(
                     "Replace interest-based financing with Murabaha (cost-plus) or Musharakah (profit-sharing)".to_string()
                 );
 
-                if self.strict_mode {
-                    return Err(ShariahComplianceError::RibaDetected);
-                }
+            if self.strict_mode {
+                return Err(ShariahComplianceError::RibaDetected);
             }
+        }
 
         // Check for Gharar (excessive uncertainty)
         if !details.has_underlying_asset {

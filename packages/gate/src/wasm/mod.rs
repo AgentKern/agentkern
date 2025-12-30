@@ -7,11 +7,11 @@
 //!
 //! Hot-swappable policy modules and capability routing.
 
-pub mod registry;
 pub mod loader;
+pub mod registry;
 
-pub use registry::{Capability, RegistryError, WasmActorMeta, WasmRegistry, RegistryStats};
-pub use loader::{load_policies, check_prompt, PromptCheckResult, PROMPT_GUARD_WASM};
+pub use loader::{check_prompt, load_policies, PromptCheckResult, PROMPT_GUARD_WASM};
+pub use registry::{Capability, RegistryError, RegistryStats, WasmActorMeta, WasmRegistry};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

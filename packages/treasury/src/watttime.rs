@@ -114,7 +114,7 @@ impl WattTimeClient {
         // 1. Get auth token if expired
         // 2. Call /v3/signal-index with lat/lon
         // 3. Convert MOER (lbs CO2/MWh) to gCO2/kWh
-        
+
         // Placeholder: return regional average based on rough lat/lon
         // This allows the code to compile and test without API keys
         let intensity = self.estimate_from_location(lat, lon);
@@ -124,23 +124,23 @@ impl WattTimeClient {
     /// Get intensity forecast for a region.
     pub async fn get_forecast(&self, ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
         use chrono::Timelike;
-        
+
         // Placeholder: return mock forecast
         let now = chrono::Utc::now();
         let mut forecast = Vec::new();
-        
+
         for i in 0..24 {
             let point_time = now + chrono::Duration::hours(i);
             // Simulate sinusoidal pattern (lower at midday due to solar)
             let hour = point_time.hour() as f64;
             let value = 400.0 + 100.0 * (hour * std::f64::consts::PI / 12.0).sin();
-            
+
             forecast.push(ForecastPoint {
                 point_time: point_time.to_rfc3339(),
                 value,
             });
         }
-        
+
         Ok(forecast)
     }
 
@@ -158,7 +158,7 @@ impl WattTimeClient {
         } else {
             "UNKNOWN"
         };
-        
+
         Ok(region.to_string())
     }
 
