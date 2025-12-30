@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { LicenseModule } from './modules/license.module';
 import { ProofModule } from './modules/proof.module';
 import { DnsModule } from './modules/dns.module';
-import { MeshModule } from './modules/mesh.module';
 import { DashboardModule } from './modules/dashboard.module';
 import { WebAuthnModule } from './modules/webauthn.module';
 import { DatabaseModule } from './modules/database.module';
@@ -42,7 +41,6 @@ import { SecurityModule } from './modules/security.module';
     LicenseModule,
     ProofModule,
     DnsModule,
-    MeshModule,
     DashboardModule,
     WebAuthnModule,
     DatabaseModule,

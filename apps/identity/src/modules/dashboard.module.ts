@@ -1,17 +1,16 @@
 /**
  * AgentKernIdentity - Dashboard Module
- * 
- * Enterprise dashboard and policy management.
+ *
+ * Enterprise dashboard for administration.
+ * Note: Policy management is handled by Rust Gate package.
  */
 
 import { Module } from '@nestjs/common';
 import { DashboardController } from '../controllers/dashboard.controller';
-import { PolicyService } from '../services/policy.service';
 import { AuditLoggerService } from '../services/audit-logger.service';
 
 @Module({
   controllers: [DashboardController],
-  providers: [PolicyService, AuditLoggerService],
-  exports: [PolicyService],
+  providers: [AuditLoggerService],
 })
 export class DashboardModule {}

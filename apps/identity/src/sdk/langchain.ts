@@ -122,7 +122,7 @@ export function wrapTool<T extends (...args: any[]) => Promise<any>>(
 
       // Attach proof to result if object
       if (typeof result === 'object' && result !== null) {
-        return { ...result, __agentProof: proofHeader };
+        return { ...result, __agentKernIdentity: proofHeader };
       }
 
       return result;

@@ -18,7 +18,6 @@ import {
   HttpStatus,
   UnauthorizedException,
   BadRequestException,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,7 +30,6 @@ import {
 import { ProofVerificationService } from '../services/proof-verification.service';
 import { ProofSigningService } from '../services/proof-signing.service';
 import { AuditLoggerService, AuditEventType } from '../services/audit-logger.service';
-import { PromptInjectionGuard } from '../guards/prompt-injection.guard';
 import { AgentSandboxService } from '../services/agent-sandbox.service';
 import {
   VerifyProofRequestDto,
@@ -54,7 +52,6 @@ export class ProofController {
   ) {}
 
   @Post('verify')
-  @UseGuards(PromptInjectionGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify a Liability Proof',
@@ -117,7 +114,6 @@ export class ProofController {
   }
 
   @Post('verify/header')
-  @UseGuards(PromptInjectionGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify proof from X-AgentKernIdentity header',

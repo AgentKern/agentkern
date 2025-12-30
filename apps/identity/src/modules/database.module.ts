@@ -1,7 +1,8 @@
 /**
  * AgentKernIdentity - Database Module
- * 
+ *
  * TypeORM configuration for PostgreSQL.
+ * Provides connection and entity registration for the Identity pillar.
  */
 
 import { Module } from '@nestjs/common';
@@ -9,9 +10,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TrustRecordEntity } from '../entities/trust-record.entity';
 import { AuditEventEntity } from '../entities/audit-event.entity';
-import { PolicyEntity } from '../entities/policy.entity';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
-import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity';
+import { WebAuthnCredentialEntity, WebAuthnChallengeEntity } from '../entities/webauthn-credential.entity';
+
+// All entities registered with the Identity database
+const ENTITIES = [
+  TrustRecordEntity,
+  AuditEventEntity,
+  AgentRecordEntity,
+  WebAuthnCredentialEntity,
+  WebAuthnChallengeEntity,
+];
 
 @Module({
   imports: [
@@ -19,11 +28,9 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        // Support DATABASE_URL (for CI/Docker) or individual vars
         const databaseUrl = configService.get('DATABASE_URL');
-        
+
         if (databaseUrl) {
-          // Parse DATABASE_URL: postgresql://user:password@host:port/database
           const url = new URL(databaseUrl);
           return {
             type: 'postgres' as const,
@@ -31,15 +38,8 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
             port: parseInt(url.port) || 5432,
             username: url.username,
             password: url.password,
-            database: url.pathname.slice(1), // Remove leading /
-            entities: [
-              TrustRecordEntity,
-              AuditEventEntity,
-              PolicyEntity,
-              AgentRecordEntity,
-              MeshPeerEntity,
-              NodeIdentityEntity,
-            ],
+            database: String(url.pathname.slice(1)),
+            entities: ENTITIES,
             synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
             logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
             ssl: configService.get('DATABASE_SSL', 'false') === 'true'
@@ -47,8 +47,7 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
               : false,
           };
         }
-        
-        // Fallback to individual environment variables
+
         return {
           type: 'postgres' as const,
           host: configService.get('DATABASE_HOST', 'localhost'),
@@ -56,14 +55,7 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
           username: configService.get('DATABASE_USER', 'agentkern-identity'),
           password: configService.get('DATABASE_PASSWORD', 'agentkern-identity'),
           database: configService.get('DATABASE_NAME', 'agentkern-identity'),
-          entities: [
-            TrustRecordEntity,
-            AuditEventEntity,
-            PolicyEntity,
-            AgentRecordEntity,
-            MeshPeerEntity,
-            NodeIdentityEntity,
-          ],
+          entities: ENTITIES,
           synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
           logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
           ssl: configService.get('DATABASE_SSL', 'false') === 'true'
@@ -72,14 +64,7 @@ import { MeshPeerEntity, NodeIdentityEntity } from '../entities/mesh-node.entity
         };
       },
     }),
-    TypeOrmModule.forFeature([
-      TrustRecordEntity,
-      AuditEventEntity,
-      PolicyEntity,
-      AgentRecordEntity,
-      MeshPeerEntity,
-      NodeIdentityEntity,
-    ]),
+    TypeOrmModule.forFeature(ENTITIES),
   ],
   exports: [TypeOrmModule],
 })

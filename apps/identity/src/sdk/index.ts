@@ -214,14 +214,6 @@ export function createAgentKernIdentityClient(config: Partial<AgentKernIdentityC
 }
 
 /**
- * Middleware for Express/NestJS to verify incoming requests
- * @deprecated Use agentKernIdentityMiddleware instead
- */
-export function agentProofMiddleware(options: { required?: boolean; client?: AgentKernIdentityClient } = {}) {
-  return agentKernIdentityMiddleware(options);
-}
-
-/**
  * Middleware for Express/NestJS to verify incoming requests (Dec 2025)
  */
 export function agentKernIdentityMiddleware(options: { required?: boolean; client?: AgentKernIdentityClient } = {}) {
@@ -245,7 +237,7 @@ export function agentKernIdentityMiddleware(options: { required?: boolean; clien
         return res.status(403).json({ error: 'Invalid proof', details: result.errors });
       }
 
-      // Attach proof info to request (legacy: req.agentProof, new: req.agentKernIdentity)
+      // Attach proof info to request
       req.agentKernIdentity = {
         proofId: result.proofId,
         principalId: result.principalId,
@@ -253,8 +245,6 @@ export function agentKernIdentityMiddleware(options: { required?: boolean; clien
         intent: result.intent,
         liabilityAcceptedBy: result.liabilityAcceptedBy,
       };
-      // @deprecated - keep for backward compatibility
-      req.agentProof = req.agentKernIdentity;
 
       next();
     } catch (error) {

@@ -145,7 +145,7 @@ describe('LangChain Integration', () => {
 
       expect(originalTool).toHaveBeenCalledWith({ input: 'test' });
       expect(result.result).toBe('success');
-      expect(result.__agentProof).toBe('AgentKernIdentity v1.test-header');
+      expect(result.__agentKernIdentity).toBe('AgentKernIdentity v1.test-header');
     });
 
     it('should handle tool with primitive return', async () => {

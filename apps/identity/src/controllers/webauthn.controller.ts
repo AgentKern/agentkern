@@ -91,14 +91,17 @@ export class WebAuthnController {
     description: 'Returns all registered credentials for a principal.',
   })
   @ApiResponse({ status: 200, description: 'List of credentials' })
-  getCredentials(@Param('principalId') principalId: string) {
-    const credentials = this.webAuthnService.getCredentials(principalId);
+  async getCredentials(@Param('principalId') principalId: string) {
+    const credentials = await this.webAuthnService.getCredentials(principalId);
     return {
       principalId,
       credentials: credentials.map((c) => ({
         id: c.id,
         deviceType: c.credentialDeviceType,
         backedUp: c.credentialBackedUp,
+        deviceName: c.deviceName,
+        createdAt: c.createdAt,
+        lastUsedAt: c.lastUsedAt,
       })),
     };
   }
