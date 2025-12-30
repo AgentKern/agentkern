@@ -1,0 +1,8 @@
+Contact: security@agentkern.example.com
+Expires: 2025-12-31T23:59:59Z
+Encryption: https://agentkern.example.com/.well-known/pgp-key.txt
+Acknowledgements: https://agentkern.example.com/security/hall-of-fame
+Policy: https://agentkern.example.com/security-policy
+Hiring: https://agentkern.example.com/jobs
+Preferred-Languages: en
+Canonical: https://agentkern.example.com/.well-known/security.txt
