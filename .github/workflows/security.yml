@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
       
       - name: Install cargo-sbom
         run: cargo install cargo-sbom
@@ -205,7 +205,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
       
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -300,7 +300,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
