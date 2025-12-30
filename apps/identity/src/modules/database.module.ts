@@ -6,20 +6,27 @@
  */
 
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TrustRecordEntity } from '../entities/trust-record.entity';
+import { TrustEventEntity, TrustScoreEntity } from '../entities/trust-event.entity';
 import { AuditEventEntity } from '../entities/audit-event.entity';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
 import { WebAuthnCredentialEntity, WebAuthnChallengeEntity } from '../entities/webauthn-credential.entity';
+import { VerificationKeyEntity } from '../entities/verification-key.entity';
+import { SystemConfigEntity } from '../entities/system-config.entity';
 
 // All entities registered with the Identity database
 const ENTITIES = [
   TrustRecordEntity,
+  TrustEventEntity,
+  TrustScoreEntity,
   AuditEventEntity,
   AgentRecordEntity,
   WebAuthnCredentialEntity,
   WebAuthnChallengeEntity,
+  VerificationKeyEntity,
+  SystemConfigEntity,
 ];
 
 @Module({
@@ -27,18 +34,18 @@ const ENTITIES = [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const databaseUrl = configService.get('DATABASE_URL');
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
+        const databaseUrl = configService.get<string>('DATABASE_URL');
 
         if (databaseUrl) {
           const url = new URL(databaseUrl);
           return {
-            type: 'postgres' as const,
-            host: url.hostname,
-            port: parseInt(url.port) || 5432,
-            username: url.username,
-            password: url.password,
-            database: String(url.pathname.slice(1)),
+            type: 'postgres',
+            host: url.hostname || 'localhost',
+            port: parseInt(url.port, 10) || 5432,
+            username: url.username || 'agentkern-identity',
+            password: decodeURIComponent(url.password) || 'agentkern-identity',
+            database: url.pathname.slice(1) || 'agentkern-identity',
             entities: ENTITIES,
             synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
             logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
@@ -49,12 +56,12 @@ const ENTITIES = [
         }
 
         return {
-          type: 'postgres' as const,
-          host: configService.get('DATABASE_HOST', 'localhost'),
-          port: configService.get('DATABASE_PORT', 5432),
-          username: configService.get('DATABASE_USER', 'agentkern-identity'),
-          password: configService.get('DATABASE_PASSWORD', 'agentkern-identity'),
-          database: configService.get('DATABASE_NAME', 'agentkern-identity'),
+          type: 'postgres',
+          host: configService.get<string>('DATABASE_HOST', 'localhost'),
+          port: configService.get<number>('DATABASE_PORT', 5432),
+          username: configService.get<string>('DATABASE_USER', 'agentkern-identity'),
+          password: configService.get<string>('DATABASE_PASSWORD', 'agentkern-identity'),
+          database: configService.get<string>('DATABASE_NAME', 'agentkern-identity'),
           entities: ENTITIES,
           synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
           logging: configService.get('DATABASE_LOGGING', 'false') === 'true',

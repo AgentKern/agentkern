@@ -19,6 +19,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLoggerService, AuditEventType } from './audit-logger.service';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
+import { SystemConfigEntity } from '../entities/system-config.entity';
 
 import {
   AgentStatus,
@@ -60,8 +61,8 @@ export class AgentSandboxService implements OnModuleInit {
   // Agent registry
   private agents: Map<string, AgentRecord> = new Map();
 
-  // Global kill switch
-  private globalKillSwitch = false;
+  // Global kill switch (cached, persisted to database)
+  private globalKillSwitchCache = false;
 
   // Default budgets
   private defaultBudget: AgentBudget = {
@@ -81,6 +82,8 @@ export class AgentSandboxService implements OnModuleInit {
     private readonly auditLogger: AuditLoggerService,
     @InjectRepository(AgentRecordEntity)
     private readonly agentRepository: Repository<AgentRecordEntity>,
+    @InjectRepository(SystemConfigEntity)
+    private readonly configRepository: Repository<SystemConfigEntity>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -93,6 +96,12 @@ export class AgentSandboxService implements OnModuleInit {
 
     const maxCost = this.configService.get<number>('AGENT_MAX_COST_USD');
     if (maxCost) this.defaultBudget.maxCostUsd = maxCost;
+
+    // Load kill switch state from database
+    const killSwitchConfig = await this.configRepository.findOne({
+      where: { key: 'global_kill_switch' },
+    });
+    this.globalKillSwitchCache = killSwitchConfig?.value === 'true';
 
     // Load agents from database into memory cache
     const dbAgents = await this.agentRepository.find();
@@ -107,6 +116,7 @@ export class AgentSandboxService implements OnModuleInit {
 
     this.logger.log('🔒 Agent Sandbox Service initialized');
     this.logger.log(`   Loaded ${dbAgents.length} agents from database`);
+    this.logger.log(`   Kill switch: ${this.globalKillSwitchCache ? 'ACTIVE' : 'inactive'}`);
     this.logger.log(`   Default budget: ${JSON.stringify(this.defaultBudget)}`);
   }
 
@@ -168,7 +178,7 @@ export class AgentSandboxService implements OnModuleInit {
    */
   async checkAction(request: SandboxActionRequest): Promise<SandboxResult> {
     // Check global kill switch
-    if (this.globalKillSwitch) {
+    if (this.globalKillSwitchCache) {
       return {
         allowed: false,
         agentStatus: AgentStatus.TERMINATED,
@@ -369,13 +379,26 @@ export class AgentSandboxService implements OnModuleInit {
 
   /**
    * Activate global kill switch (stops ALL agents)
+   * Persisted to database for cross-instance consistency
    */
-  activateGlobalKillSwitch(reason: string): void {
-    this.globalKillSwitch = true;
+  async activateGlobalKillSwitch(reason: string): Promise<void> {
+    this.globalKillSwitchCache = true;
+    
+    // Persist to database
+    await this.configRepository.upsert(
+      {
+        key: 'global_kill_switch',
+        value: 'true',
+        description: `Activated: ${reason}`,
+        valueType: 'boolean',
+      },
+      ['key'],
+    );
+
     this.logger.error(`🚨 GLOBAL KILL SWITCH ACTIVATED: ${reason}`);
 
-    this.auditLogger.logSecurityEvent(
-      AuditEventType.SECURITY_ALERT,
+    await this.auditLogger.logSecurityEvent(
+      AuditEventType.KILL_SWITCH_ACTIVATED,
       `GLOBAL KILL SWITCH ACTIVATED: ${reason}`,
       { activeAgents: this.agents.size },
     );
@@ -386,16 +409,29 @@ export class AgentSandboxService implements OnModuleInit {
         agent.status = AgentStatus.TERMINATED;
         agent.terminatedAt = new Date().toISOString();
         agent.terminationReason = `Global kill switch: ${reason}`;
-        this.syncToDb(agent);
+        await this.syncToDb(agent);
       }
     }
   }
 
   /**
    * Deactivate global kill switch
+   * Persisted to database for cross-instance consistency
    */
-  deactivateGlobalKillSwitch(): void {
-    this.globalKillSwitch = false;
+  async deactivateGlobalKillSwitch(): Promise<void> {
+    this.globalKillSwitchCache = false;
+
+    // Persist to database
+    await this.configRepository.upsert(
+      {
+        key: 'global_kill_switch',
+        value: 'false',
+        description: 'Deactivated',
+        valueType: 'boolean',
+      },
+      ['key'],
+    );
+
     this.logger.log('Global kill switch deactivated');
   }
 

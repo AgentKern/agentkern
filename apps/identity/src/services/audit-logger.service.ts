@@ -1,42 +1,27 @@
 /**
  * AgentKernIdentity - Audit Logger Service
- * 
- * Structured audit logging for compliance and security.
+ *
+ * Production-ready structured audit logging with TypeORM persistence.
  * Logs all proof verifications, key registrations, and security events.
- * 
+ *
  * Follows mandate requirements:
- * - Full audit logging
+ * - Full audit logging to PostgreSQL
  * - Compliance-ready structured logs
- * - Immutable audit trail
+ * - Immutable audit trail (append-only)
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThan, Between, In } from 'typeorm';
+import { AuditEventEntity, AuditEventTypeEnum } from '../entities/audit-event.entity';
 
-export enum AuditEventType {
-  PROOF_VERIFICATION_SUCCESS = 'proof.verification.success',
-  PROOF_VERIFICATION_FAILURE = 'proof.verification.failure',
-  PROOF_EXPIRED = 'proof.expired',
-  PROOF_INVALID_SIGNATURE = 'proof.invalid_signature',
-  KEY_REGISTERED = 'key.registered',
-  KEY_REVOKED = 'key.revoked',
-  RATE_LIMIT_EXCEEDED = 'security.rate_limit_exceeded',
-  INVALID_INPUT = 'security.invalid_input',
-  SUSPICIOUS_ACTIVITY = 'security.suspicious_activity',
-  SECURITY_ALERT = 'security.alert',
-  SANDBOX_VIOLATION = 'security.sandbox_violation',
-  KILL_SWITCH_ACTIVATED = 'security.kill_switch_activated',
-  PQC_DOWNGRADE_ATTEMPT = 'security.pqc_downgrade',
-  CRYPTO_ROTATION = 'security.crypto_rotation',
-  COMPLIANCE_ATTACHMENT_ADDED = 'compliance.attachment_added',
-  COMPLIANCE_REPORT_GENERATED = 'compliance.report_generated',
-  AI_RISK_ASSESSMENT = 'ai.risk_assessment',
-  BIAS_AUDIT_COMPLETED = 'ai.bias_audit_completed',
-}
+// Re-export for backwards compatibility
+export { AuditEventTypeEnum as AuditEventType };
 
 export interface AuditEvent {
   id: string;
   timestamp: string;
-  type: AuditEventType;
+  type: AuditEventTypeEnum;
   principalId?: string;
   agentId?: string;
   proofId?: string;
@@ -50,25 +35,54 @@ export interface AuditEvent {
 }
 
 @Injectable()
-export class AuditLoggerService {
+export class AuditLoggerService implements OnModuleInit {
   private readonly logger = new Logger('AuditLogger');
-  
-  // In production, this would write to a persistent, immutable store
-  // (e.g., append-only database, blockchain, or secure log aggregator)
-  private auditLog: AuditEvent[] = [];
+
+  constructor(
+    @InjectRepository(AuditEventEntity)
+    private readonly auditRepository: Repository<AuditEventEntity>,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    const count = await this.auditRepository.count();
+    this.logger.log(`📋 Audit logger initialized with ${count} existing events`);
+  }
 
   /**
-   * Log an audit event
+   * Log an audit event to the database
    */
-  log(event: Omit<AuditEvent, 'id' | 'timestamp'>): AuditEvent {
-    const auditEvent: AuditEvent = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      ...event,
-    };
+  async log(event: Omit<AuditEvent, 'id' | 'timestamp'>): Promise<AuditEvent> {
+    const entity = this.auditRepository.create({
+      type: event.type,
+      principalId: event.principalId,
+      agentId: event.agentId,
+      proofId: event.proofId,
+      action: event.action,
+      target: event.target,
+      ipAddress: event.ipAddress,
+      userAgent: event.userAgent,
+      success: event.success,
+      errorMessage: event.errorMessage,
+      metadata: event.metadata,
+    });
 
-    // Store in memory (replace with persistent storage in production)
-    this.auditLog.push(auditEvent);
+    const saved = await this.auditRepository.save(entity);
+
+    const auditEvent: AuditEvent = {
+      id: saved.id,
+      timestamp: saved.timestamp.toISOString(),
+      type: saved.type,
+      principalId: saved.principalId,
+      agentId: saved.agentId,
+      proofId: saved.proofId,
+      action: saved.action,
+      target: saved.target,
+      ipAddress: saved.ipAddress,
+      userAgent: saved.userAgent,
+      success: saved.success,
+      errorMessage: saved.errorMessage,
+      metadata: saved.metadata,
+    };
 
     // Also log to console in structured JSON format
     const logLevel = event.success ? 'log' : 'warn';
@@ -80,16 +94,16 @@ export class AuditLoggerService {
   /**
    * Log a successful proof verification
    */
-  logVerificationSuccess(
+  async logVerificationSuccess(
     proofId: string,
     principalId: string,
     agentId: string,
     action: string,
     target: string,
     requestContext?: { ipAddress?: string; userAgent?: string },
-  ): AuditEvent {
+  ): Promise<AuditEvent> {
     return this.log({
-      type: AuditEventType.PROOF_VERIFICATION_SUCCESS,
+      type: AuditEventTypeEnum.PROOF_VERIFICATION_SUCCESS,
       proofId,
       principalId,
       agentId,
@@ -104,13 +118,13 @@ export class AuditLoggerService {
   /**
    * Log a failed proof verification
    */
-  logVerificationFailure(
+  async logVerificationFailure(
     proofId: string | undefined,
     errorMessage: string,
     requestContext?: { ipAddress?: string; userAgent?: string },
-  ): AuditEvent {
+  ): Promise<AuditEvent> {
     return this.log({
-      type: AuditEventType.PROOF_VERIFICATION_FAILURE,
+      type: AuditEventTypeEnum.PROOF_VERIFICATION_FAILURE,
       proofId,
       success: false,
       errorMessage,
@@ -122,12 +136,12 @@ export class AuditLoggerService {
   /**
    * Log a security event
    */
-  logSecurityEvent(
-    type: AuditEventType,
+  async logSecurityEvent(
+    type: AuditEventTypeEnum,
     message: string,
     metadata?: Record<string, unknown>,
     requestContext?: { ipAddress?: string; userAgent?: string },
-  ): AuditEvent {
+  ): Promise<AuditEvent> {
     return this.log({
       type,
       success: false,
@@ -141,69 +155,122 @@ export class AuditLoggerService {
   /**
    * Get audit trail for a principal
    */
-  getAuditTrailForPrincipal(principalId: string, limit = 100): AuditEvent[] {
-    return this.auditLog
-      .filter((event) => event.principalId === principalId)
-      .slice(-limit)
-      .reverse();
+  async getAuditTrailForPrincipal(principalId: string, limit = 100): Promise<AuditEvent[]> {
+    const entities = await this.auditRepository.find({
+      where: { principalId },
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+
+    return entities.map(this.entityToEvent);
   }
 
   /**
    * Get audit trail for a proof
    */
-  getAuditTrailForProof(proofId: string): AuditEvent[] {
-    return this.auditLog.filter((event) => event.proofId === proofId);
+  async getAuditTrailForProof(proofId: string): Promise<AuditEvent[]> {
+    const entities = await this.auditRepository.find({
+      where: { proofId },
+      order: { timestamp: 'DESC' },
+    });
+
+    return entities.map(this.entityToEvent);
   }
 
   /**
    * Get all security events (for monitoring/alerting)
    */
-  getSecurityEvents(since?: Date, limit = 100): AuditEvent[] {
+  async getSecurityEvents(since?: Date, limit = 100): Promise<AuditEvent[]> {
     const securityTypes = [
-      AuditEventType.RATE_LIMIT_EXCEEDED,
-      AuditEventType.INVALID_INPUT,
-      AuditEventType.SUSPICIOUS_ACTIVITY,
-      AuditEventType.PROOF_INVALID_SIGNATURE,
+      AuditEventTypeEnum.RATE_LIMIT_EXCEEDED,
+      AuditEventTypeEnum.INVALID_INPUT,
+      AuditEventTypeEnum.SUSPICIOUS_ACTIVITY,
+      AuditEventTypeEnum.PROOF_INVALID_SIGNATURE,
+      AuditEventTypeEnum.SECURITY_ALERT,
+      AuditEventTypeEnum.SANDBOX_VIOLATION,
+      AuditEventTypeEnum.KILL_SWITCH_ACTIVATED,
     ];
 
-    return this.auditLog
-      .filter((event) => {
-        if (!securityTypes.includes(event.type)) return false;
-        if (since && new Date(event.timestamp) < since) return false;
-        return true;
-      })
-      .slice(-limit)
-      .reverse();
+    const where: any = {
+      type: In(securityTypes),
+    };
+
+    if (since) {
+      where.timestamp = MoreThan(since);
+    }
+
+    const entities = await this.auditRepository.find({
+      where,
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+
+    return entities.map(this.entityToEvent);
   }
 
   /**
    * Export audit log for compliance (e.g., SOC 2, GDPR requests)
    */
-  exportAuditLog(
-    filters?: {
-      startDate?: Date;
-      endDate?: Date;
-      principalId?: string;
-      types?: AuditEventType[];
-    },
-  ): AuditEvent[] {
-    return this.auditLog.filter((event) => {
-      const eventDate = new Date(event.timestamp);
-      
-      if (filters?.startDate && eventDate < filters.startDate) return false;
-      if (filters?.endDate && eventDate > filters.endDate) return false;
-      if (filters?.principalId && event.principalId !== filters.principalId) return false;
-      if (filters?.types && !filters.types.includes(event.type)) return false;
-      
-      return true;
+  async exportAuditLog(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    principalId?: string;
+    types?: AuditEventTypeEnum[];
+  }): Promise<AuditEvent[]> {
+    const where: any = {};
+
+    if (filters?.startDate && filters?.endDate) {
+      where.timestamp = Between(filters.startDate, filters.endDate);
+    } else if (filters?.startDate) {
+      where.timestamp = MoreThan(filters.startDate);
+    }
+
+    if (filters?.principalId) {
+      where.principalId = filters.principalId;
+    }
+
+    if (filters?.types) {
+      where.type = In(filters.types);
+    }
+
+    const entities = await this.auditRepository.find({
+      where,
+      order: { timestamp: 'DESC' },
     });
+
+    return entities.map(this.entityToEvent);
   }
 
   /**
    * Get recent events (for dashboard)
    */
-  getRecentEvents(limit = 100): AuditEvent[] {
-    return this.auditLog.slice(-limit).reverse();
+  async getRecentEvents(limit = 100): Promise<AuditEvent[]> {
+    const entities = await this.auditRepository.find({
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+
+    return entities.map(this.entityToEvent);
+  }
+
+  /**
+   * Convert entity to interface
+   */
+  private entityToEvent(entity: AuditEventEntity): AuditEvent {
+    return {
+      id: entity.id,
+      timestamp: entity.timestamp.toISOString(),
+      type: entity.type,
+      principalId: entity.principalId,
+      agentId: entity.agentId,
+      proofId: entity.proofId,
+      action: entity.action,
+      target: entity.target,
+      ipAddress: entity.ipAddress,
+      userAgent: entity.userAgent,
+      success: entity.success,
+      errorMessage: entity.errorMessage,
+      metadata: entity.metadata,
+    };
   }
 }
-

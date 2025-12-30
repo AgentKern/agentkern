@@ -21,7 +21,7 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
-import { AuditLoggerService, AuditEventType } from '../services/audit-logger.service';
+import { AuditLoggerService, AuditEvent, AuditEventType } from '../services/audit-logger.service';
 import { LicenseGuard, EnterpriseOnly, RequireFeature } from '../guards/license.guard';
 import {
   DashboardStatsResponseDto,
@@ -67,23 +67,23 @@ export class DashboardController {
     description: '🔒 Enterprise - Returns key metrics for the enterprise dashboard.',
   })
   @ApiResponse({ status: 200, description: 'Dashboard stats', type: DashboardStatsResponseDto })
-  getStats(): DashboardStatsResponseDto {
-    const events = this.auditLogger.getRecentEvents(1000);
+  async getStats(): Promise<DashboardStatsResponseDto> {
+    const events = await this.auditLogger.getRecentEvents(1000);
     const today = new Date().toISOString().split('T')[0];
 
-    const todayEvents = events.filter((e: any) => e.timestamp.startsWith(today));
-    const verifications = todayEvents.filter((e: any) =>
+    const todayEvents = events.filter((e: AuditEvent) => e.timestamp.startsWith(today));
+    const verifications = todayEvents.filter((e: AuditEvent) =>
       e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
       e.type === AuditEventType.PROOF_VERIFICATION_FAILURE
     );
 
-    const successCount = verifications.filter((e: any) => e.success).length;
+    const successCount = verifications.filter((e: AuditEvent) => e.success).length;
     const totalCount = verifications.length;
 
-    const revocations = todayEvents.filter((e: any) => e.type === AuditEventType.KEY_REVOKED).length;
+    const revocations = todayEvents.filter((e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED).length;
 
-    const uniqueAgents = new Set(events.map((e: any) => e.agentId).filter(Boolean));
-    const uniquePrincipals = new Set(events.map((e: any) => e.principalId).filter(Boolean));
+    const uniqueAgents = new Set(events.map((e: AuditEvent) => e.agentId).filter(Boolean));
+    const uniquePrincipals = new Set(events.map((e: AuditEvent) => e.principalId).filter(Boolean));
 
     return {
       verificationsToday: totalCount,
@@ -102,16 +102,16 @@ export class DashboardController {
     description: 'Returns verification success/failure trends over time.',
   })
   @ApiResponse({ status: 200, description: 'Verification trends', type: [VerificationTrendDto] })
-  getTrends(@Query('days') days: number = 7): VerificationTrendDto[] {
+  async getTrends(@Query('days') days: number = 7): Promise<VerificationTrendDto[]> {
     const trends: VerificationTrendDto[] = [];
-    const events = this.auditLogger.getRecentEvents(10000);
+    const events = await this.auditLogger.getRecentEvents(10000);
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
 
-      const dayEvents = events.filter(e =>
+      const dayEvents = events.filter((e: AuditEvent) =>
         e.timestamp.startsWith(dateStr) &&
         (e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
          e.type === AuditEventType.PROOF_VERIFICATION_FAILURE)
@@ -119,8 +119,8 @@ export class DashboardController {
 
       trends.push({
         date: dateStr,
-        success: dayEvents.filter(e => e.success).length,
-        failure: dayEvents.filter(e => !e.success).length,
+        success: dayEvents.filter((e: AuditEvent) => e.success).length,
+        failure: dayEvents.filter((e: AuditEvent) => !e.success).length,
       });
     }
 
@@ -133,8 +133,8 @@ export class DashboardController {
     description: 'Returns the most active agents by verification count.',
   })
   @ApiResponse({ status: 200, description: 'Top agents', type: [TopAgentDto] })
-  getTopAgents(@Query('limit') limit: number = 10): TopAgentDto[] {
-    const events = this.auditLogger.getRecentEvents(10000);
+  async getTopAgents(@Query('limit') limit: number = 10): Promise<TopAgentDto[]> {
+    const events = await this.auditLogger.getRecentEvents(10000);
 
     const agentCounts = new Map<string, { count: number; name: string }>();
 
@@ -165,29 +165,32 @@ export class DashboardController {
     description: 'Generates a compliance report for a date range.',
   })
   @ApiResponse({ status: 200, description: 'Compliance report', type: ComplianceReportResponseDto })
-  generateComplianceReport(@Body() dto: ComplianceReportRequestDto): ComplianceReportResponseDto {
-    const events = this.auditLogger.getRecentEvents(100000);
-
+  async generateComplianceReport(@Body() dto: ComplianceReportRequestDto): Promise<ComplianceReportResponseDto> {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
-    const filteredEvents = events.filter(e => {
-      const eventDate = new Date(e.timestamp);
-      if (eventDate < startDate || eventDate > endDate) return false;
+    // Use the exportAuditLog method which supports date filtering
+    const filteredEvents = await this.auditLogger.exportAuditLog({
+      startDate,
+      endDate,
+    });
+
+    // Further filter by agent/principal if specified
+    const events = filteredEvents.filter((e: AuditEvent) => {
       if (dto.agentId && e.agentId !== dto.agentId) return false;
       if (dto.principalId && e.principalId !== dto.principalId) return false;
       return true;
     });
 
-    const verifications = filteredEvents.filter(e =>
+    const verifications = events.filter((e: AuditEvent) =>
       e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
       e.type === AuditEventType.PROOF_VERIFICATION_FAILURE
     );
 
-    const successful = verifications.filter(e => e.success).length;
-    const failed = verifications.filter(e => !e.success).length;
-    const revocations = filteredEvents.filter(e => e.type === AuditEventType.KEY_REVOKED).length;
-    const violations = filteredEvents.filter(e => e.type === AuditEventType.SECURITY_ALERT).length;
+    const successful = verifications.filter((e: AuditEvent) => e.success).length;
+    const failed = verifications.filter((e: AuditEvent) => !e.success).length;
+    const revocations = events.filter((e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED).length;
+    const violations = events.filter((e: AuditEvent) => e.type === AuditEventType.SECURITY_ALERT).length;
 
     return {
       id: crypto.randomUUID(),
@@ -207,14 +210,14 @@ export class DashboardController {
     description: 'Returns the complete audit trail for compliance.',
   })
   @ApiResponse({ status: 200, description: 'Audit trail' })
-  getAuditTrail(
+  async getAuditTrail(
     @Query('limit') limit: number = 100,
     @Query('type') type?: string,
-  ) {
-    const events = this.auditLogger.getRecentEvents(limit);
+  ): Promise<AuditEvent[]> {
+    const events = await this.auditLogger.getRecentEvents(limit);
 
     if (type) {
-      return events.filter(e => e.type === type);
+      return events.filter((e: AuditEvent) => e.type === type);
     }
 
     return events;

@@ -1,17 +1,20 @@
 /**
  * AgentKernIdentity - Proof Verification Service
- * 
+ *
  * Verifies Liability Proofs using real cryptographic verification.
- * No mocks, no placeholders - production code.
+ * Production-ready with TypeORM persistence for verification keys.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as jose from 'jose';
 import {
   LiabilityProof,
   LiabilityProofPayload,
   parseProofHeader,
 } from '../domain/liability-proof.entity';
+import { VerificationKeyEntity } from '../entities/verification-key.entity';
 
 export interface VerificationResult {
   valid: boolean;
@@ -29,16 +32,23 @@ export interface VerificationResult {
 export interface PublicKeyInfo {
   principalId: string;
   credentialId: string;
-  publicKey: string; // PEM or JWK format
+  publicKey: string;
   algorithm: string;
 }
 
 @Injectable()
-export class ProofVerificationService {
+export class ProofVerificationService implements OnModuleInit {
   private readonly logger = new Logger(ProofVerificationService.name);
 
-  // In production, this would be a database lookup
-  private publicKeys: Map<string, PublicKeyInfo> = new Map();
+  constructor(
+    @InjectRepository(VerificationKeyEntity)
+    private readonly keyRepository: Repository<VerificationKeyEntity>,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    const count = await this.keyRepository.count({ where: { active: true } });
+    this.logger.log(`🔑 Proof verification initialized with ${count} active keys`);
+  }
 
   /**
    * Verify a Liability Proof from X-AgentKernIdentity header
@@ -99,12 +109,62 @@ export class ProofVerificationService {
   }
 
   /**
-   * Register a public key for verification
+   * Register a public key for verification (persisted to database)
    */
-  registerPublicKey(keyInfo: PublicKeyInfo): void {
-    const keyId = `${keyInfo.principalId}:${keyInfo.credentialId}`;
-    this.publicKeys.set(keyId, keyInfo);
-    this.logger.log(`Registered public key for: ${keyId}`);
+  async registerPublicKey(keyInfo: PublicKeyInfo): Promise<VerificationKeyEntity> {
+    // Check if key already exists
+    const existing = await this.keyRepository.findOne({
+      where: {
+        principalId: keyInfo.principalId,
+        credentialId: keyInfo.credentialId,
+      },
+    });
+
+    if (existing) {
+      // Update existing key
+      existing.publicKey = keyInfo.publicKey;
+      existing.algorithm = keyInfo.algorithm;
+      existing.active = true;
+      existing.updatedAt = new Date();
+      const updated = await this.keyRepository.save(existing);
+      this.logger.log(`Updated public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`);
+      return updated;
+    }
+
+    // Create new key
+    const entity = this.keyRepository.create({
+      principalId: keyInfo.principalId,
+      credentialId: keyInfo.credentialId,
+      publicKey: keyInfo.publicKey,
+      algorithm: keyInfo.algorithm,
+      format: 'pem',
+      active: true,
+    });
+
+    const saved = await this.keyRepository.save(entity);
+    this.logger.log(`Registered public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`);
+    return saved;
+  }
+
+  /**
+   * Revoke a public key
+   */
+  async revokeKey(principalId: string, credentialId: string): Promise<boolean> {
+    const result = await this.keyRepository.update(
+      { principalId, credentialId },
+      { active: false },
+    );
+    return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * Get all active keys for a principal
+   */
+  async getActiveKeys(principalId: string): Promise<VerificationKeyEntity[]> {
+    return this.keyRepository.find({
+      where: { principalId, active: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   /**
@@ -113,30 +173,49 @@ export class ProofVerificationService {
   private async verifySignature(proof: LiabilityProof): Promise<boolean> {
     try {
       const { principal } = proof.payload;
-      const keyId = `${principal.id}:${principal.credentialId}`;
-      const keyInfo = this.publicKeys.get(keyId);
 
-      if (!keyInfo) {
-        this.logger.warn(`Public key not found for: ${keyId}`);
-        // In production with Trust Mesh, we would query the network
-        // For now, return false if key not registered
+      // Look up key from database
+      const keyEntity = await this.keyRepository.findOne({
+        where: {
+          principalId: principal.id,
+          credentialId: principal.credentialId,
+          active: true,
+        },
+      });
+
+      if (!keyEntity) {
+        this.logger.warn(`Public key not found for: ${principal.id}:${principal.credentialId}`);
+        return false;
+      }
+
+      // Check if key is expired
+      if (keyEntity.expiresAt && keyEntity.expiresAt < new Date()) {
+        this.logger.warn(`Public key expired for: ${principal.id}:${principal.credentialId}`);
         return false;
       }
 
       // Import the public key
-      const publicKey = await jose.importSPKI(keyInfo.publicKey, 'ES256');
+      const publicKey = await jose.importSPKI(keyEntity.publicKey, keyEntity.algorithm as 'ES256');
 
       // Reconstruct the signed payload
       const payloadJson = JSON.stringify(proof.payload);
-      const payloadBytes = new TextEncoder().encode(payloadJson);
 
       // Verify the signature
-      const signatureBytes = Buffer.from(proof.signature, 'base64url');
-      
       const isValid = await jose.compactVerify(
         `eyJhbGciOiJFUzI1NiJ9.${Buffer.from(payloadJson).toString('base64url')}.${proof.signature}`,
         publicKey,
       ).then(() => true).catch(() => false);
+
+      if (isValid) {
+        // Update usage statistics
+        await this.keyRepository.update(
+          { id: keyEntity.id },
+          {
+            lastUsedAt: new Date(),
+            usageCount: () => 'usageCount + 1',
+          },
+        );
+      }
 
       return isValid;
     } catch (error) {
@@ -162,8 +241,7 @@ export class ProofVerificationService {
       }
     }
 
-    // Geo-fence would require IP geolocation in production
-    // Logged for now
+    // GeoFence constraint logged for now (would require IP geolocation service)
     if (constraints.geoFence && constraints.geoFence.length > 0) {
       this.logger.debug(`GeoFence constraint: ${constraints.geoFence.join(', ')}`);
     }
