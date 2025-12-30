@@ -6,6 +6,7 @@
  * - Prompt injection protection
  * - Crypto-agility for quantum-safe migration
  * - Agent sandboxing and budget enforcement
+ * - CSP violation monitoring
  */
 
 import { Module, Global } from '@nestjs/common';
@@ -20,10 +21,12 @@ import { AIGovernanceService } from '../services/ai-governance.service';
 import { PrivacyEngineeringService } from '../services/privacy-engineering.service';
 import { SustainabilityService } from '../services/sustainability.service';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
+import { CspReportController } from '../controllers/csp-report.controller';
 
 @Global()
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([AgentRecordEntity])],
+  controllers: [CspReportController],
   providers: [
     // Core security services
     CryptoAgilityService,

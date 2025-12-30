@@ -20,8 +20,34 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  // Security Headers (Helmet)
-  app.use(helmet());
+  // Security Headers (Helmet) with CSP Reporting
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+        // CSP Violation Reporting
+        reportUri: '/api/v1/security/csp-report',
+      },
+      reportOnly: process.env.CSP_REPORT_ONLY === 'true', // Start with report-only mode
+    },
+    strictTransportSecurity: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    xssFilter: true,
+    hidePoweredBy: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }));
 
   // Body Size Limits (DoS Protection)
   app.use(require('express').json({ limit: '100kb' }));
