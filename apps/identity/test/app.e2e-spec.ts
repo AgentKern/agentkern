@@ -21,7 +21,7 @@ describe('AppController (e2e)', () => {
       .get('/')
       .expect(200)
       .expect((res) => {
-        expect(res.body.name).toBe('AgentProof API');
+        expect(res.body.name).toBe('AgentKernIdentity API');
       });
   });
 });

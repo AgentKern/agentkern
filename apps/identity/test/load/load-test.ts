@@ -1,5 +1,5 @@
 /**
- * AgentProof Load Testing Script
+ * AgentKernIdentity Load Testing Script
  * 
  * Run: npx ts-node test/load/load-test.ts
  * 
@@ -108,7 +108,7 @@ async function runLoadTest(
 }
 
 async function runAllLoadTests() {
-  console.log('🔥 AgentProof Load Testing Suite\n');
+  console.log('🔥 AgentKernIdentity Load Testing Suite\n');
   console.log('='.repeat(60));
 
   const config: LoadTestConfig = {

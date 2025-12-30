@@ -35,7 +35,7 @@ describe('DashboardController (e2e)', () => {
         .get('/api/v1/dashboard')
         .expect(200)
         .expect((res) => {
-          expect(res.body.name).toBe('AgentProof Dashboard API');
+          expect(res.body.name).toBe('AgentKernIdentity Dashboard API');
           expect(res.body.endpoints).toBeDefined();
         });
     });
