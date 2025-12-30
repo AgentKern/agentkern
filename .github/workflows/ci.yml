@@ -187,6 +187,7 @@ jobs:
         working-directory: apps/identity
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/agentkern_test
+          DATABASE_SYNC: 'true'
           NODE_ENV: test
         run: |
           pnpm test:e2e -- --testPathPattern="security|penetration"
