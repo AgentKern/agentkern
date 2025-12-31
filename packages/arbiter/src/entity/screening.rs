@@ -104,6 +104,13 @@ impl InvestmentScreener {
                         .any(|h| s_lower.contains(h))
                 })
             }
+            // ESG Threshold Rationale (EPISTEMIC WARRANT):
+            // MSCI ESG uses 0-10 scale; our 0-100 scale maps 50.0 to 5.0 = "Average"
+            // Reference: MSCI ESG Ratings Methodology (2024)
+            // - AAA/AA (Leaders): ~7-10 → our 70-100
+            // - A/BBB/BB (Average): ~3-7 → our 30-70
+            // - B/CCC (Laggards): ~0-3 → our 0-30
+            // 50.0 = minimum "Average" rating, acceptable for non-specialist funds
             ScreeningCriteria::Environmental => {
                 target.esg_scores.as_ref().map(|s| s.environmental >= 50.0).unwrap_or(true)
             }

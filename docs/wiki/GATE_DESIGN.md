@@ -1058,10 +1058,12 @@ pub struct IoUringRuntimeConfig {
 | [`actors.rs`](../../packages/gate/src/actors.rs) | 311 | Actix supervision |
 | [`feature_flags.rs`](../../packages/gate/src/feature_flags.rs) | 307 | Feature management |
 | [`runtime.rs`](../../packages/gate/src/runtime.rs) | 193 | io_uring runtime |
-| [`connectors/`](../../packages/gate/src/connectors/) | — | Legacy bridges |
-| [`wasm/`](../../packages/gate/src/wasm/) | — | WASM isolation |
+| [`connectors/`](../../packages/gate/src/connectors/) | ~500 | Legacy bridges (SAP, SWIFT, SQL) |
+| [`wasm/mod.rs`](../../packages/gate/src/wasm/mod.rs) | 270 | WASM policy engine |
+| [`wasm/registry.rs`](../../packages/gate/src/wasm/registry.rs) | ~350 | WASM module registry |
+| [`wasm/loader.rs`](../../packages/gate/src/wasm/loader.rs) | ~100 | WASM module loader |
 
-**Total: ~6,500 lines of Rust**
+**Total: ~7,500 lines of Rust**
 
 ---
 
