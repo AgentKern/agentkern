@@ -9,11 +9,19 @@
 | Pillar | Status | Document |
 |--------|--------|----------|
 | 🪪 **Identity** | ✅ Complete | [IDENTITY_DESIGN.md](IDENTITY_DESIGN.md) |
-| 🛡️ **Gate** | 📝 Coming... | [GATE_DESIGN.md](GATE_DESIGN.md) |
+| 🛡️ **Gate** | ✅ Complete | [GATE_DESIGN.md](GATE_DESIGN.md) |
 | 🧠 **Synapse** | 📝 Coming... | [SYNAPSE_DESIGN.md](SYNAPSE_DESIGN.md) |
 | ⚖️ **Arbiter** | 📝 Coming... | [ARBITER_DESIGN.md](ARBITER_DESIGN.md) |
 | 💰 **Treasury** | 📝 Coming... | [TREASURY_DESIGN.md](TREASURY_DESIGN.md) |
 | 🔀 **Nexus** | 📝 Coming... | [NEXUS_DESIGN.md](NEXUS_DESIGN.md) |
+
+---
+
+## Guides
+
+| Guide | Description |
+|-------|-------------|
+| 🔌 **[Integration Guide](INTEGRATION_GUIDE.md)** | How to connect your agents to AgentKern |
 
 ---
 

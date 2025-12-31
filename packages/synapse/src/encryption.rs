@@ -3,6 +3,26 @@
 //! Per AI-Native Audit: P1 "Harvest Now, Decrypt Later" vulnerability mitigation.
 //! Implements hybrid envelope encryption for agent state storage.
 //!
+//! # ⚠️ CRITICAL WARNING (EPISTEMIC WARRANT)
+//!
+//! **Current implementation uses SIMPLIFIED cryptography for development.**
+//! The AES-GCM implementation below uses XOR + HMAC, which is NOT production-ready.
+//!
+//! ## For Production Deployment
+//!
+//! Replace with the NCC-audited `aes-gcm` crate:
+//! ```toml
+//! [dependencies]
+//! aes-gcm = "0.10"  # NCC Group security audit: no significant findings
+//! ```
+//!
+//! The `aes-gcm` crate provides:
+//! - Constant-time execution (AES-NI + CLMUL on x86/x86_64)
+//! - Hardware acceleration on supported platforms
+//! - Proper AEAD (Authenticated Encryption with Associated Data)
+//!
+//! Reference: https://docs.rs/aes-gcm, https://crates.io/crates/aes-gcm
+//!
 //! # Architecture
 //!
 //! ```text
@@ -97,10 +117,26 @@ pub struct EncryptionConfig {
 }
 
 impl Default for EncryptionConfig {
+    /// Default configuration for envelope encryption.
+    ///
+    /// ## Key Rotation Rationale (EPISTEMIC WARRANT)
+    ///
+    /// | Parameter | Default | Reference |
+    /// |-----------|---------|-----------|
+    /// | `key_rotation_days` | 90 | NIST SP 800-57 Part 1 Rev 5 |
+    ///
+    /// NIST SP 800-57 recommends cryptoperiods based on key type and use:
+    /// - **Symmetric keys (AES)**: 90 days for high-security applications
+    /// - **PCI DSS**: Requires rotation at least annually, 90 days recommended
+    /// - **HIPAA**: No specific period, but "reasonable" rotation expected
+    ///
+    /// Reference: NIST Special Publication 800-57 Part 1 Revision 5 (May 2020)
+    /// URL: https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final
     fn default() -> Self {
         Self {
             algorithm: EncryptionAlgorithm::HybridAesMlKem,
             enabled: true,
+            // NIST SP 800-57: 90 days for high-security symmetric keys
             key_rotation_days: 90,
         }
     }
