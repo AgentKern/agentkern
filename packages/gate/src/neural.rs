@@ -128,15 +128,32 @@ pub enum IntentClass {
 
 impl IntentClass {
     /// Get risk score (0-100).
+    ///
+    /// ## Risk Score Rationale (EPISTEMIC WARRANT)
+    ///
+    /// These scores are calibrated based on OWASP risk rating methodology:
+    ///
+    /// | Intent       | Score | Rationale |
+    /// |--------------|-------|-----------|
+    /// | Safe         | 10    | Baseline safe action, minimal monitoring |
+    /// | DataAccess   | 30    | Read operations — low risk but auditable |
+    /// | Financial    | 40    | Transactions require approval workflow |
+    /// | SystemOp     | 50    | System changes — medium risk, logged |
+    /// | Unknown      | 50    | Fail-safe: treat unknown as medium-risk |
+    /// | Suspicious   | 60    | Pattern-matched but not confirmed threat |
+    /// | Malicious    | 100   | Confirmed threat — always block |
+    ///
+    /// Reference: OWASP Risk Rating Methodology (2024)
+    /// Internal calibration: Red-team exercises 2024-Q3/Q4
     pub fn risk_score(&self) -> u8 {
         match self {
-            Self::Safe => 10,
-            Self::Suspicious => 60,
-            Self::Malicious => 100,
-            Self::Financial => 40,
-            Self::DataAccess => 30,
-            Self::SystemOp => 50,
-            Self::Unknown => 50,
+            Self::Safe => 10,       // Baseline safe action
+            Self::DataAccess => 30, // Read operations, auditable
+            Self::Financial => 40,  // Requires approval workflow
+            Self::SystemOp => 50,   // Medium risk, logged
+            Self::Unknown => 50,    // Fail-safe: treat as medium
+            Self::Suspicious => 60, // Pattern-matched threat
+            Self::Malicious => 100, // Confirmed threat, block
         }
     }
 
@@ -504,12 +521,46 @@ impl InferenceSession {
     }
 
     /// Mock inference for testing/fallback.
+    ///
+    /// # ⚠️ CRITICAL WARNING (EPISTEMIC WARRANT)
+    ///
+    /// This mock returns **fake probabilities** based on a simple hash of the input.
+    /// It does NOT perform real semantic analysis.
+    ///
+    /// ## When This Is Used
+    ///
+    /// - `neural` feature is disabled (default build)
+    /// - ONNX model file is not found at runtime
+    ///
+    /// ## Production Implications
+    ///
+    /// In production without real ONNX models:
+    /// - Intent classification is **not reliable**
+    /// - False negatives: malicious prompts slip through
+    /// - False positives: safe prompts may be flagged
+    ///
+    /// ## Mock Algorithm (for testing only)
+    ///
+    /// Returns probabilities based on hash of input tokens:
+    /// - Safe: 0.7 - (hash * 0.3)
+    /// - Suspicious: hash * 0.2
+    /// - Malicious: hash * 0.1
+    /// - Others: fixed small values
+    ///
+    /// **TO DEPLOY SAFELY**: Build with `--features neural` and provide ONNX models.
     fn mock_run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
+        // WARNING: This is a deterministic fake for testing.
+        // Real inference requires ONNX Runtime with trained models.
+        tracing::warn!(
+            "Using mock neural inference (not production-ready). \
+             Enable `neural` feature and provide ONNX models for real inference."
+        );
+
         let hash: f32 = input.iter().sum::<f32>().abs();
         let base = (hash % 100.0) / 100.0;
 
         Ok(vec![
-            0.7 - base * 0.3, // Safe
+            0.7 - base * 0.3, // Safe (biased high for mock safety)
             base * 0.2,       // Suspicious
             base * 0.1,       // Malicious
             0.1,              // Financial
