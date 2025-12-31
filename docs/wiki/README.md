@@ -11,7 +11,7 @@
 | 🪪 **Identity** | ✅ Complete | [IDENTITY_DESIGN.md](IDENTITY_DESIGN.md) |
 | 🛡️ **Gate** | ✅ Complete | [GATE_DESIGN.md](GATE_DESIGN.md) |
 | 🧠 **Synapse** | ✅ Complete | [SYNAPSE_DESIGN.md](SYNAPSE_DESIGN.md) |
-| ⚖️ **Arbiter** | 📝 Coming... | [ARBITER_DESIGN.md](ARBITER_DESIGN.md) |
+| ⚖️ **Arbiter** | ✅ Complete | [ARBITER_DESIGN.md](ARBITER_DESIGN.md) |
 | 💰 **Treasury** | 📝 Coming... | [TREASURY_DESIGN.md](TREASURY_DESIGN.md) |
 | 🔀 **Nexus** | 📝 Coming... | [NEXUS_DESIGN.md](NEXUS_DESIGN.md) |
 

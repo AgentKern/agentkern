@@ -257,7 +257,8 @@ mod tests {
         let required = vec!["nlp".into(), "vision".into(), "audio".into()];
         let score = card.skill_match_score(&required);
 
-        // 2 out of 3 = 66%
+        // 2 out of 3 = 66.67%, truncated to u8 = 66
+        // Range assertion accounts for floating-point rounding
         assert!(score >= 66 && score <= 67);
     }
 
