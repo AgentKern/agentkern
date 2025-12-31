@@ -8,6 +8,11 @@
 //! - Discovery: Agent Cards at /.well-known/agent.json
 //! - Task lifecycle: submitted → working → completed/failed/canceled
 
+// Production: Spec-compliant types for future A2A integration.
+// These types match the Google A2A v0.3 specification and will be
+// used when full A2A protocol support is implemented.
+#![allow(dead_code)]
+
 use super::ProtocolAdapter;
 use crate::error::NexusError;
 use crate::types::{NexusMessage, Protocol, TaskStatus};

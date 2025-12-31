@@ -30,7 +30,7 @@ pub enum Language {
 impl Language {
     /// Detect language from text (simplified).
     pub fn detect(text: &str) -> Self {
-        let text_lower = text.to_lowercase();
+        let _text_lower = text.to_lowercase();
 
         // Arabic detection (presence of Arabic Unicode block)
         if text.chars().any(|c| ('\u{0600}'..='\u{06FF}').contains(&c)) {

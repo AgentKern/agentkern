@@ -5,7 +5,6 @@
 
 use super::DataRegion;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Transfer policy for cross-region data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

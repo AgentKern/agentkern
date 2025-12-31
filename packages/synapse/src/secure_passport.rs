@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::encryption::{EncryptedEnvelope, EncryptionConfig, EncryptionEngine, EncryptionError};
+use crate::encryption::{EncryptedEnvelope, EncryptionEngine, EncryptionError};
 use crate::types::AgentState;
 
 // ============================================================================

@@ -5,7 +5,6 @@
 
 use super::schema::{MemoryPassport, PassportError};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Data category for GDPR classification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

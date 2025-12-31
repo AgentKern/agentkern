@@ -26,13 +26,11 @@
 //! drop(permit); // Release when done
 //! ```
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::{Semaphore, SemaphorePermit};
-use uuid::Uuid;
 
 /// Resource quota types.
 #[derive(Debug, Clone, Serialize, Deserialize)]

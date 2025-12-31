@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 
 use crate::drift::{DriftDetector, DriftResult};
 use crate::intent::IntentPath;
-use crate::types::{AgentState, StateQuery, StateUpdate};
+use crate::types::{AgentState, StateUpdate};
 
 /// The Synapse state store.
 pub struct StateStore {

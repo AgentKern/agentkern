@@ -70,7 +70,7 @@ impl PassportImporter {
         data: &[u8],
         options: &ImportOptions,
     ) -> Result<ImportResult, PassportError> {
-        let mut warnings: Vec<String> = Vec::new();
+        let _warnings: Vec<String> = Vec::new();
 
         // Detect format and decrypt if needed
         let json_data = if data.starts_with(b"ENCRYPTED:") {

@@ -195,7 +195,7 @@ impl LockManager {
     }
 
     /// Release a lock (called automatically by LockGuard drop).
-    fn release_local(&self, resource: &str) {
+    fn _release_local(&self, resource: &str) {
         let mut locks = self.local_locks.write();
         locks.remove(resource);
         tracing::debug!(resource = %resource, "Local lock released");

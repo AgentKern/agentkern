@@ -1,5 +1,5 @@
-#![allow(unused)]
-#![allow(dead_code)]
+#![warn(unused)]  // Production: warn on unused code
+#![warn(dead_code)]  // Production: warn on dead code
 //! AgentKern-Treasury: Agent Payment Infrastructure
 //!
 //! Per MANIFESTO.md: "Agents can pay each other for services via micropayment rails"

@@ -1,5 +1,5 @@
-#![allow(unused)]
-#![allow(dead_code)]
+#![warn(unused)]  // Production: warn on unused code
+#![warn(dead_code)]  // Production: warn on dead code
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::derivable_impls)]
 #![allow(clippy::type_complexity)]

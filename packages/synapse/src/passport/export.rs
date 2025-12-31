@@ -2,7 +2,7 @@
 //!
 //! Supports multiple export formats and encryption options.
 
-use super::schema::{MemoryPassport, PassportError, ProvenanceSignature};
+use super::schema::{MemoryPassport, PassportError};
 use serde::{Deserialize, Serialize};
 
 /// Export format options.

@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![warn(unused)]  // Production: warn on unused code
 //! AgentKern Native Binding
 //!
 //! NAPI-RS bindings exposing Rust core to Node.js Gateway.

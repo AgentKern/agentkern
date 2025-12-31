@@ -8,6 +8,11 @@
 //! - Auth: OAuth 2.1
 //! - Focus: LLM ↔ Tools connection
 
+// Production: Spec-compliant types for future MCP integration.
+// These types match the Anthropic MCP June 2025 specification and will be
+// used when full MCP server/client support is implemented.
+#![allow(dead_code)]
+
 use super::ProtocolAdapter;
 use crate::error::NexusError;
 use crate::types::{NexusMessage, Protocol};

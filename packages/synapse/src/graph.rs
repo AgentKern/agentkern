@@ -10,7 +10,6 @@
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Node in the state graph.
 #[derive(Debug, Clone, Serialize, Deserialize)]

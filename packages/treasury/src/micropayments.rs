@@ -169,7 +169,7 @@ impl MicropaymentAggregator {
         let mut pending = self.pending.write();
         let mut batches = Vec::new();
 
-        for (receiver, payments) in pending.drain() {
+        for (_receiver, payments) in pending.drain() {
             if payments.is_empty() {
                 continue;
             }
