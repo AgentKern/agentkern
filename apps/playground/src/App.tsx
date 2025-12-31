@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
-// Types
+// ============================================================================
+// TYPES
+// ============================================================================
+
 interface Agent {
   id: string;
   name: string;
@@ -31,7 +34,95 @@ interface PromptCheckResult {
   reason?: string;
 }
 
-// Simulated AgentKern Client
+// ============================================================================
+// REAL N-API INTEGRATION (via @agentkern/bridge)
+// ============================================================================
+
+// Try to import native bridge, fallback to simulation if not available
+let nativeBridge: {
+  guardPrompt?: (prompt: string) => string;
+  guardContext?: (chunks: string[]) => string;
+  verify?: (agentId: string, action: string, context?: string) => Promise<string>;
+  attest?: (nonce: string) => string;
+} = {};
+
+let bridgeAvailable = false;
+
+try {
+  // Dynamic import for native module (may fail in browser without proper bundling)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  nativeBridge = require('@agentkern/bridge');
+  bridgeAvailable = true;
+  console.log('✅ N-API Bridge loaded successfully');
+} catch (e) {
+  console.warn('⚠️ N-API Bridge not available, using simulation mode');
+  bridgeAvailable = false;
+}
+
+// ============================================================================
+// REAL IMPLEMENTATIONS (when bridge is available)
+// ============================================================================
+
+const realPromptCheck = async (prompt: string): Promise<PromptCheckResult> => {
+  if (!nativeBridge.guardPrompt) {
+    throw new Error('guardPrompt not available');
+  }
+  
+  const resultJson = nativeBridge.guardPrompt(prompt);
+  const result = JSON.parse(resultJson);
+  
+  return {
+    safe: result.threat_level === 'None' || result.threat_level === 'Low',
+    threatLevel: result.threat_level || 'None',
+    attackType: result.attacks?.[0] || undefined,
+    score: result.confidence || 0,
+    reason: result.matched_patterns?.join('; ') || undefined,
+  };
+};
+
+const realVerify = async (agentId: string, action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
+  if (!nativeBridge.verify) {
+    throw new Error('verify not available');
+  }
+  
+  const resultJson = await nativeBridge.verify(agentId, action, JSON.stringify(context));
+  const result = JSON.parse(resultJson);
+  
+  return {
+    allowed: result.allowed,
+    riskScore: result.final_risk_score || 0,
+    evaluatedPolicies: result.evaluated_policies || [],
+    reasoning: result.reasoning || 'Unknown',
+  };
+};
+
+// ============================================================================
+// SIMULATION FALLBACKS (when bridge/API is not available)
+// ============================================================================
+
+// Identity API URL (configurable via environment or defaults to localhost)
+const IDENTITY_API_URL = 'http://localhost:3000';
+
+const realRegister = async (name: string): Promise<Agent> => {
+  const response = await fetch(`${IDENTITY_API_URL}/api/v1/agents/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, version: '1.0.0' }),
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Registration failed: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  return {
+    id: data.agent.id,
+    name: data.agent.name,
+    capabilities: data.agent.capabilities || ['read', 'write'],
+    trustScore: data.agent.trustScore || 100,
+  };
+};
+
 const simulateRegister = async (name: string): Promise<Agent> => {
   await new Promise(r => setTimeout(r, 500));
   return {
@@ -64,21 +155,16 @@ const simulateStartIntent = async (intent: string, steps: number): Promise<Inten
   };
 };
 
-// PromptGuard simulation using same patterns as WASM module
+// Simulation patterns (subset of Rust patterns)
 const INJECTION_PATTERNS = [
   { pattern: 'ignore previous', attack: 'InstructionOverride', score: 40 },
   { pattern: 'ignore all', attack: 'InstructionOverride', score: 40 },
   { pattern: 'disregard above', attack: 'InstructionOverride', score: 40 },
   { pattern: 'you are now', attack: 'RoleHijacking', score: 35 },
   { pattern: 'pretend to be', attack: 'RoleHijacking', score: 35 },
-  { pattern: 'act as if', attack: 'RoleHijacking', score: 35 },
   { pattern: 'jailbreak', attack: 'Jailbreak', score: 50 },
   { pattern: 'developer mode', attack: 'Jailbreak', score: 50 },
   { pattern: 'no restrictions', attack: 'Jailbreak', score: 50 },
-  { pattern: 'bypass filters', attack: 'Jailbreak', score: 50 },
-  { pattern: 'exec(', attack: 'CodeInjection', score: 30 },
-  { pattern: 'eval(', attack: 'CodeInjection', score: 30 },
-  { pattern: '__import__', attack: 'CodeInjection', score: 30 },
 ];
 
 const simulatePromptCheck = async (prompt: string): Promise<PromptCheckResult> => {
@@ -111,11 +197,44 @@ const simulatePromptCheck = async (prompt: string): Promise<PromptCheckResult> =
   };
 };
 
+// ============================================================================
+// UNIFIED API (uses real bridge when available, simulation otherwise)
+// ============================================================================
+
+const checkPrompt = async (prompt: string): Promise<PromptCheckResult> => {
+  if (bridgeAvailable && nativeBridge.guardPrompt) {
+    return realPromptCheck(prompt);
+  }
+  return simulatePromptCheck(prompt);
+};
+
+const verifyAction = async (agentId: string, action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
+  if (bridgeAvailable && nativeBridge.verify) {
+    return realVerify(agentId, action, context);
+  }
+  return simulateVerify(action, context);
+};
+
+const registerAgent = async (name: string): Promise<Agent> => {
+  // Try real API first
+  try {
+    return await realRegister(name);
+  } catch (error) {
+    console.warn('Real API unavailable, using simulation:', error);
+    return simulateRegister(name);
+  }
+};
+
+// ============================================================================
+// MAIN APP COMPONENT
+// ============================================================================
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'identity' | 'gate' | 'synapse' | 'arbiter' | 'promptguard'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'gate' | 'synapse' | 'arbiter' | 'treasury' | 'nexus' | 'promptguard'>('identity');
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agentName, setAgentName] = useState('my-agent');
   const [loading, setLoading] = useState(false);
+  const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'connected' | 'simulated'>('checking');
 
   // Gate state
   const [action, setAction] = useState('transfer_funds');
@@ -130,16 +249,27 @@ export default function App() {
   const [promptText, setPromptText] = useState('');
   const [promptResult, setPromptResult] = useState<PromptCheckResult | null>(null);
 
+  // Check bridge status on mount
+  useEffect(() => {
+    setBridgeStatus(bridgeAvailable ? 'connected' : 'simulated');
+  }, []);
+
   const handleRegister = async () => {
     setLoading(true);
-    const newAgent = await simulateRegister(agentName);
-    setAgent(newAgent);
-    setLoading(false);
+    try {
+      const newAgent = await registerAgent(agentName);
+      setAgent(newAgent);
+    } catch (error) {
+      console.error('Registration failed:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerify = async () => {
+    if (!agent) return;
     setLoading(true);
-    const result = await simulateVerify(action, { amount: parseInt(amount) });
+    const result = await verifyAction(agent.id, action, { amount: parseInt(amount) });
     setVerification(result);
     setLoading(false);
   };
@@ -162,7 +292,7 @@ export default function App() {
 
   const handlePromptCheck = async () => {
     setLoading(true);
-    const result = await simulatePromptCheck(promptText);
+    const result = await checkPrompt(promptText);
     setPromptResult(result);
     setLoading(false);
   };
@@ -178,6 +308,15 @@ export default function App() {
           </svg>
           <span>AgentKern Playground</span>
         </div>
+        <div className="bridge-status">
+          {bridgeStatus === 'connected' ? (
+            <span className="status-badge connected">🔗 N-API Connected</span>
+          ) : bridgeStatus === 'simulated' ? (
+            <span className="status-badge simulated">⚠️ Simulation Mode</span>
+          ) : (
+            <span className="status-badge checking">⏳ Checking...</span>
+          )}
+        </div>
         <nav className="nav">
           <a href="https://github.com/AgentKern/agentkern" target="_blank" rel="noopener noreferrer">
             GitHub
@@ -191,7 +330,7 @@ export default function App() {
       <main className="main">
         <aside className="sidebar">
           <div className="sidebar-section">
-            <h3>The Four Pillars</h3>
+            <h3>The Six Pillars</h3>
             <button
               className={`sidebar-item ${activeTab === 'identity' ? 'active' : ''}`}
               onClick={() => setActiveTab('identity')}
@@ -215,6 +354,18 @@ export default function App() {
               onClick={() => setActiveTab('arbiter')}
             >
               ⚖️ Arbiter
+            </button>
+            <button
+              className={`sidebar-item ${activeTab === 'treasury' ? 'active' : ''}`}
+              onClick={() => setActiveTab('treasury')}
+            >
+              💰 Treasury
+            </button>
+            <button
+              className={`sidebar-item ${activeTab === 'nexus' ? 'active' : ''}`}
+              onClick={() => setActiveTab('nexus')}
+            >
+              🔀 Nexus
             </button>
             <button
               className={`sidebar-item ${activeTab === 'promptguard' ? 'active' : ''}`}
@@ -268,7 +419,10 @@ export default function App() {
           {activeTab === 'gate' && (
             <div className="panel">
               <h2>🛡️ Gate</h2>
-              <p className="description">Verify actions against policies before execution.</p>
+              <p className="description">
+                Verify actions against policies before execution.
+                {bridgeStatus === 'connected' && <strong> (Using Real Policy Engine)</strong>}
+              </p>
 
               <div className="form-group">
                 <label>Action</label>
@@ -439,10 +593,49 @@ export default function App() {
             </div>
           )}
 
+          {activeTab === 'treasury' && (
+            <div className="panel">
+              <h2>💰 Treasury</h2>
+              <p className="description">Manage agent budgets, micropayments, and carbon tracking.</p>
+
+              <div className="info-box">
+                <h4>🚧 Coming Soon</h4>
+                <p>Treasury integration is under development. Features include:</p>
+                <ul>
+                  <li>Agent budget allocation and tracking</li>
+                  <li>Micropayment channels for agent-to-agent transactions</li>
+                  <li>Carbon footprint monitoring and ESG reporting</li>
+                  <li>Cost optimization recommendations</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'nexus' && (
+            <div className="panel">
+              <h2>🔀 Nexus</h2>
+              <p className="description">Protocol translation gateway for A2A, MCP, and ANP.</p>
+
+              <div className="info-box">
+                <h4>🚧 Coming Soon</h4>
+                <p>Nexus integration is under development. Features include:</p>
+                <ul>
+                  <li>Google A2A protocol support</li>
+                  <li>Anthropic MCP integration</li>
+                  <li>Agent discovery via <code>/.well-known/agent.json</code></li>
+                  <li>Multi-protocol task routing</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'promptguard' && (
             <div className="panel">
               <h2>🔒 PromptGuard</h2>
-              <p className="description">Detect prompt injection attacks in real-time.</p>
+              <p className="description">
+                Detect prompt injection attacks in real-time.
+                {bridgeStatus === 'connected' && <strong> (Using Real Rust Engine)</strong>}
+              </p>
 
               <div className="form-group">
                 <label>Test Prompt</label>

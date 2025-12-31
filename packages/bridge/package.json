@@ -2,11 +2,16 @@
   "name": "@agentkern/bridge",
   "version": "0.1.0",
   "main": "index.node",
-  "scripts": {
-    "build": "napi build --platform --release",
-    "build:debug": "napi build --platform"
+  "types": "index.d.ts",
+  "napi": {
+    "name": "bridge"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.4"
+    "@napi-rs/cli": "^2.18.0"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm"
   }
 }

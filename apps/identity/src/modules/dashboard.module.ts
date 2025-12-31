@@ -3,14 +3,15 @@
  *
  * Enterprise dashboard for administration.
  * Note: Policy management is handled by Rust Gate package.
+ * AuditLoggerService is provided globally via SecurityModule.
  */
 
 import { Module } from '@nestjs/common';
 import { DashboardController } from '../controllers/dashboard.controller';
-import { AuditLoggerService } from '../services/audit-logger.service';
 
 @Module({
   controllers: [DashboardController],
-  providers: [AuditLoggerService],
+  // AuditLoggerService is available via @Global() SecurityModule
 })
 export class DashboardModule {}
+
