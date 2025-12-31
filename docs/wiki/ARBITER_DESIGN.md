@@ -849,39 +849,193 @@ match workflow.get_status(request.id)? {
 
 ## 14. Compliance Entities
 
-Regional and industry-specific compliance modules.
+Global entity formation, liability protection, and multi-framework compliance.
 
-### Shariah Compliance
+### Entity Types
 
 ```rust
-// packages/arbiter/src/entity/shariah.rs
-pub struct ShariahScreener {
-    prohibited_sectors: Vec<String>,  // Gambling, alcohol, pork, etc.
-    riba_threshold: f64,              // Interest-based income threshold
+pub enum EntityType {
+    Llc,           // US/EU/UK/SG/AE
+    Corporation,   // US/EU/UK/JP/CN
+    Takaful,       // MY/SA/AE/BH/PK/ID - Islamic mutual risk sharing
+    Waqf,          // MY/SA/AE/TR/PK - Islamic endowment/trust
+    Dao,           // WY/TN/UT/CH - Blockchain-native
+    Partnership,   // US/EU/UK
+    Individual,    // Global
 }
 ```
 
-### Sanctions Screening
+| Type | Shariah-Compliant | Key Jurisdictions |
+|------|-------------------|-------------------|
+| Takaful | ✅ By default | Malaysia, Saudi, UAE, Bahrain |
+| Waqf | ✅ By default | Malaysia, Saudi, Turkey |
+| DAO | ✅ Compatible | Wyoming, Tennessee, Switzerland |
+| LLC | ⚠️ Configurable | US, EU, UK, Singapore |
+
+### Liability Models
 
 ```rust
-// packages/arbiter/src/entity/screening.rs
-pub struct SanctionsScreener {
-    ofac_list: HashSet<String>,
-    eu_list: HashSet<String>,
-    un_list: HashSet<String>,
+pub enum LiabilityModel {
+    CorporateLiability,     // Traditional LLC/Corp protection
+    TakafulMutual,          // Islamic mutual pooling (Shariah ✅)
+    ConventionalInsurance,  // Traditional (Contains riba ❌)
+    DaoTreasury,            // Smart contract reserves (Shariah ✅)
+    SelfInsured,            // Agent holds reserves (Shariah ✅)
+    None,                   // Full personal liability
 }
 ```
 
-### Entity Formation
+```rust
+// Create Takaful protection
+let protection = LiabilityProtection::takaful(
+    "pool-001",
+    1_000_000,  // SAR 1M limit
+    "SAR",
+);
+
+// Coverage types: General, Professional, Cyber, D&O, Product
+```
+
+### Shariah Compliance Checker
+
+Implements Islamic finance principles per AAOIFI standards:
+
+| Check | Description | Severity |
+|-------|-------------|----------|
+| **Riba** | No interest/usury | Major (1.0) |
+| **Gharar** | No excessive uncertainty | Variable |
+| **Maysir** | No gambling/speculation | Major (0.9) |
+| **HalalSector** | No prohibited sectors | Major (1.0) |
+| **Purification** | Income cleansing | Advisory |
+| **Zakat** | Charitable obligation | Advisory |
 
 ```rust
-// packages/arbiter/src/entity/formation.rs
-pub struct EntityFormation {
-    pub jurisdiction: Jurisdiction,
-    pub entity_type: EntityType,
-    pub beneficial_owners: Vec<BeneficialOwner>,
+let checker = ShariahCompliance::new()
+    .with_strictness(StrictnessLevel::Moderate); // AAOIFI standards
+
+let tx = TransactionCheck {
+    transaction_type: TransactionType::Investment,
+    amount: 50000,
+    currency: "SAR".into(),
+    sector: Some("technology".into()),
+    interest_rate: None,        // No riba
+    uncertainty_level: Some(0.1), // Low gharar
+};
+
+let result = checker.check_transaction(&tx);
+assert!(result.compliant);
+```
+
+**Strictness Levels:**
+
+| Level | Gharar Threshold | Reference |
+|-------|------------------|-----------|
+| Lenient | 0.8 | Mainstream scholars |
+| Moderate | 0.6 | AAOIFI standards |
+| Strict | 0.4 | Conservative interpretation |
+
+**Prohibited Sectors:** alcohol, tobacco, gambling, pork, adult_entertainment, weapons, conventional_finance
+
+### Investment & Product Screening
+
+Multi-framework screening beyond Islamic finance:
+
+```rust
+pub enum ScreeningCriteria {
+    Halal,          // Islamic (no haram sectors)
+    Kosher,         // Jewish (no pork, shellfish)
+    Hindu,          // No beef
+    Vegan,          // No animal products
+    Vegetarian,     // No meat
+    Organic,        // Organic certification
+    Environmental,  // ESG - E score ≥ 50
+    Social,         // ESG - S score ≥ 50
+    Governance,     // ESG - G score ≥ 50
 }
 ```
+
+**ESG Threshold Rationale (EPISTEMIC WARRANT):**
+
+| Our Score | MSCI Equivalent | Rating |
+|-----------|-----------------|--------|
+| 70-100 | 7.0-10.0 | AAA/AA (Leaders) |
+| 30-70 | 3.0-7.0 | A/BBB/BB (Average) |
+| 0-30 | 0.0-3.0 | B/CCC (Laggards) |
+
+Threshold of **50.0** = minimum "Average" rating, acceptable for non-specialist ESG funds.
+
+Reference: [MSCI ESG Ratings Methodology (2024)](https://www.msci.com/esg-ratings)
+
+```rust
+// Halal screening
+let screener = InvestmentScreener::halal();
+
+// Full ESG screening
+let screener = InvestmentScreener::esg();
+
+// Multi-criteria
+let screener = InvestmentScreener::new(vec![
+    ScreeningCriteria::Halal,
+    ScreeningCriteria::Environmental,
+]);
+
+let target = ScreenTarget {
+    name: "Green Energy Fund".into(),
+    sectors: vec!["renewable_energy".into()],
+    esg_scores: Some(EsgScores {
+        environmental: 85.0,
+        social: 70.0,
+        governance: 75.0,
+    }),
+};
+
+let result = screener.screen(&target);
+assert!(result.approved);
+assert_eq!(result.score, 100.0);
+```
+
+### Cultural & Ethical Compliance
+
+Beyond finance — applies to **all agent operations**:
+
+| Framework | Primary Regions | Example Checks |
+|-----------|-----------------|----------------|
+| Islamic | MENA, SEA | No haram imagery, prayer times |
+| Jewish | IL, US | Sabbath scheduling, kosher supply |
+| Christian | Latin America, Southern US | Content moderation |
+| Secular | Global | ESG, vegan, ethical supply |
+| ChildProtection | US, EU | COPPA, KOSA compliance |
+| Accessibility | Global | ADA, WCAG compliance |
+
+```rust
+// Auto-detect frameworks for region
+let checker = CulturalCompliance::for_region("SA");
+// Includes: Islamic (primary)
+
+let checker = CulturalCompliance::for_region("US");
+// Includes: Secular, ChildProtection, Accessibility
+
+// Check any operation
+let operation = OperationCheck {
+    operation_type: OperationType::Content,
+    context: OperationContext {
+        region: "MY".into(),
+        audience: Some(AudienceType::General),
+        tags: vec!["food".into(), "recipe".into()],
+        ..Default::default()
+    },
+};
+
+let result = checker.check(&operation);
+```
+
+**Operation Types:**
+- `Content` — Generation/display
+- `SupplyChain` — Product sourcing
+- `ScheduledTask` — Time-sensitive operations (prayer times, Sabbath)
+- `Communication` — Outreach/marketing
+- `DataProcessing` — Privacy compliance
+- `Financial` — Transaction compliance
 
 ---
 

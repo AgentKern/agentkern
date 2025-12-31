@@ -323,7 +323,7 @@ impl Default for DriftDetector {
     ///
     /// 1. **Population Stability Index (PSI)**: 0-0.1 = stable, 0.1-0.25 = slight shift,
     ///    >0.25 = significant drift. Our 0-100 scale maps 50 → 0.25 equivalent.
-    ///    Source: Evidently AI drift detection documentation
+    ///    > Source: Evidently AI drift detection documentation
     ///
     /// 2. **Goal Drift Research**: Armstrong et al. (AAAI 2024) - autonomous agents
     ///    exhibit goal drift after ~1.5x expected steps in complex environments.
