@@ -3,19 +3,24 @@
  * 
  * Business logic for agent memory and intent tracking.
  * Per ARCHITECTURE: Uses CRDTs for eventual consistency.
+ * 
+ * ⚠️ WARNING: MOCK IMPLEMENTATION (EPISTEMIC DEBT DETECTED)
+ * This service uses in-memory Map storage.
+ * It does NOT connect to the `packages/synapse` Rust crate.
+ * State is lost on restart. CRDT logic is bypassed.
  */
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
-interface IntentStep {
+export interface IntentStep {
   step: number;
   action: string;
   result?: string;
   timestamp: Date;
 }
 
-interface IntentPath {
+export interface IntentPath {
   id: string;
   originalIntent: string;
   currentStep: number;
@@ -25,7 +30,7 @@ interface IntentPath {
   driftScore: number;
 }
 
-interface AgentState {
+export interface AgentState {
   agentId: string;
   intentPath?: IntentPath;
   state: Record<string, unknown>;

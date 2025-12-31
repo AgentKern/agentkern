@@ -3,11 +3,16 @@
  * 
  * Business logic for policy verification (Guardrails).
  * Per ENGINEERING_STANDARD: Neuro-Symbolic Guards (Code + AI).
+ * 
+ * ⚠️ WARNING: MOCK IMPLEMENTATION (EPISTEMIC DEBT DETECTED)
+ * This service is currently a standalone Node.js mock.
+ * It does NOT connect to the `packages/gate` Rust crate.
+ * TEE Attestation is SIMULATED. Do not use in production without Rust Bridge.
  */
 
 import { Injectable } from '@nestjs/common';
 
-interface Policy {
+export interface Policy {
   id: string;
   name: string;
   rules: PolicyRule[];
@@ -16,14 +21,14 @@ interface Policy {
   enabled: boolean;
 }
 
-interface PolicyRule {
+export interface PolicyRule {
   id: string;
   condition: string;
   action: 'allow' | 'deny' | 'review' | 'audit';
   message?: string;
 }
 
-interface VerificationResult {
+export interface VerificationResult {
   allowed: boolean;
   evaluatedPolicies: string[];
   blockingPolicies: string[];
@@ -32,13 +37,13 @@ interface VerificationResult {
   latencyMs: number;
 }
 
-interface CarbonBudget {
+export interface CarbonBudget {
   dailyLimitGrams: number;
   monthlyLimitGrams?: number;
   blockOnExceed: boolean;
 }
 
-interface CarbonUsage {
+export interface CarbonUsage {
   totalCo2Grams: number;
   totalEnergyKwh: number;
   actionCount: number;
@@ -46,7 +51,7 @@ interface CarbonUsage {
   periodEnd: string;
 }
 
-interface Attestation {
+export interface Attestation {
   platform: 'intel_tdx' | 'amd_sev_snp' | 'simulated';
   quote: string;
   measurement: string;
@@ -61,6 +66,10 @@ export class GateService {
   private readonly policies = new Map<string, Policy>();
   private readonly carbonBudgets = new Map<string, CarbonBudget>();
   private readonly carbonUsage = new Map<string, CarbonUsage>();
+
+  // Bridge to Rust Logic
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  private readonly bridge = require('../../../../packages/bridge/index.node');
 
   async verify(
     agentId: string,
@@ -121,13 +130,16 @@ export class GateService {
   }
 
   async attest(nonce: string): Promise<Attestation> {
-    // In production, this calls the Rust TEE module via FFI/gRPC
+    // 🌉 BRIDGE: Calling Rust Kernel (packages/gate via N-API)
+    const rawAttestation = this.bridge.attest(nonce);
+    const attestation = JSON.parse(rawAttestation);
+    
     return {
-      platform: 'simulated',
-      quote: Buffer.from(`simulated-quote-${nonce}`).toString('base64'),
-      measurement: 'f2d4e5a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9',
+      platform: attestation.platform === 'IntelTdx' ? 'intel_tdx' : 'simulated',
+      quote: Buffer.from(attestation.quote).toString('base64'),
+      measurement: Buffer.from(attestation.measurement).toString('hex'),
       nonce,
-      timestamp: Date.now(),
+      timestamp: attestation.timestamp,
     };
   }
 

@@ -7,7 +7,7 @@
 
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 
-interface BusinessLock {
+export interface BusinessLock {
   resource: string;
   lockedBy: string;
   acquiredAt: Date;
@@ -15,7 +15,7 @@ interface BusinessLock {
   priority: number;
 }
 
-interface CoordinationRequest {
+export interface CoordinationRequest {
   agentId: string;
   resource: string;
   operation: 'read' | 'write' | 'exclusive';
@@ -23,7 +23,7 @@ interface CoordinationRequest {
   priority: number;
 }
 
-interface CoordinationResult {
+export interface CoordinationResult {
   granted: boolean;
   lock?: BusinessLock;
   queuePosition?: number;
@@ -54,7 +54,7 @@ export class ArbiterService {
       if (existingLock.lockedBy !== request.agentId) {
         // Add to queue
         this.addToQueue(request);
-        const position = this.getQueuePosition(request.agentId, request.resource);
+        const position = await this.getQueuePosition(request.agentId, request.resource);
         
         return {
           granted: false,

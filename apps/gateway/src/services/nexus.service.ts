@@ -98,7 +98,7 @@ export class NexusService {
         throw new Error(`Failed to fetch agent card: ${response.status}`);
       }
 
-      const card: AgentCard = await response.json();
+      const card = (await response.json()) as AgentCard;
       
       // Register the discovered agent
       this.agents.set(card.id, {

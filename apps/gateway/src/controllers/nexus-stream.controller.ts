@@ -8,26 +8,30 @@
 import { 
   Controller, 
   Get, 
-  Post,
   Param, 
-  Query,
   Res,
-  Body,
-  HttpStatus,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { NexusService } from '../services/nexus.service';
+
+// Fastify reply type (inline to avoid import issues)
+interface RawResponse {
+  raw: {
+    setHeader: (name: string, value: string) => void;
+    write: (data: string) => void;
+    on: (event: string, handler: () => void) => void;
+  };
+}
 
 interface TaskEvent {
   type: 'status' | 'progress' | 'result' | 'error' | 'heartbeat';
   taskId: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
 @Controller('nexus/stream')
 export class NexusStreamController {
-  private activeStreams = new Map<string, Set<Response>>();
+  private activeStreams = new Map<string, Set<RawResponse>>();
   
   constructor(private readonly nexusService: NexusService) {}
 
@@ -38,14 +42,13 @@ export class NexusStreamController {
   @Get('tasks/:taskId')
   async streamTask(
     @Param('taskId') taskId: string,
-    @Res() res: Response,
+    @Res() res: RawResponse,
   ) {
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
+    // Set SSE headers using Fastify raw API
+    res.raw.setHeader('Content-Type', 'text/event-stream');
+    res.raw.setHeader('Cache-Control', 'no-cache');
+    res.raw.setHeader('Connection', 'keep-alive');
+    res.raw.setHeader('X-Accel-Buffering', 'no');
 
     // Register this stream
     if (!this.activeStreams.has(taskId)) {
@@ -72,7 +75,7 @@ export class NexusStreamController {
     }, 30000);
 
     // Cleanup on close
-    res.on('close', () => {
+    res.raw.on('close', () => {
       clearInterval(heartbeat);
       this.activeStreams.get(taskId)?.delete(res);
       if (this.activeStreams.get(taskId)?.size === 0) {
@@ -86,11 +89,10 @@ export class NexusStreamController {
    * GET /nexus/stream/agents
    */
   @Get('agents')
-  async streamAgents(@Res() res: Response) {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+  async streamAgents(@Res() res: RawResponse) {
+    res.raw.setHeader('Content-Type', 'text/event-stream');
+    res.raw.setHeader('Cache-Control', 'no-cache');
+    res.raw.setHeader('Connection', 'keep-alive');
 
     // Send current agents
     const agents = await this.nexusService.listAgents();
@@ -111,7 +113,7 @@ export class NexusStreamController {
       });
     }, 30000);
 
-    res.on('close', () => {
+    res.raw.on('close', () => {
       clearInterval(heartbeat);
     });
   }
@@ -136,11 +138,11 @@ export class NexusStreamController {
   }
 
   /**
-   * Send SSE event.
+   * Send SSE event using Fastify raw stream.
    */
-  private sendEvent(res: Response, event: TaskEvent) {
-    res.write(`event: ${event.type}\n`);
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  private sendEvent(res: RawResponse, event: TaskEvent) {
+    res.raw.write(`event: ${event.type}\n`);
+    res.raw.write(`data: ${JSON.stringify(event)}\n\n`);
   }
 
   /**

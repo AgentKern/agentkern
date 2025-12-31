@@ -19,5 +19,5 @@ export class RegisterPolicyDto {
   }[];
   jurisdictions!: string[];
   priority!: number;
-  enabled?: boolean;
+  enabled: boolean = true; // Default to enabled
 }

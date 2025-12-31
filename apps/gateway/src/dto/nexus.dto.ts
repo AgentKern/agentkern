@@ -2,9 +2,9 @@
  * AgentKern Gateway - Nexus DTOs
  * 
  * Data Transfer Objects for Nexus API.
+ * Note: Uses plain TypeScript interfaces. For runtime validation,
+ * add class-validator to package.json and uncomment decorators.
  */
-
-import { IsString, IsOptional, IsArray, IsUrl, IsObject, IsIn } from 'class-validator';
 
 // Supported protocols
 export type Protocol = 'a2a' | 'mcp' | 'agentkern' | 'anp' | 'nlip' | 'aitp';
@@ -52,48 +52,27 @@ export interface AgentCard {
 export interface NexusMessage {
   id: string;
   method: string;
-  params: any;
+  params: unknown;
   sourceProtocol: Protocol;
   targetProtocol?: Protocol;
   sourceAgent?: string;
   targetAgent?: string;
   correlationId?: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
  * Register agent DTO.
  */
 export class RegisterAgentDto {
-  @IsOptional()
-  @IsString()
   id?: string;
-
-  @IsString()
-  name: string;
-
-  @IsOptional()
-  @IsString()
+  name!: string;
   description?: string;
-
-  @IsUrl()
-  url: string;
-
-  @IsOptional()
-  @IsString()
+  url!: string;
   version?: string;
-
-  @IsOptional()
-  @IsArray()
   capabilities?: Capability[];
-
-  @IsOptional()
-  @IsArray()
   skills?: Skill[];
-
-  @IsOptional()
-  @IsArray()
   protocols?: string[];
 }
 
@@ -101,30 +80,17 @@ export class RegisterAgentDto {
  * Discover agent DTO.
  */
 export class DiscoverAgentDto {
-  @IsUrl()
-  url: string;
+  url!: string;
 }
 
 /**
  * Route task DTO.
  */
 export class RouteTaskDto {
-  @IsOptional()
-  @IsString()
   taskId?: string;
-
-  @IsString()
-  taskType: string;
-
-  @IsOptional()
-  @IsArray()
+  taskType!: string;
   requiredSkills?: string[];
-
-  @IsOptional()
-  @IsObject()
-  params?: any;
-
-  @IsOptional()
+  params?: unknown;
   priority?: number;
 }
 
@@ -132,12 +98,7 @@ export class RouteTaskDto {
  * Translate message DTO.
  */
 export class TranslateMessageDto {
-  @IsIn(['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'])
-  sourceProtocol: Protocol;
-
-  @IsIn(['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'])
-  targetProtocol: Protocol;
-
-  @IsObject()
-  message: any;
+  sourceProtocol!: Protocol;
+  targetProtocol!: Protocol;
+  message!: unknown;
 }
