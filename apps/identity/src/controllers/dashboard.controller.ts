@@ -1,9 +1,8 @@
 /**
  * AgentKernIdentity - Dashboard Controller
  *
- * Enterprise dashboard API for monitoring and compliance.
- * Policy management is handled by Rust Gate package.
- * 🔒 Enterprise-only features - requires LICENSE_KEY
+ * Dashboard API for monitoring and compliance.
+ * Enterprise features are gated via EnterpriseLicenseGuard.
  */
 
 import {
@@ -22,7 +21,11 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { AuditLoggerService, AuditEvent, AuditEventType } from '../services/audit-logger.service';
-import { LicenseGuard, EnterpriseOnly, RequireFeature } from '../guards/license.guard';
+import {
+  EnterpriseLicenseGuard,
+  EnterpriseOnly,
+  RequireFeatures,
+} from '../guards/enterprise-license.guard';
 import {
   DashboardStatsResponseDto,
   VerificationTrendDto,
@@ -33,7 +36,7 @@ import {
 
 @ApiTags('Dashboard')
 @Controller('api/v1/dashboard')
-@UseGuards(LicenseGuard)
+@UseGuards(EnterpriseLicenseGuard)
 export class DashboardController {
   constructor(
     private readonly auditLogger: AuditLoggerService,
@@ -53,7 +56,7 @@ export class DashboardController {
         compliance: 'POST /api/v1/dashboard/compliance/report',
         auditTrail: 'GET /api/v1/dashboard/compliance/audit-trail',
       },
-      note: 'Policy management is available via the Rust Gate service.',
+      note: 'Some endpoints require enterprise license.',
     };
   }
 
@@ -61,10 +64,10 @@ export class DashboardController {
 
   @Get('stats')
   @EnterpriseOnly()
-  @RequireFeature('dashboard.stats')
+  @RequireFeatures('dashboard.stats')
   @ApiOperation({
     summary: 'Get dashboard statistics',
-    description: '🔒 Enterprise - Returns key metrics for the enterprise dashboard.',
+    description: '🔒 Enterprise - Returns key metrics for the dashboard.',
   })
   @ApiResponse({ status: 200, description: 'Dashboard stats', type: DashboardStatsResponseDto })
   async getStats(): Promise<DashboardStatsResponseDto> {
@@ -97,9 +100,11 @@ export class DashboardController {
   }
 
   @Get('trends')
+  @EnterpriseOnly()
+  @RequireFeatures('dashboard.trends')
   @ApiOperation({
     summary: 'Get verification trends',
-    description: 'Returns verification success/failure trends over time.',
+    description: '🔒 Enterprise - Returns verification success/failure trends over time.',
   })
   @ApiResponse({ status: 200, description: 'Verification trends', type: [VerificationTrendDto] })
   async getTrends(@Query('days') days: number = 7): Promise<VerificationTrendDto[]> {
@@ -160,22 +165,22 @@ export class DashboardController {
 
   @Post('compliance/report')
   @HttpCode(HttpStatus.OK)
+  @EnterpriseOnly()
+  @RequireFeatures('dashboard.compliance')
   @ApiOperation({
     summary: 'Generate compliance report',
-    description: 'Generates a compliance report for a date range.',
+    description: '🔒 Enterprise - Generates a compliance report for a date range.',
   })
   @ApiResponse({ status: 200, description: 'Compliance report', type: ComplianceReportResponseDto })
   async generateComplianceReport(@Body() dto: ComplianceReportRequestDto): Promise<ComplianceReportResponseDto> {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
-    // Use the exportAuditLog method which supports date filtering
     const filteredEvents = await this.auditLogger.exportAuditLog({
       startDate,
       endDate,
     });
 
-    // Further filter by agent/principal if specified
     const events = filteredEvents.filter((e: AuditEvent) => {
       if (dto.agentId && e.agentId !== dto.agentId) return false;
       if (dto.principalId && e.principalId !== dto.principalId) return false;
@@ -205,9 +210,11 @@ export class DashboardController {
   }
 
   @Get('compliance/audit-trail')
+  @EnterpriseOnly()
+  @RequireFeatures('audit.export')
   @ApiOperation({
     summary: 'Get audit trail',
-    description: 'Returns the complete audit trail for compliance.',
+    description: '🔒 Enterprise - Returns the complete audit trail for compliance.',
   })
   @ApiResponse({ status: 200, description: 'Audit trail' })
   async getAuditTrail(

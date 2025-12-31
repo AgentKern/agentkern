@@ -4,13 +4,13 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { LicenseModule } from './modules/license.module';
 import { ProofModule } from './modules/proof.module';
 import { DnsModule } from './modules/dns.module';
 import { DashboardModule } from './modules/dashboard.module';
 import { WebAuthnModule } from './modules/webauthn.module';
 import { DatabaseModule } from './modules/database.module';
 import { SecurityModule } from './modules/security.module';
+import { EnterpriseModule } from './modules/enterprise.module';
 
 @Module({
   imports: [
@@ -38,12 +38,12 @@ import { SecurityModule } from './modules/security.module';
       },
     ]),
     // Core modules
-    LicenseModule,
+    DatabaseModule,
+    EnterpriseModule, // Enterprise license integration
     ProofModule,
     DnsModule,
     DashboardModule,
     WebAuthnModule,
-    DatabaseModule,
     // Security framework
     SecurityModule,
   ],
