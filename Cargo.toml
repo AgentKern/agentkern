@@ -24,6 +24,7 @@ members = [
     "packages/runtime",         # WASM Execution runtime
     "packages/edge",            # Edge deployment
     "packages/native-binding",  # Native bindings
+    "packages/bridge",          # Node.js N-API Bridge
     "packages/parsers",         # Message parsers (IDOC, SWIFT, HL7)
     
     # ===========================================================================

@@ -1,7 +1,8 @@
 /**
- * AgentKern Gateway - Nexus Controller
+ * AgentKernIdentity - Nexus Controller
  * 
  * REST API for protocol translation and agent discovery.
+ * Merged from apps/gateway for consolidated architecture.
  * 
  * Endpoints:
  * - POST /nexus/agents - Register an agent
@@ -27,6 +28,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { NexusService } from '../services/nexus.service';
 import { 
   RegisterAgentDto, 
@@ -35,24 +37,20 @@ import {
   TranslateMessageDto,
 } from '../dto/nexus.dto';
 
+@ApiTags('Nexus')
 @Controller('nexus')
 export class NexusController {
   constructor(private readonly nexusService: NexusService) {}
 
-  /**
-   * Register an agent with the Nexus registry.
-   * Returns the registered agent card.
-   */
   @Post('agents')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register an agent', description: 'Register an agent with the Nexus registry' })
   async registerAgent(@Body() dto: RegisterAgentDto) {
     return this.nexusService.registerAgent(dto);
   }
 
-  /**
-   * List all registered agents.
-   */
   @Get('agents')
+  @ApiOperation({ summary: 'List agents', description: 'List all registered agents or filter by skill' })
   async listAgents(@Query('skill') skill?: string) {
     if (skill) {
       return this.nexusService.findAgentsBySkill(skill);
@@ -60,10 +58,8 @@ export class NexusController {
     return this.nexusService.listAgents();
   }
 
-  /**
-   * Get a specific agent by ID.
-   */
   @Get('agents/:id')
+  @ApiOperation({ summary: 'Get agent', description: 'Get a specific agent by ID' })
   async getAgent(@Param('id') id: string) {
     const agent = await this.nexusService.getAgent(id);
     if (!agent) {
@@ -72,10 +68,8 @@ export class NexusController {
     return agent;
   }
 
-  /**
-   * Unregister an agent.
-   */
   @Delete('agents/:id')
+  @ApiOperation({ summary: 'Unregister agent', description: 'Remove an agent from the registry' })
   async unregisterAgent(@Param('id') id: string) {
     const result = await this.nexusService.unregisterAgent(id);
     if (!result) {
@@ -84,21 +78,16 @@ export class NexusController {
     return { success: true, agentId: id };
   }
 
-  /**
-   * Discover an agent from its base URL.
-   * Fetches /.well-known/agent.json per A2A spec.
-   */
   @Post('discover')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Discover agent', description: 'Discover an agent from its /.well-known/agent.json' })
   async discoverAgent(@Body() dto: DiscoverAgentDto) {
     return this.nexusService.discoverAgent(dto.url);
   }
 
-  /**
-   * Route a task to the best matching agent.
-   */
   @Post('route')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Route task', description: 'Route a task to the best matching agent' })
   async routeTask(@Body() dto: RouteTaskDto) {
     const agent = await this.nexusService.routeTask(dto);
     if (!agent) {
@@ -111,143 +100,63 @@ export class NexusController {
     };
   }
 
-  /**
-   * Translate a message between protocols.
-   * Supports: a2a, mcp, agentkern
-   */
   @Post('translate')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Translate message', description: 'Translate message between protocols (A2A, MCP, AgentKern)' })
   async translateMessage(@Body() dto: TranslateMessageDto) {
     return this.nexusService.translateMessage(dto);
   }
 
-  /**
-   * List supported protocols.
-   */
   @Get('protocols')
+  @ApiOperation({ summary: 'List protocols', description: 'List all supported agent protocols' })
   async listProtocols() {
     return {
       protocols: [
-        {
-          name: 'a2a',
-          fullName: 'Google Agent-to-Agent Protocol',
-          version: '0.3',
-          status: 'stable',
-        },
-        {
-          name: 'mcp',
-          fullName: 'Anthropic Model Context Protocol',
-          version: '2025-06-18',
-          status: 'stable',
-        },
-        {
-          name: 'agentkern',
-          fullName: 'AgentKern Native Protocol',
-          version: '1.0',
-          status: 'stable',
-        },
-        {
-          name: 'anp',
-          fullName: 'W3C Agent Network Protocol',
-          version: '0.1',
-          status: 'beta',
-        },
-        {
-          name: 'nlip',
-          fullName: 'ECMA Natural Language Interaction Protocol',
-          version: 'draft',
-          status: 'beta',
-        },
-        {
-          name: 'aitp',
-          fullName: 'NEAR Agent Interaction and Transaction Protocol',
-          version: 'rfc',
-          status: 'beta',
-        },
+        { name: 'a2a', fullName: 'Google Agent-to-Agent Protocol', version: '0.3', status: 'stable' },
+        { name: 'mcp', fullName: 'Anthropic Model Context Protocol', version: '2025-06-18', status: 'stable' },
+        { name: 'agentkern', fullName: 'AgentKern Native Protocol', version: '1.0', status: 'stable' },
+        { name: 'anp', fullName: 'W3C Agent Network Protocol', version: '0.1', status: 'beta' },
+        { name: 'nlip', fullName: 'ECMA Natural Language Interaction Protocol', version: 'draft', status: 'beta' },
+        { name: 'aitp', fullName: 'NEAR Agent Interaction and Transaction Protocol', version: 'rfc', status: 'beta' },
       ],
     };
   }
 
-  /**
-   * Health check for Nexus service.
-   */
   @Get('health')
+  @ApiOperation({ summary: 'Health check', description: 'Check Nexus service health' })
   async health() {
     const stats = await this.nexusService.getStats();
-    return {
-      status: 'healthy',
-      ...stats,
-    };
+    return { status: 'healthy', ...stats };
   }
 }
 
 /**
  * Well-Known Controller for A2A Agent Discovery
- * 
  * Per A2A Spec: Agents publish capabilities at /.well-known/agent.json
  */
+@ApiTags('Well-Known')
 @Controller('.well-known')
 export class WellKnownController {
-  constructor(private readonly nexusService: NexusService) {}
-
-  /**
-   * A2A Agent Card endpoint.
-   * Returns this gateway's agent card for discovery.
-   */
   @Get('agent.json')
+  @ApiOperation({ summary: 'Agent card', description: 'A2A agent card for discovery' })
   async getAgentCard() {
     return {
-      id: 'agentkern-gateway',
-      name: 'AgentKern Gateway',
+      id: 'agentkern-identity',
+      name: 'AgentKern Identity',
       description: 'Universal Agent Protocol Gateway - The Agentic Operating System',
-      url: process.env.GATEWAY_URL || 'http://localhost:3000',
+      url: process.env.IDENTITY_URL || 'http://localhost:3001',
       version: '1.0.0',
-      provider: {
-        organization: 'AgentKern',
-        url: 'https://agentkern.io',
-      },
+      provider: { organization: 'AgentKern', url: 'https://agentkern.io' },
       capabilities: [
-        {
-          name: 'protocol-translation',
-          inputModes: ['text', 'code'],
-          outputModes: ['text', 'code'],
-        },
-        {
-          name: 'agent-discovery',
-          inputModes: ['text'],
-          outputModes: ['text'],
-        },
-        {
-          name: 'task-routing',
-          inputModes: ['text'],
-          outputModes: ['text'],
-        },
+        { name: 'protocol-translation', inputModes: ['text', 'code'], outputModes: ['text', 'code'] },
+        { name: 'agent-discovery', inputModes: ['text'], outputModes: ['text'] },
+        { name: 'task-routing', inputModes: ['text'], outputModes: ['text'] },
       ],
       skills: [
-        {
-          id: 'translate',
-          name: 'Protocol Translation',
-          description: 'Translate messages between A2A, MCP, and AgentKern protocols',
-          tags: ['translation', 'a2a', 'mcp'],
-        },
-        {
-          id: 'route',
-          name: 'Task Routing',
-          description: 'Route tasks to the best matching agent',
-          tags: ['routing', 'orchestration'],
-        },
-        {
-          id: 'discover',
-          name: 'Agent Discovery',
-          description: 'Discover and register agents from URLs',
-          tags: ['discovery', 'registry'],
-        },
+        { id: 'translate', name: 'Protocol Translation', description: 'Translate between A2A, MCP, AgentKern', tags: ['translation', 'a2a', 'mcp'] },
+        { id: 'route', name: 'Task Routing', description: 'Route tasks to best agent', tags: ['routing'] },
+        { id: 'discover', name: 'Agent Discovery', description: 'Discover agents from URLs', tags: ['discovery'] },
       ],
-      defaultInputModes: ['text'],
-      defaultOutputModes: ['text'],
-      authentication: {
-        schemes: ['bearer', 'apiKey'],
-      },
       protocols: [
         { name: 'a2a', version: '0.3' },
         { name: 'mcp', version: '2025-06-18' },
@@ -263,4 +172,3 @@ export class WellKnownController {
     };
   }
 }
-

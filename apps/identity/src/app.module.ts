@@ -11,6 +11,7 @@ import { WebAuthnModule } from './modules/webauthn.module';
 import { DatabaseModule } from './modules/database.module';
 import { SecurityModule } from './modules/security.module';
 import { EnterpriseModule } from './modules/enterprise.module';
+import { NexusModule } from './modules/nexus.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { EnterpriseModule } from './modules/enterprise.module';
     // Core modules
     DatabaseModule,
     EnterpriseModule, // Enterprise license integration
+    NexusModule,      // Protocol translation (merged from Gateway)
     ProofModule,
     DnsModule,
     DashboardModule,

@@ -1,8 +1,8 @@
 /**
- * AgentKern Gateway - Nexus Module
+ * AgentKernIdentity - Nexus Module
  * 
- * Protocol translation and agent discovery module.
- * Part of the 6-Pillar Architecture.
+ * Protocol translation and agent discovery.
+ * Merged from apps/gateway for consolidated architecture.
  */
 
 import { Module } from '@nestjs/common';
@@ -15,4 +15,3 @@ import { NexusService } from '../services/nexus.service';
   exports: [NexusService],
 })
 export class NexusModule {}
-
