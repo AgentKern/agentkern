@@ -1,50 +1,104 @@
-# Decision Record: Node.js <-> Rust Bridge Strategy
-**Status**: Proposed
-**Date**: 2025-12-30
+# Decision Record: Node.js ↔ Rust Bridge Strategy
+
+**Status:** Approved  
+**Date:** 2025-12-31  
+**Revised:** 2025-12-31 (Hybrid Approach)
+
+---
 
 ## Context
-The `apps/gateway` (Node.js) currently uses **mock implementations** for `GateService` and `SynapseService`, disconnected from the robust Rust logic in `packages/gate` and `packages/synapse` (Potemkin Village architecture). We need a strategy to bridge this gap.
 
-## Options Analysis
+The `apps/identity` (Node.js) needs to call `packages/gate` (Rust) for policy enforcement.
 
-### Option A: N-API (`napi-rs`)
-*Technique: Compile Rust code into a binary Node.js Addon (`.node`).*
+We discovered that `packages/gate` has **two implementations**:
+1. **N-API Bridge** (`packages/bridge/`) - Embedded library
+2. **HTTP Server** (`packages/gate/src/bin/server.rs`) - Standalone microservice
 
-| Dimension | Rating | reasoning |
-|-----------|--------|-----------|
-| **Performance** | ⭐⭐⭐⭐⭐ | Native speed. Zero-copy potential. No network overhead. Ideal for "Hyper-Loop". |
-| **Complexity** | ⭐⭐⭐ | Requires build tooling (cargo-cp-artifact, node-gyp substitute). Tighter coupling. |
-| **Epistemic** | ⭐⭐⭐⭐ | Code is "part" of the app. Easier to debug trace (single process). |
-| **Deployment** | ⭐⭐⭐⭐⭐ | Single container/artifact. No sidecars needed. |
+---
 
-### Option B: gRPC (`tonic`)
-*Technique: Run Rust as a separate microservice, talk via HTTP/2 Protobuf.*
+## Decision: **HYBRID APPROACH** ✅
 
-| Dimension | Rating | Reasoning |
-|-----------|--------|-----------|
-| **Performance** | ⭐⭐⭐ | Fast, but incurs serialization + network loopback overhead. |
-| **Complexity** | ⭐⭐ | Clear separation. Easy to scale independently. Requires `.proto` management. |
-| **Epistemic** | ⭐⭐ | "Black box" service. Harder to trace requests end-to-end. |
-| **Deployment** | ⭐⭐⭐ | Requires orchestration (Docker Compose/k8s) of multiple containers. |
+**Keep both. They serve different purposes.**
 
-## Recommendation: Hybrid Approach
+### Hot Path (N-API) - 0ms Latency
+```
+apps/identity → packages/bridge (N-API) → gate logic
+```
+- Prompt injection guard (every LLM call)
+- Request validation (every request)
+- TEE attestation (critical path)
 
-### 1. Primary Strategy: N-API (`napi-rs`)
-**Target**: `packages/gate` (Policy, Crypto, TEE, Prompt Guard)
-**Reasoning**: These are **CPU-bound** tasks on the critical request path.
-- **Latency**: Adding 2-5ms network hop for every single prompt check destroys "Hyper-Loop" performance.
-- **Security**: TEE attestation logic should run as close to the hardware/execution context as possible.
-- **Simplicity**: Keeps the `gateway` deployment as a single unit.
+### Cold Path (HTTP) - 1-5ms Latency
+```
+Admin UI → HTTP → packages/gate server (port 3001)
+```
+- Policy CRUD (occasional)
+- Admin operations
+- External integrations
+- Multi-node policy sync
 
-### 2. Secondary Strategy: gRPC
-**Target**: `packages/synapse` (P2P Mesh, if scaling needed)
-**Reasoning**: If the Mesh node needs to run independently or scale horizontally differently from the API gateway.
+---
 
-## Implementation Plan
-1.  **Tooling**: Add `napi-rs` CLI to workspace.
-2.  **Bridge Crate**: Create `packages/bridge` (Rust) that exposes `packages/gate` logic as N-API functions.
-3.  **Integration**: Import `packages/bridge` in `apps/gateway` and replace mocks.
+## Architecture Diagram
 
-## Impact on Epistemic Debt
-- **Eliminates Mocks**: The Node.js code calls *actual* Rust functions.
-- **Single Source of Truth**: `packages/gate` becomes the canonical implementation.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     apps/identity                           │
+│                                                             │
+│  ┌──────────────────────────────────────┐                  │
+│  │ "Hot Path" (every request)           │                  │
+│  │ N-API Bridge → gate (embedded, 0ms)  │                  │
+│  │ • Prompt guard                       │                  │
+│  │ • Request validation                 │                  │
+│  └──────────────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│               packages/gate (HTTP server)                   │
+│               Port 3001 (optional container)                │
+│                                                             │
+│  ┌──────────────────────────────────────┐                  │
+│  │ "Cold Path" (management)             │                  │
+│  │ HTTP Server (Axum)                   │                  │
+│  │ • Policy CRUD                        │                  │
+│  │ • Admin operations                   │                  │
+│  └──────────────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Files
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| N-API Bridge | `packages/bridge/` | Hot path, 0ms latency |
+| Gate Server | `packages/gate/src/bin/server.rs` | Cold path, HTTP management |
+| Dockerfile | `packages/gate/Dockerfile` | Containerized standalone deployment |
+
+---
+
+## When to Use Which
+
+| Use Case | Approach | Latency |
+|----------|----------|---------|
+| Prompt guard (every LLM call) | N-API | 0ms |
+| Request validation | N-API | 0ms |
+| Policy CRUD (admin) | HTTP | 1-5ms |
+| External integrations | HTTP | Variable |
+| Multi-node sync | HTTP | Variable |
+
+---
+
+## Rationale
+
+1. **Performance**: Guardrails are blocking operations on the hot path. 0ms latency is critical.
+2. **Flexibility**: HTTP server enables admin UIs, external integrations, independent scaling.
+3. **Future-proof**: Can split to full microservices if scaling demands.
+
+---
+
+## Related
+
+- [ADR-001: Gateway-Identity Merge](./adr/ADR-001-gateway-identity-merge.md)
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
