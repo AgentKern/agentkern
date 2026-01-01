@@ -1,0 +1,58 @@
+[package]
+name = "agentkern-nexus"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "AgentKern Nexus: Universal Agent Protocol Gateway"
+repository = "https://github.com/AgentKern/agentkern"
+keywords = ["ai-agents", "a2a", "mcp", "protocol-translation"]
+categories = ["network-programming", "api-bindings"]
+
+[features]
+default = ["a2a", "mcp", "nlip"]  # Stable protocols only
+a2a = []          # Google A2A Protocol (Linux Foundation)
+mcp = []          # Anthropic MCP (Linux Foundation)
+anp = []          # W3C Agent Network Protocol (Beta)
+nlip = []         # ECMA NLIP (ECMA-430, Dec 2025 - Stable)
+aitp = []         # NEAR AITP (Beta)
+grpc = ["tonic", "prost"]
+full = ["a2a", "mcp", "anp", "nlip", "aitp", "grpc"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.48", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP client/server (updated Dec 2025)
+reqwest = { version = "0.12", features = ["json", "stream"] }
+axum = { version = "0.8.8", features = ["ws"] }
+tower = "0.5"
+
+# gRPC (optional)
+tonic = { version = "0.12", optional = true }
+prost = { version = "0.13", optional = true }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1"
+
+# Crypto & identity
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+
+# Tracing
+tracing = "0.1"
+
+# Chaos proxy dependencies
+rand = "0.9"
+parking_lot = "0.12"
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"

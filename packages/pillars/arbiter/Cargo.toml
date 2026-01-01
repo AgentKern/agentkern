@@ -1,0 +1,67 @@
+[package]
+name = "agentkern-arbiter"
+version = "0.1.0"
+edition = "2021"
+description = "AgentKern-Arbiter: Conflict Resolution & Coordination Engine with Raft Consensus"
+license = "MIT"
+
+[lib]
+name = "agentkern_arbiter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "arbiter-server"
+path = "src/bin/server.rs"
+
+[features]
+default = []
+# Per ARCHITECTURE.md: Raft Consensus for Atomic Business Locks
+raft = ["openraft", "async-trait"]
+# Thread-per-core for minimal context switching
+thread_per_core = ["tokio-uring"]
+full = ["raft", "thread_per_core"]
+
+[dependencies]
+# Async runtime (per ARCHITECTURE: Thread-per-Core)
+tokio = { version = "1", features = ["full"] }
+tokio-uring = { version = "0.5", optional = true }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Raft for distributed consensus (per ARCHITECTURE: Strong Consistency)
+openraft = { version = "0.9", optional = true }
+async-trait = { version = "0.1", optional = true }
+
+# HTTP server (updated Dec 2025)
+axum = "0.8.8"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1"
+
+# UUID and time
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Random for chaos testing
+rand = "0.8"
+
+# Concurrent data structures
+parking_lot = "0.12"
+
+# System calls for thread affinity (Thread-per-Core)
+libc = "0.2"
+
+# Internal dependencies
+agentkern-governance = { path = "../../foundation/governance" }
+
+[dev-dependencies]
+tokio-test = "0.4"

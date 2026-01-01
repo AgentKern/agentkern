@@ -1,0 +1,48 @@
+[package]
+name = "agentkern-native"
+version = "0.1.0"
+edition = "2021"
+description = "Native Node.js bindings for AgentKern Rust core"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# NAPI-RS for Node.js binding (Dec 19, 2025 - napi 3.7.1)
+napi = { version = "3.7", features = ["async", "serde-json"] }
+napi-derive = "3.0"
+
+# AgentKern core packages
+agentkern-gate = { path = "../../pillars/gate" }
+agentkern-synapse = { path = "../../pillars/synapse" }
+agentkern-arbiter = { path = "../../pillars/arbiter" }
+agentkern-treasury = { path = "../../pillars/treasury" }
+
+# Async runtime
+tokio = { version = "1.42", features = ["rt-multi-thread", "macros"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Encoding
+base64 = "0.22"
+hex = "0.4"
+
+# UUID
+uuid = { version = "1.11", features = ["v4"] }
+
+# Decimal for carbon calculations
+rust_decimal = "1.39"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+
+[build-dependencies]
+napi-build = "2"

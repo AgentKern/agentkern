@@ -1,0 +1,15 @@
+[package]
+name = "agentkern-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+napi = { version = "2.12.2", features = ["napi4", "async"] }
+napi-derive = "2.12.2"
+agentkern-gate = { path = "../../pillars/gate" }
+serde_json = "1.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
