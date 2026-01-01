@@ -19,8 +19,7 @@ use agentkern_synapse::{StateStore, StateUpdate};
 
 // Arbiter Pillar
 use agentkern_arbiter::{KillSwitch, KillReason, TerminationType, AuditLedger};
-use agentkern_arbiter::chaos::{ChaosMonkey, ChaosConfig};
-use agentkern_arbiter::locks::LockManager;
+use agentkern_arbiter::chaos::{ChaosMonkey, ChaosConfig, ChaosStats};
 
 // Static instances for zero-latency hot path (avoid re-initialization)
 static PROMPT_GUARD: OnceLock<PromptGuard> = OnceLock::new();
@@ -32,7 +31,6 @@ static BUDGET_MANAGER: OnceLock<BudgetManager> = OnceLock::new();
 static CARBON_LEDGER: OnceLock<CarbonLedger> = OnceLock::new();
 static STATE_STORE: OnceLock<StateStore> = OnceLock::new();
 static KILL_SWITCH: OnceLock<KillSwitch> = OnceLock::new();
-static LOCK_MANAGER: OnceLock<LockManager> = OnceLock::new();
 static AUDIT_LEDGER: OnceLock<AuditLedger> = OnceLock::new();
 static CHAOS_MONKEY: OnceLock<ChaosMonkey> = OnceLock::new();
 
@@ -70,10 +68,6 @@ fn get_state_store() -> &'static StateStore {
 
 fn get_kill_switch() -> &'static KillSwitch {
     KILL_SWITCH.get_or_init(KillSwitch::new)
-}
-
-fn get_lock_manager() -> &'static LockManager {
-    LOCK_MANAGER.get_or_init(LockManager::new)
 }
 
 fn get_audit_ledger() -> &'static AuditLedger {
@@ -164,7 +158,7 @@ pub fn treasury_deposit(agent_id: String, amount: f64) -> String {
 
 /// Transfer between agents
 #[napi]
-pub fn treasury_transfer(from_agent: String, to_agent: String, amount: f64, reference: Option<String>) -> String {
+pub async fn treasury_transfer(from_agent: String, to_agent: String, amount: f64, reference: Option<String>) -> String {
     let engine = get_transfer_engine();
     let amt = Amount::from_float(amount, 6);
     let mut request = TransferRequest::new(&from_agent, &to_agent, amt);
@@ -173,17 +167,17 @@ pub fn treasury_transfer(from_agent: String, to_agent: String, amount: f64, refe
         request = request.with_reference(ref_str);
     }
     
-    let result = engine.transfer(request);
+    let result = engine.transfer(request).await;
     serde_json::to_string(&result).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
 
-/// Get agent budget
+/// Get agent budget remaining
 #[napi]
 pub fn treasury_get_budget(agent_id: String) -> String {
     let manager = get_budget_manager();
-    match manager.get_limit(&agent_id) {
-        Some(budget) => serde_json::to_string(&budget).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        None => format!("{{\"agent_id\": \"{}\", \"limit\": 100.0, \"spent\": 0.0, \"period\": \"daily\"}}", agent_id),
+    match manager.get_remaining(&agent_id) {
+        Some(remaining) => format!("{{\"agent_id\": \"{}\", \"remaining\": {}}}", agent_id, remaining.to_float()),
+        None => format!("{{\"agent_id\": \"{}\", \"remaining\": null, \"message\": \"No budget set\"}}", agent_id),
     }
 }
 
@@ -191,10 +185,8 @@ pub fn treasury_get_budget(agent_id: String) -> String {
 #[napi]
 pub fn treasury_get_carbon(agent_id: String) -> String {
     let ledger = get_carbon_ledger();
-    match ledger.get_footprint(&agent_id) {
-        Some(footprint) => serde_json::to_string(&footprint).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        None => format!("{{\"agent_id\": \"{}\", \"total_grams_co2\": 0, \"compute_hours\": 0.0}}", agent_id),
-    }
+    let usage = ledger.get_daily_usage(&agent_id);
+    serde_json::to_string(&usage).unwrap_or_else(|_| format!("{{\"agent_id\": \"{}\", \"total_grams_co2\": 0}}", agent_id))
 }
 
 // ============================================================================
@@ -235,46 +227,46 @@ pub async fn synapse_update_state(agent_id: String, state_json: String) -> Strin
 
 /// Activate kill switch (terminate agent)
 #[napi]
-pub fn arbiter_kill_switch_activate(reason: String, agent_id: Option<String>) -> String {
+pub async fn arbiter_kill_switch_activate(reason: String, agent_id: Option<String>) -> String {
     let ks = get_kill_switch();
     
     if let Some(aid) = agent_id {
         let record = ks.terminate_agent(
             &aid,
-            KillReason::Manual(reason),
+            KillReason::Custom(reason),
             TerminationType::Graceful,
             None,
-        );
+        ).await;
         serde_json::to_string(&record).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
     } else {
-        let record = ks.emergency_shutdown(Some(reason));
+        let record = ks.emergency_shutdown(Some(reason)).await;
         serde_json::to_string(&record).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
     }
 }
 
 /// Get kill switch status
 #[napi]
-pub fn arbiter_kill_switch_status() -> String {
+pub async fn arbiter_kill_switch_status() -> String {
     let ks = get_kill_switch();
-    let is_emergency = ks.is_emergency();
-    let terminated_count = ks.terminated_count();
+    let is_emergency = ks.is_emergency().await;
+    let terminated_count = ks.terminated_count().await;
     format!("{{\"active\": {}, \"terminated_count\": {}}}", is_emergency, terminated_count)
 }
 
 /// Deactivate kill switch
 #[napi]
-pub fn arbiter_kill_switch_deactivate() -> String {
+pub async fn arbiter_kill_switch_deactivate() -> String {
     let ks = get_kill_switch();
-    ks.lift_emergency();
+    ks.lift_emergency().await;
     "{\"active\": false}".to_string()
 }
 
-/// Query audit log
+/// Query audit statistics
 #[napi]
-pub fn arbiter_query_audit(limit: u32) -> String {
+pub async fn arbiter_query_audit(_limit: u32) -> String {
     let ledger = get_audit_ledger();
-    let entries = ledger.recent(limit as usize);
-    serde_json::to_string(&entries).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+    let stats = ledger.get_statistics().await;
+    serde_json::to_string(&stats).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
 
 /// Get chaos statistics
@@ -282,5 +274,8 @@ pub fn arbiter_query_audit(limit: u32) -> String {
 pub fn arbiter_chaos_stats() -> String {
     let monkey = get_chaos_monkey();
     let stats = monkey.stats();
-    serde_json::to_string(&stats).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+    format!(
+        "{{\"total_ops\": {}, \"latency_injections\": {}, \"error_injections\": {}}}",
+        stats.total_ops, stats.latency_injections, stats.error_injections
+    )
 }

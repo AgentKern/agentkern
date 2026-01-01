@@ -370,6 +370,10 @@ pub struct TrustNetworkStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests that depend on environment variables
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_trust_tier_from_score() {
@@ -389,6 +393,7 @@ mod tests {
 
     #[test]
     fn test_trust_network_requires_license() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::remove_var("AGENTKERN_LICENSE_KEY");
         }
@@ -398,6 +403,7 @@ mod tests {
 
     #[test]
     fn test_reputation_events() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }
@@ -426,6 +432,7 @@ mod tests {
 
     #[test]
     fn test_blacklisting() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }
