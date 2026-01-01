@@ -92,7 +92,7 @@ Nexus normalizes task states across protocols using `TaskStatus`:
 
 ## 5. Load Balancing & Routing
 
-Managed by [`load_balancer.rs`](../../packages/nexus/src/router/load_balancer.rs).
+Managed by [`load_balancer.rs`](../../packages/pillars/nexus/src/router/load_balancer.rs).
 
 ### Strategies
 
@@ -127,7 +127,7 @@ The **Marketplace** (`marketplace/mod.rs`) enables dynamic agent discovery and t
 
 ## 7. Chaos Proxy
 
-Located in [`chaos_proxy.rs`](../../packages/nexus/src/chaos_proxy.rs).
+Located in [`chaos_proxy.rs`](../../packages/pillars/nexus/src/chaos_proxy.rs).
 
 Simulates failures in external LLM providers (OpenAI, Anthropic) to test agent resilience.
 
@@ -141,7 +141,7 @@ Included locally to allow developers to build **Antifragile** agents without nee
 
 ## 8. Google A2A Adapter
 
-Implementation: [`protocols/a2a.rs`](../../packages/nexus/src/protocols/a2a.rs)
+Implementation: [`protocols/a2a.rs`](../../packages/pillars/nexus/src/protocols/a2a.rs)
 
 - **Spec**: Google A2A v0.3 (July 2025)
 - **Transport**: JSON-RPC over HTTP/SSE
@@ -153,7 +153,7 @@ Handles the `A2AJsonRpcMessage` envelope and converts specific A2A methods (`tas
 
 ## 9. Anthropic MCP Adapter
 
-Implementation: [`protocols/mcp.rs`](../../packages/nexus/src/protocols/mcp.rs)
+Implementation: [`protocols/mcp.rs`](../../packages/pillars/nexus/src/protocols/mcp.rs)
 
 - **Spec**: Model Context Protocol (June 2025)
 - **Transport**: Stdio / SSE
@@ -168,7 +168,7 @@ Supports:
 
 ## 10. ECMA NLIP Adapter
 
-Implementation: [`protocols/nlip.rs`](../../packages/nexus/src/protocols/nlip.rs)
+Implementation: [`protocols/nlip.rs`](../../packages/pillars/nexus/src/protocols/nlip.rs)
 
 - **Spec**: ECMA-430 (Dec 2025)
 - **Focus**: Natural Language Interaction
@@ -179,7 +179,7 @@ Uses `NLIPEnvelope` and supports `NLIPContent` types like `Text`, `Binary`, `Loc
 
 ## 11. AgentKern Native Adapter
 
-Implementation: [`protocols/agentkern.rs`](../../packages/nexus/src/protocols/agentkern.rs)
+Implementation: [`protocols/agentkern.rs`](../../packages/pillars/nexus/src/protocols/agentkern.rs)
 
 The **Native** adapter handles direct internal communication between AgentKern nodes (VeriMantle nodes).
 
@@ -194,7 +194,7 @@ The **Native** adapter handles direct internal communication between AgentKern n
 
 ## 12. Service Discovery
 
-Implementation: [`discovery.rs`](../../packages/nexus/src/discovery.rs)
+Implementation: [`discovery.rs`](../../packages/pillars/nexus/src/discovery.rs)
 
 Nexus provides automated agent discovery using the `.well-known/agent.json` standard (A2A-compliant).
 
@@ -210,19 +210,19 @@ Nexus provides automated agent discovery using the `.well-known/agent.json` stan
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`lib.rs`](../../packages/nexus/src/lib.rs) | 188 | Gateway entry point |
-| [`protocols/a2a.rs`](../../packages/nexus/src/protocols/a2a.rs) | 238 | Google A2A Adapter |
-| [`protocols/mcp.rs`](../../packages/nexus/src/protocols/mcp.rs) | 262 | Anthropic MCP Adapter |
-| [`protocols/nlip.rs`](../../packages/nexus/src/protocols/nlip.rs) | 363 | ECMA-430 Adapter |
-| [`protocols/agentkern.rs`](../../packages/nexus/src/protocols/agentkern.rs) | 65 | Native Adapter |
-| [`protocols/translator.rs`](../../packages/nexus/src/protocols/translator.rs) | 291 | Translation Engine |
-| [`router/load_balancer.rs`](../../packages/nexus/src/router/load_balancer.rs) | 366 | Traffic Routing |
-| [`marketplace/mod.rs`](../../packages/nexus/src/marketplace/mod.rs) | 565 | Auction & Bidding |
-| [`chaos_proxy.rs`](../../packages/nexus/src/chaos_proxy.rs) | 422 | LLM Failure Sim |
-| [`agent_card.rs`](../../packages/nexus/src/agent_card.rs) | ~300 | Agent Metadata Schema |
-| [`discovery.rs`](../../packages/nexus/src/discovery.rs) | 121 | Agent Discovery |
-| [`registry.rs`](../../packages/nexus/src/registry.rs) | ~100 | In-memory Agent Registry |
-| [`types.rs`](../../packages/nexus/src/types.rs) | ~200 | Core Types (NexusMessage, Task) |
+| [`lib.rs`](../../packages/pillars/nexus/src/lib.rs) | 188 | Gateway entry point |
+| [`protocols/a2a.rs`](../../packages/pillars/nexus/src/protocols/a2a.rs) | 238 | Google A2A Adapter |
+| [`protocols/mcp.rs`](../../packages/pillars/nexus/src/protocols/mcp.rs) | 262 | Anthropic MCP Adapter |
+| [`protocols/nlip.rs`](../../packages/pillars/nexus/src/protocols/nlip.rs) | 363 | ECMA-430 Adapter |
+| [`protocols/agentkern.rs`](../../packages/pillars/nexus/src/protocols/agentkern.rs) | 65 | Native Adapter |
+| [`protocols/translator.rs`](../../packages/pillars/nexus/src/protocols/translator.rs) | 291 | Translation Engine |
+| [`router/load_balancer.rs`](../../packages/pillars/nexus/src/router/load_balancer.rs) | 366 | Traffic Routing |
+| [`marketplace/mod.rs`](../../packages/pillars/nexus/src/marketplace/mod.rs) | 565 | Auction & Bidding |
+| [`chaos_proxy.rs`](../../packages/pillars/nexus/src/chaos_proxy.rs) | 422 | LLM Failure Sim |
+| [`agent_card.rs`](../../packages/pillars/nexus/src/agent_card.rs) | ~300 | Agent Metadata Schema |
+| [`discovery.rs`](../../packages/pillars/nexus/src/discovery.rs) | 121 | Agent Discovery |
+| [`registry.rs`](../../packages/pillars/nexus/src/registry.rs) | ~100 | In-memory Agent Registry |
+| [`types.rs`](../../packages/pillars/nexus/src/types.rs) | ~200 | Core Types (NexusMessage, Task) |
 
 **Total: ~3,500 lines of Rust**
 

@@ -78,7 +78,7 @@
 ### Location
 
 ```
-packages/gate/
+packages/pillars/gate/
 ├── src/
 │   ├── lib.rs               # Module exports
 │   ├── engine.rs            # Core verification engine
@@ -146,7 +146,7 @@ fn with_neural_threshold(mut self, threshold: u8) -> Self
 
 ## 3. The GateEngine
 
-The core verification engine in [`engine.rs`](../../packages/gate/src/engine.rs).
+The core verification engine in [`engine.rs`](../../packages/pillars/gate/src/engine.rs).
 
 ### Key Methods
 
@@ -195,7 +195,7 @@ pub struct LatencyBreakdown {
 
 ## 4. Prompt Guard
 
-Protection against prompt injection in [`prompt_guard.rs`](../../packages/gate/src/prompt_guard.rs).
+Protection against prompt injection in [`prompt_guard.rs`](../../packages/pillars/gate/src/prompt_guard.rs).
 
 ### Threat Levels
 
@@ -248,7 +248,7 @@ println!("Threat: {:?}, Confidence: {}", analysis.threat_level, analysis.confide
 
 ## 5. Context Guard
 
-RAG memory injection protection in [`context_guard.rs`](../../packages/gate/src/context_guard.rs).
+RAG memory injection protection in [`context_guard.rs`](../../packages/pillars/gate/src/context_guard.rs).
 
 ### Why Context Guard?
 
@@ -310,7 +310,7 @@ if result.action == ContextAction::FilterFlagged {
 
 ## 6. Neural Inference
 
-ONNX-based ML in [`neural.rs`](../../packages/gate/src/neural.rs).
+ONNX-based ML in [`neural.rs`](../../packages/pillars/gate/src/neural.rs).
 
 ### Execution Providers
 
@@ -358,7 +358,7 @@ The BPE tokenizer handles evasion attempts:
 
 ## 7. Policy Definition
 
-YAML-based policy DSL in [`policy.rs`](../../packages/gate/src/policy.rs) and [`dsl.rs`](../../packages/gate/src/dsl.rs).
+YAML-based policy DSL in [`policy.rs`](../../packages/pillars/gate/src/policy.rs) and [`dsl.rs`](../../packages/pillars/gate/src/dsl.rs).
 
 ### Policy Structure
 
@@ -416,7 +416,7 @@ Examples:
 
 ## 8. Crypto Agility
 
-Post-quantum ready cryptography in [`crypto_agility.rs`](../../packages/gate/src/crypto_agility.rs).
+Post-quantum ready cryptography in [`crypto_agility.rs`](../../packages/pillars/gate/src/crypto_agility.rs).
 
 ### Crypto Modes
 
@@ -463,7 +463,7 @@ assert!(provider.is_quantum_safe());
 
 ## 9. Trusted Execution Environment (TEE)
 
-Hardware enclave support in [`tee.rs`](../../packages/gate/src/tee.rs).
+Hardware enclave support in [`tee.rs`](../../packages/pillars/gate/src/tee.rs).
 
 ### Supported Platforms
 
@@ -513,7 +513,7 @@ let key = runtime.get_secret("api_key")?;
 
 ## 10. Data Sovereignty
 
-Geo-fencing in [`sovereign.rs`](../../packages/gate/src/sovereign.rs).
+Geo-fencing in [`sovereign.rs`](../../packages/pillars/gate/src/sovereign.rs).
 
 ### Data Regions
 
@@ -561,7 +561,7 @@ let decision = controller.validate(&transfer);
 
 ## 11. Budget & Gas Limits
 
-Resource control in [`budget.rs`](../../packages/gate/src/budget.rs).
+Resource control in [`budget.rs`](../../packages/pillars/gate/src/budget.rs).
 
 ### Budget Configuration
 
@@ -604,7 +604,7 @@ let summary = budget.summary();
 
 ## 12. Carbon Veto (ESG)
 
-Energy-aware veto in [`carbon.rs`](../../packages/gate/src/carbon.rs).
+Energy-aware veto in [`carbon.rs`](../../packages/pillars/gate/src/carbon.rs).
 
 ### Carbon Check
 
@@ -643,7 +643,7 @@ let result = veto.evaluate_dynamic(
 
 ## 13. Explainability Engine
 
-Human-readable decisions in [`explain.rs`](../../packages/gate/src/explain.rs).
+Human-readable decisions in [`explain.rs`](../../packages/pillars/gate/src/explain.rs).
 
 ### Explanation Methods
 
@@ -697,7 +697,7 @@ println!("{}", explanation.summary);
 
 ## 14. mTLS & Zero-Trust
 
-Certificate-based security in [`mtls.rs`](../../packages/gate/src/mtls.rs).
+Certificate-based security in [`mtls.rs`](../../packages/pillars/gate/src/mtls.rs).
 
 ### Configuration
 
@@ -746,7 +746,7 @@ if cred.is_valid() {
 
 ## 15. Observability & Metrics
 
-Monitoring in [`observability.rs`](../../packages/gate/src/observability.rs) and [`metrics.rs`](../../packages/gate/src/metrics.rs).
+Monitoring in [`observability.rs`](../../packages/pillars/gate/src/observability.rs) and [`metrics.rs`](../../packages/pillars/gate/src/metrics.rs).
 
 ### Metrics Exported
 
@@ -796,7 +796,7 @@ pub enum TraceEventType {
 
 ## 16. Actor-Based Supervision
 
-Actix actors in [`actors.rs`](../../packages/gate/src/actors.rs).
+Actix actors in [`actors.rs`](../../packages/pillars/gate/src/actors.rs).
 
 ### Architecture
 
@@ -835,7 +835,7 @@ let status = supervisor.send(GetStatus).await?;
 
 ## 17. Feature Flags
 
-Privacy-first feature management in [`feature_flags.rs`](../../packages/gate/src/feature_flags.rs).
+Privacy-first feature management in [`feature_flags.rs`](../../packages/pillars/gate/src/feature_flags.rs).
 
 ### Flag Types
 
@@ -880,7 +880,7 @@ flags.set("feature", presets::full_rollout()); // 100%
 
 ## 18. WASM Policy Engine
 
-Nano-isolation for policy modules in [`wasm/`](../../packages/gate/src/wasm/).
+Nano-isolation for policy modules in [`wasm/`](../../packages/pillars/gate/src/wasm/).
 
 ### Why WASM?
 
@@ -962,7 +962,7 @@ let stats = registry.stats();
 
 ## 19. Legacy Connectors
 
-WASM-isolated bridges for enterprise systems in [`connectors/`](../../packages/gate/src/connectors/).
+WASM-isolated bridges for enterprise systems in [`connectors/`](../../packages/pillars/gate/src/connectors/).
 
 ### Connector Protocol Types
 
@@ -1224,7 +1224,7 @@ All connectors run in WASM sandboxes with policy enforcement:
 
 ## 20. Runtime & Performance
 
-High-performance async in [`runtime.rs`](../../packages/gate/src/runtime.rs).
+High-performance async in [`runtime.rs`](../../packages/pillars/gate/src/runtime.rs).
 
 ### io_uring Support
 
@@ -1259,29 +1259,29 @@ pub struct IoUringRuntimeConfig {
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`engine.rs`](../../packages/gate/src/engine.rs) | 429 | Core verification engine |
-| [`prompt_guard.rs`](../../packages/gate/src/prompt_guard.rs) | 641 | Prompt injection detection |
-| [`neural.rs`](../../packages/gate/src/neural.rs) | 881 | ONNX neural inference |
-| [`context_guard.rs`](../../packages/gate/src/context_guard.rs) | 304 | RAG context protection |
-| [`crypto_agility.rs`](../../packages/gate/src/crypto_agility.rs) | 669 | Post-quantum cryptography |
-| [`tee.rs`](../../packages/gate/src/tee.rs) | 515 | Hardware enclaves |
-| [`sovereign.rs`](../../packages/gate/src/sovereign.rs) | 351 | Data sovereignty |
-| [`budget.rs`](../../packages/gate/src/budget.rs) | 389 | Gas limits |
-| [`carbon.rs`](../../packages/gate/src/carbon.rs) | 214 | Carbon veto |
-| [`explain.rs`](../../packages/gate/src/explain.rs) | 448 | Explainability |
-| [`policy.rs`](../../packages/gate/src/policy.rs) | 162 | Policy definitions |
-| [`dsl.rs`](../../packages/gate/src/dsl.rs) | 215 | Expression parser |
-| [`types.rs`](../../packages/gate/src/types.rs) | 136 | Core types |
-| [`mtls.rs`](../../packages/gate/src/mtls.rs) | 376 | Zero-trust mTLS |
-| [`observability.rs`](../../packages/gate/src/observability.rs) | 702 | Metrics & tracing |
-| [`metrics.rs`](../../packages/gate/src/metrics.rs) | 316 | Prometheus export |
-| [`actors.rs`](../../packages/gate/src/actors.rs) | 311 | Actix supervision |
-| [`feature_flags.rs`](../../packages/gate/src/feature_flags.rs) | 307 | Feature management |
-| [`runtime.rs`](../../packages/gate/src/runtime.rs) | 193 | io_uring runtime |
-| [`connectors/`](../../packages/gate/src/connectors/) | ~500 | Legacy bridges (SAP, SWIFT, SQL) |
-| [`wasm/mod.rs`](../../packages/gate/src/wasm/mod.rs) | 270 | WASM policy engine |
-| [`wasm/registry.rs`](../../packages/gate/src/wasm/registry.rs) | ~350 | WASM module registry |
-| [`wasm/loader.rs`](../../packages/gate/src/wasm/loader.rs) | ~100 | WASM module loader |
+| [`engine.rs`](../../packages/pillars/gate/src/engine.rs) | 429 | Core verification engine |
+| [`prompt_guard.rs`](../../packages/pillars/gate/src/prompt_guard.rs) | 641 | Prompt injection detection |
+| [`neural.rs`](../../packages/pillars/gate/src/neural.rs) | 881 | ONNX neural inference |
+| [`context_guard.rs`](../../packages/pillars/gate/src/context_guard.rs) | 304 | RAG context protection |
+| [`crypto_agility.rs`](../../packages/pillars/gate/src/crypto_agility.rs) | 669 | Post-quantum cryptography |
+| [`tee.rs`](../../packages/pillars/gate/src/tee.rs) | 515 | Hardware enclaves |
+| [`sovereign.rs`](../../packages/pillars/gate/src/sovereign.rs) | 351 | Data sovereignty |
+| [`budget.rs`](../../packages/pillars/gate/src/budget.rs) | 389 | Gas limits |
+| [`carbon.rs`](../../packages/pillars/gate/src/carbon.rs) | 214 | Carbon veto |
+| [`explain.rs`](../../packages/pillars/gate/src/explain.rs) | 448 | Explainability |
+| [`policy.rs`](../../packages/pillars/gate/src/policy.rs) | 162 | Policy definitions |
+| [`dsl.rs`](../../packages/pillars/gate/src/dsl.rs) | 215 | Expression parser |
+| [`types.rs`](../../packages/pillars/gate/src/types.rs) | 136 | Core types |
+| [`mtls.rs`](../../packages/pillars/gate/src/mtls.rs) | 376 | Zero-trust mTLS |
+| [`observability.rs`](../../packages/pillars/gate/src/observability.rs) | 702 | Metrics & tracing |
+| [`metrics.rs`](../../packages/pillars/gate/src/metrics.rs) | 316 | Prometheus export |
+| [`actors.rs`](../../packages/pillars/gate/src/actors.rs) | 311 | Actix supervision |
+| [`feature_flags.rs`](../../packages/pillars/gate/src/feature_flags.rs) | 307 | Feature management |
+| [`runtime.rs`](../../packages/pillars/gate/src/runtime.rs) | 193 | io_uring runtime |
+| [`connectors/`](../../packages/pillars/gate/src/connectors/) | ~500 | Legacy bridges (SAP, SWIFT, SQL) |
+| [`wasm/mod.rs`](../../packages/pillars/gate/src/wasm/mod.rs) | 270 | WASM policy engine |
+| [`wasm/registry.rs`](../../packages/pillars/gate/src/wasm/registry.rs) | ~350 | WASM module registry |
+| [`wasm/loader.rs`](../../packages/pillars/gate/src/wasm/loader.rs) | ~100 | WASM module loader |
 
 **Total: ~7,500 lines of Rust**
 

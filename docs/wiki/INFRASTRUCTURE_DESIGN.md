@@ -16,7 +16,7 @@
 
 ## 1. SDK (TypeScript)
 
-Implementation: [`packages/sdk`](../../packages/sdk)
+Implementation: [`sdks/typescript/agentkern`](../../sdks/typescript/agentkern)
 
 The **AgentKern SDK** provides "Zero-Config Embedded Verification" for AI agents.
 
@@ -39,7 +39,7 @@ const proof = await AgentKernIdentity.createProof({
 
 ## 2. Universal Runtime
 
-Implementation: [`packages/runtime`](../../packages/runtime)
+Implementation: [`packages/foundation/runtime`](../../packages/foundation/runtime)
 
 A single binary kernel that auto-detects its environment and adapts isolation strategies.
 
@@ -51,7 +51,7 @@ A single binary kernel that auto-detects its environment and adapts isolation st
 
 ## 3. N-API Bridge
 
-Implementation: [`packages/bridge`](../../packages/bridge)
+Implementation: [`packages/foundation/bridge`](../../packages/foundation/bridge)
 
 High-performance bridge connecting Node.js (Identity Pillar) to Rust (Gate Pillar).
 
@@ -65,7 +65,7 @@ High-performance bridge connecting Node.js (Identity Pillar) to Rust (Gate Pilla
 
 ## 4. Edge Runtime
 
-Implementation: [`packages/edge`](../../packages/edge)
+Implementation: [`packages/foundation/edge`](../../packages/foundation/edge)
 
 Minimal kernel for constrained IoT environments (drones, robots).
 
@@ -81,11 +81,11 @@ Minimal kernel for constrained IoT environments (drones, robots).
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`sdk/src/index.ts`](../../packages/sdk/src/index.ts) | 282 | TypeScript SDK Entry |
-| [`runtime/src/lib.rs`](../../packages/runtime/src/lib.rs) | ~150 | Universal Kernel |
-| [`bridge/src/lib.rs`](../../packages/bridge/src/lib.rs) | 91 | Node<->Rust Bridge |
-| [`edge/src/lib.rs`](../../packages/edge/src/lib.rs) | ~100 | IoT Runtime |
-| [`parsers/`](../../packages/parsers/) | ~500 | Legacy Connectors (SAP, SWIFT) |
+| [`sdk/src/index.ts`](../../sdks/typescript/agentkern/src/index.ts) | 282 | TypeScript SDK Entry |
+| [`runtime/src/lib.rs`](../../packages/foundation/runtime/src/lib.rs) | ~150 | Universal Kernel |
+| [`bridge/src/lib.rs`](../../packages/foundation/bridge/src/lib.rs) | 91 | Node<->Rust Bridge |
+| [`edge/src/lib.rs`](../../packages/foundation/edge/src/lib.rs) | ~100 | IoT Runtime |
+| [`parsers/`](../../packages/foundation/parsers/) | ~500 | Legacy Connectors (SAP, SWIFT) |
 
 **Total: ~1,100 lines of Core Infrastructure**
 

@@ -57,7 +57,7 @@ sequenceDiagram
 
 ## 3. Balance Ledger
 
-Manages agent accounts in [`balance.rs`](../../packages/treasury/src/balance.rs).
+Manages agent accounts in [`balance.rs`](../../packages/pillars/treasury/src/balance.rs).
 
 ### Supported Currencies
 
@@ -91,7 +91,7 @@ impl AgentBalance {
 
 ## 4. Transfer Engine (2PC)
 
-Implements Two-Phase Commit for transfers in [`transfer.rs`](../../packages/treasury/src/transfer.rs).
+Implements Two-Phase Commit for transfers in [`transfer.rs`](../../packages/pillars/treasury/src/transfer.rs).
 
 ### Transfer Request
 
@@ -120,7 +120,7 @@ pub struct TransferEngine {
 
 ## 5. Micropayment Aggregation
 
-Optimizes high-volume, low-value transactions in [`micropayments.rs`](../../packages/treasury/src/micropayments.rs).
+Optimizes high-volume, low-value transactions in [`micropayments.rs`](../../packages/pillars/treasury/src/micropayments.rs).
 
 Instead of settling every $0.0001 transaction on-chain or via DB write, aggregating them into batches.
 
@@ -150,7 +150,7 @@ if let Some(batch) = batch {
 
 ## 6. Budget & Spending Limits
 
-Safety controls in [`budget.rs`](../../packages/treasury/src/budget.rs).
+Safety controls in [`budget.rs`](../../packages/pillars/treasury/src/budget.rs).
 
 ### Budget Periods
 
@@ -179,7 +179,7 @@ manager.can_spend("agent-dev", &amount)?;
 
 ## 7. Distributed Locking
 
-Multi-node coordination in [`lock.rs`](../../packages/treasury/src/lock.rs).
+Multi-node coordination in [`lock.rs`](../../packages/pillars/treasury/src/lock.rs).
 
 Prevents race conditions when multiple Treasury instances access the same wallet/ledger.
 
@@ -201,7 +201,7 @@ pub enum LockMode {
 
 ## 8. GreenOps: Carbon Ledger
 
-Tracks environmental impact in [`carbon.rs`](../../packages/treasury/src/carbon.rs).
+Tracks environmental impact in [`carbon.rs`](../../packages/pillars/treasury/src/carbon.rs).
 
 ### Hardware Awareness
 
@@ -252,7 +252,7 @@ Jobs run during peak renewable hours get a "Green Discount" on their calculated 
 
 ## 10. WattTime Integration
 
-Real-time grid emissions data via [`watttime.rs`](../../packages/treasury/src/watttime.rs).
+Real-time grid emissions data via [`watttime.rs`](../../packages/pillars/treasury/src/watttime.rs).
 
 ```rust
 let client = WattTimeClient::from_env()?;
@@ -266,7 +266,7 @@ let intensity = client.get_intensity(37.77, -122.41).await?;
 
 ## 11. HTTP API (Server)
 
-Simple server in [`bin/server.rs`](../../packages/treasury/src/bin/server.rs).
+Simple server in [`bin/server.rs`](../../packages/pillars/treasury/src/bin/server.rs).
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -282,16 +282,16 @@ Currently serves primarily as a health-check endpoint for orchestrators.
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`lib.rs`](../../packages/treasury/src/lib.rs) | 76 | Module exports |
-| [`types.rs`](../../packages/treasury/src/types.rs) | 125 | Core types (Amount, AgentId) |
-| [`balance.rs`](../../packages/treasury/src/balance.rs) | 297 | Ledger & Currency logic |
-| [`transfer.rs`](../../packages/treasury/src/transfer.rs) | 317 | Atomic Transfer Engine |
-| [`budget.rs`](../../packages/treasury/src/budget.rs) | 263 | Spending limits |
-| [`micropayments.rs`](../../packages/treasury/src/micropayments.rs) | 272 | Aggregation logic |
-| [`lock.rs`](../../packages/treasury/src/lock.rs) | 279 | Distributed locking |
-| [`carbon.rs`](../../packages/treasury/src/carbon.rs) | 926 | GreenOps & Hardware data |
-| [`watttime.rs`](../../packages/treasury/src/watttime.rs) | 248 | WattTime API Client |
-| [`bin/server.rs`](../../packages/treasury/src/bin/server.rs) | 20 | HTTP Server |
+| [`lib.rs`](../../packages/pillars/treasury/src/lib.rs) | 76 | Module exports |
+| [`types.rs`](../../packages/pillars/treasury/src/types.rs) | 125 | Core types (Amount, AgentId) |
+| [`balance.rs`](../../packages/pillars/treasury/src/balance.rs) | 297 | Ledger & Currency logic |
+| [`transfer.rs`](../../packages/pillars/treasury/src/transfer.rs) | 317 | Atomic Transfer Engine |
+| [`budget.rs`](../../packages/pillars/treasury/src/budget.rs) | 263 | Spending limits |
+| [`micropayments.rs`](../../packages/pillars/treasury/src/micropayments.rs) | 272 | Aggregation logic |
+| [`lock.rs`](../../packages/pillars/treasury/src/lock.rs) | 279 | Distributed locking |
+| [`carbon.rs`](../../packages/pillars/treasury/src/carbon.rs) | 926 | GreenOps & Hardware data |
+| [`watttime.rs`](../../packages/pillars/treasury/src/watttime.rs) | 248 | WattTime API Client |
+| [`bin/server.rs`](../../packages/pillars/treasury/src/bin/server.rs) | 20 | HTTP Server |
 
 **Total: ~2,800 lines of Rust**
 

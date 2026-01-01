@@ -29,7 +29,7 @@ apps/identity (single TypeScript entry point)
 ├── Enterprise licensing
 └── Health endpoints
          │ N-API
-packages/bridge → Rust crates (gate, arbiter, synapse)
+packages/foundation/bridge → Rust crates (gate, arbiter, synapse)
 ```
 
 ## Rationale

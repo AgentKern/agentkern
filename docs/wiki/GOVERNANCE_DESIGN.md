@@ -26,7 +26,7 @@
 
 ## 2. AI Governance (EU AI Act)
 
-Implementation: [`packages/governance/src/ai/eu_ai_act.rs`](../../packages/governance/src/ai/eu_ai_act.rs)
+Implementation: [`packages/foundation/governance/src/ai/eu_ai_act.rs`](../../packages/foundation/governance/src/ai/eu_ai_act.rs)
 
 This module implements the **EU AI Act** (Aug 2025 enforcement) primitives.
 
@@ -61,7 +61,7 @@ Agents can export this object to JSON to instantly generate a compliance artifac
 
 ## 3. Privacy & Data Sovereignty
 
-Implementation: [`packages/governance/src/privacy`](../../packages/governance/src/privacy)
+Implementation: [`packages/foundation/governance/src/privacy`](../../packages/foundation/governance/src/privacy)
 
 ### Global Privacy Registry
 
@@ -76,7 +76,7 @@ The `GlobalPrivacyRegistry` determines if data can leave a specific `CarbonRegio
 
 ## 4. Audit Framework
 
-Implementation: [`packages/governance/src/audit`](../../packages/governance/src/audit)
+Implementation: [`packages/foundation/governance/src/audit`](../../packages/foundation/governance/src/audit)
 
 Provides a unified interface for **Evidence Collection**.
 
@@ -90,11 +90,11 @@ Provides a unified interface for **Evidence Collection**.
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`ai/eu_ai_act.rs`](../../packages/governance/src/ai/eu_ai_act.rs) | 891 | EU AI Act implementation |
-| [`ai/iso42001/`](../../packages/governance/src/ai/iso42001/) | ~200 | ISO 42001 AIMS Standard |
-| [`privacy/global_registry.rs`](../../packages/governance/src/privacy/global_registry.rs) | ~300 | Data sovereignty rules |
-| [`audit/mod.rs`](../../packages/governance/src/audit/mod.rs) | ~150 | Audit ledger types |
-| [`industry/mod.rs`](../../packages/governance/src/industry/mod.rs) | ~100 | Industry verticals (HIPAA, etc.) |
+| [`ai/eu_ai_act.rs`](../../packages/foundation/governance/src/ai/eu_ai_act.rs) | 891 | EU AI Act implementation |
+| [`ai/iso42001/`](../../packages/foundation/governance/src/ai/iso42001/) | ~200 | ISO 42001 AIMS Standard |
+| [`privacy/global_registry.rs`](../../packages/foundation/governance/src/privacy/global_registry.rs) | ~300 | Data sovereignty rules |
+| [`audit/mod.rs`](../../packages/foundation/governance/src/audit/mod.rs) | ~150 | Audit ledger types |
+| [`industry/mod.rs`](../../packages/foundation/governance/src/industry/mod.rs) | ~100 | Industry verticals (HIPAA, etc.) |
 
 **Total: ~1,600 lines of Rust**
 

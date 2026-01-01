@@ -71,7 +71,7 @@
 ### Location
 
 ```
-packages/synapse/
+packages/pillars/synapse/
 ├── src/
 │   ├── lib.rs               # Module exports
 │   ├── graph.rs             # Graph Vector Database
@@ -1027,32 +1027,32 @@ curl http://localhost:3002/intent/agent-123/drift
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`lib.rs`](../../packages/synapse/src/lib.rs) | 104 | Module exports |
-| [`graph.rs`](../../packages/synapse/src/graph.rs) | 343 | Graph Vector Database |
-| [`crdt.rs`](../../packages/synapse/src/crdt.rs) | 540 | CRDTs (GCounter, PNCounter, LWW, OR-Set) |
-| [`intent.rs`](../../packages/synapse/src/intent.rs) | 184 | Intent path tracking |
-| [`drift.rs`](../../packages/synapse/src/drift.rs) | 750 | Drift detection & alerting |
-| [`state.rs`](../../packages/synapse/src/state.rs) | 237 | State store |
-| [`types.rs`](../../packages/synapse/src/types.rs) | 105 | Core types |
-| [`adaptive.rs`](../../packages/synapse/src/adaptive.rs) | 305 | Adaptive query execution |
-| [`context_guard.rs`](../../packages/synapse/src/context_guard.rs) | 381 | RAG context protection |
-| [`embeddings.rs`](../../packages/synapse/src/embeddings.rs) | 386 | Embedding configuration |
-| [`encryption.rs`](../../packages/synapse/src/encryption.rs) | 511 | Envelope encryption |
-| [`secure_passport.rs`](../../packages/synapse/src/secure_passport.rs) | 525 | Zero-Trust passports |
-| [`state_snapshot.rs`](../../packages/synapse/src/state_snapshot.rs) | 501 | Chain-anchored snapshots |
-| [`sandbox.rs`](../../packages/synapse/src/sandbox.rs) | 529 | Digital twin sandbox |
-| [`mesh/mod.rs`](../../packages/synapse/src/mesh/mod.rs) | 226 | Global mesh controller |
-| [`mesh/geo_fence.rs`](../../packages/synapse/src/mesh/geo_fence.rs) | 212 | Geo-fence policy |
-| [`mesh/sync.rs`](../../packages/synapse/src/mesh/sync.rs) | 264 | CRDT sync protocol |
-| [`passport/mod.rs`](../../packages/synapse/src/passport/mod.rs) | 24 | Memory passport exports |
-| [`passport/export.rs`](../../packages/synapse/src/passport/export.rs) | ~250 | Passport export |
-| [`passport/import.rs`](../../packages/synapse/src/passport/import.rs) | ~300 | Passport import |
-| [`passport/gdpr.rs`](../../packages/synapse/src/passport/gdpr.rs) | ~350 | GDPR compliance |
-| [`passport/layers.rs`](../../packages/synapse/src/passport/layers.rs) | ~350 | Memory hierarchy |
-| [`passport/schema.rs`](../../packages/synapse/src/passport/schema.rs) | ~300 | Passport schema |
-| [`polyglot/mod.rs`](../../packages/synapse/src/polyglot/mod.rs) | 259 | Language detection & memory |
-| [`polyglot/embeddings.rs`](../../packages/synapse/src/polyglot/embeddings.rs) | ~170 | Polyglot embedder |
-| [`bin/server.rs`](../../packages/synapse/src/bin/server.rs) | ~120 | HTTP server |
+| [`lib.rs`](../../packages/pillars/synapse/src/lib.rs) | 104 | Module exports |
+| [`graph.rs`](../../packages/pillars/synapse/src/graph.rs) | 343 | Graph Vector Database |
+| [`crdt.rs`](../../packages/pillars/synapse/src/crdt.rs) | 540 | CRDTs (GCounter, PNCounter, LWW, OR-Set) |
+| [`intent.rs`](../../packages/pillars/synapse/src/intent.rs) | 184 | Intent path tracking |
+| [`drift.rs`](../../packages/pillars/synapse/src/drift.rs) | 750 | Drift detection & alerting |
+| [`state.rs`](../../packages/pillars/synapse/src/state.rs) | 237 | State store |
+| [`types.rs`](../../packages/pillars/synapse/src/types.rs) | 105 | Core types |
+| [`adaptive.rs`](../../packages/pillars/synapse/src/adaptive.rs) | 305 | Adaptive query execution |
+| [`context_guard.rs`](../../packages/pillars/synapse/src/context_guard.rs) | 381 | RAG context protection |
+| [`embeddings.rs`](../../packages/pillars/synapse/src/embeddings.rs) | 386 | Embedding configuration |
+| [`encryption.rs`](../../packages/pillars/synapse/src/encryption.rs) | 511 | Envelope encryption |
+| [`secure_passport.rs`](../../packages/pillars/synapse/src/secure_passport.rs) | 525 | Zero-Trust passports |
+| [`state_snapshot.rs`](../../packages/pillars/synapse/src/state_snapshot.rs) | 501 | Chain-anchored snapshots |
+| [`sandbox.rs`](../../packages/pillars/synapse/src/sandbox.rs) | 529 | Digital twin sandbox |
+| [`mesh/mod.rs`](../../packages/pillars/synapse/src/mesh/mod.rs) | 226 | Global mesh controller |
+| [`mesh/geo_fence.rs`](../../packages/pillars/synapse/src/mesh/geo_fence.rs) | 212 | Geo-fence policy |
+| [`mesh/sync.rs`](../../packages/pillars/synapse/src/mesh/sync.rs) | 264 | CRDT sync protocol |
+| [`passport/mod.rs`](../../packages/pillars/synapse/src/passport/mod.rs) | 24 | Memory passport exports |
+| [`passport/export.rs`](../../packages/pillars/synapse/src/passport/export.rs) | ~250 | Passport export |
+| [`passport/import.rs`](../../packages/pillars/synapse/src/passport/import.rs) | ~300 | Passport import |
+| [`passport/gdpr.rs`](../../packages/pillars/synapse/src/passport/gdpr.rs) | ~350 | GDPR compliance |
+| [`passport/layers.rs`](../../packages/pillars/synapse/src/passport/layers.rs) | ~350 | Memory hierarchy |
+| [`passport/schema.rs`](../../packages/pillars/synapse/src/passport/schema.rs) | ~300 | Passport schema |
+| [`polyglot/mod.rs`](../../packages/pillars/synapse/src/polyglot/mod.rs) | 259 | Language detection & memory |
+| [`polyglot/embeddings.rs`](../../packages/pillars/synapse/src/polyglot/embeddings.rs) | ~170 | Polyglot embedder |
+| [`bin/server.rs`](../../packages/pillars/synapse/src/bin/server.rs) | ~120 | HTTP server |
 
 **Total: ~7,000+ lines of Rust**
 

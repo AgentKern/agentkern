@@ -74,7 +74,7 @@
 ### Location
 
 ```
-packages/arbiter/
+packages/pillars/arbiter/
 ├── src/
 │   ├── lib.rs               # Module exports
 │   ├── types.rs             # Core types (BusinessLock, CoordinationRequest)
@@ -1043,32 +1043,32 @@ let result = checker.check(&operation);
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| [`lib.rs`](../../packages/arbiter/src/lib.rs) | 107 | Module exports |
-| [`types.rs`](../../packages/arbiter/src/types.rs) | 177 | Core types (BusinessLock, CoordinationRequest) |
-| [`coordinator.rs`](../../packages/arbiter/src/coordinator.rs) | 171 | High-level coordination API |
-| [`locks.rs`](../../packages/arbiter/src/locks.rs) | 231 | Lock manager with TTL |
-| [`queue.rs`](../../packages/arbiter/src/queue.rs) | ~170 | Priority queue |
-| [`raft.rs`](../../packages/arbiter/src/raft.rs) | 359 | Raft consensus |
-| [`thread_per_core.rs`](../../packages/arbiter/src/thread_per_core.rs) | 229 | Hyper-loop runtime |
-| [`killswitch.rs`](../../packages/arbiter/src/killswitch.rs) | 345 | Emergency termination |
-| [`antifragile.rs`](../../packages/arbiter/src/antifragile.rs) | 938 | Self-healing engine |
-| [`chaos.rs`](../../packages/arbiter/src/chaos.rs) | 544 | Fault injection |
-| [`bulkhead.rs`](../../packages/arbiter/src/bulkhead.rs) | 593 | Resource isolation |
-| [`loop_prevention.rs`](../../packages/arbiter/src/loop_prevention.rs) | 450 | $47K prevention |
-| [`dr_scheduler.rs`](../../packages/arbiter/src/dr_scheduler.rs) | 420 | DR drill automation |
-| [`carbon.rs`](../../packages/arbiter/src/carbon.rs) | 363 | Carbon scheduling |
-| [`cost.rs`](../../packages/arbiter/src/cost.rs) | 526 | Cost tracking |
-| [`escalation/mod.rs`](../../packages/arbiter/src/escalation/mod.rs) | 19 | Escalation exports |
-| [`escalation/triggers.rs`](../../packages/arbiter/src/escalation/triggers.rs) | 377 | Escalation triggers |
-| [`escalation/approval.rs`](../../packages/arbiter/src/escalation/approval.rs) | ~350 | Approval workflows |
-| [`escalation/webhook.rs`](../../packages/arbiter/src/escalation/webhook.rs) | ~370 | Webhook notifications |
-| [`entity/mod.rs`](../../packages/arbiter/src/entity/mod.rs) | ~24 | Entity exports |
-| [`entity/compliance.rs`](../../packages/arbiter/src/entity/compliance.rs) | ~300 | Compliance checks |
-| [`entity/formation.rs`](../../packages/arbiter/src/entity/formation.rs) | ~135 | Entity formation |
-| [`entity/liability.rs`](../../packages/arbiter/src/entity/liability.rs) | ~120 | Liability tracking |
-| [`entity/screening.rs`](../../packages/arbiter/src/entity/screening.rs) | ~190 | Sanctions screening |
-| [`entity/shariah.rs`](../../packages/arbiter/src/entity/shariah.rs) | ~245 | Shariah compliance |
-| [`bin/server.rs`](../../packages/arbiter/src/bin/server.rs) | ~120 | HTTP server |
+| [`lib.rs`](../../packages/pillars/arbiter/src/lib.rs) | 107 | Module exports |
+| [`types.rs`](../../packages/pillars/arbiter/src/types.rs) | 177 | Core types (BusinessLock, CoordinationRequest) |
+| [`coordinator.rs`](../../packages/pillars/arbiter/src/coordinator.rs) | 171 | High-level coordination API |
+| [`locks.rs`](../../packages/pillars/arbiter/src/locks.rs) | 231 | Lock manager with TTL |
+| [`queue.rs`](../../packages/pillars/arbiter/src/queue.rs) | ~170 | Priority queue |
+| [`raft.rs`](../../packages/pillars/arbiter/src/raft.rs) | 359 | Raft consensus |
+| [`thread_per_core.rs`](../../packages/pillars/arbiter/src/thread_per_core.rs) | 229 | Hyper-loop runtime |
+| [`killswitch.rs`](../../packages/pillars/arbiter/src/killswitch.rs) | 345 | Emergency termination |
+| [`antifragile.rs`](../../packages/pillars/arbiter/src/antifragile.rs) | 938 | Self-healing engine |
+| [`chaos.rs`](../../packages/pillars/arbiter/src/chaos.rs) | 544 | Fault injection |
+| [`bulkhead.rs`](../../packages/pillars/arbiter/src/bulkhead.rs) | 593 | Resource isolation |
+| [`loop_prevention.rs`](../../packages/pillars/arbiter/src/loop_prevention.rs) | 450 | $47K prevention |
+| [`dr_scheduler.rs`](../../packages/pillars/arbiter/src/dr_scheduler.rs) | 420 | DR drill automation |
+| [`carbon.rs`](../../packages/pillars/arbiter/src/carbon.rs) | 363 | Carbon scheduling |
+| [`cost.rs`](../../packages/pillars/arbiter/src/cost.rs) | 526 | Cost tracking |
+| [`escalation/mod.rs`](../../packages/pillars/arbiter/src/escalation/mod.rs) | 19 | Escalation exports |
+| [`escalation/triggers.rs`](../../packages/pillars/arbiter/src/escalation/triggers.rs) | 377 | Escalation triggers |
+| [`escalation/approval.rs`](../../packages/pillars/arbiter/src/escalation/approval.rs) | ~350 | Approval workflows |
+| [`escalation/webhook.rs`](../../packages/pillars/arbiter/src/escalation/webhook.rs) | ~370 | Webhook notifications |
+| [`entity/mod.rs`](../../packages/pillars/arbiter/src/entity/mod.rs) | ~24 | Entity exports |
+| [`entity/compliance.rs`](../../packages/pillars/arbiter/src/entity/compliance.rs) | ~300 | Compliance checks |
+| [`entity/formation.rs`](../../packages/pillars/arbiter/src/entity/formation.rs) | ~135 | Entity formation |
+| [`entity/liability.rs`](../../packages/pillars/arbiter/src/entity/liability.rs) | ~120 | Liability tracking |
+| [`entity/screening.rs`](../../packages/pillars/arbiter/src/entity/screening.rs) | ~190 | Sanctions screening |
+| [`entity/shariah.rs`](../../packages/pillars/arbiter/src/entity/shariah.rs) | ~245 | Shariah compliance |
+| [`bin/server.rs`](../../packages/pillars/arbiter/src/bin/server.rs) | ~120 | HTTP server |
 
 **Total: ~7,500+ lines of Rust**
 
