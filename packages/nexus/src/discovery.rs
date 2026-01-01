@@ -31,6 +31,11 @@ impl AgentDiscovery {
         Self { registry, client }
     }
 
+    /// Get the underlying agent registry.
+    pub fn registry(&self) -> &Arc<AgentRegistry> {
+        &self.registry
+    }
+
     /// Discover an agent from its base URL.
     /// Fetches /.well-known/agent.json per A2A spec.
     pub async fn discover(&self, base_url: &str) -> Result<AgentCard, NexusError> {

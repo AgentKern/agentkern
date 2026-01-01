@@ -70,6 +70,11 @@ impl MeshSync {
         }
     }
 
+    /// Get the local cell ID for this sync engine.
+    pub fn local_cell_id(&self) -> &str {
+        &self.local_cell_id
+    }
+
     /// Record a local change.
     pub fn record_change(&mut self, key: &str, value: &[u8]) -> SyncEvent {
         let ts = self.increment_clock();

@@ -596,6 +596,23 @@ Every security-relevant event is logged immutably.
 
 ### 14.3 File: `services/audit-logger.service.ts`
 
+### 14.4 Hardware Enclave (TEE) Verification
+
+Identity leverages **Confidential Computing** (TEE) to protect sensitive operations.
+
+- **Implementation**: `gate.service.ts` links to the Rust `gate` crate via N-API.
+- **Function**: `attest(nonce)` generates a hardware-signed quote proving the code is running in a genuine enclave (e.g., Intel SGX/TDX).
+
+```typescript
+// Attestation Structure
+interface Attestation {
+  platform: string;   // 'sgx', 'tdx', 'sev'
+  quote: number[];    // Hardware signature
+  measurement: number[]; // Code hash
+  timestamp: number;
+}
+```
+
 ---
 
 ## 15. Database Entities
@@ -606,10 +623,9 @@ All persistent data is stored via TypeORM.
 
 | Entity | Table | Purpose |
 |--------|-------|---------|
-| `AgentRecordEntity` | `agents` | Agent registration, budget, reputation |
-| `TrustScoreEntity` | `trust_scores` | Long-term trust scores |
+| `AgentRecordEntity` | `agents` | Agent registration, budget, reputation (JSONB) |
+| `TrustRecordEntity` | `trust_records` | TrustService scores & Agent-Principal links |
 | `TrustEventEntity` | `trust_events` | History of trust-affecting events |
-| `TrustRecordEntity` | `trust_records` | Agent-Principal relationships |
 | `AuditEventEntity` | `audit_events` | Security audit trail |
 | `WebAuthnCredentialEntity` | `webauthn_credentials` | Passkey/hardware key storage |
 | `WebAuthnChallengeEntity` | `webauthn_challenges` | Pending auth challenges |
@@ -670,9 +686,8 @@ NestJS modules group related functionality.
 | File | Purpose |
 |------|---------|
 | `agent-record.entity.ts` | Agent storage |
-| `trust-score.entity.ts` | Trust persistence |
+| `trust-record.entity.ts` | Trust scores & relationships |
 | `trust-event.entity.ts` | Trust history |
-| `trust-record.entity.ts` | Agent-Principal trust |
 | `audit-event.entity.ts` | Audit trail |
 | `webauthn-credential.entity.ts` | Passkeys |
 | `verification-key.entity.ts` | Public keys |

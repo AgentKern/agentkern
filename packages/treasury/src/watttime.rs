@@ -122,7 +122,7 @@ impl WattTimeClient {
     }
 
     /// Get intensity forecast for a region.
-    pub async fn get_forecast(&self, ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
+    pub async fn get_forecast(&self, _ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
         use chrono::Timelike;
 
         // Placeholder: return mock forecast
@@ -189,6 +189,21 @@ impl WattTimeClient {
             Some(expiry) => std::time::Instant::now() > expiry,
             None => true,
         }
+    }
+
+    /// Get the current configuration.
+    pub fn config(&self) -> &WattTimeConfig {
+        &self.config
+    }
+
+    /// Check if credentials are configured.
+    pub fn has_credentials(&self) -> bool {
+        !self.config.username.is_empty() && !self.config.password.is_empty()
+    }
+
+    /// Check if currently authenticated (has valid token).
+    pub fn is_authenticated(&self) -> bool {
+        self.token.is_some() && !self.needs_auth()
     }
 }
 

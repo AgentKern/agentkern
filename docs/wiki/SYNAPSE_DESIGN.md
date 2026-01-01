@@ -20,7 +20,8 @@
 12. [State Snapshots (Chain-Anchored)](#12-state-snapshots-chain-anchored)
 13. [Global Mesh Sync](#13-global-mesh-sync)
 14. [Digital Twin Sandbox](#14-digital-twin-sandbox)
-15. [Complete Module Map](#15-complete-module-map)
+15. [HTTP API (Server)](#15-http-api-server)
+16. [Complete Module Map](#16-complete-module-map)
 
 ---
 
@@ -367,6 +368,33 @@ let results = memory.search("greeting", 5).await;
 // Returns both English and Arabic docs!
 ```
 
+### Cross-Lingual Intent Verifier
+
+Verifies that translated text preserves original intent:
+
+```rust
+let verifier = IntentVerifier::new();
+
+// Verify translation preserves meaning
+let result = verifier.verify_intent(&original_embedding, &translated_embedding);
+
+if result.preserved {
+    // similarity > 0.85 → intent preserved
+} else if result.similarity < 0.7 {
+    // Warning: "Significant semantic drift detected"
+}
+```
+
+**Intent Preservation Thresholds (EPISTEMIC WARRANT):**
+
+| Similarity | Status | Action |
+|------------|--------|--------|
+| ≥ 0.85 | Preserved | Proceed |
+| 0.70-0.84 | Uncertain | Review |
+| < 0.70 | Drifted | **Warning**: Semantic drift detected |
+
+Thresholds based on cosine similarity benchmarks for multilingual sentence transformers.
+
 ---
 
 ## 6. State Store
@@ -582,30 +610,157 @@ Portable agent state for cross-cloud sovereignty.
 
 Per GDPR Article 20: Right to Data Portability.
 
-### Memory Layers
+### Memory Layers (4-Layer Model)
 
 ```rust
 pub struct MemoryLayers {
-    pub episodic: Vec<EpisodicMemory>,   // Events, interactions
-    pub semantic: Vec<SemanticMemory>,   // Facts, knowledge
-    pub skills: Vec<SkillMemory>,        // Learned abilities
-    pub preferences: Vec<PreferenceMemory>, // User preferences
+    pub episodic: EpisodicMemory,    // Events, interactions
+    pub semantic: SemanticMemory,    // Facts, knowledge
+    pub skills: SkillMemory,         // Learned abilities
+    pub preferences: PreferenceMemory, // User preferences
+}
+```
+
+#### Episodic Memory
+
+```rust
+pub struct EpisodicEntry {
+    pub id: String,
+    pub timestamp: DateTime<Utc>,
+    pub actor: String,        // Who did it
+    pub action: String,       // What happened
+    pub content: String,      // Details
+    pub importance: f32,      // 0.0-1.0 importance score
+    pub embedding: Option<Vec<f32>>,
+}
+
+// Capacity-bounded with importance filtering
+let memory = EpisodicMemory::with_capacity(1000);
+memory.add(entry);
+let recent = memory.recent(10);
+let important = memory.important(0.7); // threshold
+```
+
+#### Semantic Memory
+
+```rust
+pub struct SemanticFact {
+    pub id: String,
+    pub subject: String,      // Entity
+    pub predicate: String,    // Relationship
+    pub object: String,       // Value
+    pub confidence: f32,      // 0.0-1.0
+    pub source: String,       // Where learned
+    pub valid_from: Option<DateTime<Utc>>,
+    pub valid_to: Option<DateTime<Utc>>,
+    pub categories: Vec<String>,
+}
+
+memory.add_fact(fact);
+let facts = memory.by_category("finance");
+let facts = memory.by_subject("customer-123");
+```
+
+#### Skill Memory
+
+```rust
+pub struct LearnedSkill {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub proficiency: f32,     // 0.0-1.0 mastery level
+    pub usage_count: u64,
+    pub last_used: DateTime<Utc>,
+    pub dependencies: Vec<String>,
+    pub code_ref: Option<String>,
+}
+
+memory.learn(skill);           // Add/update skill
+memory.record_usage("skill-1"); // Track usage
+let expert = memory.by_proficiency(0.8); // High proficiency
+```
+
+### Export Formats
+
+```rust
+pub enum ExportFormat {
+    Json,       // Human-readable
+    Binary,     // MessagePack (compact)
+    Encrypted,  // AES-256-GCM encrypted
+}
+
+let exporter = PassportExporter::new();
+let bytes = exporter.export(&passport, &ExportOptions {
+    format: ExportFormat::Json,
+    compress: true,
+    include_embeddings: false,
+    allowed_regions: Some(vec!["EU".into()]),
+    encryption_key: None,
+})?;
+
+// Convenience method
+let json = exporter.export_json(&passport)?;
+```
+
+### GDPR Data Categories
+
+```rust
+pub enum DataCategory {
+    Identity,       // Name, DID, identifiers
+    Financial,      // Payment info, balances
+    Communication,  // Messages, emails
+    Behavioral,     // Actions, patterns
+    Transactional,  // Purchase history
+    Health,         // Health-related data
+    Location,       // Geographic data
+    AiGenerated,    // Predictions, inferences
+    Other,
 }
 ```
 
 ### GDPR Export
 
 ```rust
-let exporter = PassportExporter::new();
+let exporter = GdprExporter::new();
 
-let export = exporter.export_gdpr(
-    passport,
-    ExportOptions::new()
-        .with_format(ExportFormat::Json)
-        .with_include_embeddings(false),
-)?;
+let export = exporter.export(&passport)?;
+// export.data_categories: Vec<DataCategory>
+// export.processing_events: Vec<ProcessingEvent>
+// export.summary: GdprSummary
+// export.rights_info: RightsInfo
 
-// export.data_categories, export.processing_events, export.data_subjects
+// Machine-readable JSON-LD format
+let json_ld = exporter.to_json_ld(&passport)?;
+
+// Human-readable text summary
+let text = exporter.export_text(&passport)?;
+```
+
+### Processing Event Audit Trail
+
+```rust
+pub struct ProcessingEvent {
+    pub timestamp: DateTime<Utc>,
+    pub purpose: String,
+    pub legal_basis: String,
+    pub processor: String,
+    pub categories: Vec<DataCategory>,
+}
+```
+
+### Rights Information
+
+```rust
+pub struct RightsInfo {
+    pub right_to_access: bool,
+    pub right_to_rectification: bool,
+    pub right_to_erasure: bool,
+    pub right_to_restriction: bool,
+    pub right_to_portability: bool,
+    pub right_to_object: bool,
+    pub contact_email: String,
+    pub supervisory_authority: String,
+}
 ```
 
 ### Passport Import
@@ -613,12 +768,23 @@ let export = exporter.export_gdpr(
 ```rust
 let importer = PassportImporter::new();
 
-let result = importer.import(
-    passport_bytes,
-    ImportOptions::new()
-        .with_verify_signature(true)
-        .with_merge_strategy(MergeStrategy::Replace),
-)?;
+let result = importer.import(passport_bytes, &ImportOptions {
+    verify_checksum: true,
+    require_signature: false,
+    allowed_regions: None,
+    decryption_key: None,
+})?;
+
+// result.passport: MemoryPassport
+// result.stats: ImportStats { memories_imported, facts_imported, skills_imported }
+// result.warnings: Vec<String>
+```
+
+### Passport Merge
+
+```rust
+// Merge incoming passport into existing
+importer.merge(&mut base_passport, &incoming_passport)?;
 ```
 
 ---
@@ -814,7 +980,50 @@ assert!(result.passed);
 
 ---
 
-## 15. Complete Module Map
+## 15. HTTP API (Server)
+
+The Synapse server exposes REST endpoints for agent state management.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/state/:agent_id` | Get agent state |
+| `PUT` | `/state/:agent_id` | Update agent state |
+| `GET` | `/intent/:agent_id` | Get current intent |
+| `POST` | `/intent/:agent_id` | Start new intent |
+| `POST` | `/intent/:agent_id/step` | Record intent step |
+| `GET` | `/intent/:agent_id/drift` | Check for drift |
+
+### Start Server
+
+```bash
+PORT=3002 cargo run --bin synapse-server
+# 🧠 AgentKern-Synapse server running on http://0.0.0.0:3002
+```
+
+### Example: Intent Tracking Flow
+
+```bash
+# 1. Start intent
+curl -X POST http://localhost:3002/intent/agent-123 \
+  -H "Content-Type: application/json" \
+  -d '{"intent": "Process purchase", "expected_steps": 5}'
+
+# 2. Record steps
+curl -X POST http://localhost:3002/intent/agent-123/step \
+  -H "Content-Type: application/json" \
+  -d '{"action": "validate_input", "result": "success"}'
+
+# 3. Check drift
+curl http://localhost:3002/intent/agent-123/drift
+# {"drifted": false, "score": 20, "reason": null}
+```
+
+---
+
+## 16. Complete Module Map
 
 | Module | Lines | Purpose |
 |--------|-------|---------|

@@ -97,6 +97,11 @@ impl GlobalMesh {
         cells.insert(cell.id.clone(), cell);
     }
 
+    /// Get the local cell ID for this mesh controller.
+    pub fn local_cell_id(&self) -> &str {
+        &self.local_cell_id
+    }
+
     /// Sync data to a target region (with geo-fence check).
     pub async fn sync_to_region(
         &self,

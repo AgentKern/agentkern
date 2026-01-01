@@ -12,8 +12,15 @@
 | 🛡️ **Gate** | ✅ Complete | [GATE_DESIGN.md](GATE_DESIGN.md) |
 | 🧠 **Synapse** | ✅ Complete | [SYNAPSE_DESIGN.md](SYNAPSE_DESIGN.md) |
 | ⚖️ **Arbiter** | ✅ Complete | [ARBITER_DESIGN.md](ARBITER_DESIGN.md) |
-| 💰 **Treasury** | 📝 Coming... | [TREASURY_DESIGN.md](TREASURY_DESIGN.md) |
-| 🔀 **Nexus** | 📝 Coming... | [NEXUS_DESIGN.md](NEXUS_DESIGN.md) |
+| 💰 **Treasury** | ✅ Complete | [TREASURY_DESIGN.md](TREASURY_DESIGN.md) |
+| 🔀 **Nexus** | ✅ Complete | [NEXUS_DESIGN.md](NEXUS_DESIGN.md) |
+
+### Foundation & Support
+
+| Module | Status | Link |
+| :--- | :--- | :--- |
+| 📜 **Governance** | ✅ Complete | [GOVERNANCE_DESIGN.md](GOVERNANCE_DESIGN.md) |
+| 🛠️ **Infrastructure** | ✅ Complete | [INFRASTRUCTURE_DESIGN.md](INFRASTRUCTURE_DESIGN.md) |
 
 ---
 

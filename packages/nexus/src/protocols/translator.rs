@@ -86,6 +86,11 @@ impl ProtocolTranslator {
         translator
     }
 
+    /// Get the adapter registry for protocol detection and parsing.
+    pub fn registry(&self) -> &AdapterRegistry {
+        &self.registry
+    }
+
     /// Load default field mappings between protocols.
     fn load_default_mappings(&mut self) {
         // A2A → MCP mappings

@@ -210,6 +210,17 @@ impl RaftLockManager {
         Arc::clone(&self.state_machine)
     }
 
+    /// Get the current term number.
+    pub fn current_term(&self) -> u64 {
+        self.current_term
+    }
+
+    /// Get which node this node voted for in the current term.
+    /// Returns None if no vote has been cast yet.
+    pub fn voted_for(&self) -> Option<NodeId> {
+        self.voted_for
+    }
+
     /// Propose a command (must be leader).
     pub fn propose(&mut self, command: LockCommand) -> Result<u64, &'static str> {
         if !self.is_leader() {

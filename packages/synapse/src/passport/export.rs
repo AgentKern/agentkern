@@ -193,7 +193,7 @@ impl Default for PassportExporter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::passport::schema::AgentIdentity;
+    use crate::passport::schema::{AgentIdentity, ProvenanceSignature};
 
     fn sample_passport() -> MemoryPassport {
         let identity = AgentIdentity {

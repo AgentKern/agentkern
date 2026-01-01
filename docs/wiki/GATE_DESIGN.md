@@ -962,27 +962,221 @@ let stats = registry.stats();
 
 ## 19. Legacy Connectors
 
-Enterprise system bridges in [`connectors/`](../../packages/gate/src/connectors/).
+WASM-isolated bridges for enterprise systems in [`connectors/`](../../packages/gate/src/connectors/).
+
+### Connector Protocol Types
+
+```rust
+pub enum ConnectorProtocol {
+    // SAP Protocols
+    SapRfc,      // Remote Function Call
+    SapBapi,     // Business API
+    SapOdata,    // S/4HANA OData v4
+    SapIdoc,     // Intermediate Documents
+    
+    // SWIFT Protocols
+    SwiftMt,     // FIN messages (MT103, MT202)
+    SwiftMx,     // ISO 20022 XML
+    SwiftGpi,    // Global Payment Initiative
+    
+    // IBM Mainframe
+    IbmCics,     // CICS transactions
+    IbmIms,      // IMS databases
+    IbmMq,       // MQ messaging
+    
+    // Database
+    Sql,         // Generic JDBC/SQL
+    OracleOci,   // Oracle native
+    
+    // SaaS
+    Salesforce,  // Salesforce API
+    
+    Custom(u32), // Custom protocol
+}
+```
+
+### Enterprise Licensing
+
+```rust
+impl ConnectorProtocol {
+    /// SAP/SWIFT/IBM require enterprise license.
+    /// SQL is free (Community tier).
+    pub fn requires_enterprise(&self) -> bool {
+        !matches!(self, Self::Sql)
+    }
+}
+```
+
+| Tier | Available Connectors |
+|------|---------------------|
+| **Community (Free)** | `SqlConnector` only |
+| **Enterprise** | All connectors (SAP, SWIFT, IBM, Oracle, Salesforce) |
+
+### LegacyConnector Trait
+
+All connectors implement this interface:
+
+```rust
+#[async_trait]
+pub trait LegacyConnector: Send + Sync {
+    /// Connector name
+    fn name(&self) -> &str;
+    
+    /// Protocol type
+    fn protocol(&self) -> ConnectorProtocol;
+    
+    /// Configuration
+    fn config(&self) -> &ConnectorConfig;
+    
+    /// Health check
+    async fn health_check(&self) -> ConnectorResult<ConnectorHealth>;
+    
+    /// Translate A2A task → Legacy message
+    fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage>;
+    
+    /// Translate Legacy message → A2A task
+    fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload>;
+    
+    /// Execute legacy operation
+    async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage>;
+}
+```
 
 ### Available Connectors
 
-| Connector | Protocol | Use Case |
+| Connector | Protocol | Features |
 |-----------|----------|----------|
-| `SapRfcConnector` | SAP RFC/BAPI | ERP integration |
-| `SwiftGpiConnector` | SWIFT GPI | Financial messaging |
-| `SqlConnector` | JDBC | Database access |
-| `MockConnector` | — | Testing |
+| `SapRfcConnector` | SAP RFC | RFC calls, BAPI, IDOC, transactions |
+| `SwiftGpiConnector` | SWIFT GPI | MT103 parsing, GPI tracking, UETR |
+| `SqlConnector` | JDBC | SELECT/INSERT/UPDATE/DELETE/Execute |
+| `MockConnector` | — | Testing & development |
 
-### All Connectors Use WASM Isolation
+### SAP RFC Connector
 
+```rust
+pub struct SapRfcConnector {
+    config: ConnectorConfig,
+    system_id: String,     // SAP system number
+    client: String,        // Client number (e.g., "100")
+    user: String,
+    connection_type: SapConnectionType,
+}
+
+pub enum SapConnectionType {
+    ApplicationServer,  // Direct connection
+    MessageServer,      // Load balanced
+    Gateway,            // RFC registered
+}
 ```
-┌─────────────┐     ┌─────────────────────────────┐     ┌─────────────┐
-│   Agent     │────▶│  WASM Sandbox               │────▶│  SAP        │
-│   Request   │     │  ┌─────────────────────────┐│     │  System     │
-│             │     │  │  SapRfcConnector        ││     │             │
-│             │     │  │  (Policy Enforced)      ││     │             │
-│             │     │  └─────────────────────────┘│     │             │
-└─────────────┘     └─────────────────────────────┘     └─────────────┘
+
+**Usage:**
+
+```rust
+// From environment
+let connector = SapRfcConnector::from_env()?;
+// Uses: SAP_ASHOST, SAP_SYSNR, SAP_CLIENT, SAP_USER
+
+// RFC function call
+let result = connector.call_rfc(
+    "BAPI_USER_GET_DETAIL",
+    params,
+).await?;
+
+// Send IDOC (uses agentkern-parsers)
+let idoc_number = connector.send_idoc(idoc_bytes).await?;
+```
+
+### SWIFT GPI Connector
+
+```rust
+pub struct SwiftGpiConnector {
+    config: ConnectorConfig,
+    bic: String,           // Bank identifier
+    gpi_member_id: String,
+}
+```
+
+**MT103 Payment Message:**
+
+```rust
+pub struct MT103Payment {
+    pub sender_reference: String,
+    pub uetr: String,                    // Unique End-to-End Transaction Reference
+    pub ordering_customer: String,
+    pub beneficiary: String,
+    pub amount: String,
+    pub currency: String,
+}
+```
+
+**GPI Tracking:**
+
+```rust
+pub struct GpiTrackingStatus {
+    pub uetr: String,
+    pub status: TransactionStatus,
+    pub last_update: String,
+    pub settlement: Option<Settlement>,
+}
+
+pub enum TransactionStatus {
+    Pending,
+    Accepted,
+    Settled,
+    Rejected,
+    Cancelled,
+}
+```
+
+**Usage:**
+
+```rust
+let connector = SwiftGpiConnector::from_env()?;
+// Uses: SWIFT_BIC, SWIFT_GPI_MEMBER_ID, SWIFT_GPI_ENDPOINT
+
+// Generate UETR
+let uetr = SwiftGpiConnector::generate_uetr();
+// e.g., "eb6305c9-1f7a-4c1a-ab9c-a6f3bcd12345"
+
+// Parse MT103
+let payment = connector.parse_mt103(raw_message)?;
+
+// Track payment
+let status = connector.track_payment(&uetr).await?;
+
+// Initiate payment
+let confirmation = connector.initiate_payment(&payment).await?;
+```
+
+### SQL Connector (Community/Free)
+
+```rust
+pub struct SqlConnector {
+    config: ConnectorConfig,
+    pool: Option<AnyPool>,  // sqlx connection pool
+}
+
+pub enum SqlQueryType {
+    Select,
+    Insert,
+    Update,
+    Delete,
+    Execute,  // Stored procedure
+}
+```
+
+**Usage:**
+
+```rust
+let connector = SqlConnector::new("postgres://user:pass@host/db");
+connector.connect().await?;
+
+// Parse query from A2A params
+let query = connector.parse_query(&params)?;
+// query.sql, query.query_type, query.parameters
+
+// Execute via LegacyConnector trait
+let result = connector.execute(&message).await?;
 ```
 
 ### Connector Registry
@@ -990,14 +1184,40 @@ Enterprise system bridges in [`connectors/`](../../packages/gate/src/connectors/
 ```rust
 let mut registry = ConnectorRegistry::new();
 
+// Register SAP connector
 registry.register(
     "sap-prod",
-    ConnectorConfig::new(ConnectorProtocol::SapRfc)
-        .with_endpoint("sap-host:3300")
-        .with_client("100"),
+    Box::new(SapRfcConnector::new(
+        config,
+        "00".into(),
+        "100".into(),
+        "RFC_USER".into(),
+    )),
 )?;
 
+// Get by ID
 let connector = registry.get("sap-prod")?;
+
+// List all
+for (id, conn) in registry.list() {
+    println!("{}: {}", id, conn.protocol().name());
+}
+```
+
+### WASM Isolation
+
+All connectors run in WASM sandboxes with policy enforcement:
+
+```
+┌─────────────┐     ┌─────────────────────────────────┐     ┌─────────────┐
+│   Agent     │────▶│  WASM Sandbox                   │────▶│  SAP        │
+│   Request   │     │  ┌─────────────────────────────┐│     │  System     │
+│             │     │  │  SapRfcConnector            ││     │             │
+│             │     │  │  ┌─────────────────────┐    ││     │             │
+│             │     │  │  │ Policy Enforcement  │    ││     │             │
+│             │     │  │  └─────────────────────┘    ││     │             │
+│             │     │  └─────────────────────────────┘│     │             │
+└─────────────┘     └─────────────────────────────────┘ └─────────────┘
 ```
 
 ---
