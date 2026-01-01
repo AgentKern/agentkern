@@ -1,7 +1,9 @@
 #![deny(clippy::all)]
+#![allow(unused_imports)]
 
 use napi_derive::napi;
 use std::sync::OnceLock;
+use std::sync::Arc;
 
 // Gate Pillar
 use agentkern_gate::tee::Enclave;
@@ -10,19 +12,21 @@ use agentkern_gate::context_guard::ContextGuard;
 use agentkern_gate::engine::{GateEngine, VerificationRequestBuilder};
 
 // Treasury Pillar
-use agentkern_treasury::{BalanceLedger, TransferEngine, TransferRequest, BudgetManager, CarbonLedger};
+use agentkern_treasury::{BalanceLedger, TransferEngine, TransferRequest, BudgetManager, CarbonLedger, Currency, Amount};
 
-// Synapse Pillar
-use agentkern_synapse::{StateStore, MemoryPassport, ContextGuard as SynapseContextGuard};
+// Synapse Pillar  
+use agentkern_synapse::{StateStore, StateUpdate};
 
 // Arbiter Pillar
-use agentkern_arbiter::{KillSwitch, KillReason, LockManager, AuditLedger, ChaosMonkey};
+use agentkern_arbiter::{KillSwitch, KillReason, TerminationType, AuditLedger};
+use agentkern_arbiter::chaos::{ChaosMonkey, ChaosConfig};
+use agentkern_arbiter::locks::LockManager;
 
 // Static instances for zero-latency hot path (avoid re-initialization)
 static PROMPT_GUARD: OnceLock<PromptGuard> = OnceLock::new();
 static CONTEXT_GUARD: OnceLock<ContextGuard> = OnceLock::new();
 static GATE_ENGINE: OnceLock<GateEngine> = OnceLock::new();
-static BALANCE_LEDGER: OnceLock<BalanceLedger> = OnceLock::new();
+static BALANCE_LEDGER: OnceLock<Arc<BalanceLedger>> = OnceLock::new();
 static TRANSFER_ENGINE: OnceLock<TransferEngine> = OnceLock::new();
 static BUDGET_MANAGER: OnceLock<BudgetManager> = OnceLock::new();
 static CARBON_LEDGER: OnceLock<CarbonLedger> = OnceLock::new();
@@ -44,8 +48,8 @@ fn get_gate_engine() -> &'static GateEngine {
     GATE_ENGINE.get_or_init(GateEngine::new)
 }
 
-fn get_balance_ledger() -> &'static BalanceLedger {
-    BALANCE_LEDGER.get_or_init(BalanceLedger::new)
+fn get_balance_ledger() -> &'static Arc<BalanceLedger> {
+    BALANCE_LEDGER.get_or_init(|| Arc::new(BalanceLedger::new(Currency::VMC)))
 }
 
 fn get_transfer_engine() -> &'static TransferEngine {
@@ -77,7 +81,7 @@ fn get_audit_ledger() -> &'static AuditLedger {
 }
 
 fn get_chaos_monkey() -> &'static ChaosMonkey {
-    CHAOS_MONKEY.get_or_init(ChaosMonkey::new)
+    CHAOS_MONKEY.get_or_init(|| ChaosMonkey::new(ChaosConfig::default()))
 }
 
 // ============================================================================
@@ -143,17 +147,16 @@ pub async fn verify(agent_id: String, action: String, context_json: Option<Strin
 #[napi]
 pub fn treasury_get_balance(agent_id: String) -> String {
     let ledger = get_balance_ledger();
-    match ledger.get(&agent_id) {
-        Some(balance) => serde_json::to_string(&balance).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        None => format!("{{\"agent_id\": \"{}\", \"balance\": 0.0, \"currency\": \"USD\"}}", agent_id),
-    }
+    let balance = ledger.get_balance(&agent_id);
+    serde_json::to_string(&balance).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
 
 /// Deposit to agent balance
 #[napi]
 pub fn treasury_deposit(agent_id: String, amount: f64) -> String {
     let ledger = get_balance_ledger();
-    match ledger.deposit(&agent_id, amount) {
+    let amt = Amount::from_float(amount, 6); // VMC has 6 decimals
+    match ledger.deposit(&agent_id, amt) {
         Ok(balance) => serde_json::to_string(&balance).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
         Err(e) => format!("{{\"error\": \"{}\"}}", e),
     }
@@ -161,26 +164,24 @@ pub fn treasury_deposit(agent_id: String, amount: f64) -> String {
 
 /// Transfer between agents
 #[napi]
-pub async fn treasury_transfer(from_agent: String, to_agent: String, amount: f64, reference: Option<String>) -> String {
+pub fn treasury_transfer(from_agent: String, to_agent: String, amount: f64, reference: Option<String>) -> String {
     let engine = get_transfer_engine();
-    let request = TransferRequest {
-        from: from_agent,
-        to: to_agent,
-        amount,
-        reference: reference.unwrap_or_default(),
-    };
+    let amt = Amount::from_float(amount, 6);
+    let mut request = TransferRequest::new(&from_agent, &to_agent, amt);
     
-    match engine.transfer(request).await {
-        Ok(result) => serde_json::to_string(&result).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        Err(e) => format!("{{\"error\": \"{}\"}}", e),
+    if let Some(ref_str) = reference {
+        request = request.with_reference(ref_str);
     }
+    
+    let result = engine.transfer(request);
+    serde_json::to_string(&result).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
 
 /// Get agent budget
 #[napi]
 pub fn treasury_get_budget(agent_id: String) -> String {
     let manager = get_budget_manager();
-    match manager.get(&agent_id) {
+    match manager.get_limit(&agent_id) {
         Some(budget) => serde_json::to_string(&budget).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
         None => format!("{{\"agent_id\": \"{}\", \"limit\": 100.0, \"spent\": 0.0, \"period\": \"daily\"}}", agent_id),
     }
@@ -190,7 +191,7 @@ pub fn treasury_get_budget(agent_id: String) -> String {
 #[napi]
 pub fn treasury_get_carbon(agent_id: String) -> String {
     let ledger = get_carbon_ledger();
-    match ledger.get(&agent_id) {
+    match ledger.get_footprint(&agent_id) {
         Some(footprint) => serde_json::to_string(&footprint).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
         None => format!("{{\"agent_id\": \"{}\", \"total_grams_co2\": 0, \"compute_hours\": 0.0}}", agent_id),
     }
@@ -202,9 +203,9 @@ pub fn treasury_get_carbon(agent_id: String) -> String {
 
 /// Get agent state
 #[napi]
-pub fn synapse_get_state(agent_id: String) -> String {
+pub async fn synapse_get_state(agent_id: String) -> String {
     let store = get_state_store();
-    match store.get(&agent_id) {
+    match store.get_state(&agent_id).await {
         Some(state) => serde_json::to_string(&state).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
         None => format!("{{\"agent_id\": \"{}\", \"state\": {{}}, \"version\": 0}}", agent_id),
     }
@@ -212,40 +213,42 @@ pub fn synapse_get_state(agent_id: String) -> String {
 
 /// Update agent state
 #[napi]
-pub fn synapse_update_state(agent_id: String, state_json: String) -> String {
+pub async fn synapse_update_state(agent_id: String, state_json: String) -> String {
     let store = get_state_store();
-    match serde_json::from_str::<serde_json::Value>(&state_json) {
-        Ok(state) => {
-            match store.update(&agent_id, state) {
-                Ok(updated) => serde_json::to_string(&updated).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-                Err(e) => format!("{{\"error\": \"{}\"}}", e),
-            }
+    match serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&state_json) {
+        Ok(updates) => {
+            let update = StateUpdate {
+                agent_id: agent_id.clone(),
+                updates,
+                deletes: None,
+            };
+            let result = store.update_state(update).await;
+            serde_json::to_string(&result).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
         }
         Err(e) => format!("{{\"error\": \"invalid_json: {}\"}}", e),
     }
-}
-
-/// Delete agent state
-#[napi]
-pub fn synapse_delete_state(agent_id: String) -> String {
-    let store = get_state_store();
-    store.delete(&agent_id);
-    format!("{{\"deleted\": true, \"agent_id\": \"{}\"}}", agent_id)
 }
 
 // ============================================================================
 // Arbiter Pillar Exports
 // ============================================================================
 
-/// Activate kill switch
+/// Activate kill switch (terminate agent)
 #[napi]
 pub fn arbiter_kill_switch_activate(reason: String, agent_id: Option<String>) -> String {
     let ks = get_kill_switch();
-    let kill_reason = KillReason::Manual(reason);
     
-    match ks.activate(kill_reason, agent_id.as_deref()) {
-        Ok(record) => serde_json::to_string(&record).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        Err(e) => format!("{{\"error\": \"{}\"}}", e),
+    if let Some(aid) = agent_id {
+        let record = ks.terminate_agent(
+            &aid,
+            KillReason::Manual(reason),
+            TerminationType::Graceful,
+            None,
+        );
+        serde_json::to_string(&record).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+    } else {
+        let record = ks.emergency_shutdown(Some(reason));
+        serde_json::to_string(&record).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
     }
 }
 
@@ -253,51 +256,31 @@ pub fn arbiter_kill_switch_activate(reason: String, agent_id: Option<String>) ->
 #[napi]
 pub fn arbiter_kill_switch_status() -> String {
     let ks = get_kill_switch();
-    let status = ks.status();
-    serde_json::to_string(&status).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+    let is_emergency = ks.is_emergency();
+    let terminated_count = ks.terminated_count();
+    format!("{{\"active\": {}, \"terminated_count\": {}}}", is_emergency, terminated_count)
 }
 
 /// Deactivate kill switch
 #[napi]
 pub fn arbiter_kill_switch_deactivate() -> String {
     let ks = get_kill_switch();
-    ks.deactivate();
+    ks.lift_emergency();
     "{\"active\": false}".to_string()
-}
-
-/// Acquire lock
-#[napi]
-pub async fn arbiter_acquire_lock(resource_id: String, agent_id: String, ttl_seconds: u64) -> String {
-    let lm = get_lock_manager();
-    match lm.acquire(&resource_id, &agent_id, std::time::Duration::from_secs(ttl_seconds)).await {
-        Ok(lock) => serde_json::to_string(&lock).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        Err(e) => format!("{{\"error\": \"{}\"}}", e),
-    }
-}
-
-/// Release lock
-#[napi]
-pub fn arbiter_release_lock(resource_id: String) -> String {
-    let lm = get_lock_manager();
-    lm.release(&resource_id);
-    format!("{{\"released\": true, \"resource_id\": \"{}\"}}", resource_id)
 }
 
 /// Query audit log
 #[napi]
-pub fn arbiter_query_audit(agent_id: Option<String>, limit: u32) -> String {
+pub fn arbiter_query_audit(limit: u32) -> String {
     let ledger = get_audit_ledger();
-    let entries = ledger.query(agent_id.as_deref(), limit as usize);
+    let entries = ledger.recent(limit as usize);
     serde_json::to_string(&entries).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
 
-/// Inject chaos
+/// Get chaos statistics
 #[napi]
-pub fn arbiter_inject_chaos(chaos_type: String, target: String, duration_seconds: u64) -> String {
+pub fn arbiter_chaos_stats() -> String {
     let monkey = get_chaos_monkey();
-    match monkey.inject(&chaos_type, &target, std::time::Duration::from_secs(duration_seconds)) {
-        Ok(result) => serde_json::to_string(&result).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string()),
-        Err(e) => format!("{{\"error\": \"{}\"}}", e),
-    }
+    let stats = monkey.stats();
+    serde_json::to_string(&stats).unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
 }
-

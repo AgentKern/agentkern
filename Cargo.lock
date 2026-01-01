@@ -129,7 +129,11 @@ dependencies = [
 name = "agentkern-bridge"
 version = "0.1.0"
 dependencies = [
+ "agentkern-arbiter",
  "agentkern-gate",
+ "agentkern-nexus",
+ "agentkern-synapse",
+ "agentkern-treasury",
  "napi 2.16.17",
  "napi-derive 2.16.13",
  "serde_json",
