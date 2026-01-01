@@ -15,7 +15,11 @@ import {
   RegistrationOptionsResponseDto,
   AuthenticationOptionsResponseDto,
   VerificationResultDto,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  AuthenticationResponseJSON as LocalAuthenticationResponseJSON,
 } from '../dto/webauthn.dto';
+import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
 
 @ApiTags('WebAuthn')
 @Controller('api/v1/webauthn')
@@ -37,7 +41,8 @@ export class WebAuthnController {
       dto.userName,
       dto.displayName || dto.userName,
     );
-    return { options };
+    // Cast to local DTO type for response
+    return { options: options as unknown as PublicKeyCredentialCreationOptionsJSON };
   }
 
   @Post('register/verify')
@@ -69,7 +74,8 @@ export class WebAuthnController {
     if (!options) {
       return { error: 'No credentials found for principal' };
     }
-    return { options };
+    // Cast to local DTO type for response
+    return { options: options as unknown as PublicKeyCredentialRequestOptionsJSON };
   }
 
   @Post('authenticate/verify')
@@ -82,7 +88,9 @@ export class WebAuthnController {
   async verifyAuthentication(
     @Body() dto: VerifyAuthenticationRequestDto,
   ): Promise<VerificationResultDto> {
-    return this.webAuthnService.verifyAuthentication(dto.principalId, dto.response);
+    // Cast local DTO type to simplewebauthn type (handles userHandle: null vs undefined)
+    const response = dto.response as unknown as AuthenticationResponseJSON;
+    return this.webAuthnService.verifyAuthentication(dto.principalId, response);
   }
 
   @Get('credentials/:principalId')

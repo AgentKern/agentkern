@@ -10,7 +10,7 @@
  *
  * Note: Crypto-agility and prompt injection protection are handled
  * by the Rust Gate package for production-grade implementation.
- * AI governance, privacy, and sustainability are in packages/governance.
+ * AI governance, privacy, and sustainability are in packages/foundation/governance.
  */
 
 import { Module, Global } from '@nestjs/common';

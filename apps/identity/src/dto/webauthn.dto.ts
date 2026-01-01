@@ -75,6 +75,7 @@ export interface AuthenticationResponseJSON {
 
 /**
  * Authenticator transport hints.
+ * Extended to include 'cable' for @simplewebauthn compatibility.
  */
 export type AuthenticatorTransport =
   | 'usb'
@@ -82,7 +83,8 @@ export type AuthenticatorTransport =
   | 'ble'
   | 'smart-card'
   | 'hybrid'
-  | 'internal';
+  | 'internal'
+  | 'cable'; // Added for @simplewebauthn/types compatibility
 
 /**
  * Authenticator attachment modality.
