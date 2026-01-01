@@ -8,11 +8,11 @@
 
 ## Context
 
-The `apps/identity` (Node.js) needs to call `packages/gate` (Rust) for policy enforcement.
+The `apps/identity` (Node.js) needs to call `packages/pillars/gate` (Rust) for policy enforcement.
 
-We discovered that `packages/gate` has **two implementations**:
-1. **N-API Bridge** (`packages/bridge/`) - Embedded library
-2. **HTTP Server** (`packages/gate/src/bin/server.rs`) - Standalone microservice
+We discovered that `packages/pillars/gate` has **two implementations**:
+1. **N-API Bridge** (`packages/foundation/bridge/`) - Embedded library
+2. **HTTP Server** (`packages/pillars/gate/src/bin/server.rs`) - Standalone microservice
 
 ---
 
@@ -22,7 +22,7 @@ We discovered that `packages/gate` has **two implementations**:
 
 ### Hot Path (N-API) - 0ms Latency
 ```
-apps/identity → packages/bridge (N-API) → gate logic
+apps/identity → packages/foundation/bridge (N-API) → gate logic
 ```
 - Prompt injection guard (every LLM call)
 - Request validation (every request)
@@ -30,7 +30,7 @@ apps/identity → packages/bridge (N-API) → gate logic
 
 ### Cold Path (HTTP) - 1-5ms Latency
 ```
-Admin UI → HTTP → packages/gate server (port 3001)
+Admin UI → HTTP → packages/pillars/gate server (port 3001)
 ```
 - Policy CRUD (occasional)
 - Admin operations
@@ -54,7 +54,7 @@ Admin UI → HTTP → packages/gate server (port 3001)
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│               packages/gate (HTTP server)                   │
+│               packages/pillars/gate (HTTP server)                   │
 │               Port 3001 (optional container)                │
 │                                                             │
 │  ┌──────────────────────────────────────┐                  │
@@ -72,9 +72,9 @@ Admin UI → HTTP → packages/gate server (port 3001)
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| N-API Bridge | `packages/bridge/` | Hot path, 0ms latency |
-| Gate Server | `packages/gate/src/bin/server.rs` | Cold path, HTTP management |
-| Dockerfile | `packages/gate/Dockerfile` | Containerized standalone deployment |
+| N-API Bridge | `packages/foundation/bridge/` | Hot path, 0ms latency |
+| Gate Server | `packages/pillars/gate/src/bin/server.rs` | Cold path, HTTP management |
+| Dockerfile | `packages/pillars/gate/Dockerfile` | Containerized standalone deployment |
 
 ---
 

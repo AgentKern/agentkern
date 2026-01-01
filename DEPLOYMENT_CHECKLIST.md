@@ -53,7 +53,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 
 2. **Deploy Gate Server**
    ```bash
-   docker build -t agentkern-gate ./packages/gate
+   docker build -t agentkern-gate ./packages/pillars/gate
    docker push registry.example.com/agentkern-gate:latest
    kubectl apply -f k8s/gate-deployment.yaml
    ```

@@ -17,11 +17,11 @@ AgentKern uses an **Open Core** licensing model:
 
 | Package | Description |
 |---------|-------------|
-| `packages/gate/` | Policy enforcement, neural verification |
-| `packages/synapse/` | Memory, embeddings, CRDT |
-| `packages/arbiter/` | Locks, coordination, killswitch |
-| `packages/nexus/` | Protocol translation, routing |
-| `packages/sdk/` | TypeScript SDK |
+| `packages/pillars/gate/` | Policy enforcement, neural verification |
+| `packages/pillars/synapse/` | Memory, embeddings, CRDT |
+| `packages/pillars/arbiter/` | Locks, coordination, killswitch |
+| `packages/pillars/nexus/` | Protocol translation, routing |
+| `sdks/typescript/agentkern/` | TypeScript SDK |
 | `apps/identity/` | OAuth, JWT, agent credentials |
 | `apps/gateway/` | REST/gRPC API |
 

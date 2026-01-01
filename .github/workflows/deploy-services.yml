@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/gate/**'
-      - 'packages/synapse/**'
-      - 'packages/arbiter/**'
+      - 'packages/pillars/gate/**'
+      - 'packages/pillars/synapse/**'
+      - 'packages/pillars/arbiter/**'
       - '.github/workflows/deploy-services.yml'
   workflow_dispatch:
 
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: packages/gate/Dockerfile
+          file: packages/pillars/gate/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/gate:latest
@@ -66,7 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: packages/synapse/Dockerfile
+          file: packages/pillars/synapse/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/synapse:latest
@@ -93,7 +93,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: packages/arbiter/Dockerfile
+          file: packages/pillars/arbiter/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/arbiter:latest
@@ -118,15 +118,15 @@ jobs:
       
       - name: Deploy Gate
         if: env.FLY_API_TOKEN != ''
-        working-directory: packages/gate
+        working-directory: packages/pillars/gate
         run: flyctl deploy --remote-only
       
       - name: Deploy Synapse
         if: env.FLY_API_TOKEN != ''
-        working-directory: packages/synapse
+        working-directory: packages/pillars/synapse
         run: flyctl deploy --remote-only
       
       - name: Deploy Arbiter
         if: env.FLY_API_TOKEN != ''
-        working-directory: packages/arbiter
+        working-directory: packages/pillars/arbiter
         run: flyctl deploy --remote-only

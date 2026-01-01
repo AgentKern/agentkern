@@ -45,7 +45,7 @@ jobs:
       
       - name: Build Containers
         run: |
-          docker build -t agentkern-gate:preview-${{ github.sha }} -f packages/gate/Dockerfile .
+          docker build -t agentkern-gate:preview-${{ github.sha }} -f packages/pillars/gate/Dockerfile .
           kind load docker-image agentkern-gate:preview-${{ github.sha }} --name ${{ env.CLUSTER_NAME }}
       
       - name: Deploy to Preview

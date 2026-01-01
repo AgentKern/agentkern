@@ -74,7 +74,7 @@ npx vercel --prod
 ### Manual
 
 ```bash
-cd packages/sdk
+cd sdks/typescript/agentkern
 npm install
 npm run build
 npm test
@@ -89,17 +89,17 @@ npm publish --access public
 
 ```bash
 # Gate
-cd packages/gate
+cd packages/pillars/gate
 fly launch --name agentkern-gate
 fly deploy
 
 # Synapse
-cd packages/synapse
+cd packages/pillars/synapse
 fly launch --name agentkern-synapse
 fly deploy
 
 # Arbiter
-cd packages/arbiter
+cd packages/pillars/arbiter
 fly launch --name agentkern-arbiter
 fly deploy
 ```
@@ -108,9 +108,9 @@ fly deploy
 
 ```bash
 # Build all images
-docker build -t agentkern-gate packages/gate
-docker build -t agentkern-synapse packages/synapse
-docker build -t agentkern-arbiter packages/arbiter
+docker build -t agentkern-gate packages/pillars/gate
+docker build -t agentkern-synapse packages/pillars/synapse
+docker build -t agentkern-arbiter packages/pillars/arbiter
 
 # Run locally
 docker run -p 3001:3001 agentkern-gate
@@ -124,21 +124,21 @@ docker run -p 3003:3003 agentkern-arbiter
 version: '3.8'
 services:
   gate:
-    build: ./packages/gate
+    build: ./packages/pillars/gate
     ports:
       - "3001:3001"
     environment:
       - PORT=3001
 
   synapse:
-    build: ./packages/synapse
+    build: ./packages/pillars/synapse
     ports:
       - "3002:3002"
     environment:
       - PORT=3002
 
   arbiter:
-    build: ./packages/arbiter
+    build: ./packages/pillars/arbiter
     ports:
       - "3003:3003"
     environment:

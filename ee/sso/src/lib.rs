@@ -91,8 +91,8 @@ impl SsoSession {
     pub fn is_expired(&self) -> bool {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+            .map(|d| d.as_secs())
+            .unwrap_or(0); // Graceful fallback to 0 if system time fails
         now >= self.expires_at
     }
 }
@@ -145,7 +145,7 @@ impl SsoService {
     /// Generate SAML AuthnRequest URL (Redirect Binding).
     ///
     /// Implements DEFLATE + Base64 + URL Encode as per SAML 2.0 Bindings.
-    pub fn generate_saml_auth_url(&self, config: &SamlConfig) -> String {
+    pub fn generate_saml_auth_url(&self, config: &SamlConfig) -> Result<String, SsoError> {
         let request_id = format!("AuthnRequest-{}", uuid::Uuid::new_v4());
         let issue_instant = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
@@ -157,8 +157,10 @@ impl SsoService {
 
         // DEFLATE
         let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(xml.as_bytes()).unwrap();
-        let compressed = encoder.finish().unwrap();
+        encoder.write_all(xml.as_bytes())
+            .map_err(|e| SsoError::SamlEncodingFailed(e.to_string()))?;
+        let compressed = encoder.finish()
+            .map_err(|e| SsoError::SamlEncodingFailed(e.to_string()))?;
 
         // Base64
         let base64_encoded = base64::engine::general_purpose::STANDARD.encode(compressed);
@@ -168,10 +170,10 @@ impl SsoService {
         let encoded_req = urlencoding::encode(&base64_encoded);
         let encoded_relay = urlencoding::encode(&self.org_id);
 
-        format!(
+        Ok(format!(
             "{}?SAMLRequest={}&RelayState={}",
             config.idp_sso_url, encoded_req, encoded_relay
-        )
+        ))
     }
 
     /// Generate OIDC auth URL.
@@ -281,7 +283,7 @@ impl SsoService {
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .map_err(|_| SsoError::SystemTimeError)?
             .as_secs();
 
         if claims.exp < now {
@@ -338,12 +340,16 @@ pub enum SsoError {
     InvalidSamlResponse,
     #[error("SAML signature verification failed")]
     SamlSignatureInvalid,
+    #[error("SAML encoding failed: {0}")]
+    SamlEncodingFailed(String),
     #[error("OIDC token exchange failed: {0}")]
     TokenExchangeFailed(String),
     #[error("Session expired")]
     SessionExpired,
     #[error("User not authorized")]
     Unauthorized,
+    #[error("System time error")]
+    SystemTimeError,
 }
 
 #[cfg(test)]
@@ -361,7 +367,7 @@ mod tests {
             attribute_mapping: HashMap::new(),
         };
 
-        let url = service.generate_saml_auth_url(&config);
+        let url = service.generate_saml_auth_url(&config).expect("SAML encoding should succeed");
         assert!(url.contains("SAMLRequest="));
         assert!(url.contains("RelayState=org-1"));
         assert!(!url.contains(" "));

@@ -2,3 +2,4 @@ packages:
   - 'apps/*'
   - 'sdks/*'
   - 'sdks/typescript/*'
+  - 'sdks/typescript/agentkern'

@@ -14,17 +14,18 @@ async fn test_gate_api_health() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     let response = client
         .get("http://localhost:3000/api/gate/health")
         .send()
         .await
-        .expect("Failed to connect to gateway");
+        .expect("Failed to connect to gateway at localhost:3000");
     
     assert!(response.status().is_success());
     
-    let body: serde_json::Value = response.json().await.unwrap();
+    let body: serde_json::Value = response.json().await
+        .expect("Failed to parse health check response as JSON");
     assert_eq!(body["status"], "healthy");
 }
 
@@ -35,7 +36,7 @@ async fn test_gate_verify_policy() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     let request_body = serde_json::json!({
         "agentId": "test-agent",
@@ -50,11 +51,12 @@ async fn test_gate_verify_policy() {
         .json(&request_body)
         .send()
         .await
-        .expect("Failed to verify policy");
+        .expect("Failed to POST to gate/verify endpoint");
     
     assert!(response.status().is_success());
     
-    let body: serde_json::Value = response.json().await.unwrap();
+    let body: serde_json::Value = response.json().await
+        .expect("Failed to parse verify response as JSON");
     assert!(body["allowed"].is_boolean());
     assert!(body["requestId"].is_string());
 }
@@ -91,7 +93,7 @@ async fn test_arbiter_acquire_lock() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     let lock_request = serde_json::json!({
         "resourceId": "database:users:123",
@@ -108,7 +110,8 @@ async fn test_arbiter_acquire_lock() {
     
     assert!(response.status().is_success());
     
-    let body: serde_json::Value = response.json().await.unwrap();
+    let body: serde_json::Value = response.json().await
+        .expect("Failed to parse lock acquisition response");
     assert!(body["lockId"].is_string());
 }
 
@@ -145,7 +148,7 @@ async fn test_full_verification_flow() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     let base_url = "http://localhost:3000/api";
     
@@ -194,7 +197,8 @@ async fn test_full_verification_flow() {
         .await
         .expect("Failed to verify safe action");
     
-    let safe_body: serde_json::Value = safe_resp.json().await.unwrap();
+    let safe_body: serde_json::Value = safe_resp.json().await
+        .expect("Failed to parse safe action response");
     assert_eq!(safe_body["allowed"], true, "Safe action should be allowed");
     
     // Step 4: Verify a blocked action
@@ -213,7 +217,8 @@ async fn test_full_verification_flow() {
         .await
         .expect("Failed to verify blocked action");
     
-    let blocked_body: serde_json::Value = blocked_resp.json().await.unwrap();
+    let blocked_body: serde_json::Value = blocked_resp.json().await
+        .expect("Failed to parse blocked action response");
     // May or may not be blocked depending on policy registration
     assert!(blocked_body["requestId"].is_string());
 }
@@ -225,7 +230,7 @@ async fn test_crdt_sync() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     // Create initial state
     let state_a = serde_json::json!({
@@ -270,7 +275,8 @@ async fn test_crdt_sync() {
         .await
         .expect("Failed to get state");
     
-    let merged: serde_json::Value = get_resp.json().await.unwrap();
+    let merged: serde_json::Value = get_resp.json().await
+        .expect("Failed to parse merged state response");
     // Counter should be max(5, 8) = 8 (GCounter semantics)
     // Preferences should have both theme and language (ORSet/LWWMap semantics)
     assert!(merged["state"].is_object());
@@ -283,7 +289,7 @@ async fn test_latency_requirements() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .build()
-        .unwrap();
+        .expect("Failed to build HTTP client");
     
     let request = serde_json::json!({
         "agentId": "latency-test",

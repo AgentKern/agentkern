@@ -94,7 +94,7 @@ git clone https://github.com/AgentKern/agentkern.git
 cd agentkern
 
 # Run tests
-cd packages/gate && cargo test      # 127 tests
+cd packages/pillars/gate && cargo test      # 127 tests
 cd ../synapse && cargo test         # 67 tests
 cd ../arbiter && cargo test         # 86 tests
 cd ../nexus && cargo test           # 54 tests
@@ -239,7 +239,7 @@ AgentKern is built for regulated industries:
 
 ```bash
 # Run all tests (357+ total)
-cd packages/gate && cargo test      # 124 tests
+cd packages/pillars/gate && cargo test      # 124 tests
 cd ../synapse && cargo test         # 87 tests
 cd ../arbiter && cargo test         # 95 tests
 cd ../nexus && cargo test           # 54 tests

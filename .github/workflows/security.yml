@@ -25,17 +25,17 @@ jobs:
         run: cargo install cargo-sbom
       
       - name: Generate SBOM for Gate
-        working-directory: packages/gate
+        working-directory: packages/pillars/gate
         run: |
           cargo sbom --output-format cyclone_dx_json_1_6 > gate-sbom.json
       
       - name: Generate SBOM for Synapse
-        working-directory: packages/synapse
+        working-directory: packages/pillars/synapse
         run: |
           cargo sbom --output-format cyclone_dx_json_1_6 > synapse-sbom.json
       
       - name: Generate SBOM for Arbiter
-        working-directory: packages/arbiter
+        working-directory: packages/pillars/arbiter
         run: |
           cargo sbom --output-format cyclone_dx_json_1_6 > arbiter-sbom.json
       
@@ -44,9 +44,9 @@ jobs:
         with:
           name: sbom-rust
           path: |
-            packages/gate/gate-sbom.json
-            packages/synapse/synapse-sbom.json
-            packages/arbiter/arbiter-sbom.json
+            packages/pillars/gate/gate-sbom.json
+            packages/pillars/synapse/synapse-sbom.json
+            packages/pillars/arbiter/arbiter-sbom.json
 
   # ============================================
   # TypeScript SBOM Generation (NEW)

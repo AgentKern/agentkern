@@ -36,7 +36,7 @@ Heavy-lifting operations call Rust via N-API:
 
 ```typescript
 // Gate guardrails (0ms latency)
-const bridge = require('../../../packages/bridge/index.node');
+const bridge = require('../../../packages/foundation/bridge/index.node');
 const result = bridge.attest(nonce);
 ```
 
@@ -78,4 +78,4 @@ npm test
 
 - [ARCHITECTURE.md](../docs/ARCHITECTURE.md) - System architecture
 - [ADR-001](../docs/adr/ADR-001-gateway-identity-merge.md) - Gateway merge decision
-- [packages/bridge](../packages/bridge) - N-API Rust bindings
+- [packages/foundation/bridge](../packages/foundation/bridge) - N-API Rust bindings

@@ -7,9 +7,15 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-
 napi = { version = "2.12.2", features = ["napi4", "async"] }
 napi-derive = "2.12.2"
-agentkern-gate = { path = "../../pillars/gate" }
 serde_json = "1.0"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# Five Rust Pillars (Identity is TypeScript in apps/identity)
+agentkern-gate = { path = "../../pillars/gate" }
+agentkern-synapse = { path = "../../pillars/synapse" }
+agentkern-arbiter = { path = "../../pillars/arbiter" }
+agentkern-treasury = { path = "../../pillars/treasury" }
+agentkern-nexus = { path = "../../pillars/nexus" }
+

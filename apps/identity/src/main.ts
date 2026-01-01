@@ -2,23 +2,39 @@
  * AgentKernIdentity - Main Entry Point
  * 
  * Bootstrap the NestJS application with:
+ * - OpenTelemetry instrumentation (MUST be first import!)
+ * - Structured JSON logging (Pino)
  * - Swagger documentation
  * - CORS configuration
  * - Security headers
  * - Global validation
  * 
- * Follows mandate: documentation, security, production-ready.
+ * Follows mandate: documentation, security, observability, production-ready.
  */
+
+// CRITICAL: Import instrumentation FIRST before any other imports
+import './instrumentation';
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { PinoLoggerService } from './logging/pino-logger.service';
+import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  // Use structured Pino logger
+  const pinoLogger = new PinoLoggerService();
+  pinoLogger.setContext('Bootstrap');
+  
+  const app = await NestFactory.create(AppModule, {
+    logger: pinoLogger,
+  });
+
+  // Apply correlation ID middleware globally
+  app.use(new CorrelationIdMiddleware().use.bind(new CorrelationIdMiddleware()));
+
 
   // Security Headers (Helmet) with CSP Reporting
   app.use(helmet({
@@ -115,9 +131,15 @@ Include the \`X-AgentKernIdentity\` header with your liability proof token.`,
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  logger.log(`🚀 AgentKernIdentity API running on: http://localhost:${port}`);
-  logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
-  logger.log(`🔒 Liability Infrastructure for the Agentic Economy`);
+  pinoLogger.log(`🚀 AgentKernIdentity API running on: http://localhost:${port}`);
+  pinoLogger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
+  pinoLogger.log(`🔒 Liability Infrastructure for the Agentic Economy`);
+  
+  // Log observability status
+  const otelEnabled = process.env.NODE_ENV === 'production' || process.env.OTEL_ENABLED === 'true';
+  if (otelEnabled) {
+    pinoLogger.log(`📊 OpenTelemetry tracing enabled`);
+  }
 }
 
 bootstrap();

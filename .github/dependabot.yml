@@ -33,7 +33,7 @@ updates:
 
   # Rust dependencies
   - package-ecosystem: "cargo"
-    directory: "/packages/gate"
+    directory: "/packages/pillars/gate"
     schedule:
       interval: "weekly"
     commit-message:
@@ -43,7 +43,7 @@ updates:
       - "rust"
 
   - package-ecosystem: "cargo"
-    directory: "/packages/synapse"
+    directory: "/packages/pillars/synapse"
     schedule:
       interval: "weekly"
     commit-message:
@@ -53,7 +53,7 @@ updates:
       - "rust"
 
   - package-ecosystem: "cargo"
-    directory: "/packages/arbiter"
+    directory: "/packages/pillars/arbiter"
     schedule:
       interval: "weekly"
     commit-message:

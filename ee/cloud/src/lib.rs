@@ -488,18 +488,24 @@ impl MitosisController {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests that depend on environment variables
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_license_required() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::remove_var("AGENTKERN_LICENSE_KEY");
         }
         let result = MeshCoordinator::new(MeshConfig::default());
-        assert!(result.is_err());
+        assert!(result.is_err(), "Expected error when no license key is set");
     }
 
     #[test]
     fn test_with_license() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license-key");
         }
@@ -512,6 +518,7 @@ mod tests {
 
     #[test]
     fn test_mitosis_scale_up() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }
@@ -538,6 +545,7 @@ mod tests {
 
     #[test]
     fn test_mitosis_scale_down() {
+        let _guard = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }

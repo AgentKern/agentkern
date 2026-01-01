@@ -10,8 +10,8 @@ This document tracks **Epistemic Debt**: the gap between the code that exists an
 
 | Component | Status | Reality | Risk |
 |-----------|--------|---------|------|
-| **Gateway -> Gate** | ❌ **Disconnected** | `GateService` uses in-memory maps and "simulated" TEE quotes. It does **NOT** call the `packages/gate` Rust crate. | **False Security**: Users believe TEE is active; it is hardcoded base64 strings. |
-| **Gateway -> Synapse** | ❌ **Disconnected** | `SynapseService` uses in-memory maps. Does **NOT** use the `packages/synapse` CRDT Rust logic. | **Data Loss**: Agent memory is lost on restart. No distributed consistency. |
+| **Gateway -> Gate** | ❌ **Disconnected** | `GateService` uses in-memory maps and "simulated" TEE quotes. It does **NOT** call the `packages/pillars/gate` Rust crate. | **False Security**: Users believe TEE is active; it is hardcoded base64 strings. |
+| **Gateway -> Synapse** | ❌ **Disconnected** | `SynapseService` uses in-memory maps. Does **NOT** use the `packages/pillars/synapse` CRDT Rust logic. | **Data Loss**: Agent memory is lost on restart. No distributed consistency. |
 | **Gateway -> Arbiter** | ⚠️ **Partial** | `ArbiterService` is in-memory locks. No Redis/Distributed lock integration. | **Race Conditions**: Only works for single-instance gateway. |
 
 ## 1. Dependency Verification (Risk: Package Hallucination)
@@ -43,8 +43,8 @@ This document tracks **Epistemic Debt**: the gap between the code that exists an
 | Component | Opacity Level | Action Required |
 |-----------|---------------|-----------------|
 | `wasm-policies` | High | Document how WASM is loaded/executed (if at all). |
-| `packages/gate` | ✅ **Verified** | Robust Rust implementation exists (`tee`, `crypto`, `neural`). The gap is purely **integration**. |
-| `packages/synapse` | ✅ **Verified** | CRDT logic exists in Rust. |
+| `packages/pillars/gate` | ✅ **Verified** | Robust Rust implementation exists (`tee`, `crypto`, `neural`). The gap is purely **integration**. |
+| `packages/pillars/synapse` | ✅ **Verified** | CRDT logic exists in Rust. |
 
 ---
 

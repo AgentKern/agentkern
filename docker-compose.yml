@@ -6,7 +6,7 @@ services:
   # ===========================================
   gate:
     build:
-      context: ./packages/gate
+      context: ./packages/pillars/gate
       dockerfile: Dockerfile
     ports:
       - "3001:3001"
@@ -25,7 +25,7 @@ services:
   # ===========================================
   synapse:
     build:
-      context: ./packages/synapse
+      context: ./packages/pillars/synapse
       dockerfile: Dockerfile
     ports:
       - "3002:3002"
@@ -44,7 +44,7 @@ services:
   # ===========================================
   arbiter:
     build:
-      context: ./packages/arbiter
+      context: ./packages/pillars/arbiter
       dockerfile: Dockerfile
     ports:
       - "3003:3003"

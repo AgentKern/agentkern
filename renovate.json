@@ -1,14 +1,14 @@
 version: 1
 update_configs:
   - package_manager: "javascript"
-    directory: "/packages/sdk"
+    directory: "/sdks/typescript/agentkern"
     update_schedule: "weekly"
   - package_manager: "rust:cargo"
-    directory: "/packages/gate"
+    directory: "/packages/pillars/gate"
     update_schedule: "weekly"
   - package_manager: "rust:cargo"
-    directory: "/packages/synapse"
+    directory: "/packages/pillars/synapse"
     update_schedule: "weekly"
   - package_manager: "rust:cargo"
-    directory: "/packages/arbiter"
+    directory: "/packages/pillars/arbiter"
     update_schedule: "weekly"

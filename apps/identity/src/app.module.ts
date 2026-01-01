@@ -12,14 +12,22 @@ import { DatabaseModule } from './modules/database.module';
 import { SecurityModule } from './modules/security.module';
 import { EnterpriseModule } from './modules/enterprise.module';
 import { NexusModule } from './modules/nexus.module';
+import { GateModule } from './modules/gate.module';
+import { TreasuryModule } from './modules/treasury.module';
+import { SynapseModule } from './modules/synapse.module';
+import { ArbiterModule } from './modules/arbiter.module';
+import { configValidationSchema, configValidationOptions } from './config/config.validation';
 
 @Module({
   imports: [
-    // Environment configuration
+    // Environment configuration with fail-fast validation
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      validationSchema: configValidationSchema,
+      validationOptions: configValidationOptions,
     }),
+
     // Rate limiting - prevent abuse and DDoS
     ThrottlerModule.forRoot([
       {
@@ -38,14 +46,24 @@ import { NexusModule } from './modules/nexus.module';
         limit: 200, // 200 requests per minute
       },
     ]),
+    
     // Core modules
     DatabaseModule,
     EnterpriseModule, // Enterprise license integration
-    NexusModule,      // Protocol translation (merged from Gateway)
+    
+    // Six Pillars API
+    NexusModule,      // 🔀 Protocol translation (merged from Gateway)
+    GateModule,       // 🛡️ Security & Policy Enforcement
+    TreasuryModule,   // 💰 Agent Payments & Carbon
+    SynapseModule,    // 🧠 Memory & State Management
+    ArbiterModule,    // ⚖️ Governance & Coordination
+    
+    // Identity endpoints
     ProofModule,
     DnsModule,
     DashboardModule,
     WebAuthnModule,
+    
     // Security framework
     SecurityModule,
   ],

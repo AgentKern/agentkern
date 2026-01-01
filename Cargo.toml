@@ -7,30 +7,30 @@ members = [
     # Note: Identity is in apps/identity (TypeScript)
     # ===========================================================================
     # 🛡️ Gate - Policy & Safety ("Is this action allowed?")
-    "packages/gate",
+    "packages/pillars/gate",
     # 🧠 Synapse - Memory & State ("What was the goal? Has agent drifted?")
-    "packages/synapse",
+    "packages/pillars/synapse",
     # ⚖️ Arbiter - Coordination & Control ("Two agents want same resource—who wins?")
-    "packages/arbiter",
+    "packages/pillars/arbiter",
     # 🔀 Nexus - Protocols & Routing ("How do multi-vendor agents talk?")
-    "packages/nexus",
+    "packages/pillars/nexus",
     # 💰 Treasury - Payments & Budgets ("How do agents pay? What's the limit?")
-    "packages/treasury",
+    "packages/pillars/treasury",
     # 🪪 Identity - apps/identity (TypeScript)
     
     # ===========================================================================
     # INFRASTRUCTURE
     # ===========================================================================
-    "packages/runtime",         # WASM Execution runtime
-    "packages/edge",            # Edge deployment
-    "packages/native-binding",  # Native bindings
-    "packages/bridge",          # Node.js N-API Bridge
-    "packages/parsers",         # Message parsers (IDOC, SWIFT, HL7)
+    "packages/foundation/runtime",         # WASM Execution runtime
+    "packages/foundation/edge",            # Edge deployment
+    "packages/foundation/native-binding",  # Native bindings
+    "packages/foundation/bridge",          # Node.js N-API Bridge
+    "packages/foundation/parsers",         # Message parsers (IDOC, SWIFT, HL7)
     
     # ===========================================================================
     # DOMAIN (DDD Bounded Contexts)
     # ===========================================================================
-    "packages/governance",      # Compliance & Regulations
+    "packages/foundation/governance",      # Compliance & Regulations
     
     # ===========================================================================
     # ENTERPRISE EDITION (Commercial)
