@@ -14,7 +14,7 @@
 
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::policy::{Policy, PolicyAction, PolicyRule};
-use agentkern_gate::types::{DataRegion, VerificationRequest, VerificationResult};
+use agentkern_gate::types::{DataRegion, LatencyBreakdown, VerificationRequest, VerificationResult};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -163,7 +163,11 @@ fn golden_verification_result_serialization() {
         allowed: true,
         reason: "Policy matched".to_string(),
         matched_rules: vec!["rule-1".to_string()],
-        latency: 1234,
+        latency: LatencyBreakdown {
+            total_us: 1234,
+            symbolic_us: 1234,
+            neural_us: None,
+        },
     };
 
     let json = serde_json::to_value(&result).unwrap();
@@ -173,5 +177,5 @@ fn golden_verification_result_serialization() {
     assert_eq!(json["allowed"], true);
     assert!(json["reason"].is_string());
     assert!(json["matched_rules"].is_array());
-    assert!(json["latency"].is_number());
+    assert!(json["latency"]["total_us"].is_number());
 }
