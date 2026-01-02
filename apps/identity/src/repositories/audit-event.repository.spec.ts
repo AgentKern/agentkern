@@ -7,7 +7,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditEventRepository } from './audit-event.repository';
-import { AuditEventEntity, AuditEventTypeEnum } from '../entities/audit-event.entity';
+import {
+  AuditEventEntity,
+  AuditEventTypeEnum,
+} from '../entities/audit-event.entity';
 
 describe('AuditEventRepository', () => {
   let repo: AuditEventRepository;
@@ -56,7 +59,10 @@ describe('AuditEventRepository', () => {
 
   describe('log', () => {
     it('should create and save an audit event', async () => {
-      const data = { type: AuditEventTypeEnum.PROOF_VERIFICATION_SUCCESS, success: true };
+      const data = {
+        type: AuditEventTypeEnum.PROOF_VERIFICATION_SUCCESS,
+        success: true,
+      };
       const result = await repo.log(data);
 
       expect(mockTypeOrmRepo.create).toHaveBeenCalledWith(data);
@@ -180,14 +186,22 @@ describe('AuditEventRepository', () => {
       await repo.getComplianceData(startDate, endDate, 'agent-1');
 
       const qb = mockTypeOrmRepo.createQueryBuilder!('ae');
-      expect(qb.andWhere).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(qb.andWhere).toHaveBeenCalledWith('ae.agentId = :agentId', {
+        agentId: 'agent-1',
+      });
     });
 
     it('should filter by principalId if provided', async () => {
       const startDate = new Date('2025-01-01');
       const endDate = new Date('2025-12-31');
 
-      await repo.getComplianceData(startDate, endDate, undefined, 'principal-1');
+      await repo.getComplianceData(
+        startDate,
+        endDate,
+        undefined,
+        'principal-1',
+      );
 
       expect(mockTypeOrmRepo.createQueryBuilder).toHaveBeenCalled();
     });

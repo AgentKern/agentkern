@@ -57,7 +57,10 @@ describe('TrustRecordRepository', () => {
 
   describe('findByAgentAndPrincipal', () => {
     it('should find a trust record by agent and principal', async () => {
-      const result = await repo.findByAgentAndPrincipal('agent-1', 'principal-1');
+      const result = await repo.findByAgentAndPrincipal(
+        'agent-1',
+        'principal-1',
+      );
 
       expect(mockTypeOrmRepo.findOne).toHaveBeenCalledWith({
         where: { agentId: 'agent-1', principalId: 'principal-1' },
@@ -80,7 +83,11 @@ describe('TrustRecordRepository', () => {
 
   describe('upsert', () => {
     it('should update existing record', async () => {
-      const result = await repo.upsert({ agentId: 'agent-1', principalId: 'principal-1', trustScore: 800 });
+      const result = await repo.upsert({
+        agentId: 'agent-1',
+        principalId: 'principal-1',
+        trustScore: 800,
+      });
 
       expect(mockTypeOrmRepo.findOne).toHaveBeenCalled();
       expect(mockTypeOrmRepo.save).toHaveBeenCalled();
@@ -99,7 +106,7 @@ describe('TrustRecordRepository', () => {
 
   describe('recordVerificationSuccess', () => {
     it('should increment verification count', async () => {
-      const result = await repo.recordVerificationSuccess('agent-1', 'principal-1');
+      await repo.recordVerificationSuccess('agent-1', 'principal-1');
 
       expect(mockTypeOrmRepo.findOne).toHaveBeenCalled();
       expect(mockTypeOrmRepo.save).toHaveBeenCalled();
@@ -116,7 +123,7 @@ describe('TrustRecordRepository', () => {
 
   describe('recordVerificationFailure', () => {
     it('should increment failure count', async () => {
-      const result = await repo.recordVerificationFailure('agent-1', 'principal-1');
+      await repo.recordVerificationFailure('agent-1', 'principal-1');
 
       expect(mockTypeOrmRepo.findOne).toHaveBeenCalled();
       expect(mockTypeOrmRepo.save).toHaveBeenCalled();
@@ -133,7 +140,7 @@ describe('TrustRecordRepository', () => {
 
   describe('revoke', () => {
     it('should revoke trust record', async () => {
-      const result = await repo.revoke('agent-1', 'principal-1');
+      await repo.revoke('agent-1', 'principal-1');
 
       expect(mockTypeOrmRepo.findOne).toHaveBeenCalled();
       expect(mockTypeOrmRepo.save).toHaveBeenCalled();
@@ -153,7 +160,7 @@ describe('TrustRecordRepository', () => {
       const revokedRecord = { ...mockRecord, revoked: true };
       (mockTypeOrmRepo.findOne as jest.Mock).mockResolvedValue(revokedRecord);
 
-      const result = await repo.reinstate('agent-1', 'principal-1');
+      await repo.reinstate('agent-1', 'principal-1');
 
       expect(mockTypeOrmRepo.save).toHaveBeenCalled();
     });

@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Trust Record Repository
- * 
+ *
  * PostgreSQL repository for Trust Records.
  */
 
@@ -145,19 +145,32 @@ export class TrustRecordRepository {
     revokedCount: number;
     avgScore: number;
   }> {
+    interface StatsResult {
+      totalRecords: string;
+      trustedCount: string;
+      revokedCount: string;
+      avgScore: string;
+    }
+
     const result = await this.repository
       .createQueryBuilder('tr')
       .select('COUNT(*)', 'totalRecords')
-      .addSelect('SUM(CASE WHEN trusted = true THEN 1 ELSE 0 END)', 'trustedCount')
-      .addSelect('SUM(CASE WHEN revoked = true THEN 1 ELSE 0 END)', 'revokedCount')
+      .addSelect(
+        'SUM(CASE WHEN trusted = true THEN 1 ELSE 0 END)',
+        'trustedCount',
+      )
+      .addSelect(
+        'SUM(CASE WHEN revoked = true THEN 1 ELSE 0 END)',
+        'revokedCount',
+      )
       .addSelect('AVG(trustScore)', 'avgScore')
-      .getRawOne();
+      .getRawOne<StatsResult>();
 
     return {
-      totalRecords: parseInt(result.totalRecords, 10) || 0,
-      trustedCount: parseInt(result.trustedCount, 10) || 0,
-      revokedCount: parseInt(result.revokedCount, 10) || 0,
-      avgScore: parseFloat(result.avgScore) || 500,
+      totalRecords: parseInt(result?.totalRecords ?? '0', 10),
+      trustedCount: parseInt(result?.trustedCount ?? '0', 10),
+      revokedCount: parseInt(result?.revokedCount ?? '0', 10),
+      avgScore: parseFloat(result?.avgScore ?? '500'),
     };
   }
 
@@ -165,7 +178,7 @@ export class TrustRecordRepository {
     const baseScore = 500;
     const successBonus = record.verificationCount * 2;
     const failurePenalty = record.failureCount * 10;
-    
+
     const score = baseScore + successBonus - failurePenalty;
     return Math.max(0, Math.min(1000, score));
   }

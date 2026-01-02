@@ -1,13 +1,22 @@
 /**
  * AgentKernIdentity - Audit Event Repository
- * 
+ *
  * PostgreSQL repository for Audit Events.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
-import { AuditEventEntity, AuditEventTypeEnum } from '../entities/audit-event.entity';
+import {
+  Repository,
+  Between,
+  In,
+  FindOperator,
+  FindOptionsWhere,
+} from 'typeorm';
+import {
+  AuditEventEntity,
+  AuditEventTypeEnum,
+} from '../entities/audit-event.entity';
 
 @Injectable()
 export class AuditEventRepository {
@@ -69,12 +78,12 @@ export class AuditEventRepository {
     endDate: Date,
     types?: AuditEventTypeEnum[],
   ): Promise<AuditEventEntity[]> {
-    const where: any = {
+    const where: FindOptionsWhere<AuditEventEntity> = {
       timestamp: Between(startDate, endDate),
     };
 
     if (types && types.length > 0) {
-      where.type = In(types);
+      where.type = In(types) as FindOperator<AuditEventTypeEnum>;
     }
 
     return this.repository.find({
@@ -86,7 +95,10 @@ export class AuditEventRepository {
   /**
    * Get security events
    */
-  async getSecurityEvents(since?: Date, limit = 100): Promise<AuditEventEntity[]> {
+  async getSecurityEvents(
+    since?: Date,
+    limit = 100,
+  ): Promise<AuditEventEntity[]> {
     const securityTypes = [
       AuditEventTypeEnum.RATE_LIMIT_EXCEEDED,
       AuditEventTypeEnum.INVALID_INPUT,
@@ -95,8 +107,8 @@ export class AuditEventRepository {
       AuditEventTypeEnum.SECURITY_ALERT,
     ];
 
-    const where: any = {
-      type: In(securityTypes),
+    const where: FindOptionsWhere<AuditEventEntity> = {
+      type: In(securityTypes) as FindOperator<AuditEventTypeEnum>,
     };
 
     if (since) {
@@ -127,7 +139,10 @@ export class AuditEventRepository {
   }> {
     const qb = this.repository
       .createQueryBuilder('ae')
-      .where('ae.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('ae.timestamp BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (agentId) {
       qb.andWhere('ae.agentId = :agentId', { agentId });
@@ -135,6 +150,14 @@ export class AuditEventRepository {
 
     if (principalId) {
       qb.andWhere('ae.principalId = :principalId', { principalId });
+    }
+
+    interface ComplianceResult {
+      totalVerifications: string;
+      successfulVerifications: string;
+      failedVerifications: string;
+      revocations: string;
+      securityAlerts: string;
     }
 
     const result = await qb
@@ -145,14 +168,17 @@ export class AuditEventRepository {
         `SUM(CASE WHEN type = '${AuditEventTypeEnum.KEY_REVOKED}' THEN 1 ELSE 0 END) as revocations`,
         `SUM(CASE WHEN type = '${AuditEventTypeEnum.SECURITY_ALERT}' THEN 1 ELSE 0 END) as securityAlerts`,
       ])
-      .getRawOne();
+      .getRawOne<ComplianceResult>();
 
     return {
-      totalVerifications: parseInt(result.totalVerifications, 10) || 0,
-      successfulVerifications: parseInt(result.successfulVerifications, 10) || 0,
-      failedVerifications: parseInt(result.failedVerifications, 10) || 0,
-      revocations: parseInt(result.revocations, 10) || 0,
-      securityAlerts: parseInt(result.securityAlerts, 10) || 0,
+      totalVerifications: parseInt(result?.totalVerifications ?? '0', 10),
+      successfulVerifications: parseInt(
+        result?.successfulVerifications ?? '0',
+        10,
+      ),
+      failedVerifications: parseInt(result?.failedVerifications ?? '0', 10),
+      revocations: parseInt(result?.revocations ?? '0', 10),
+      securityAlerts: parseInt(result?.securityAlerts ?? '0', 10),
     };
   }
 }
