@@ -6,15 +6,17 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install all dependencies for build
-COPY package*.json ./
-RUN npm ci
+RUN npm install -g pnpm
+
+COPY package*.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
 
 # Copy source and build
 COPY . .
 RUN npm run build
 
-# Prune dev dependencies
-RUN npm ci --omit=dev
+RUN pnpm prune --prod
 
 # ========================
 # Production Stage
