@@ -12,10 +12,10 @@ import {
   TranslateMessageDto,
   AgentCard,
   NexusMessage,
-  Protocol,
 } from '../dto/nexus.dto';
 import { NexusAgentRepository } from '../repositories/nexus-agent.repository';
 import { NexusAgentEntity } from '../entities/nexus-agent.entity';
+import { ProtocolTranslator } from './protocol-translator';
 
 @Injectable()
 export class NexusService {
@@ -184,97 +184,29 @@ export class NexusService {
   }
 
   /**
-   * Translate message between protocols (synchronous operation).
+   * Translate message between protocols using ProtocolTranslator.
+   * Supports bidirectional translation: A2A <-> MCP <-> AgentKern
    */
   translateMessage(dto: TranslateMessageDto): NexusMessage {
     const { sourceProtocol, targetProtocol, message } = dto;
 
     this.logger.log(`Translating ${sourceProtocol} -> ${targetProtocol}`);
 
-    // Parse based on source protocol
-    const unified = this.parseToUnified(
-      sourceProtocol,
-      message as NexusMessage,
-    );
+    try {
+      const translated = ProtocolTranslator.translate(
+        sourceProtocol,
+        targetProtocol,
+        message,
+      );
 
-    // Serialize to target protocol
-    const translated = this.serializeFromUnified(targetProtocol, unified);
+      this.logger.debug(
+        `Translation complete: ${translated.method} (${translated.id})`,
+      );
 
-    return translated;
-  }
-
-  /**
-   * Parse protocol-specific message to unified format.
-   */
-  private parseToUnified(
-    protocol: Protocol,
-    message: NexusMessage,
-  ): NexusMessage {
-    const base: NexusMessage = {
-      id: message.id || crypto.randomUUID(),
-      method: message.method || '',
-      params: message.params || {},
-      sourceProtocol: protocol,
-      timestamp: new Date().toISOString(),
-    };
-
-    switch (protocol) {
-      case 'a2a':
-        // A2A uses JSON-RPC 2.0
-        return {
-          ...base,
-          method: message.method || '',
-          params: message.params || {},
-        };
-
-      case 'mcp':
-        // MCP also uses JSON-RPC 2.0
-        return {
-          ...base,
-          method: message.method || '',
-          params: message.params || {},
-        };
-
-      case 'agentkern':
-      default:
-        return {
-          ...base,
-          method: message.method || '',
-          params: message.params || message,
-        };
-    }
-  }
-
-  /**
-   * Serialize unified message to protocol-specific format.
-   */
-  private serializeFromUnified(
-    protocol: Protocol,
-    msg: NexusMessage,
-  ): NexusMessage {
-    switch (protocol) {
-      case 'a2a':
-        return {
-          ...msg,
-          // A2A specific fields
-          jsonrpc: '2.0',
-          targetProtocol: 'a2a',
-        } as NexusMessage;
-
-      case 'mcp':
-        return {
-          ...msg,
-          // MCP specific fields
-          jsonrpc: '2.0',
-          targetProtocol: 'mcp',
-        } as NexusMessage;
-
-      case 'agentkern':
-      default:
-        return {
-          ...msg,
-          targetProtocol: 'agentkern',
-        };
+      return translated;
+    } catch (error) {
+      this.logger.error(`Translation failed: ${error}`);
+      throw error;
     }
   }
 

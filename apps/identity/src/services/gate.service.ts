@@ -11,6 +11,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
 import { GatePolicyRepository } from '../repositories/gate-policy.repository';
 import { GatePolicyEntity } from '../entities/gate-policy.entity';
+import { ComplianceEngine } from './compliance.engine';
 
 // Type definitions for bridge responses
 export interface PromptAnalysis {
@@ -373,7 +374,6 @@ export class GateService implements OnModuleInit {
   }
 
   /**
-   * Check PCI-DSS compliance (stub)
    */
   async checkPciCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
@@ -387,34 +387,10 @@ export class GateService implements OnModuleInit {
     checkedAt: string;
   }> {
     await Promise.resolve(); // Ensure async execution
-    const issues: Array<{
-      code: string;
-      severity: 'info' | 'warning' | 'error' | 'critical';
-      message: string;
-      path?: string;
-    }> = [];
-
-    // Check for unencrypted card numbers
-    const stringData = JSON.stringify(data);
-    if (/\b\d{13,19}\b/.test(stringData)) {
-      issues.push({
-        code: 'PCI-DSS-3.4',
-        severity: 'critical',
-        message: 'Potential unencrypted PAN detected',
-        path: 'data',
-      });
-    }
-
-    return {
-      compliant: issues.length === 0,
-      standard: 'PCI-DSS v4.0',
-      issues,
-      checkedAt: new Date().toISOString(),
-    };
+    return ComplianceEngine.checkPciDss(data);
   }
 
   /**
-   * Check HIPAA compliance (stub)
    */
   async checkHipaaCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
@@ -428,36 +404,10 @@ export class GateService implements OnModuleInit {
     checkedAt: string;
   }> {
     await Promise.resolve(); // Ensure async execution
-    const issues: Array<{
-      code: string;
-      severity: 'info' | 'warning' | 'error' | 'critical';
-      message: string;
-      path?: string;
-    }> = [];
-
-    // Check for PHI fields without encryption
-    const phiFields = ['ssn', 'medical_record', 'health_plan', 'diagnosis'];
-    for (const field of phiFields) {
-      if (field in data) {
-        issues.push({
-          code: 'HIPAA-164.312',
-          severity: 'warning',
-          message: `PHI field '${field}' detected - ensure encryption at rest`,
-          path: field,
-        });
-      }
-    }
-
-    return {
-      compliant: issues.filter((i) => i.severity === 'critical').length === 0,
-      standard: 'HIPAA Privacy Rule',
-      issues,
-      checkedAt: new Date().toISOString(),
-    };
+    return ComplianceEngine.checkHipaa(data);
   }
 
   /**
-   * Check GDPR compliance (stub)
    */
   async checkGdprCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
@@ -471,28 +421,7 @@ export class GateService implements OnModuleInit {
     checkedAt: string;
   }> {
     await Promise.resolve(); // Ensure async execution
-    const issues: Array<{
-      code: string;
-      severity: 'info' | 'warning' | 'error' | 'critical';
-      message: string;
-      path?: string;
-    }> = [];
-
-    // Check for consent
-    if (!('consent' in data) && !('gdpr_consent' in data)) {
-      issues.push({
-        code: 'GDPR-Art6',
-        severity: 'warning',
-        message: 'No consent field found - ensure lawful basis for processing',
-      });
-    }
-
-    return {
-      compliant: issues.filter((i) => i.severity === 'critical').length === 0,
-      standard: 'GDPR',
-      issues,
-      checkedAt: new Date().toISOString(),
-    };
+    return ComplianceEngine.checkGdpr(data);
   }
 
   /**
