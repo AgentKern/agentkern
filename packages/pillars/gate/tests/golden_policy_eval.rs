@@ -163,7 +163,7 @@ fn golden_verification_result_serialization() {
         allowed: true,
         reason: "Policy matched".to_string(),
         matched_rules: vec!["rule-1".to_string()],
-        latency_us: 1234,
+        latency: 1234,
     };
 
     let json = serde_json::to_value(&result).unwrap();
@@ -173,5 +173,5 @@ fn golden_verification_result_serialization() {
     assert_eq!(json["allowed"], true);
     assert!(json["reason"].is_string());
     assert!(json["matched_rules"].is_array());
-    assert!(json["latency_us"].is_number());
+    assert!(json["latency"].is_number());
 }

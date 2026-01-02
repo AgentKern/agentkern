@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source and build
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 RUN pnpm prune --prod
 
