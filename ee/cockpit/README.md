@@ -42,4 +42,4 @@ See [LICENSE-ENTERPRISE.md](../LICENSE-ENTERPRISE.md) for details.
 
 ## Contact
 
-For early access, contact: enterprise@agentkern.com
+For early access, contact: enterprise@agentkern.io

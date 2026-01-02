@@ -25,7 +25,7 @@ You may NOT:
 
 ### Subscription Required
 
-Production use of the Enterprise Software requires a valid AgentKern Enterprise subscription. Visit https://agentkern.com/pricing for licensing options.
+Production use of the Enterprise Software requires a valid AgentKern Enterprise subscription. Visit https://agentkern.io/pricing for licensing options.
 
 ### Evaluation
 
@@ -37,7 +37,7 @@ THE ENTERPRISE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 
 ### Contact
 
-For licensing inquiries: enterprise@agentkern.com
+For licensing inquiries: enterprise@agentkern.io
 
 ---
 

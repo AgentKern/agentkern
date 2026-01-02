@@ -22,7 +22,7 @@ pip install agentkern-identity
 import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
 const sdk = new AgentKern IdentitySDK({
-  apiUrl: 'https://api.agentkern-identity.dev',
+  apiUrl: 'https://identity.agentkern.io',
   agentId: 'your-agent-id',
   agentName: 'My AI Agent',
 });
@@ -73,7 +73,7 @@ const response = await fetch('https://api.bank.com/v1/transfers', {
 ```typescript
 import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
-const sdk = new AgentKern IdentitySDK({ apiUrl: 'https://api.agentkern-identity.dev' });
+const sdk = new AgentKern IdentitySDK({ apiUrl: 'https://identity.agentkern.io' });
 
 // Extract proof from incoming request
 const proofHeader = req.headers['x-agentkern-identity'];
@@ -100,20 +100,20 @@ import { ChatOpenAI } from '@langchain/openai';
 import { AgentExecutor, createOpenAIFunctionsAgent } from 'langchain/agents';
 
 // Create AgentKern Identity tool
-const agentProofTool = new AgentKern IdentityTool({
-  apiUrl: 'https://api.agentkern-identity.dev',
+const identityTool = new AgentKern IdentityTool({
+  apiUrl: 'https://identity.agentkern.io',
   agentId: 'langchain-agent',
 });
 
 // Add to agent
 const agent = await createOpenAIFunctionsAgent({
   llm: new ChatOpenAI({ model: 'gpt-4' }),
-  tools: [agentProofTool],
+  tools: [identityTool],
   prompt: yourPrompt,
 });
 
 // Execute with automatic proof generation
-const executor = new AgentExecutor({ agent, tools: [agentProofTool] });
+const executor = new AgentExecutor({ agent, tools: [identityTool] });
 await executor.invoke({ input: 'Transfer $500 to account 1234' });
 ```
 
@@ -125,7 +125,7 @@ await executor.invoke({ input: 'Transfer $500 to account 1234' });
 from agentkern-identity import AgentKern IdentityClient
 
 client = AgentKern IdentityClient(
-    api_url="https://api.agentkern-identity.dev",
+    api_url="https://identity.agentkern.io",
     agent_id="python-agent",
 )
 

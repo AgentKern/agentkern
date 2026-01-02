@@ -61,9 +61,9 @@ az deployment group create \
 
 ### Support
 
-- Documentation: https://docs.agentkern.dev
+- Documentation: https://docs.agentkern.io
 - GitHub: https://github.com/agentkern/agentkern
-- Enterprise Support: enterprise@agentkern.dev
+- Enterprise Support: enterprise@agentkern.io
 
 ## Categories
 

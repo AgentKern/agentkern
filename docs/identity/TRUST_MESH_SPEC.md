@@ -108,9 +108,9 @@ These propagate immediately without waiting for consensus.
 ### Bootstrap Nodes
 Hard-coded list of known reliable nodes:
 ```
-wss://mesh-1.agentkern-identity.io:8080
-wss://mesh-2.agentkern-identity.io:8080
-wss://mesh-3.agentkern-identity.io:8080
+wss://mesh-1.agentkern.io:8080
+wss://mesh-2.agentkern.io:8080
+wss://mesh-3.agentkern.io:8080
 ```
 
 ### DHT-Based Discovery

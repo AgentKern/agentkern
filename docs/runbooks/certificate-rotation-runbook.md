@@ -71,7 +71,7 @@ cargo run --bin identity-cli -- cert revoke \
   --effective-immediately
 
 # 2. Propagate CRL
-curl -X POST https://api.agentkern.dev/v1/identity/crl/publish \
+curl -X POST https://api.agentkern.io/v1/identity/crl/publish \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 
 # 3. Verify propagation (all nodes should have updated CRL)

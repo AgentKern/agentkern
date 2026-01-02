@@ -28,7 +28,7 @@ This directory contains AgentKern Enterprise features, licensed under the [Enter
 ## Getting Started
 
 1. **Evaluation**: Test enterprise features for 30 days free
-2. **Purchase**: Visit https://agentkern.com/pricing
+2. **Purchase**: Visit https://agentkern.io/pricing
 3. **License Key**: Add to your environment:
    ```bash
    export AGENTKERN_LICENSE_KEY="your-license-key"
@@ -36,5 +36,5 @@ This directory contains AgentKern Enterprise features, licensed under the [Enter
 
 ## Contact
 
-- **Sales**: enterprise@agentkern.com
-- **Support**: support@agentkern.com
+- **Sales**: enterprise@agentkern.io
+- **Support**: support@agentkern.io

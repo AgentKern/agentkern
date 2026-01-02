@@ -31,9 +31,9 @@ The Kill Switch is the emergency termination mechanism in the Arbiter pillar. It
 cargo run --bin arbiter-cli -- killswitch activate --scope global --reason "security incident"
 
 # Via API
-curl -X POST https://api.agentkern.dev/v1/arbiter/killswitch \
+curl -X POST https://api.agentkern.io/v1/arbiter/killswitch \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"scope": "global", "reason": "security incident", "operator": "oncall@agentkern.dev"}'
+  -d '{"scope": "global", "reason": "security incident", "operator": "oncall@agentkern.io"}'
 ```
 
 **Expected outcome:** All agents terminate within 100ms.
@@ -70,7 +70,7 @@ After activation, verify:
 
 3. **Verify no active agents:**
    ```bash
-   curl https://api.agentkern.dev/v1/agents/active | jq '.count'
+   curl https://api.agentkern.io/v1/agents/active | jq '.count'
    # Expected: 0 (for global) or reduced count (for targeted)
    ```
 
@@ -95,7 +95,7 @@ After incident resolution:
 | Role | Contact | When to Escalate |
 |------|---------|-----------------|
 | On-call Engineer | PagerDuty | First responder |
-| Security Team | security@agentkern.dev | All security incidents |
+| Security Team | security@agentkern.io | All security incidents |
 | CTO | Direct escalation | Duration > 30min |
 
 ---

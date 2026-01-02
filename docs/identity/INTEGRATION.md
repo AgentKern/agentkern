@@ -25,7 +25,7 @@ pip install agentkern-identity
 import { AgentKern IdentitySDK } from '@agentkern-identity/sdk';
 
 const agentkern-identity = new AgentKern IdentitySDK({
-  apiUrl: process.env.AGENTPROOF_URL || 'https://api.agentkern-identity.dev',
+  apiUrl: process.env.IDENTITY_URL || 'https://identity.agentkern.io',
   agentId: 'my-agent-id',
   agentName: 'My AI Assistant',
   agentVersion: '1.0.0',
@@ -81,7 +81,7 @@ await fetch('https://api.bank.com/v1/transfers', {
 import { AgentKern IdentityVerifier } from '@agentkern-identity/sdk';
 
 const verifier = new AgentKern IdentityVerifier({
-  apiUrl: 'https://api.agentkern-identity.dev',
+  apiUrl: 'https://identity.agentkern.io',
 });
 
 // Express middleware
@@ -189,8 +189,8 @@ import { TrustMeshNode } from '@agentkern-identity/sdk';
 const node = new TrustMeshNode({
   nodeId: 'my-node-id',
   bootstrapPeers: [
-    'wss://mesh.agentkern-identity.dev/node-1',
-    'wss://mesh.agentkern-identity.dev/node-2',
+    'wss://mesh.agentkern.io/node-1',
+    'wss://mesh.agentkern.io/node-2',
   ],
 });
 
