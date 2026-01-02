@@ -140,7 +140,7 @@ jobs:
           DATABASE_PASSWORD: agentkern_secret
           DATABASE_NAME: agentkern_identity
           DATABASE_SYNC: 'true'
-          DATABASE_DROP_SCHEMA: 'true'
+          DATABASE_DROP_SCHEMA: 'false'
           NODE_ENV: test
         run: pnpm test:e2e --runInBand
       
