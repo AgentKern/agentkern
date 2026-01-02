@@ -210,9 +210,9 @@ impl ComputeType {
     /// - arxiv.org/abs/2311.01434 - AI datacenter water consumption
     pub fn water_ratio(&self) -> Decimal {
         match self {
-            ComputeType::Cpu => dec!(1.8),    // Between MS (0.3) and Google (1.0), conservative
+            ComputeType::Cpu => dec!(1.8), // Between MS (0.3) and Google (1.0), conservative
             ComputeType::Gpu | ComputeType::GpuModel(_) => dec!(2.5), // High TDP = more cooling
-            ComputeType::Tpu => dec!(2.2),    // High density compute
+            ComputeType::Tpu => dec!(2.2), // High density compute
             ComputeType::Network => dec!(0.5), // Low power equipment
             ComputeType::Storage => dec!(0.3), // Near MS WUE for SSDs
         }
@@ -320,7 +320,6 @@ impl SolarCurve {
         }
     }
 }
-
 
 /// Carbon offset purchase record.
 #[derive(Debug, Clone, Serialize, Deserialize)]

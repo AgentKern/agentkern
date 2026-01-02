@@ -176,7 +176,7 @@ impl GateEngine {
 
         // Determine if action is allowed
         let carbon_allowed = carbon_result.as_ref().map(|r| r.allowed).unwrap_or(true);
-        
+
         // BLOCKING THRESHOLD: 80
         //
         // ## Threshold Rationale (EPISTEMIC WARRANT)

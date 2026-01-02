@@ -157,9 +157,11 @@ impl SsoService {
 
         // DEFLATE
         let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(xml.as_bytes())
+        encoder
+            .write_all(xml.as_bytes())
             .map_err(|e| SsoError::SamlEncodingFailed(e.to_string()))?;
-        let compressed = encoder.finish()
+        let compressed = encoder
+            .finish()
             .map_err(|e| SsoError::SamlEncodingFailed(e.to_string()))?;
 
         // Base64
@@ -367,7 +369,9 @@ mod tests {
             attribute_mapping: HashMap::new(),
         };
 
-        let url = service.generate_saml_auth_url(&config).expect("SAML encoding should succeed");
+        let url = service
+            .generate_saml_auth_url(&config)
+            .expect("SAML encoding should succeed");
         assert!(url.contains("SAMLRequest="));
         assert!(url.contains("RelayState=org-1"));
         assert!(!url.contains(" "));

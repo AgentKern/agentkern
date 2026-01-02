@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::balance::{BalanceLedger};
+use crate::balance::BalanceLedger;
 use crate::types::{AgentId, Amount, TransactionId};
 
 /// Transfer request.
@@ -231,17 +231,21 @@ impl TransferEngine {
 
     /// Get details of pending transfers for monitoring/audit.
     /// Returns Vec of (transaction_id, created_at, from, to, amount).
-    pub fn pending_transfers(&self) -> Vec<(TransactionId, DateTime<Utc>, AgentId, AgentId, Amount)> {
+    pub fn pending_transfers(
+        &self,
+    ) -> Vec<(TransactionId, DateTime<Utc>, AgentId, AgentId, Amount)> {
         self.pending
             .read()
             .values()
-            .map(|pt| (
-                pt.transaction_id,
-                pt.created_at,
-                pt.request.from.clone(),
-                pt.request.to.clone(),
-                pt.request.amount,
-            ))
+            .map(|pt| {
+                (
+                    pt.transaction_id,
+                    pt.created_at,
+                    pt.request.from.clone(),
+                    pt.request.to.clone(),
+                    pt.request.amount,
+                )
+            })
             .collect()
     }
 }

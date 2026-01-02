@@ -62,7 +62,10 @@ async fn golden_allow_read_action() {
     // GOLDEN: Read actions should be allowed
     assert!(result.is_ok());
     let verification = result.unwrap();
-    assert!(verification.allowed, "GOLDEN: read action should be allowed");
+    assert!(
+        verification.allowed,
+        "GOLDEN: read action should be allowed"
+    );
 }
 
 #[tokio::test]
@@ -77,7 +80,10 @@ async fn golden_block_delete_action() {
     // GOLDEN: Delete actions should be blocked
     assert!(result.is_ok());
     let verification = result.unwrap();
-    assert!(!verification.allowed, "GOLDEN: delete action should be blocked");
+    assert!(
+        !verification.allowed,
+        "GOLDEN: delete action should be blocked"
+    );
 }
 
 #[tokio::test]

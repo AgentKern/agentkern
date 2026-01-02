@@ -1,5 +1,5 @@
-#![warn(dead_code)]  // Production: warn on dead code
-#![warn(unused)]  // Production: warn on unused code
+#![warn(dead_code)] // Production: warn on dead code
+#![warn(unused)] // Production: warn on unused code
 //! AgentKern Universal Runtime
 //!
 //! Single binary that runs anywhere:

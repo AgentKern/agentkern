@@ -114,7 +114,11 @@ fn golden_field_mapping_task_id_to_id() {
 
     // GOLDEN: Field mapping should transform task_id → id
     // Note: Actual behavior documented here
-    let params = result.message.params.as_object().expect("Params should be object");
+    let params = result
+        .message
+        .params
+        .as_object()
+        .expect("Params should be object");
 
     // Document current mapping behavior (may be task_id→id or preserved)
     let has_id = params.contains_key("id");

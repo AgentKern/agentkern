@@ -146,9 +146,9 @@ impl Default for AdaptationRate {
         Self {
             base_rate: 1.0,
             multiplier: 1.0,
-            max_multiplier: 10.0,   // Cap at 10x to prevent oscillation
-            decay: 0.9,             // ~10 successes to return to 1.0
-            boost_factor: 1.5,      // 50% increase per failure
+            max_multiplier: 10.0, // Cap at 10x to prevent oscillation
+            decay: 0.9,           // ~10 successes to return to 1.0
+            boost_factor: 1.5,    // 50% increase per failure
         }
     }
 }
@@ -713,29 +713,29 @@ impl AntifragileEngine {
                     FailureClass::Timeout,
                     FailureClass::ServiceUnavailable,
                 ],
-                priority: 80,      // High priority: often works
-                success_rate: 70,  // Initial estimate: 70% of retries succeed
+                priority: 80,          // High priority: often works
+                success_rate: 70,      // Initial estimate: 70% of retries succeed
                 avg_recovery_ms: 2000, // Includes backoff delays
             },
             RecoveryStrategy {
                 name: "failover_to_replica".into(),
                 applies_to: vec![FailureClass::ServiceUnavailable],
-                priority: 90,      // Highest: fastest recovery
-                success_rate: 85,  // High success if replica healthy
+                priority: 90,         // Highest: fastest recovery
+                success_rate: 85,     // High success if replica healthy
                 avg_recovery_ms: 500, // Fast failover
             },
             RecoveryStrategy {
                 name: "reduce_load".into(),
                 applies_to: vec![FailureClass::ResourceExhaustion],
-                priority: 70,      // Medium: takes time to take effect
-                success_rate: 60,  // Often need additional interventions
+                priority: 70,          // Medium: takes time to take effect
+                success_rate: 60,      // Often need additional interventions
                 avg_recovery_ms: 5000, // Load shedding takes time
             },
             RecoveryStrategy {
                 name: "return_cached".into(),
                 applies_to: vec![FailureClass::Network, FailureClass::Timeout],
-                priority: 50,      // Lower: stale data tradeoff
-                success_rate: 90,  // High if cache available
+                priority: 50,        // Lower: stale data tradeoff
+                success_rate: 90,    // High if cache available
                 avg_recovery_ms: 10, // Cache is fast
             },
         ];
