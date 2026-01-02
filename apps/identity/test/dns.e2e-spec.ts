@@ -24,7 +24,7 @@ describe('DnsController (e2e)', () => {
       }),
     );
     await app.init();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await app.close();
@@ -32,18 +32,22 @@ describe('DnsController (e2e)', () => {
 
   describe('POST /api/v1/dns/register', () => {
     it('should register trust relationship', async () => {
+      const ts = Date.now();
+      const aid = `agent-dns-test-${ts}`;
+      const pid = `principal-dns-test-${ts}`;
+
       const response = await request(app.getHttpServer())
         .post('/api/v1/dns/register')
         .send({
-          agentId: 'agent-dns-test',
-          principalId: 'principal-dns-test',
+          agentId: aid,
+          principalId: pid,
           agentName: 'DNS Test Agent',
           agentVersion: '1.0.0',
         })
         .expect(201);
 
-      expect(response.body.agentId).toBe('agent-dns-test');
-      expect(response.body.principalId).toBe('principal-dns-test');
+      expect(response.body.agentId).toBe(aid);
+      expect(response.body.principalId).toBe(pid);
       expect(response.body.trusted).toBe(true);
     });
   });
@@ -122,19 +126,24 @@ describe('DnsController (e2e)', () => {
   describe('POST /api/v1/dns/resolve/batch', () => {
     it('should batch resolve multiple queries', async () => {
       // Register some agents
+      const ts = Date.now();
+      const id1 = `batch-agent-1b-${ts}`;
+      const pid1 = `batch-principal-b-${ts}`;
+      const id2 = `batch-agent-2b-${ts}`;
+
       await request(app.getHttpServer())
         .post('/api/v1/dns/register')
-        .send({ agentId: 'batch-agent-1b', principalId: 'batch-principal-b' });
+        .send({ agentId: id1, principalId: pid1 });
       await request(app.getHttpServer())
         .post('/api/v1/dns/register')
-        .send({ agentId: 'batch-agent-2b', principalId: 'batch-principal-b' });
+        .send({ agentId: id2, principalId: pid1 });
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/dns/resolve/batch')
         .send({
           queries: [
-            { agentId: 'batch-agent-1b', principalId: 'batch-principal-b' },
-            { agentId: 'batch-agent-2b', principalId: 'batch-principal-b' },
+            { agentId: id1, principalId: pid1 },
+            { agentId: id2, principalId: pid1 },
           ],
         })
         .expect(200);

@@ -142,7 +142,7 @@ jobs:
           DATABASE_SYNC: 'true'
           DATABASE_DROP_SCHEMA: 'true'
           NODE_ENV: test
-        run: pnpm test:e2e
+        run: pnpm test:e2e --runInBand
       
       - name: E2E Test Summary
         if: always()

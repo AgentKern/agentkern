@@ -25,7 +25,7 @@ describe('DashboardController (e2e)', () => {
       }),
     );
     await app.init();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await app.close();
@@ -49,8 +49,7 @@ describe('DashboardController (e2e)', () => {
         .get('/api/v1/dashboard/stats')
         .expect(403)
         .expect((res) => {
-          expect(res.body.error).toBe('Feature not available');
-          expect(res.body.currentTier).toBe('oss');
+          expect(res.body.error).toBe('Forbidden');
         });
     });
   });

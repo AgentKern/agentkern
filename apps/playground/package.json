@@ -12,11 +12,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@agentkern/bridge": "file:../../packages/foundation/bridge",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@agentkern/bridge": "file:../../packages/foundation/bridge"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",

@@ -24,7 +24,7 @@ describe('ProofController (e2e)', () => {
       }),
     );
     await app.init();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await app.close();

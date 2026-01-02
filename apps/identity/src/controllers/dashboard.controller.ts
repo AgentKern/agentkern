@@ -61,6 +61,18 @@ export class DashboardController {
     };
   }
 
+  @Get('policies')
+  @ApiOperation({
+    summary: 'Get policies',
+    description: 'Returns list of active policies (OSS enabled).',
+  })
+  getPolicies() {
+    return [
+      { id: 'pol_default', name: 'Default Policy', enabled: true },
+      { id: 'pol_oss', name: 'OSS Guidelines', enabled: true },
+    ];
+  }
+
   // ============ Stats Endpoints ============
 
   @Get('stats')
