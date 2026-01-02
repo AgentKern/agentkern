@@ -79,24 +79,12 @@ jobs:
         run: |
           npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file identity-sbom.json
       
-      - name: Generate SBOM for Gateway
-        working-directory: apps/gateway
-        run: |
-          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file gateway-sbom.json
-      
-      - name: Generate SBOM for SDK
-        working-directory: packages/sdk
-        run: |
-          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file sdk-sbom.json
-      
       - name: Upload TypeScript SBOM artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sbom-typescript
           path: |
             apps/identity/identity-sbom.json
-            apps/gateway/gateway-sbom.json
-            packages/sdk/sdk-sbom.json
 
   # ============================================
   # Vulnerability Scanning (Trivy)

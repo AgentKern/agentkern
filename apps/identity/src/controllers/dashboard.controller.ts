@@ -15,12 +15,12 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-} from '@nestjs/swagger';
-import { AuditLoggerService, AuditEvent, AuditEventType } from '../services/audit-logger.service';
+  AuditLoggerService,
+  AuditEvent,
+  AuditEventType,
+} from '../services/audit-logger.service';
 import {
   EnterpriseLicenseGuard,
   EnterpriseOnly,
@@ -38,14 +38,15 @@ import {
 @Controller('api/v1/dashboard')
 @UseGuards(EnterpriseLicenseGuard)
 export class DashboardController {
-  constructor(
-    private readonly auditLogger: AuditLoggerService,
-  ) {}
+  constructor(private readonly auditLogger: AuditLoggerService) {}
 
   // ============ Root Endpoint ============
 
   @Get()
-  @ApiOperation({ summary: 'Dashboard root', description: 'Lists available dashboard endpoints.' })
+  @ApiOperation({
+    summary: 'Dashboard root',
+    description: 'Lists available dashboard endpoints.',
+  })
   getRoot() {
     return {
       name: 'AgentKernIdentity Dashboard API',
@@ -69,28 +70,44 @@ export class DashboardController {
     summary: 'Get dashboard statistics',
     description: '🔒 Enterprise - Returns key metrics for the dashboard.',
   })
-  @ApiResponse({ status: 200, description: 'Dashboard stats', type: DashboardStatsResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard stats',
+    type: DashboardStatsResponseDto,
+  })
   async getStats(): Promise<DashboardStatsResponseDto> {
     const events = await this.auditLogger.getRecentEvents(1000);
     const today = new Date().toISOString().split('T')[0];
 
-    const todayEvents = events.filter((e: AuditEvent) => e.timestamp.startsWith(today));
-    const verifications = todayEvents.filter((e: AuditEvent) =>
-      e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
-      e.type === AuditEventType.PROOF_VERIFICATION_FAILURE
+    const todayEvents = events.filter((e: AuditEvent) =>
+      e.timestamp.startsWith(today),
+    );
+    const verifications = todayEvents.filter(
+      (e: AuditEvent) =>
+        e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
+        e.type === AuditEventType.PROOF_VERIFICATION_FAILURE,
     );
 
-    const successCount = verifications.filter((e: AuditEvent) => e.success).length;
+    const successCount = verifications.filter(
+      (e: AuditEvent) => e.success,
+    ).length;
     const totalCount = verifications.length;
 
-    const revocations = todayEvents.filter((e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED).length;
+    const revocations = todayEvents.filter(
+      (e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED,
+    ).length;
 
-    const uniqueAgents = new Set(events.map((e: AuditEvent) => e.agentId).filter(Boolean));
-    const uniquePrincipals = new Set(events.map((e: AuditEvent) => e.principalId).filter(Boolean));
+    const uniqueAgents = new Set(
+      events.map((e: AuditEvent) => e.agentId).filter(Boolean),
+    );
+    const uniquePrincipals = new Set(
+      events.map((e: AuditEvent) => e.principalId).filter(Boolean),
+    );
 
     return {
       verificationsToday: totalCount,
-      successRate: totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100,
+      successRate:
+        totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100,
       activeAgents: uniqueAgents.size,
       activePrincipals: uniquePrincipals.size,
       revocationsToday: revocations,
@@ -104,10 +121,17 @@ export class DashboardController {
   @RequireFeatures('dashboard.trends')
   @ApiOperation({
     summary: 'Get verification trends',
-    description: '🔒 Enterprise - Returns verification success/failure trends over time.',
+    description:
+      '🔒 Enterprise - Returns verification success/failure trends over time.',
   })
-  @ApiResponse({ status: 200, description: 'Verification trends', type: [VerificationTrendDto] })
-  async getTrends(@Query('days') days: number = 7): Promise<VerificationTrendDto[]> {
+  @ApiResponse({
+    status: 200,
+    description: 'Verification trends',
+    type: [VerificationTrendDto],
+  })
+  async getTrends(
+    @Query('days') days: number = 7,
+  ): Promise<VerificationTrendDto[]> {
     const trends: VerificationTrendDto[] = [];
     const events = await this.auditLogger.getRecentEvents(10000);
 
@@ -116,10 +140,11 @@ export class DashboardController {
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
 
-      const dayEvents = events.filter((e: AuditEvent) =>
-        e.timestamp.startsWith(dateStr) &&
-        (e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
-         e.type === AuditEventType.PROOF_VERIFICATION_FAILURE)
+      const dayEvents = events.filter(
+        (e: AuditEvent) =>
+          e.timestamp.startsWith(dateStr) &&
+          (e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
+            e.type === AuditEventType.PROOF_VERIFICATION_FAILURE),
       );
 
       trends.push({
@@ -138,7 +163,9 @@ export class DashboardController {
     description: 'Returns the most active agents by verification count.',
   })
   @ApiResponse({ status: 200, description: 'Top agents', type: [TopAgentDto] })
-  async getTopAgents(@Query('limit') limit: number = 10): Promise<TopAgentDto[]> {
+  async getTopAgents(
+    @Query('limit') limit: number = 10,
+  ): Promise<TopAgentDto[]> {
     const events = await this.auditLogger.getRecentEvents(10000);
 
     const agentCounts = new Map<string, { count: number; name: string }>();
@@ -146,7 +173,10 @@ export class DashboardController {
     for (const event of events) {
       if (!event.agentId) continue;
 
-      const current = agentCounts.get(event.agentId) || { count: 0, name: event.agentId };
+      const current = agentCounts.get(event.agentId) || {
+        count: 0,
+        name: event.agentId,
+      };
       agentCounts.set(event.agentId, { ...current, count: current.count + 1 });
     }
 
@@ -169,10 +199,17 @@ export class DashboardController {
   @RequireFeatures('dashboard.compliance')
   @ApiOperation({
     summary: 'Generate compliance report',
-    description: '🔒 Enterprise - Generates a compliance report for a date range.',
+    description:
+      '🔒 Enterprise - Generates a compliance report for a date range.',
   })
-  @ApiResponse({ status: 200, description: 'Compliance report', type: ComplianceReportResponseDto })
-  async generateComplianceReport(@Body() dto: ComplianceReportRequestDto): Promise<ComplianceReportResponseDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Compliance report',
+    type: ComplianceReportResponseDto,
+  })
+  async generateComplianceReport(
+    @Body() dto: ComplianceReportRequestDto,
+  ): Promise<ComplianceReportResponseDto> {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
@@ -187,15 +224,22 @@ export class DashboardController {
       return true;
     });
 
-    const verifications = events.filter((e: AuditEvent) =>
-      e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
-      e.type === AuditEventType.PROOF_VERIFICATION_FAILURE
+    const verifications = events.filter(
+      (e: AuditEvent) =>
+        e.type === AuditEventType.PROOF_VERIFICATION_SUCCESS ||
+        e.type === AuditEventType.PROOF_VERIFICATION_FAILURE,
     );
 
-    const successful = verifications.filter((e: AuditEvent) => e.success).length;
+    const successful = verifications.filter(
+      (e: AuditEvent) => e.success,
+    ).length;
     const failed = verifications.filter((e: AuditEvent) => !e.success).length;
-    const revocations = events.filter((e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED).length;
-    const violations = events.filter((e: AuditEvent) => e.type === AuditEventType.SECURITY_ALERT).length;
+    const revocations = events.filter(
+      (e: AuditEvent) => e.type === AuditEventType.KEY_REVOKED,
+    ).length;
+    const violations = events.filter(
+      (e: AuditEvent) => e.type === AuditEventType.SECURITY_ALERT,
+    ).length;
 
     return {
       id: crypto.randomUUID(),
@@ -214,7 +258,8 @@ export class DashboardController {
   @RequireFeatures('audit.export')
   @ApiOperation({
     summary: 'Get audit trail',
-    description: '🔒 Enterprise - Returns the complete audit trail for compliance.',
+    description:
+      '🔒 Enterprise - Returns the complete audit trail for compliance.',
   })
   @ApiResponse({ status: 200, description: 'Audit trail' })
   async getAuditTrail(
@@ -224,7 +269,9 @@ export class DashboardController {
     const events = await this.auditLogger.getRecentEvents(limit);
 
     if (type) {
-      return events.filter((e: AuditEvent) => e.type === type);
+      return events.filter(
+        (e: AuditEvent) => e.type === (type as AuditEventType),
+      );
     }
 
     return events;

@@ -31,10 +31,12 @@ pub type NodeId = String;
 pub type Timestamp = u64;
 
 /// Get current timestamp.
+///
+/// Returns 0 if system time is before UNIX epoch (should never happen in practice).
 fn now() -> Timestamp {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .unwrap_or_default()
         .as_micros() as u64
 }
 

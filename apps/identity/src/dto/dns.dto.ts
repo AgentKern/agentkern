@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - DNS DTOs with Validation
- * 
+ *
  * Data Transfer Objects for Intent DNS endpoints.
  */
 
@@ -10,7 +10,6 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';

@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray, IsBoolean, IsNumber, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsObject,
+} from 'class-validator';
 
 // ============================================================================
 // Prompt Guard DTOs
@@ -15,7 +22,10 @@ export class GuardPromptDto {
   @IsString()
   context?: string;
 
-  @ApiPropertyOptional({ description: 'Specific policies to apply', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Specific policies to apply',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -27,7 +37,10 @@ export class GuardPromptResponseDto {
   @IsBoolean()
   safe: boolean;
 
-  @ApiProperty({ description: 'Threat level', enum: ['none', 'low', 'medium', 'high', 'critical'] })
+  @ApiProperty({
+    description: 'Threat level',
+    enum: ['none', 'low', 'medium', 'high', 'critical'],
+  })
   @IsString()
   threatLevel: 'none' | 'low' | 'medium' | 'high' | 'critical';
 
@@ -59,7 +72,10 @@ export class PolicyRuleDto {
   @IsString()
   condition: string;
 
-  @ApiProperty({ description: 'Action to take', enum: ['allow', 'deny', 'audit', 'escalate'] })
+  @ApiProperty({
+    description: 'Action to take',
+    enum: ['allow', 'deny', 'audit', 'escalate'],
+  })
   @IsString()
   action: 'allow' | 'deny' | 'audit' | 'escalate';
 
@@ -136,7 +152,10 @@ export class ComplianceIssueDto {
   @IsString()
   code: string;
 
-  @ApiProperty({ description: 'Issue severity', enum: ['info', 'warning', 'error', 'critical'] })
+  @ApiProperty({
+    description: 'Issue severity',
+    enum: ['info', 'warning', 'error', 'critical'],
+  })
   @IsString()
   severity: 'info' | 'warning' | 'error' | 'critical';
 
@@ -197,7 +216,10 @@ export class WasmActorDto {
   @IsString()
   version: string;
 
-  @ApiProperty({ description: 'Declared capabilities', type: [WasmCapabilityDto] })
+  @ApiProperty({
+    description: 'Declared capabilities',
+    type: [WasmCapabilityDto],
+  })
   @IsArray()
   capabilities: WasmCapabilityDto[];
 
@@ -231,7 +253,10 @@ export class RegisterWasmActorDto {
   @IsString()
   wasmBase64: string;
 
-  @ApiProperty({ description: 'Declared capabilities', type: [WasmCapabilityDto] })
+  @ApiProperty({
+    description: 'Declared capabilities',
+    type: [WasmCapabilityDto],
+  })
   @IsArray()
   capabilities: WasmCapabilityDto[];
 }

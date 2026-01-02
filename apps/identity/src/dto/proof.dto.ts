@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - API DTOs with Validation
- * 
+ *
  * Data Transfer Objects with comprehensive validation.
  * Follows mandate: input validation, no shortcuts.
  */
@@ -16,8 +16,6 @@ import {
   ValidateNested,
   Min,
   Max,
-  IsUUID,
-  IsISO8601,
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -65,7 +63,9 @@ export class AgentDto {
 
   @ApiProperty({ description: 'Agent version' })
   @IsString()
-  @Matches(/^\d+\.\d+\.\d+$/, { message: 'Version must be semver format (e.g., 1.0.0)' })
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'Version must be semver format (e.g., 1.0.0)',
+  })
   version: string;
 }
 
@@ -115,7 +115,9 @@ export class ConstraintsDto {
   @IsString({ each: true })
   allowedRecipients?: string[];
 
-  @ApiPropertyOptional({ description: 'Allowed geographic regions (ISO country codes)' })
+  @ApiPropertyOptional({
+    description: 'Allowed geographic regions (ISO country codes)',
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -126,7 +128,9 @@ export class ConstraintsDto {
   @IsObject()
   validHours?: { start: number; end: number };
 
-  @ApiPropertyOptional({ description: 'Amount threshold requiring confirmation' })
+  @ApiPropertyOptional({
+    description: 'Amount threshold requiring confirmation',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -162,13 +166,18 @@ export class CreateProofRequestDto {
   @Type(() => IntentDto)
   intent: IntentDto;
 
-  @ApiPropertyOptional({ type: ConstraintsDto, description: 'Authorization constraints' })
+  @ApiPropertyOptional({
+    type: ConstraintsDto,
+    description: 'Authorization constraints',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => ConstraintsDto)
   constraints?: ConstraintsDto;
 
-  @ApiPropertyOptional({ description: 'Proof validity in seconds (default: 300)' })
+  @ApiPropertyOptional({
+    description: 'Proof validity in seconds (default: 300)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(60)

@@ -84,15 +84,23 @@ export class WebAuthnService implements OnModuleInit {
     @InjectRepository(WebAuthnChallengeEntity)
     private readonly challengeRepository: Repository<WebAuthnChallengeEntity>,
   ) {
-    this.rpName = this.configService.get('WEBAUTHN_RP_NAME', 'AgentKernIdentity');
+    this.rpName = this.configService.get(
+      'WEBAUTHN_RP_NAME',
+      'AgentKernIdentity',
+    );
     this.rpID = this.configService.get('WEBAUTHN_RP_ID', 'localhost');
-    this.origin = this.configService.get('WEBAUTHN_ORIGIN', 'http://localhost:5004');
+    this.origin = this.configService.get(
+      'WEBAUTHN_ORIGIN',
+      'http://localhost:5004',
+    );
   }
 
   async onModuleInit(): Promise<void> {
     // Clean up any expired challenges on startup
     await this.cleanupExpiredChallenges();
-    this.logger.log(`🔐 WebAuthn initialized for RP: ${this.rpName} (${this.rpID})`);
+    this.logger.log(
+      `🔐 WebAuthn initialized for RP: ${this.rpName} (${this.rpID})`,
+    );
   }
 
   /**
@@ -122,7 +130,9 @@ export class WebAuthnService implements OnModuleInit {
     });
 
     // Generate a unique WebAuthn user ID (base64url-encoded random bytes)
-    const webauthnUserId = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
+    const webauthnUserId = Buffer.from(
+      crypto.getRandomValues(new Uint8Array(32)),
+    ).toString('base64url');
 
     const options: GenerateRegistrationOptionsOpts = {
       rpName: this.rpName,
@@ -145,7 +155,11 @@ export class WebAuthnService implements OnModuleInit {
     const registrationOptions = await generateRegistrationOptions(options);
 
     // Store challenge with expiration
-    await this.storeChallenge(principalId, registrationOptions.challenge, 'registration');
+    await this.storeChallenge(
+      principalId,
+      registrationOptions.challenge,
+      'registration',
+    );
 
     this.logger.debug(`Generated registration options for: ${userName}`);
 
@@ -173,7 +187,10 @@ export class WebAuthnService implements OnModuleInit {
     }
 
     if (new Date() > challengeEntity.expiresAt) {
-      await this.challengeRepository.delete({ principalId, flowType: 'registration' });
+      await this.challengeRepository.delete({
+        principalId,
+        flowType: 'registration',
+      });
       return { verified: false, error: 'Challenge expired' };
     }
 
@@ -185,17 +202,21 @@ export class WebAuthnService implements OnModuleInit {
         expectedRPID: this.rpID,
       };
 
-      const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse(opts);
+      const verification: VerifiedRegistrationResponse =
+        await verifyRegistrationResponse(opts);
 
       if (verification.verified && verification.registrationInfo) {
-        const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+        const { credential, credentialDeviceType, credentialBackedUp } =
+          verification.registrationInfo;
 
         // Create and persist credential entity
         const credentialEntity = this.credentialRepository.create({
           id: Buffer.from(credential.id).toString('base64url'),
           principalId,
           credentialPublicKey: Buffer.from(credential.publicKey),
-          webauthnUserId: Buffer.from(response.response.publicKey || '').toString('base64url'),
+          webauthnUserId: Buffer.from(
+            response.response.publicKey || '',
+          ).toString('base64url'),
           counter: credential.counter,
           credentialDeviceType: credentialDeviceType as CredentialDeviceType,
           credentialBackedUp,
@@ -206,9 +227,14 @@ export class WebAuthnService implements OnModuleInit {
         await this.credentialRepository.save(credentialEntity);
 
         // Mark challenge as consumed (single-use)
-        await this.challengeRepository.delete({ principalId, flowType: 'registration' });
+        await this.challengeRepository.delete({
+          principalId,
+          flowType: 'registration',
+        });
 
-        this.logger.log(`✅ Registered credential for principal: ${principalId}`);
+        this.logger.log(
+          `✅ Registered credential for principal: ${principalId}`,
+        );
 
         return {
           verified: true,
@@ -218,7 +244,9 @@ export class WebAuthnService implements OnModuleInit {
 
       return { verified: false, error: 'Verification failed' };
     } catch (error) {
-      this.logger.error(`Registration verification failed: ${(error as Error).message}`);
+      this.logger.error(
+        `Registration verification failed: ${(error as Error).message}`,
+      );
       return { verified: false, error: (error as Error).message };
     }
   }
@@ -249,7 +277,11 @@ export class WebAuthnService implements OnModuleInit {
     const authOptions = await generateAuthenticationOptions(opts);
 
     // Store challenge
-    await this.storeChallenge(principalId, authOptions.challenge, 'authentication');
+    await this.storeChallenge(
+      principalId,
+      authOptions.challenge,
+      'authentication',
+    );
 
     return authOptions;
   }
@@ -275,7 +307,10 @@ export class WebAuthnService implements OnModuleInit {
     }
 
     if (new Date() > challengeEntity.expiresAt) {
-      await this.challengeRepository.delete({ principalId, flowType: 'authentication' });
+      await this.challengeRepository.delete({
+        principalId,
+        flowType: 'authentication',
+      });
       return { verified: false, error: 'Challenge expired' };
     }
 
@@ -303,7 +338,8 @@ export class WebAuthnService implements OnModuleInit {
         },
       };
 
-      const verification: VerifiedAuthenticationResponse = await verifyAuthenticationResponse(opts);
+      const verification: VerifiedAuthenticationResponse =
+        await verifyAuthenticationResponse(opts);
 
       if (verification.verified) {
         // CRITICAL: Update counter to prevent replay attacks
@@ -312,7 +348,7 @@ export class WebAuthnService implements OnModuleInit {
         if (newCounter <= credential.counter && credential.counter !== 0) {
           this.logger.warn(
             `⚠️ Counter did not increase for credential ${credentialId}. ` +
-            `Old: ${credential.counter}, New: ${newCounter}. Possible cloning attack!`
+              `Old: ${credential.counter}, New: ${newCounter}. Possible cloning attack!`,
           );
           // You may choose to revoke the credential here for maximum security
         }
@@ -322,7 +358,10 @@ export class WebAuthnService implements OnModuleInit {
         await this.credentialRepository.save(credential);
 
         // Mark challenge as consumed
-        await this.challengeRepository.delete({ principalId, flowType: 'authentication' });
+        await this.challengeRepository.delete({
+          principalId,
+          flowType: 'authentication',
+        });
 
         this.logger.log(`✅ Authenticated principal: ${principalId}`);
 
@@ -331,7 +370,9 @@ export class WebAuthnService implements OnModuleInit {
 
       return { verified: false, error: 'Verification failed' };
     } catch (error) {
-      this.logger.error(`Authentication verification failed: ${(error as Error).message}`);
+      this.logger.error(
+        `Authentication verification failed: ${(error as Error).message}`,
+      );
       return { verified: false, error: (error as Error).message };
     }
   }
@@ -390,7 +431,9 @@ export class WebAuthnService implements OnModuleInit {
     );
 
     if (result.affected && result.affected > 0) {
-      this.logger.log(`🚨 Revoked credential ${credentialId} for ${principalId}: ${reason}`);
+      this.logger.log(
+        `🚨 Revoked credential ${credentialId} for ${principalId}: ${reason}`,
+      );
       return true;
     }
     return false;

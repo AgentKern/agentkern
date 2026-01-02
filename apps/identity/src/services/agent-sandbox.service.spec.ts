@@ -9,9 +9,11 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { AgentSandboxService, SandboxActionRequest } from './agent-sandbox.service';
+import {
+  AgentSandboxService,
+  SandboxActionRequest,
+} from './agent-sandbox.service';
 import { AuditLoggerService } from './audit-logger.service';
 import { GateService } from './gate.service';
 import { TrustService } from './trust.service';
@@ -21,14 +23,14 @@ import { AgentStatus } from '../domain/agent.entity';
 
 describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
   let service: AgentSandboxService;
-  let agentRepo: Repository<AgentRecordEntity>;
-  let configRepo: Repository<SystemConfigEntity>;
 
   const mockAgentRepo = {
     find: jest.fn().mockResolvedValue([]),
     findOne: jest.fn().mockResolvedValue(null),
     save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
-    create: jest.fn().mockImplementation((entity) => entity),
+    create: jest
+      .fn()
+      .mockImplementation((entity) => entity as AgentRecordEntity),
   };
 
   const mockConfigRepo = {
@@ -46,13 +48,21 @@ describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
 
   const mockGateService = {
     verify: jest.fn().mockResolvedValue({ allowed: true, riskScore: 0 }),
-    guardPrompt: jest.fn().mockReturnValue(JSON.stringify({ safe: true, threat_level: 'None' })),
+    guardPrompt: jest
+      .fn()
+      .mockReturnValue(JSON.stringify({ safe: true, threat_level: 'None' })),
   };
 
   const mockTrustService = {
-    recordTransactionSuccess: jest.fn().mockResolvedValue({ score: 50, level: 'medium' }),
-    recordTransactionFailure: jest.fn().mockResolvedValue({ score: 45, level: 'medium' }),
-    recordPolicyViolation: jest.fn().mockResolvedValue({ score: 30, level: 'low' }),
+    recordTransactionSuccess: jest
+      .fn()
+      .mockResolvedValue({ score: 50, level: 'medium' }),
+    recordTransactionFailure: jest
+      .fn()
+      .mockResolvedValue({ score: 45, level: 'medium' }),
+    recordPolicyViolation: jest
+      .fn()
+      .mockResolvedValue({ score: 30, level: 'low' }),
     getTrustScore: jest.fn().mockResolvedValue({ score: 50, level: 'medium' }),
   };
 
@@ -60,8 +70,14 @@ describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentSandboxService,
-        { provide: getRepositoryToken(AgentRecordEntity), useValue: mockAgentRepo },
-        { provide: getRepositoryToken(SystemConfigEntity), useValue: mockConfigRepo },
+        {
+          provide: getRepositoryToken(AgentRecordEntity),
+          useValue: mockAgentRepo,
+        },
+        {
+          provide: getRepositoryToken(SystemConfigEntity),
+          useValue: mockConfigRepo,
+        },
         { provide: AuditLoggerService, useValue: mockAuditLogger },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: GateService, useValue: mockGateService },
@@ -70,8 +86,9 @@ describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
     }).compile();
 
     service = module.get<AgentSandboxService>(AgentSandboxService);
-    agentRepo = module.get(getRepositoryToken(AgentRecordEntity));
-    configRepo = module.get(getRepositoryToken(SystemConfigEntity));
+    // Variables used for type checking but not directly accessed in tests
+    void module.get(getRepositoryToken(AgentRecordEntity));
+    void module.get(getRepositoryToken(SystemConfigEntity));
 
     // Initialize service
     await service.onModuleInit();
@@ -104,7 +121,7 @@ describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
 
     it('should decrement in-flight on recordSuccess', async () => {
       await service.registerAgent('test-agent', 'Test', '1.0.0');
-      
+
       // Approve action (increments in-flight)
       await service.checkAction({
         agentId: 'test-agent',
@@ -120,7 +137,7 @@ describe('AgentSandboxService - Kill Switch & In-Flight Behavior', () => {
 
     it('should decrement in-flight on recordFailure', async () => {
       await service.registerAgent('test-agent', 'Test', '1.0.0');
-      
+
       await service.checkAction({
         agentId: 'test-agent',
         action: 'test',

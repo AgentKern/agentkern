@@ -1,9 +1,9 @@
 /**
  * Correlation ID Middleware
- * 
+ *
  * Extracts or generates a correlation ID for each request and propagates it
  * through the request context for logging and tracing.
- * 
+ *
  * Headers checked (in order):
  * - X-Correlation-ID
  * - X-Request-ID
@@ -13,13 +13,14 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
-import { trace, context, propagation } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 
 export const CORRELATION_ID_HEADER = 'X-Correlation-ID';
 export const REQUEST_ID_HEADER = 'X-Request-ID';
 
 // Extend Express Request to include correlation ID
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       correlationId: string;
@@ -31,9 +32,9 @@ declare global {
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     // Try to extract existing correlation ID from headers
-    let correlationId = 
-      req.headers[CORRELATION_ID_HEADER.toLowerCase()] as string ||
-      req.headers[REQUEST_ID_HEADER.toLowerCase()] as string;
+    let correlationId =
+      (req.headers[CORRELATION_ID_HEADER.toLowerCase()] as string) ||
+      (req.headers[REQUEST_ID_HEADER.toLowerCase()] as string);
 
     // If no correlation ID, try to extract from active trace
     if (!correlationId) {
@@ -59,7 +60,10 @@ export class CorrelationIdMiddleware implements NestMiddleware {
     const currentSpan = trace.getActiveSpan();
     if (currentSpan) {
       currentSpan.setAttribute('correlation.id', correlationId);
-      currentSpan.setAttribute('http.request.header.x_correlation_id', correlationId);
+      currentSpan.setAttribute(
+        'http.request.header.x_correlation_id',
+        correlationId,
+      );
     }
 
     next();

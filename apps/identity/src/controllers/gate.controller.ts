@@ -6,10 +6,9 @@ import {
   Param,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GateService } from '../services/gate.service';
 import {
   GuardPromptDto,
@@ -24,7 +23,7 @@ import {
 
 /**
  * Gate Controller - Security & Policy Enforcement API
- * 
+ *
  * Exposes the Gate pillar's capabilities:
  * - Prompt injection detection
  * - Policy management (CRUD)
@@ -48,17 +47,27 @@ export class GateController {
   @Post('guard')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check prompt for injection attacks' })
-  @ApiResponse({ status: 200, description: 'Prompt analysis result', type: GuardPromptResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Prompt analysis result',
+    type: GuardPromptResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid request' })
-  async guardPrompt(@Body() dto: GuardPromptDto): Promise<GuardPromptResponseDto> {
-    this.logger.log(`Analyzing prompt for injection: ${dto.prompt.substring(0, 50)}...`);
-    
-    const result = await this.gateService.analyzePrompt(dto.prompt, dto.context);
-    
+  async guardPrompt(
+    @Body() dto: GuardPromptDto,
+  ): Promise<GuardPromptResponseDto> {
+    this.logger.log(
+      `Analyzing prompt for injection: ${dto.prompt.substring(0, 50)}...`,
+    );
+
+    const result = await this.gateService.analyzePrompt(dto.prompt);
+
     if (!result.safe) {
-      this.logger.warn(`Threat detected: ${result.threatType} (score: ${result.score})`);
+      this.logger.warn(
+        `Threat detected: ${result.threatType} (score: ${result.score})`,
+      );
     }
-    
+
     return result;
   }
 
@@ -71,7 +80,11 @@ export class GateController {
    */
   @Get('policies')
   @ApiOperation({ summary: 'List all active policies' })
-  @ApiResponse({ status: 200, description: 'List of policies', type: [PolicyDto] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of policies',
+    type: [PolicyDto],
+  })
   async listPolicies(): Promise<PolicyDto[]> {
     return this.gateService.listPolicies();
   }
@@ -110,10 +123,16 @@ export class GateController {
   @Post('compliance/pci')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check PCI-DSS compliance' })
-  @ApiResponse({ status: 200, description: 'Compliance result', type: ComplianceResultDto })
-  async checkPciCompliance(@Body() dto: ComplianceCheckDto): Promise<ComplianceResultDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Compliance result',
+    type: ComplianceResultDto,
+  })
+  async checkPciCompliance(
+    @Body() dto: ComplianceCheckDto,
+  ): Promise<ComplianceResultDto> {
     this.logger.log('Running PCI-DSS compliance check');
-    return this.gateService.checkPciCompliance(dto.data, dto.context);
+    return this.gateService.checkPciCompliance(dto.data);
   }
 
   /**
@@ -122,10 +141,16 @@ export class GateController {
   @Post('compliance/hipaa')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check HIPAA compliance' })
-  @ApiResponse({ status: 200, description: 'Compliance result', type: ComplianceResultDto })
-  async checkHipaaCompliance(@Body() dto: ComplianceCheckDto): Promise<ComplianceResultDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Compliance result',
+    type: ComplianceResultDto,
+  })
+  async checkHipaaCompliance(
+    @Body() dto: ComplianceCheckDto,
+  ): Promise<ComplianceResultDto> {
     this.logger.log('Running HIPAA compliance check');
-    return this.gateService.checkHipaaCompliance(dto.data, dto.context);
+    return this.gateService.checkHipaaCompliance(dto.data);
   }
 
   /**
@@ -134,10 +159,16 @@ export class GateController {
   @Post('compliance/gdpr')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check GDPR data sovereignty compliance' })
-  @ApiResponse({ status: 200, description: 'Compliance result', type: ComplianceResultDto })
-  async checkGdprCompliance(@Body() dto: ComplianceCheckDto): Promise<ComplianceResultDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Compliance result',
+    type: ComplianceResultDto,
+  })
+  async checkGdprCompliance(
+    @Body() dto: ComplianceCheckDto,
+  ): Promise<ComplianceResultDto> {
     this.logger.log('Running GDPR compliance check');
-    return this.gateService.checkGdprCompliance(dto.data, dto.context);
+    return this.gateService.checkGdprCompliance(dto.data);
   }
 
   // =========================================================================
@@ -149,7 +180,11 @@ export class GateController {
    */
   @Get('wasm/actors')
   @ApiOperation({ summary: 'List all WASM policy actors' })
-  @ApiResponse({ status: 200, description: 'List of WASM actors', type: [WasmActorDto] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of WASM actors',
+    type: [WasmActorDto],
+  })
   async listWasmActors(): Promise<WasmActorDto[]> {
     return this.gateService.listWasmActors();
   }
@@ -159,7 +194,11 @@ export class GateController {
    */
   @Get('wasm/actors/:name')
   @ApiOperation({ summary: 'Get WASM actor by name' })
-  @ApiResponse({ status: 200, description: 'WASM actor details', type: WasmActorDto })
+  @ApiResponse({
+    status: 200,
+    description: 'WASM actor details',
+    type: WasmActorDto,
+  })
   @ApiResponse({ status: 404, description: 'Actor not found' })
   async getWasmActor(@Param('name') name: string): Promise<WasmActorDto> {
     return this.gateService.getWasmActor(name);
@@ -171,9 +210,15 @@ export class GateController {
   @Post('wasm/actors')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register or hot-swap a WASM policy actor' })
-  @ApiResponse({ status: 201, description: 'Actor registered', type: WasmActorDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Actor registered',
+    type: WasmActorDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid WASM module' })
-  async registerWasmActor(@Body() dto: RegisterWasmActorDto): Promise<WasmActorDto> {
+  async registerWasmActor(
+    @Body() dto: RegisterWasmActorDto,
+  ): Promise<WasmActorDto> {
     this.logger.log(`Registering WASM actor: ${dto.name} v${dto.version}`);
     return this.gateService.registerWasmActor(dto);
   }

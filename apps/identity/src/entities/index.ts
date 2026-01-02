@@ -11,5 +11,3 @@ export * from './agent-record.entity';
 export * from './webauthn-credential.entity';
 export * from './verification-key.entity';
 export * from './system-config.entity';
-
-

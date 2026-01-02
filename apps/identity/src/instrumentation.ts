@@ -1,9 +1,9 @@
 /**
  * OpenTelemetry Instrumentation Setup
- * 
+ *
  * This file MUST be imported FIRST in main.ts before any other imports
  * to ensure proper instrumentation of all modules.
- * 
+ *
  * @see https://opentelemetry.io/docs/languages/js/getting-started/nodejs/
  */
 
@@ -12,7 +12,8 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+const otlpEndpoint =
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
 
 // Configure SDK only if OTEL is enabled or in production
 const otelEnabled = isProduction || process.env.OTEL_ENABLED === 'true';
@@ -45,10 +46,11 @@ if (otelEnabled) {
 }
 
 // Graceful shutdown
-const shutdown = async () => {
+const shutdown = () => {
   if (sdk) {
-    await sdk.shutdown();
-    console.log('[OTEL] OpenTelemetry SDK shut down gracefully');
+    void sdk.shutdown().then(() => {
+      console.log('[OTEL] OpenTelemetry SDK shut down gracefully');
+    });
   }
 };
 
@@ -56,4 +58,3 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 export { sdk };
-

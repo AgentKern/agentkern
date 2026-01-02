@@ -14,4 +14,3 @@ import { DashboardController } from '../controllers/dashboard.controller';
   // AuditLoggerService is available via @Global() SecurityModule
 })
 export class DashboardModule {}
-

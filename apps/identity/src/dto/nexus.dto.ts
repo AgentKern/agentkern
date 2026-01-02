@@ -1,6 +1,6 @@
 /**
  * AgentKern Gateway - Nexus DTOs
- * 
+ *
  * Data Transfer Objects for Nexus API.
  * Note: Uses plain TypeScript interfaces. For runtime validation,
  * add class-validator to package.json and uncomment decorators.

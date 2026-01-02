@@ -47,7 +47,9 @@ export class ProofVerificationService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const count = await this.keyRepository.count({ where: { active: true } });
-    this.logger.log(`🔑 Proof verification initialized with ${count} active keys`);
+    this.logger.log(
+      `🔑 Proof verification initialized with ${count} active keys`,
+    );
   }
 
   /**
@@ -111,7 +113,9 @@ export class ProofVerificationService implements OnModuleInit {
   /**
    * Register a public key for verification (persisted to database)
    */
-  async registerPublicKey(keyInfo: PublicKeyInfo): Promise<VerificationKeyEntity> {
+  async registerPublicKey(
+    keyInfo: PublicKeyInfo,
+  ): Promise<VerificationKeyEntity> {
     // Check if key already exists
     const existing = await this.keyRepository.findOne({
       where: {
@@ -127,7 +131,9 @@ export class ProofVerificationService implements OnModuleInit {
       existing.active = true;
       existing.updatedAt = new Date();
       const updated = await this.keyRepository.save(existing);
-      this.logger.log(`Updated public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`);
+      this.logger.log(
+        `Updated public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`,
+      );
       return updated;
     }
 
@@ -142,7 +148,9 @@ export class ProofVerificationService implements OnModuleInit {
     });
 
     const saved = await this.keyRepository.save(entity);
-    this.logger.log(`Registered public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`);
+    this.logger.log(
+      `Registered public key for: ${keyInfo.principalId}:${keyInfo.credentialId}`,
+    );
     return saved;
   }
 
@@ -184,27 +192,37 @@ export class ProofVerificationService implements OnModuleInit {
       });
 
       if (!keyEntity) {
-        this.logger.warn(`Public key not found for: ${principal.id}:${principal.credentialId}`);
+        this.logger.warn(
+          `Public key not found for: ${principal.id}:${principal.credentialId}`,
+        );
         return false;
       }
 
       // Check if key is expired
       if (keyEntity.expiresAt && keyEntity.expiresAt < new Date()) {
-        this.logger.warn(`Public key expired for: ${principal.id}:${principal.credentialId}`);
+        this.logger.warn(
+          `Public key expired for: ${principal.id}:${principal.credentialId}`,
+        );
         return false;
       }
 
       // Import the public key
-      const publicKey = await jose.importSPKI(keyEntity.publicKey, keyEntity.algorithm as 'ES256');
+      const publicKey = await jose.importSPKI(
+        keyEntity.publicKey,
+        keyEntity.algorithm as 'ES256',
+      );
 
       // Reconstruct the signed payload
       const payloadJson = JSON.stringify(proof.payload);
 
       // Verify the signature
-      const isValid = await jose.compactVerify(
-        `eyJhbGciOiJFUzI1NiJ9.${Buffer.from(payloadJson).toString('base64url')}.${proof.signature}`,
-        publicKey,
-      ).then(() => true).catch(() => false);
+      const isValid = await jose
+        .compactVerify(
+          `eyJhbGciOiJFUzI1NiJ9.${Buffer.from(payloadJson).toString('base64url')}.${proof.signature}`,
+          publicKey,
+        )
+        .then(() => true)
+        .catch(() => false);
 
       if (isValid) {
         // Update usage statistics
@@ -236,14 +254,21 @@ export class ProofVerificationService implements OnModuleInit {
     // Check time-based constraints
     if (constraints.validHours) {
       const currentHour = new Date().getUTCHours();
-      if (currentHour < constraints.validHours.start || currentHour > constraints.validHours.end) {
-        errors.push(`Action not allowed outside valid hours (${constraints.validHours.start}-${constraints.validHours.end} UTC)`);
+      if (
+        currentHour < constraints.validHours.start ||
+        currentHour > constraints.validHours.end
+      ) {
+        errors.push(
+          `Action not allowed outside valid hours (${constraints.validHours.start}-${constraints.validHours.end} UTC)`,
+        );
       }
     }
 
     // GeoFence constraint logged for now (would require IP geolocation service)
     if (constraints.geoFence && constraints.geoFence.length > 0) {
-      this.logger.debug(`GeoFence constraint: ${constraints.geoFence.join(', ')}`);
+      this.logger.debug(
+        `GeoFence constraint: ${constraints.geoFence.join(', ')}`,
+      );
     }
 
     return errors;

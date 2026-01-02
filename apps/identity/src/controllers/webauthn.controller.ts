@@ -1,10 +1,18 @@
 /**
  * AgentKernIdentity - WebAuthn Controller
- * 
+ *
  * API endpoints for Passkey registration and authentication.
  */
 
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WebAuthnService } from '../services/webauthn.service';
 import {
@@ -17,7 +25,6 @@ import {
   VerificationResultDto,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
-  AuthenticationResponseJSON as LocalAuthenticationResponseJSON,
 } from '../dto/webauthn.dto';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
 
@@ -42,20 +49,26 @@ export class WebAuthnController {
       dto.displayName || dto.userName,
     );
     // Cast to local DTO type for response
-    return { options: options as unknown as PublicKeyCredentialCreationOptionsJSON };
+    return {
+      options: options as unknown as PublicKeyCredentialCreationOptionsJSON,
+    };
   }
 
   @Post('register/verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify Passkey registration',
-    description: 'Verifies the registration response and stores the credential.',
+    description:
+      'Verifies the registration response and stores the credential.',
   })
   @ApiResponse({ status: 200, type: VerificationResultDto })
   async verifyRegistration(
     @Body() dto: VerifyRegistrationRequestDto,
   ): Promise<VerificationResultDto> {
-    return this.webAuthnService.verifyRegistration(dto.principalId, dto.response);
+    return this.webAuthnService.verifyRegistration(
+      dto.principalId,
+      dto.response,
+    );
   }
 
   @Post('authenticate/start')
@@ -75,7 +88,9 @@ export class WebAuthnController {
       return { error: 'No credentials found for principal' };
     }
     // Cast to local DTO type for response
-    return { options: options as unknown as PublicKeyCredentialRequestOptionsJSON };
+    return {
+      options: options as unknown as PublicKeyCredentialRequestOptionsJSON,
+    };
   }
 
   @Post('authenticate/verify')

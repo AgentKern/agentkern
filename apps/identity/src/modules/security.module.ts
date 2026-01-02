@@ -23,7 +23,10 @@ import { TrustService } from '../services/trust.service';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
 import { SystemConfigEntity } from '../entities/system-config.entity';
 import { AuditEventEntity } from '../entities/audit-event.entity';
-import { TrustScoreEntity, TrustEventEntity } from '../entities/trust-event.entity';
+import {
+  TrustScoreEntity,
+  TrustEventEntity,
+} from '../entities/trust-event.entity';
 import { CspReportController } from '../controllers/csp-report.controller';
 import { AgentsController } from '../controllers/agents.controller';
 
@@ -47,12 +50,6 @@ import { AgentsController } from '../controllers/agents.controller';
     AgentSandboxService,
     AuditLoggerService,
   ],
-  exports: [
-    GateService,
-    TrustService,
-    AgentSandboxService,
-    AuditLoggerService,
-  ],
+  exports: [GateService, TrustService, AgentSandboxService, AuditLoggerService],
 })
 export class SecurityModule {}
-

@@ -219,7 +219,7 @@ mod tests {
 
         // Same key should always go to same core
         let key = "user:12345";
-        let expected_core = (hash_string(key) as usize) % 4;
+        let _expected_core = (hash_string(key) as usize) % 4;
 
         assert!(runtime.submit_hashed(key, Box::new(|| {})).is_ok());
 

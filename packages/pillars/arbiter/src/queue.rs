@@ -145,9 +145,9 @@ mod tests {
     fn test_enqueue_and_position() {
         let mut queue = PriorityQueue::new();
 
-        let pos1 = queue.enqueue(make_request("agent-1", "res", 5));
-        let pos2 = queue.enqueue(make_request("agent-2", "res", 10));
-        let pos3 = queue.enqueue(make_request("agent-3", "res", 3));
+        let _pos1 = queue.enqueue(make_request("agent-1", "res", 5));
+        let _pos2 = queue.enqueue(make_request("agent-2", "res", 10));
+        let _pos3 = queue.enqueue(make_request("agent-3", "res", 3));
 
         // agent-2 should be first (highest priority)
         assert_eq!(queue.get_position("agent-2", "res"), Some(1));

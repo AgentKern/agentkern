@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Liability Proof Entity Tests
- * 
+ *
  * Unit tests for domain entity functions.
  * Follows mandate: 100% testing coverage.
  */
@@ -102,7 +102,9 @@ describe('LiabilityProofEntity', () => {
         },
       };
 
-      const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+      const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString(
+        'base64url',
+      );
       const header = `v1.${payloadBase64}.mock-signature`;
 
       const result = parseProofHeader(header);
@@ -162,7 +164,7 @@ describe('LiabilityProofEntity', () => {
       // Verify payload can be decoded
       const decodedPayload = JSON.parse(
         Buffer.from(parts[1], 'base64url').toString('utf-8'),
-      );
+      ) as { proofId: string };
       expect(decodedPayload.proofId).toBe('test-id');
     });
 

@@ -14,18 +14,9 @@ import { ProofSigningService } from '../services/proof-signing.service';
 import { VerificationKeyEntity } from '../entities/verification-key.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([VerificationKeyEntity]),
-  ],
+  imports: [TypeOrmModule.forFeature([VerificationKeyEntity])],
   controllers: [ProofController],
-  providers: [
-    ProofVerificationService,
-    ProofSigningService,
-  ],
-  exports: [
-    ProofVerificationService,
-    ProofSigningService,
-  ],
+  providers: [ProofVerificationService, ProofSigningService],
+  exports: [ProofVerificationService, ProofSigningService],
 })
 export class ProofModule {}
-

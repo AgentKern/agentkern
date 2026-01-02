@@ -16,11 +16,13 @@ describe('ProofController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     await app.init();
   });
 
@@ -44,21 +46,21 @@ describe('ProofController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/proof/create')
         .send({
-          principal: { 
-            id: 'principal-e2e-test', 
-            credentialId: 'cred-e2e-test' 
+          principal: {
+            id: 'principal-e2e-test',
+            credentialId: 'cred-e2e-test',
           },
-          agent: { 
-            id: 'agent-e2e-test', 
-            name: 'E2E Test Agent', 
-            version: '1.0.0' 
+          agent: {
+            id: 'agent-e2e-test',
+            name: 'E2E Test Agent',
+            version: '1.0.0',
           },
           intent: {
             action: 'transfer',
-            target: { 
-              service: 'bank', 
-              endpoint: '/transfer', 
-              method: 'POST' 
+            target: {
+              service: 'bank',
+              endpoint: '/transfer',
+              method: 'POST',
             },
             parameters: { amount: 100 },
           },

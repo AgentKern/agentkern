@@ -1,6 +1,6 @@
 /**
  * Structured JSON Logger using Pino
- * 
+ *
  * Provides structured logging with:
  * - JSON output for production
  * - Pretty printing for development
@@ -10,14 +10,14 @@
 
 import pino, { Logger as PinoLogger } from 'pino';
 import { Injectable, LoggerService, Scope } from '@nestjs/common';
-import { trace, context } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 
 // Custom log levels aligned with NestJS
 const levels = {
   fatal: 60,
   error: 50,
   warn: 40,
-  log: 30,  // NestJS 'log' = Pino 'info'
+  log: 30, // NestJS 'log' = Pino 'info'
   debug: 20,
   verbose: 10,
 };
@@ -33,16 +33,17 @@ const baseLogger = pino({
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   // Pretty print in development
-  transport: process.env.NODE_ENV !== 'production' 
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined,
+  transport:
+    process.env.NODE_ENV !== 'production'
+      ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          },
+        }
+      : undefined,
 });
 
 /**
@@ -51,7 +52,7 @@ const baseLogger = pino({
 function getTraceContext(): Record<string, string> {
   const span = trace.getActiveSpan();
   if (!span) return {};
-  
+
   const spanContext = span.spanContext();
   return {
     traceId: spanContext.traceId,
@@ -75,19 +76,25 @@ export class PinoLoggerService implements LoggerService {
     this.context = context;
   }
 
-  private formatMessage(message: any, optionalParams: any[]): Record<string, any> {
-    const base: Record<string, any> = {
+  // Logger internals intentionally work with any types
+
+  private formatMessage(
+    message: unknown,
+    optionalParams: unknown[],
+  ): Record<string, unknown> {
+    const base: Record<string, unknown> = {
       ...getTraceContext(),
       context: this.context,
     };
 
-    if (typeof message === 'object') {
-      return { ...base, ...message };
+    if (typeof message === 'object' && message !== null) {
+      return { ...base, ...(message as Record<string, unknown>) };
     }
 
-    base.message = optionalParams.length > 0 
-      ? `${message} ${optionalParams.join(' ')}`
-      : message;
+    base.message =
+      optionalParams.length > 0
+        ? `${String(message)} ${optionalParams.join(' ')}`
+        : message;
 
     return base;
   }

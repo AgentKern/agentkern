@@ -19,8 +19,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 
 /**
@@ -34,7 +32,12 @@ export type CredentialDeviceType = 'singleDevice' | 'multiDevice';
  * AuthenticatorTransport per WebAuthn spec
  * Indicates how the browser communicates with the authenticator
  */
-export type AuthenticatorTransport = 'usb' | 'nfc' | 'ble' | 'internal' | 'hybrid';
+export type AuthenticatorTransport =
+  | 'usb'
+  | 'nfc'
+  | 'ble'
+  | 'internal'
+  | 'hybrid';
 
 /**
  * WebAuthn Credential Entity

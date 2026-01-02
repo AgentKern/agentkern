@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Liability Proof Domain Entity
- * 
+ *
  * A Liability Proof is a cryptographic attestation that proves:
  * 1. A specific human authorized a specific action
  * 2. The authorization was made via a hardware-bound credential (Passkey)
@@ -73,7 +73,9 @@ export function parseProofHeader(header: string): LiabilityProof | null {
     if (parts.length !== 3) return null;
 
     const [version, payloadBase64, signature] = parts;
-    const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf-8');
+    const payloadJson = Buffer.from(payloadBase64, 'base64url').toString(
+      'utf-8',
+    );
     const payload = JSON.parse(payloadJson) as LiabilityProofPayload;
 
     return { version, payload, signature };
@@ -105,7 +107,9 @@ export function createProofPayload(
   } = {},
 ): LiabilityProofPayload {
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + (options.expiresInSeconds || 300) * 1000);
+  const expiresAt = new Date(
+    now.getTime() + (options.expiresInSeconds || 300) * 1000,
+  );
 
   return {
     version: '1.0',

@@ -1,0 +1,13 @@
+src/controllers/arbiter.controller.ts(328,14): error TS1016: A required parameter cannot follow an optional parameter.
+src/controllers/arbiter.controller.ts(340,32): error TS2304: Cannot find name 'limit'.
+src/controllers/arbiter.controller.ts(345,40): error TS2304: Cannot find name 'limit'.
+src/controllers/gate.controller.ts(80,5): error TS2322: Type '{ safe: boolean; threatLevel: "none" | "low" | "medium" | "high" | "critical"; threatType?: string | undefined; attacks: string[]; matchedPatterns: string[]; latencyUs: number; score?: number | undefined; reason?: string | undefined; }' is not assignable to type 'GuardPromptResponseDto'.
+  Types of property 'score' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/controllers/synapse.controller.ts(129,11): error TS2552: Cannot find name 'MemoryPassportDto'. Did you mean 'ExportPassportDto'?
+src/controllers/synapse.controller.ts(133,14): error TS2552: Cannot find name 'MemoryPassportDto'. Did you mean 'ExportPassportDto'?
+src/controllers/synapse.controller.ts(165,11): error TS2552: Cannot find name 'MemoryPassportDto'. Did you mean 'ExportPassportDto'?
+src/controllers/synapse.controller.ts(170,14): error TS2552: Cannot find name 'MemoryPassportDto'. Did you mean 'ExportPassportDto'?
+src/services/dns-resolution.service.ts(18,3): error TS2300: Duplicate identifier 'isTrusted'.
+src/services/dns-resolution.service.ts(19,3): error TS2300: Duplicate identifier 'isTrusted'.

@@ -1,6 +1,6 @@
 /**
  * Configuration Validation Schema
- * 
+ *
  * Fail-fast validation for environment variables.
  * Prevents application startup with invalid or missing critical configuration.
  */

@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsArray, IsObject, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  IsObject,
+  IsEnum,
+} from 'class-validator';
 
 // ============================================================================
 // State DTOs
@@ -70,7 +77,10 @@ export class CreatePassportDto {
   @IsString()
   agentId: string;
 
-  @ApiPropertyOptional({ description: 'Memory layers to include', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Memory layers to include',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -87,7 +97,10 @@ export class ExportPassportDto {
   @IsString()
   passportId: string;
 
-  @ApiProperty({ description: 'Export format', enum: ['json', 'cbor', 'protobuf'] })
+  @ApiProperty({
+    description: 'Export format',
+    enum: ['json', 'cbor', 'protobuf'],
+  })
   @IsEnum(['json', 'cbor', 'protobuf'])
   format: 'json' | 'cbor' | 'protobuf';
 
@@ -122,7 +135,10 @@ export class ContextThreatDto {
   @IsString()
   type: string;
 
-  @ApiProperty({ description: 'Threat severity', enum: ['low', 'medium', 'high', 'critical'] })
+  @ApiProperty({
+    description: 'Threat severity',
+    enum: ['low', 'medium', 'high', 'critical'],
+  })
   @IsString()
   severity: string;
 

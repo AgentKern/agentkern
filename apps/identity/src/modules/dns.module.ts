@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - DNS Module
- * 
+ *
  * Module for Intent DNS resolution.
  * AuditLoggerService is provided globally via SecurityModule.
  */
@@ -18,5 +18,3 @@ import { TrustRecordEntity } from '../entities/trust-record.entity';
   exports: [DnsResolutionService],
 })
 export class DnsModule {}
-
-

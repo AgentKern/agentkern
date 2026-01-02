@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Trust Record Entity
- * 
+ *
  * Represents an agent's trust status in the Intent DNS system.
  * Used for caching and resolving trust lookups.
  */
@@ -52,14 +52,15 @@ export function calculateTrustScore(
   revocationCount: number = 0,
 ): number {
   const baseScore = 500;
-  
-  let score = baseScore
-    + (verificationCount * 2)
-    - (failureCount * 10)
-    - (daysSinceLastVerification * 1)
-    + Math.min(daysActive, 100) // Age bonus capped at 100
-    - (revocationCount * 50);
-  
+
+  const score =
+    baseScore +
+    verificationCount * 2 -
+    failureCount * 10 -
+    daysSinceLastVerification * 1 +
+    Math.min(daysActive, 100) - // Age bonus capped at 100
+    revocationCount * 50;
+
   // Clamp between 0 and 1000
   return Math.max(0, Math.min(1000, Math.round(score)));
 }
@@ -76,10 +77,10 @@ export function isTrusted(score: number, threshold: number = 500): boolean {
  */
 export function calculateTTL(score: number, revoked: boolean): number {
   if (revoked) return 0; // No caching for revoked
-  
-  if (score >= 800) return 3600;       // 1 hour
-  if (score >= 500) return 900;        // 15 minutes
-  return 300;                          // 5 minutes
+
+  if (score >= 800) return 3600; // 1 hour
+  if (score >= 500) return 900; // 15 minutes
+  return 300; // 5 minutes
 }
 
 /**
@@ -88,11 +89,15 @@ export function calculateTTL(score: number, revoked: boolean): number {
 export function createTrustRecord(
   agentId: string,
   principalId: string,
-  metadata?: { agentName?: string; agentVersion?: string; principalDevice?: string },
+  metadata?: {
+    agentName?: string;
+    agentVersion?: string;
+    principalDevice?: string;
+  },
 ): TrustRecord {
   const now = new Date();
   const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
-  
+
   return {
     id: crypto.randomUUID(),
     agentId,
@@ -114,14 +119,17 @@ export function createTrustRecord(
  */
 export function createTrustResolution(record: TrustRecord): TrustResolution {
   const ttl = calculateTTL(record.trustScore, record.revoked);
-  
+
   return {
     version: '1.0',
     agentId: record.agentId,
     principalId: record.principalId,
     trusted: record.trusted && !record.revoked,
     trustScore: record.trustScore,
-    expiresAt: typeof record.expiresAt === 'string' ? record.expiresAt : record.expiresAt.toISOString(),
+    expiresAt:
+      typeof record.expiresAt === 'string'
+        ? record.expiresAt
+        : record.expiresAt.toISOString(),
     revoked: record.revoked,
     cachedAt: new Date().toISOString(),
     ttl,

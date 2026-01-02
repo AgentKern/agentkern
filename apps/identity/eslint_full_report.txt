@@ -1,0 +1,166 @@
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/arbiter.controller.ts
+  83:22  error  Replace `⏎····@Body()·dto:·KillSwitchDto,⏎··` with `@Body()·dto:·KillSwitchDto`  prettier/prettier
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/dashboard.controller.ts
+  272:47  error  The two values in this comparison do not have a shared enum type  @typescript-eslint/no-unsafe-enum-comparison
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/gate.controller.ts
+   9:3  error  'UseGuards' is defined but never used      @typescript-eslint/no-unused-vars
+  16:3  error  'ApiBearerAuth' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/nexus.controller.ts
+   21:33  error  'ApiResponse' is defined but never used                                                                                                                                      @typescript-eslint/no-unused-vars
+   79:46  error  Replace `·success:·boolean;·agentId:·string` with `⏎····success:·boolean;⏎····agentId:·string;⏎·`                                                                            prettier/prettier
+  182:14  error  Replace `·status:·string;·registeredAgents:·number;·supportedProtocols:·number` with `⏎····status:·string;⏎····registeredAgents:·number;⏎····supportedProtocols:·number;⏎·`  prettier/prettier
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/proof.controller.ts
+   98:9  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  111:7  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  123:7  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  157:7  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  191:7  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  202:7  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/synapse.controller.ts
+   9:3   error  'Query' is defined but never used     @typescript-eslint/no-unused-vars
+  14:46  error  'ApiQuery' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/controllers/webauthn.controller.ts
+  28:33  error  'LocalAuthenticationResponseJSON' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/domain/liability-proof.entity.spec.ts
+  165:13  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  168:29  error  Unsafe member access .proofId on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/dto/dashboard.dto.ts
+  13:3  error  'IsBoolean' is defined but never used  @typescript-eslint/no-unused-vars
+  16:3  error  'Min' is defined but never used        @typescript-eslint/no-unused-vars
+  17:3  error  'Max' is defined but never used        @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/dto/dns.dto.ts
+  13:3  error  'IsBoolean' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/dto/proof.dto.ts
+  19:3  error  'IsUUID' is defined but never used     @typescript-eslint/no-unused-vars
+  20:3  error  'IsISO8601' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/entities/trust-event.entity.ts
+  14:3  error  'ManyToOne' is defined but never used   @typescript-eslint/no-unused-vars
+  15:3  error  'JoinColumn' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/entities/webauthn-credential.entity.ts
+  22:3  error  'ManyToOne' is defined but never used   @typescript-eslint/no-unused-vars
+  23:3  error  'JoinColumn' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/guards/enterprise-license.guard.ts
+  165:5  error  Unsafe return of a value of type `Promise<any>`  @typescript-eslint/no-unsafe-return
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/instrumentation.ts
+  56:23  error  Promise returned in function argument where a void return was expected  @typescript-eslint/no-misused-promises
+  57:22  error  Promise returned in function argument where a void return was expected  @typescript-eslint/no-misused-promises
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/logging/pino-logger.service.ts
+  13:17  error  'context' is defined but never used     @typescript-eslint/no-unused-vars
+  89:7   error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+  92:5   error  Unsafe assignment of an `any` value     @typescript-eslint/no-unsafe-assignment
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/main.ts
+   72:11  error    Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+   72:30  error    Unsafe member access .json on an `any` value                                                                                                                        @typescript-eslint/no-unsafe-member-access
+   74:11  error    Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+   74:30  error    Unsafe member access .urlencoded on an `any` value                                                                                                                  @typescript-eslint/no-unsafe-member-access
+  162:1   warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/middleware/correlation-id.middleware.ts
+  16:17  error  'context' is defined but never used                @typescript-eslint/no-unused-vars
+  16:26  error  'propagation' is defined but never used            @typescript-eslint/no-unused-vars
+  23:3   error  ES2015 module syntax is preferred over namespaces  @typescript-eslint/no-namespace
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/repositories/audit-event.repository.spec.ts
+  189:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/repositories/audit-event.repository.ts
+   80:13  error    Unsafe member access .type on an `any` value                            @typescript-eslint/no-unsafe-member-access
+   84:7   error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  109:13  error    Unsafe member access .timestamp on an `any` value                       @typescript-eslint/no-unsafe-member-access
+  113:7   error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  149:11  error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  160:36  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  160:43  error    Unsafe member access .totalVerifications on an `any` value              @typescript-eslint/no-unsafe-member-access
+  162:18  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  162:25  error    Unsafe member access .successfulVerifications on an `any` value         @typescript-eslint/no-unsafe-member-access
+  163:37  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  163:44  error    Unsafe member access .failedVerifications on an `any` value             @typescript-eslint/no-unsafe-member-access
+  164:29  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  164:36  error    Unsafe member access .revocations on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  165:32  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  165:39  error    Unsafe member access .securityAlerts on an `any` value                  @typescript-eslint/no-unsafe-member-access
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/repositories/trust-record.repository.spec.ts
+  109:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  129:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  149:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  169:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/repositories/trust-record.repository.ts
+  148:11  error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  163:30  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  163:37  error    Unsafe member access .totalRecords on an `any` value                    @typescript-eslint/no-unsafe-member-access
+  164:30  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  164:37  error    Unsafe member access .trustedCount on an `any` value                    @typescript-eslint/no-unsafe-member-access
+  165:30  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  165:37  error    Unsafe member access .revokedCount on an `any` value                    @typescript-eslint/no-unsafe-member-access
+  166:28  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  166:35  error    Unsafe member access .avgScore on an `any` value                        @typescript-eslint/no-unsafe-member-access
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/services/agent-sandbox.service.spec.ts
+  27:7   error  'agentRepo' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  28:7   error  'configRepo' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  34:54  error  Unsafe return of a value of type `any`           @typescript-eslint/no-unsafe-return
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/services/agent-sandbox.service.ts
+  365:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  444:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  446:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  482:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  484:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  506:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  529:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/services/arbiter.service.ts
+  143:7  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/services/audit-logger.service.ts
+  173:25  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  185:25  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  207:13  error  Unsafe member access .timestamp on an `any` value                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unsafe-member-access
+  211:7   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  216:25  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  231:13  error  Unsafe member access .timestamp on an `any` value                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unsafe-member-access
+  233:13  error  Unsafe member access .timestamp on an `any` value                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unsafe-member-access
+  237:13  error  Unsafe member access .principalId on an `any` value                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-member-access
+  241:13  error  Unsafe member access .type on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  245:7   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  249:25  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  261:25  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/home/daretechie/DevProject/GitHub/agentkern/apps/identity/src/services/dns-resolution.service.ts
+  166:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  199:5  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+✖ 96 problems (71 errors, 25 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+

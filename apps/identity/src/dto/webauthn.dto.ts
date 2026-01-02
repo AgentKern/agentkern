@@ -159,7 +159,8 @@ export class VerifyRegistrationRequestDto {
   principalId: string;
 
   @ApiProperty({
-    description: 'Registration response from authenticator (RegistrationResponseJSON)',
+    description:
+      'Registration response from authenticator (RegistrationResponseJSON)',
   })
   @IsObject()
   response: RegistrationResponseJSON;
@@ -179,7 +180,8 @@ export class VerifyAuthenticationRequestDto {
   principalId: string;
 
   @ApiProperty({
-    description: 'Authentication response from authenticator (AuthenticationResponseJSON)',
+    description:
+      'Authentication response from authenticator (AuthenticationResponseJSON)',
   })
   @IsObject()
   response: AuthenticationResponseJSON;

@@ -11,8 +11,6 @@ import {
   Column,
   CreateDateColumn,
   Index,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 
 /**

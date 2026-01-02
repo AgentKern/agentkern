@@ -1,8 +1,8 @@
 /**
  * AgentKernIdentity Load Testing Script
- * 
+ *
  * Run: npx ts-node test/load/load-test.ts
- * 
+ *
  * Prerequisites: Start the server first with `npm run start:dev`
  */
 
@@ -63,7 +63,9 @@ async function runLoadTest(
   const interval = 1000 / config.concurrency;
 
   console.log(`  Starting load test: ${method} ${endpoint}`);
-  console.log(`  Concurrency: ${config.concurrency}, Duration: ${config.duration}s`);
+  console.log(
+    `  Concurrency: ${config.concurrency}, Duration: ${config.duration}s`,
+  );
 
   const promises: Promise<void>[] = [];
 
@@ -79,7 +81,7 @@ async function runLoadTest(
       );
     }
     // Brief pause between batches
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   await Promise.all(promises);
@@ -133,11 +135,13 @@ async function runAllLoadTests() {
   // Test 2: DNS Resolve
   console.log('\n📊 Test 2: DNS Resolve Endpoint');
   console.log('-'.repeat(40));
-  results.push(await runLoadTest(
-    config,
-    '/api/v1/dns/resolve?agentId=test-agent&principalId=test-principal',
-    'GET',
-  ));
+  results.push(
+    await runLoadTest(
+      config,
+      '/api/v1/dns/resolve?agentId=test-agent&principalId=test-principal',
+      'GET',
+    ),
+  );
 
   // Test 3: Mesh Node Info
   console.log('\n📊 Test 3: Mesh Node Info');
@@ -153,18 +157,23 @@ async function runAllLoadTests() {
   console.log('\n' + '='.repeat(80));
   console.log('📈 LOAD TEST RESULTS');
   console.log('='.repeat(80));
-  
-  console.log(`\n${'Endpoint'.padEnd(35)} | ${'RPS'.padStart(8)} | ${'Avg'.padStart(8)} | ${'P95'.padStart(8)} | ${'Success'.padStart(8)}`);
+
+  console.log(
+    `\n${'Endpoint'.padEnd(35)} | ${'RPS'.padStart(8)} | ${'Avg'.padStart(8)} | ${'P95'.padStart(8)} | ${'Success'.padStart(8)}`,
+  );
   console.log('-'.repeat(80));
-  
+
   for (const result of results) {
-    const successRate = ((result.successfulRequests / result.totalRequests) * 100).toFixed(1);
+    const successRate = (
+      (result.successfulRequests / result.totalRequests) *
+      100
+    ).toFixed(1);
     console.log(
       `${(result.method + ' ' + result.endpoint).substring(0, 35).padEnd(35)} | ` +
-      `${result.requestsPerSecond.toFixed(0).padStart(8)} | ` +
-      `${result.avgLatencyMs.toFixed(1).padStart(6)}ms | ` +
-      `${result.p95LatencyMs.toFixed(1).padStart(6)}ms | ` +
-      `${successRate.padStart(6)}%`,
+        `${result.requestsPerSecond.toFixed(0).padStart(8)} | ` +
+        `${result.avgLatencyMs.toFixed(1).padStart(6)}ms | ` +
+        `${result.p95LatencyMs.toFixed(1).padStart(6)}ms | ` +
+        `${successRate.padStart(6)}%`,
     );
   }
 
@@ -172,11 +181,14 @@ async function runAllLoadTests() {
   const totalRequests = results.reduce((a, b) => a + b.totalRequests, 0);
   const totalSuccess = results.reduce((a, b) => a + b.successfulRequests, 0);
   const totalFailed = results.reduce((a, b) => a + b.failedRequests, 0);
-  const avgRPS = results.reduce((a, b) => a + b.requestsPerSecond, 0) / results.length;
+  const avgRPS =
+    results.reduce((a, b) => a + b.requestsPerSecond, 0) / results.length;
 
   console.log('\n' + '-'.repeat(80));
   console.log(`Total Requests: ${totalRequests.toLocaleString()}`);
-  console.log(`Successful: ${totalSuccess.toLocaleString()} (${((totalSuccess / totalRequests) * 100).toFixed(1)}%)`);
+  console.log(
+    `Successful: ${totalSuccess.toLocaleString()} (${((totalSuccess / totalRequests) * 100).toFixed(1)}%)`,
+  );
   console.log(`Failed: ${totalFailed.toLocaleString()}`);
   console.log(`Average RPS: ${avgRPS.toFixed(0)}`);
   console.log('\n✅ Load testing completed!\n');

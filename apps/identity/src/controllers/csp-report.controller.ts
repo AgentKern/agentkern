@@ -1,12 +1,19 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 
 /**
  * CSP Violation Reporting Endpoint
- * 
+ *
  * Receives Content-Security-Policy violation reports from browsers.
  * This enables real-time monitoring of XSS and injection attempts.
- * 
+ *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#violation_reporting
  */
 
@@ -58,8 +65,9 @@ export class CspReportController {
   @ApiBody({ description: 'CSP violation report from browser' })
   @ApiResponse({ status: 204, description: 'Report received' })
   async receiveCspReport(@Body() report: CspViolationReport): Promise<void> {
+    await Promise.resolve(); // Ensure async execution
     const cspReport = report['csp-report'];
-    
+
     if (!cspReport) {
       this.logger.warn('Received malformed CSP report');
       return;
@@ -90,6 +98,7 @@ export class CspReportController {
   @ApiBody({ description: 'Reports from browser Reporting API' })
   @ApiResponse({ status: 204, description: 'Reports received' })
   async receiveReports(@Body() reports: ReportToPayload[]): Promise<void> {
+    await Promise.resolve(); // Ensure async execution
     if (!Array.isArray(reports)) {
       this.logger.warn('Received malformed Reporting API payload');
       return;

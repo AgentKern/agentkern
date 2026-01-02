@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsBoolean, IsEnum, IsArray, Min } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsArray,
+  Min,
+} from 'class-validator';
 
 // ============================================================================
 // Kill Switch DTOs
@@ -15,7 +23,10 @@ export class KillSwitchDto {
   @IsString()
   agentId?: string;
 
-  @ApiPropertyOptional({ description: 'Termination type', enum: ['graceful', 'immediate'] })
+  @ApiPropertyOptional({
+    description: 'Termination type',
+    enum: ['graceful', 'immediate'],
+  })
   @IsOptional()
   @IsEnum(['graceful', 'immediate'])
   type?: 'graceful' | 'immediate';
@@ -68,7 +79,10 @@ export class AcquireLockDto {
   @IsString()
   agentId: string;
 
-  @ApiPropertyOptional({ description: 'Lock type', enum: ['exclusive', 'shared'] })
+  @ApiPropertyOptional({
+    description: 'Lock type',
+    enum: ['exclusive', 'shared'],
+  })
   @IsOptional()
   @IsEnum(['exclusive', 'shared'])
   lockType?: 'exclusive' | 'shared';
@@ -118,7 +132,10 @@ export class EscalationRequestDto {
   @IsString()
   reason: string;
 
-  @ApiPropertyOptional({ description: 'Escalation level', enum: ['low', 'medium', 'high', 'critical'] })
+  @ApiPropertyOptional({
+    description: 'Escalation level',
+    enum: ['low', 'medium', 'high', 'critical'],
+  })
   @IsOptional()
   @IsEnum(['low', 'medium', 'high', 'critical'])
   level?: 'low' | 'medium' | 'high' | 'critical';
@@ -141,7 +158,10 @@ export class EscalationResponseDto {
   @IsString()
   reason: string;
 
-  @ApiProperty({ description: 'Escalation status', enum: ['pending', 'approved', 'rejected'] })
+  @ApiProperty({
+    description: 'Escalation status',
+    enum: ['pending', 'approved', 'rejected'],
+  })
   @IsString()
   status: 'pending' | 'approved' | 'rejected';
 
@@ -247,7 +267,10 @@ export class AuditLogResponseDto {
 // ============================================================================
 
 export class ChaosInjectDto {
-  @ApiProperty({ description: 'Chaos type', enum: ['latency', 'error', 'timeout', 'terminate', 'resource_exhaustion'] })
+  @ApiProperty({
+    description: 'Chaos type',
+    enum: ['latency', 'error', 'timeout', 'terminate', 'resource_exhaustion'],
+  })
   @IsEnum(['latency', 'error', 'timeout', 'terminate', 'resource_exhaustion'])
   type: 'latency' | 'error' | 'timeout' | 'terminate' | 'resource_exhaustion';
 
@@ -260,7 +283,9 @@ export class ChaosInjectDto {
   @IsNumber()
   durationSeconds?: number;
 
-  @ApiPropertyOptional({ description: 'Probability (0-1) for probabilistic faults' })
+  @ApiPropertyOptional({
+    description: 'Probability (0-1) for probabilistic faults',
+  })
   @IsOptional()
   @IsNumber()
   probability?: number;

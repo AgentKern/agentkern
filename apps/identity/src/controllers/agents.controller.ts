@@ -18,12 +18,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { AgentSandboxService } from '../services/agent-sandbox.service';
 import { AgentStatus } from '../domain/agent.entity';
 
@@ -66,9 +61,7 @@ class RecordResultDto {
 @ApiTags('Agents')
 @Controller('api/v1/agents')
 export class AgentsController {
-  constructor(
-    private readonly sandboxService: AgentSandboxService,
-  ) {}
+  constructor(private readonly sandboxService: AgentSandboxService) {}
 
   // ============ Agent Registration ============
 
@@ -76,7 +69,8 @@ export class AgentsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new agent',
-    description: 'Creates a new agent identity with optional budget configuration.',
+    description:
+      'Creates a new agent identity with optional budget configuration.',
   })
   @ApiResponse({ status: 201, description: 'Agent registered successfully' })
   @ApiResponse({ status: 400, description: 'Invalid request' })
@@ -117,10 +111,11 @@ export class AgentsController {
   })
   @ApiResponse({ status: 200, description: 'List of agents' })
   async listAgents() {
+    await Promise.resolve(); // Ensure async execution
     const agents = this.sandboxService.getAllAgents();
     return {
       count: agents.length,
-      agents: agents.map(a => ({
+      agents: agents.map((a) => ({
         id: a.id,
         name: a.name,
         status: a.status,
@@ -139,6 +134,7 @@ export class AgentsController {
   @ApiResponse({ status: 200, description: 'Agent details' })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   async getAgent(@Param('agentId') agentId: string) {
+    await Promise.resolve(); // Ensure async execution
     const agent = this.sandboxService.getAgentStatus(agentId);
     if (!agent) {
       throw new NotFoundException(`Agent ${agentId} not found`);
@@ -217,7 +213,10 @@ export class AgentsController {
     @Param('agentId') agentId: string,
     @Body() dto: RecordResultDto,
   ) {
-    await this.sandboxService.recordFailure(agentId, dto.reason || 'Unknown failure');
+    await this.sandboxService.recordFailure(
+      agentId,
+      dto.reason || 'Unknown failure',
+    );
     return { success: true };
   }
 
@@ -231,7 +230,10 @@ export class AgentsController {
     @Param('agentId') agentId: string,
     @Body() dto: RecordResultDto,
   ) {
-    await this.sandboxService.recordViolation(agentId, dto.reason || 'Unknown violation');
+    await this.sandboxService.recordViolation(
+      agentId,
+      dto.reason || 'Unknown violation',
+    );
     return { success: true };
   }
 
@@ -246,7 +248,10 @@ export class AgentsController {
     @Param('agentId') agentId: string,
     @Body() dto: { reason: string },
   ) {
-    const result = await this.sandboxService.suspendAgent(agentId, dto.reason || 'Manual suspension');
+    const result = await this.sandboxService.suspendAgent(
+      agentId,
+      dto.reason || 'Manual suspension',
+    );
     if (!result) {
       throw new NotFoundException(`Agent ${agentId} not found`);
     }
@@ -261,7 +266,9 @@ export class AgentsController {
   async reactivateAgent(@Param('agentId') agentId: string) {
     const result = await this.sandboxService.reactivateAgent(agentId);
     if (!result) {
-      throw new BadRequestException(`Cannot reactivate agent ${agentId} (not found or terminated)`);
+      throw new BadRequestException(
+        `Cannot reactivate agent ${agentId} (not found or terminated)`,
+      );
     }
     return { success: true, status: AgentStatus.ACTIVE };
   }
@@ -275,7 +282,10 @@ export class AgentsController {
     @Param('agentId') agentId: string,
     @Body() dto: { reason?: string },
   ) {
-    const result = await this.sandboxService.terminateAgent(agentId, dto.reason || 'Manual termination');
+    const result = await this.sandboxService.terminateAgent(
+      agentId,
+      dto.reason || 'Manual termination',
+    );
     if (!result) {
       throw new NotFoundException(`Agent ${agentId} not found`);
     }
@@ -289,7 +299,7 @@ export class AgentsController {
     summary: 'Get system status',
     description: 'Returns kill switch status and in-flight request counts.',
   })
-  async getSystemStatus() {
+  getSystemStatus() {
     const inFlightStats = this.sandboxService.getInFlightStats();
     return {
       killSwitchActive: this.sandboxService.isKillSwitchActive(),

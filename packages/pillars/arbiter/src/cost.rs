@@ -413,7 +413,7 @@ mod tests {
     fn test_agent_total() {
         let tracker = CostTracker::new();
 
-        for i in 0..5 {
+        for _i in 0..5 {
             let event = tracker
                 .event("agent-1", CostCategory::LlmInference)
                 .amount(0.01)

@@ -16,11 +16,13 @@ describe('DnsController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     await app.init();
   });
 
@@ -49,17 +51,18 @@ describe('DnsController (e2e)', () => {
   describe('GET /api/v1/dns/resolve', () => {
     it('should resolve registered trust', async () => {
       // First register
-      await request(app.getHttpServer())
-        .post('/api/v1/dns/register')
-        .send({
-          agentId: 'agent-resolve-test',
-          principalId: 'principal-resolve-test',
-        });
+      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+        agentId: 'agent-resolve-test',
+        principalId: 'principal-resolve-test',
+      });
 
       // Then resolve
       const response = await request(app.getHttpServer())
         .get('/api/v1/dns/resolve')
-        .query({ agentId: 'agent-resolve-test', principalId: 'principal-resolve-test' })
+        .query({
+          agentId: 'agent-resolve-test',
+          principalId: 'principal-resolve-test',
+        })
         .expect(200);
 
       expect(response.body.trusted).toBe(true);
@@ -70,12 +73,10 @@ describe('DnsController (e2e)', () => {
   describe('POST /api/v1/dns/revoke', () => {
     it('should revoke trust', async () => {
       // Register first
-      await request(app.getHttpServer())
-        .post('/api/v1/dns/register')
-        .send({
-          agentId: 'agent-revoke-test2',
-          principalId: 'principal-revoke-test2',
-        });
+      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+        agentId: 'agent-revoke-test2',
+        principalId: 'principal-revoke-test2',
+      });
 
       // Revoke
       const response = await request(app.getHttpServer())
@@ -94,17 +95,16 @@ describe('DnsController (e2e)', () => {
   describe('POST /api/v1/dns/reinstate', () => {
     it('should reinstate revoked trust', async () => {
       // Register and revoke
-      await request(app.getHttpServer())
-        .post('/api/v1/dns/register')
-        .send({ agentId: 'agent-reinstate2', principalId: 'principal-reinstate2' });
-      
-      await request(app.getHttpServer())
-        .post('/api/v1/dns/revoke')
-        .send({
-          agentId: 'agent-reinstate2',
-          principalId: 'principal-reinstate2',
-          reason: 'Temporary',
-        });
+      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+        agentId: 'agent-reinstate2',
+        principalId: 'principal-reinstate2',
+      });
+
+      await request(app.getHttpServer()).post('/api/v1/dns/revoke').send({
+        agentId: 'agent-reinstate2',
+        principalId: 'principal-reinstate2',
+        reason: 'Temporary',
+      });
 
       // Reinstate
       const response = await request(app.getHttpServer())

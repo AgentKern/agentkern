@@ -45,14 +45,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLoggerService, AuditEventType } from './audit-logger.service';
 import { GateService } from './gate.service';
-import { TrustService, TrustEventType } from './trust.service';
+import { TrustService } from './trust.service';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
 import { SystemConfigEntity } from '../entities/system-config.entity';
 
 import {
   AgentStatus,
   AgentBudget,
-  AgentUsage,
   AgentReputation,
   AgentRecord,
 } from '../domain/agent.entity';
@@ -73,24 +72,6 @@ const MIN_REPUTATION_THRESHOLD = 100;
  * @rationale 3 violations = pattern of misbehavior, not one-off error
  */
 const VIOLATION_AUTO_SUSPEND_THRESHOLD = 3;
-
-/**
- * Points gained per successful action.
- * @rationale Slow trust building (1000 actions to go from 0 to 1000)
- */
-const REPUTATION_SUCCESS_GAIN = 1;
-
-/**
- * Points lost per failed action.
- * @rationale 10x faster degradation than building (asymmetric risk)
- */
-const REPUTATION_FAILURE_LOSS = 10;
-
-/**
- * Points lost per security violation.
- * @rationale Severe penalty, 2 violations = high risk of suspension
- */
-const REPUTATION_VIOLATION_LOSS = 100;
 
 // Action request for sandbox execution
 export interface SandboxActionRequest {
@@ -158,7 +139,8 @@ export class AgentSandboxService implements OnModuleInit {
   };
 
   /** Rate limits per agent (ephemeral, resets on restart) */
-  private rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
+  private rateLimits: Map<string, { count: number; resetAt: number }> =
+    new Map();
   private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
   private readonly RATE_LIMIT_MAX = 100; // 100 requests per minute
 
@@ -203,7 +185,9 @@ export class AgentSandboxService implements OnModuleInit {
 
     this.logger.log('🔒 Agent Sandbox Service initialized');
     this.logger.log(`   Loaded ${dbAgents.length} agents from database`);
-    this.logger.log(`   Kill switch: ${this.globalKillSwitchCache ? 'ACTIVE' : 'inactive'}`);
+    this.logger.log(
+      `   Kill switch: ${this.globalKillSwitchCache ? 'ACTIVE' : 'inactive'}`,
+    );
     this.logger.log(`   Default budget: ${JSON.stringify(this.defaultBudget)}`);
   }
 
@@ -347,7 +331,10 @@ export class AgentSandboxService implements OnModuleInit {
     // Per DECISION_RECORD_BRIDGE.md: Rust-native prompt guard on every action
     const promptAnalysis = this.gateService.guardPrompt(request.action);
     if (promptAnalysis) {
-      if (promptAnalysis.threat_level === 'High' || promptAnalysis.threat_level === 'Critical') {
+      if (
+        promptAnalysis.threat_level === 'High' ||
+        promptAnalysis.threat_level === 'Critical'
+      ) {
         // Record violation and block
         await this.recordViolation(
           request.agentId,
@@ -359,7 +346,7 @@ export class AgentSandboxService implements OnModuleInit {
           reason: `Prompt injection detected (${promptAnalysis.threat_level}): ${promptAnalysis.matched_patterns.join(', ')}`,
         };
       }
-      
+
       // Log suspicious prompts for audit (Medium/Low threat)
       if (promptAnalysis.threat_level === 'Medium') {
         this.logger.warn(
@@ -370,12 +357,12 @@ export class AgentSandboxService implements OnModuleInit {
 
     // Update last active time
     agent.lastActiveAt = new Date().toISOString();
-    
+
     // Track in-flight request
     this.incrementInFlight(request.agentId);
-    
+
     // Defer DB update for performance
-    this.syncToDb(agent);
+    void this.syncToDb(agent);
 
     return {
       allowed: true,
@@ -398,7 +385,11 @@ export class AgentSandboxService implements OnModuleInit {
    * @param tokensUsed - Actual tokens consumed (for budget tracking)
    * @param cost - Actual cost incurred (for budget tracking)
    */
-  async recordSuccess(agentId: string, tokensUsed?: number, cost?: number): Promise<void> {
+  async recordSuccess(
+    agentId: string,
+    tokensUsed?: number,
+    cost?: number,
+  ): Promise<void> {
     const agent = this.agents.get(agentId);
     if (!agent) return;
 
@@ -411,7 +402,8 @@ export class AgentSandboxService implements OnModuleInit {
     if (cost) agent.usage.costUsd += cost;
 
     // Delegate reputation tracking to TrustService
-    const trustScore = await this.trustService.recordTransactionSuccess(agentId);
+    const trustScore =
+      await this.trustService.recordTransactionSuccess(agentId);
     agent.reputation.successfulActions++;
     agent.reputation.score = trustScore.score * 10; // Convert 0-100 to 0-1000
     agent.reputation.lastUpdated = new Date().toISOString();
@@ -441,14 +433,17 @@ export class AgentSandboxService implements OnModuleInit {
     this.decrementInFlight(agentId);
 
     // Delegate reputation tracking to TrustService
-    const trustScore = await this.trustService.recordTransactionFailure(agentId, reason);
+    const trustScore = await this.trustService.recordTransactionFailure(
+      agentId,
+      reason,
+    );
     agent.reputation.failedActions++;
     agent.reputation.score = trustScore.score * 10; // Convert 0-100 to 0-1000
     agent.reputation.lastUpdated = new Date().toISOString();
 
-    this.syncToDb(agent);
+    void this.syncToDb(agent);
 
-    this.auditLogger.logSecurityEvent(
+    void this.auditLogger.logSecurityEvent(
       AuditEventType.SUSPICIOUS_ACTIVITY,
       `Agent action failed: ${reason}`,
       { agentId, newScore: agent.reputation.score },
@@ -471,7 +466,10 @@ export class AgentSandboxService implements OnModuleInit {
     if (!agent) return;
 
     // Delegate reputation tracking to TrustService
-    const trustScore = await this.trustService.recordPolicyViolation(agentId, violation);
+    const trustScore = await this.trustService.recordPolicyViolation(
+      agentId,
+      violation,
+    );
     agent.reputation.violations++;
     agent.reputation.score = trustScore.score * 10; // Convert 0-100 to 0-1000
     agent.reputation.lastUpdated = new Date().toISOString();
@@ -481,12 +479,16 @@ export class AgentSandboxService implements OnModuleInit {
       await this.suspendAgent(agentId, `Multiple violations: ${violation}`);
     }
 
-    this.syncToDb(agent);
+    void this.syncToDb(agent);
 
-    this.auditLogger.logSecurityEvent(
+    void this.auditLogger.logSecurityEvent(
       AuditEventType.SECURITY_ALERT,
       `Agent security violation: ${violation}`,
-      { agentId, violations: agent.reputation.violations, newScore: agent.reputation.score },
+      {
+        agentId,
+        violations: agent.reputation.violations,
+        newScore: agent.reputation.score,
+      },
     );
   }
 
@@ -501,7 +503,7 @@ export class AgentSandboxService implements OnModuleInit {
     await this.syncToDb(agent);
     this.logger.warn(`⚠️ Agent suspended: ${agentId} - ${reason}`);
 
-    this.auditLogger.logSecurityEvent(
+    void this.auditLogger.logSecurityEvent(
       AuditEventType.SECURITY_ALERT,
       `Agent suspended: ${reason}`,
       { agentId },
@@ -524,7 +526,7 @@ export class AgentSandboxService implements OnModuleInit {
     await this.syncToDb(agent);
     this.logger.error(`🚨 AGENT TERMINATED: ${agentId} - ${reason}`);
 
-    this.auditLogger.logSecurityEvent(
+    void this.auditLogger.logSecurityEvent(
       AuditEventType.SECURITY_ALERT,
       `AGENT TERMINATED: ${reason}`,
       { agentId, terminatedAt: agent.terminatedAt },
@@ -596,7 +598,7 @@ export class AgentSandboxService implements OnModuleInit {
   async activateGlobalKillSwitch(reason: string): Promise<void> {
     // STEP 1: Immediately block new requests (sync)
     this.globalKillSwitchCache = true;
-    
+
     // STEP 2: Persist to database (async, but we await for consistency)
     await this.configRepository.upsert(
       {
@@ -612,12 +614,14 @@ export class AgentSandboxService implements OnModuleInit {
     const inFlightStats = this.getInFlightStats();
 
     this.logger.error(`🚨 GLOBAL KILL SWITCH ACTIVATED: ${reason}`);
-    this.logger.warn(`   In-flight requests: ${inFlightStats.total} (will complete before termination)`);
+    this.logger.warn(
+      `   In-flight requests: ${inFlightStats.total} (will complete before termination)`,
+    );
 
     await this.auditLogger.logSecurityEvent(
       AuditEventType.KILL_SWITCH_ACTIVATED,
       `GLOBAL KILL SWITCH ACTIVATED: ${reason}`,
-      { 
+      {
         activeAgents: this.agents.size,
         inFlightRequests: inFlightStats.total,
         inFlightByAgent: inFlightStats.byAgent,
@@ -626,7 +630,7 @@ export class AgentSandboxService implements OnModuleInit {
 
     // STEP 3: Terminate all active agents
     // Note: This does NOT cancel in-flight requests - by design
-    for (const [agentId, agent] of this.agents) {
+    for (const [, agent] of this.agents) {
       if (agent.status === AgentStatus.ACTIVE) {
         agent.status = AgentStatus.TERMINATED;
         agent.terminatedAt = new Date().toISOString();
@@ -716,7 +720,9 @@ export class AgentSandboxService implements OnModuleInit {
   private resetBudgetIfNeeded(agent: AgentRecord): void {
     const now = new Date();
     const periodStart = new Date(agent.usage.periodStart);
-    const periodEnd = new Date(periodStart.getTime() + agent.budget.periodSeconds * 1000);
+    const periodEnd = new Date(
+      periodStart.getTime() + agent.budget.periodSeconds * 1000,
+    );
 
     if (now > periodEnd) {
       agent.usage = {
@@ -803,7 +809,9 @@ export class AgentSandboxService implements OnModuleInit {
         ...agent,
         createdAt: new Date(agent.createdAt),
         lastActiveAt: new Date(agent.lastActiveAt),
-        terminatedAt: agent.terminatedAt ? new Date(agent.terminatedAt) : undefined,
+        terminatedAt: agent.terminatedAt
+          ? new Date(agent.terminatedAt)
+          : undefined,
       });
     } catch (error) {
       this.logger.error(`Failed to sync agent ${agent.id} to DB: ${error}`);

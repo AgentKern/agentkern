@@ -312,15 +312,27 @@ impl Default for BpeTokenizer {
 
 impl BpeTokenizer {
     /// Create a new BPE tokenizer with cl100k_base encoding.
-    pub fn new() -> Self {
+    ///
+    /// # Errors
+    /// Returns `NeuralError::TokenizationFailed` if the tokenizer cannot be loaded.
+    pub fn try_new() -> Result<Self, NeuralError> {
         // Load cl100k_base encoding (GPT-4/ChatGPT vocabulary)
-        let encoder = cl100k_base().expect("Failed to load cl100k_base tokenizer");
+        let encoder = cl100k_base().map_err(|_| NeuralError::TokenizationFailed)?;
 
-        Self {
+        Ok(Self {
             encoder,
             max_length: 128, // More tokens for complex prompts
             pad_token: 0,
-        }
+        })
+    }
+
+    /// Create a new BPE tokenizer, panicking on failure.
+    ///
+    /// # Panics
+    /// Panics if the cl100k_base tokenizer cannot be loaded.
+    /// Prefer `try_new()` in production code.
+    pub fn new() -> Self {
+        Self::try_new().expect("Failed to load cl100k_base tokenizer")
     }
 
     /// Preprocess text with adversarial robustness.
@@ -588,7 +600,7 @@ impl NeuralGuard {
     /// Create a neural guard with custom config.
     pub fn with_config(config: ModelConfig) -> Result<Self, NeuralError> {
         let session = InferenceSession::new(config)?;
-        let tokenizer = BpeTokenizer::new();
+        let tokenizer = BpeTokenizer::try_new()?;
 
         Ok(Self { session, tokenizer })
     }
@@ -625,7 +637,7 @@ impl NeuralGuard {
         let (max_idx, &max_prob) = output
             .iter()
             .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or((0, &0.0));
 
         let intent = match max_idx {

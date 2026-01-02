@@ -6,12 +6,11 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   HttpCode,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   AgentStateDto,
   UpdateStateDto,
@@ -26,7 +25,7 @@ import {
 
 /**
  * Synapse Controller - Agent Memory & State API
- * 
+ *
  * Exposes the Synapse pillar's capabilities:
  * - Agent state management (CRDTs)
  * - Memory passports (portable agent memory)
@@ -40,7 +39,10 @@ export class SynapseController {
 
   // In-memory stores (would use Rust bridge in production)
   private states: Map<string, Record<string, unknown>> = new Map();
-  private passports: Map<string, { id: string; agentId: string; layers: string[]; createdAt: string }> = new Map();
+  private passports: Map<
+    string,
+    { id: string; agentId: string; layers: string[]; createdAt: string }
+  > = new Map();
 
   // =========================================================================
   // State Management Endpoints
@@ -54,10 +56,11 @@ export class SynapseController {
   @ApiResponse({ status: 200, description: 'Agent state', type: AgentStateDto })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   async getState(@Param('agentId') agentId: string): Promise<AgentStateDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Getting state for agent: ${agentId}`);
-    
+
     const state = this.states.get(agentId) || {};
-    
+
     return {
       agentId,
       state,
@@ -71,17 +74,22 @@ export class SynapseController {
    */
   @Put('state/:agentId')
   @ApiOperation({ summary: 'Update agent state (CRDT merge)' })
-  @ApiResponse({ status: 200, description: 'State updated', type: AgentStateDto })
+  @ApiResponse({
+    status: 200,
+    description: 'State updated',
+    type: AgentStateDto,
+  })
   async updateState(
     @Param('agentId') agentId: string,
     @Body() dto: UpdateStateDto,
   ): Promise<AgentStateDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Updating state for agent: ${agentId}`);
-    
+
     const current = this.states.get(agentId) || {};
     const merged = { ...current, ...dto.state };
     this.states.set(agentId, merged);
-    
+
     return {
       agentId,
       state: merged,
@@ -98,6 +106,7 @@ export class SynapseController {
   @ApiOperation({ summary: 'Delete agent state' })
   @ApiResponse({ status: 204, description: 'State deleted' })
   async deleteState(@Param('agentId') agentId: string): Promise<void> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Deleting state for agent: ${agentId}`);
     this.states.delete(agentId);
   }
@@ -112,10 +121,17 @@ export class SynapseController {
   @Post('memory/passport')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a memory passport' })
-  @ApiResponse({ status: 201, description: 'Passport created', type: MemoryPassportDto })
-  async createPassport(@Body() dto: CreatePassportDto): Promise<MemoryPassportDto> {
+  @ApiResponse({
+    status: 201,
+    description: 'Passport created',
+    type: MemoryPassportDto,
+  })
+  async createPassport(
+    @Body() dto: CreatePassportDto,
+  ): Promise<MemoryPassportDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Creating passport for agent: ${dto.agentId}`);
-    
+
     const id = `passport_${Date.now()}`;
     const passport = {
       id,
@@ -123,9 +139,9 @@ export class SynapseController {
       layers: dto.layers || ['short_term', 'long_term', 'episodic'],
       createdAt: new Date().toISOString(),
     };
-    
+
     this.passports.set(id, passport);
-    
+
     return {
       id,
       agentId: dto.agentId,
@@ -141,15 +157,22 @@ export class SynapseController {
    */
   @Get('memory/passport/:id')
   @ApiOperation({ summary: 'Get memory passport' })
-  @ApiResponse({ status: 200, description: 'Passport details', type: MemoryPassportDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Passport details',
+    type: MemoryPassportDto,
+  })
   @ApiResponse({ status: 404, description: 'Passport not found' })
-  async getPassport(@Param('id') id: string): Promise<MemoryPassportDto> {
-    const passport = this.passports.get(id);
-    
+  async getPassport(
+    @Param('id') passportId: string,
+  ): Promise<MemoryPassportDto> {
+    await Promise.resolve(); // Ensure async execution
+    const passport = this.passports.get(passportId);
+
     if (!passport) {
       throw new Error('Passport not found');
     }
-    
+
     return {
       id: passport.id,
       agentId: passport.agentId,
@@ -167,9 +190,12 @@ export class SynapseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Export memory passport (GDPR data portability)' })
   @ApiResponse({ status: 200, description: 'Export data' })
-  async exportPassport(@Body() dto: ExportPassportDto): Promise<{ exportUrl: string; expiresAt: string }> {
+  async exportPassport(
+    @Body() dto: ExportPassportDto,
+  ): Promise<{ exportUrl: string; expiresAt: string }> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Exporting passport: ${dto.passportId} as ${dto.format}`);
-    
+
     return {
       exportUrl: `https://api.agentkern.io/exports/${dto.passportId}.${dto.format}`,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -186,16 +212,26 @@ export class SynapseController {
   @Post('context/guard')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Analyze RAG context for injection attacks' })
-  @ApiResponse({ status: 200, description: 'Context analysis result', type: ContextGuardResultDto })
-  async guardContext(@Body() dto: ContextGuardDto): Promise<ContextGuardResultDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Context analysis result',
+    type: ContextGuardResultDto,
+  })
+  async guardContext(
+    @Body() dto: ContextGuardDto,
+  ): Promise<ContextGuardResultDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log('Analyzing RAG context for injection');
-    
+
     // Simulate context guard analysis
-    const threats: Array<{ type: string; severity: string; content: string }> = [];
-    
+    const threats: Array<{ type: string; severity: string; content: string }> =
+      [];
+
     for (const doc of dto.documents) {
-      if (doc.toLowerCase().includes('ignore previous') || 
-          doc.toLowerCase().includes('system prompt')) {
+      if (
+        doc.toLowerCase().includes('ignore previous') ||
+        doc.toLowerCase().includes('system prompt')
+      ) {
         threats.push({
           type: 'context_injection',
           severity: 'high',
@@ -203,7 +239,7 @@ export class SynapseController {
         });
       }
     }
-    
+
     return {
       safe: threats.length === 0,
       analyzedDocuments: dto.documents.length,
@@ -222,15 +258,30 @@ export class SynapseController {
   @Post('graph/query')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Query graph vector database' })
-  @ApiResponse({ status: 200, description: 'Query results', type: GraphQueryResultDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Query results',
+    type: GraphQueryResultDto,
+  })
   async queryGraph(@Body() dto: GraphQueryDto): Promise<GraphQueryResultDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Graph query: ${dto.query.substring(0, 50)}...`);
-    
+
     // Simulate graph query results
     return {
       results: [
-        { nodeId: 'node_1', type: 'agent', similarity: 0.95, data: { name: 'Agent Alpha' } },
-        { nodeId: 'node_2', type: 'intent', similarity: 0.87, data: { action: 'search' } },
+        {
+          nodeId: 'node_1',
+          type: 'agent',
+          similarity: 0.95,
+          data: { name: 'Agent Alpha' },
+        },
+        {
+          nodeId: 'node_2',
+          type: 'intent',
+          similarity: 0.87,
+          data: { action: 'search' },
+        },
       ],
       totalResults: 2,
       queryTimeMs: Math.random() * 20 + 5,

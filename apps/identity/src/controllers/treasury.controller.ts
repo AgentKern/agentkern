@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  GetBalanceDto,
   BalanceResponseDto,
   DepositDto,
   TransferDto,
@@ -24,7 +23,7 @@ import {
 
 /**
  * Treasury Controller - Agent Payment Infrastructure API
- * 
+ *
  * Exposes the Treasury pillar's capabilities:
  * - Agent balance management
  * - Agent-to-agent transfers (micropayments)
@@ -37,9 +36,14 @@ export class TreasuryController {
   private readonly logger = new Logger(TreasuryController.name);
 
   // In-memory store for demo (would use Rust bridge in production)
-  private balances: Map<string, { balance: number; currency: string }> = new Map();
-  private budgets: Map<string, { limit: number; spent: number; period: string }> = new Map();
-  private carbon: Map<string, { totalGrams: number; computeHours: number }> = new Map();
+  private balances: Map<string, { balance: number; currency: string }> =
+    new Map();
+  private budgets: Map<
+    string,
+    { limit: number; spent: number; period: string }
+  > = new Map();
+  private carbon: Map<string, { totalGrams: number; computeHours: number }> =
+    new Map();
 
   // =========================================================================
   // Balance Endpoints
@@ -50,13 +54,23 @@ export class TreasuryController {
    */
   @Get('balance/:agentId')
   @ApiOperation({ summary: 'Get agent balance' })
-  @ApiResponse({ status: 200, description: 'Agent balance', type: BalanceResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Agent balance',
+    type: BalanceResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Agent not found' })
-  async getBalance(@Param('agentId') agentId: string): Promise<BalanceResponseDto> {
+  async getBalance(
+    @Param('agentId') agentId: string,
+  ): Promise<BalanceResponseDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Getting balance for agent: ${agentId}`);
-    
-    const balance = this.balances.get(agentId) || { balance: 0, currency: 'USD' };
-    
+
+    const balance = this.balances.get(agentId) || {
+      balance: 0,
+      currency: 'USD',
+    };
+
     return {
       agentId,
       balance: balance.balance,
@@ -71,17 +85,25 @@ export class TreasuryController {
   @Post('balance/:agentId/deposit')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Deposit funds to agent balance' })
-  @ApiResponse({ status: 200, description: 'Deposit successful', type: BalanceResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Deposit successful',
+    type: BalanceResponseDto,
+  })
   async deposit(
     @Param('agentId') agentId: string,
     @Body() dto: DepositDto,
   ): Promise<BalanceResponseDto> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Depositing ${dto.amount} to agent: ${agentId}`);
-    
-    const current = this.balances.get(agentId) || { balance: 0, currency: 'USD' };
+
+    const current = this.balances.get(agentId) || {
+      balance: 0,
+      currency: 'USD',
+    };
     current.balance += dto.amount;
     this.balances.set(agentId, current);
-    
+
     return {
       agentId,
       balance: current.balance,
@@ -100,14 +122,30 @@ export class TreasuryController {
   @Post('transfer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Transfer funds between agents' })
-  @ApiResponse({ status: 200, description: 'Transfer successful', type: TransferResponseDto })
-  @ApiResponse({ status: 400, description: 'Insufficient funds or invalid request' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transfer successful',
+    type: TransferResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Insufficient funds or invalid request',
+  })
   async transfer(@Body() dto: TransferDto): Promise<TransferResponseDto> {
-    this.logger.log(`Transfer: ${dto.fromAgent} -> ${dto.toAgent}: ${dto.amount}`);
-    
-    const fromBalance = this.balances.get(dto.fromAgent) || { balance: 0, currency: 'USD' };
-    const toBalance = this.balances.get(dto.toAgent) || { balance: 0, currency: 'USD' };
-    
+    await Promise.resolve(); // Ensure async execution
+    this.logger.log(
+      `Transfer: ${dto.fromAgent} -> ${dto.toAgent}: ${dto.amount}`,
+    );
+
+    const fromBalance = this.balances.get(dto.fromAgent) || {
+      balance: 0,
+      currency: 'USD',
+    };
+    const toBalance = this.balances.get(dto.toAgent) || {
+      balance: 0,
+      currency: 'USD',
+    };
+
     if (fromBalance.balance < dto.amount) {
       return {
         transactionId: `tx_${Date.now()}`,
@@ -119,12 +157,12 @@ export class TreasuryController {
         timestamp: new Date().toISOString(),
       };
     }
-    
+
     fromBalance.balance -= dto.amount;
     toBalance.balance += dto.amount;
     this.balances.set(dto.fromAgent, fromBalance);
     this.balances.set(dto.toAgent, toBalance);
-    
+
     return {
       transactionId: `tx_${Date.now()}`,
       status: 'completed',
@@ -147,8 +185,13 @@ export class TreasuryController {
   @ApiOperation({ summary: 'Get agent spending budget' })
   @ApiResponse({ status: 200, description: 'Budget details', type: BudgetDto })
   async getBudget(@Param('agentId') agentId: string): Promise<BudgetDto> {
-    const budget = this.budgets.get(agentId) || { limit: 100, spent: 0, period: 'daily' };
-    
+    await Promise.resolve(); // Ensure async execution
+    const budget = this.budgets.get(agentId) || {
+      limit: 100,
+      spent: 0,
+      period: 'daily',
+    };
+
     return {
       agentId,
       limit: budget.limit,
@@ -168,13 +211,20 @@ export class TreasuryController {
     @Param('agentId') agentId: string,
     @Body() dto: SetBudgetDto,
   ): Promise<BudgetDto> {
-    this.logger.log(`Setting budget for ${agentId}: ${dto.limit}/${dto.period}`);
-    
-    const current = this.budgets.get(agentId) || { limit: 0, spent: 0, period: 'daily' };
+    await Promise.resolve(); // Ensure async execution
+    this.logger.log(
+      `Setting budget for ${agentId}: ${dto.limit}/${dto.period}`,
+    );
+
+    const current = this.budgets.get(agentId) || {
+      limit: 0,
+      spent: 0,
+      period: 'daily',
+    };
     current.limit = dto.limit;
     current.period = dto.period;
     this.budgets.set(agentId, current);
-    
+
     return {
       agentId,
       limit: current.limit,
@@ -193,10 +243,20 @@ export class TreasuryController {
    */
   @Get('carbon/:agentId')
   @ApiOperation({ summary: 'Get agent carbon footprint' })
-  @ApiResponse({ status: 200, description: 'Carbon footprint', type: CarbonFootprintDto })
-  async getCarbonFootprint(@Param('agentId') agentId: string): Promise<CarbonFootprintDto> {
-    const footprint = this.carbon.get(agentId) || { totalGrams: 0, computeHours: 0 };
-    
+  @ApiResponse({
+    status: 200,
+    description: 'Carbon footprint',
+    type: CarbonFootprintDto,
+  })
+  async getCarbonFootprint(
+    @Param('agentId') agentId: string,
+  ): Promise<CarbonFootprintDto> {
+    await Promise.resolve(); // Ensure async execution
+    const footprint = this.carbon.get(agentId) || {
+      totalGrams: 0,
+      computeHours: 0,
+    };
+
     return {
       agentId,
       totalGramsCO2: footprint.totalGrams,
@@ -214,16 +274,22 @@ export class TreasuryController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Purchase carbon offset for agent' })
   @ApiResponse({ status: 200, description: 'Offset purchased' })
-  async purchaseOffset(@Body() dto: CarbonOffsetDto): Promise<{ success: boolean; offsetGrams: number; cost: number }> {
+  async purchaseOffset(
+    @Body() dto: CarbonOffsetDto,
+  ): Promise<{ success: boolean; offsetGrams: number; cost: number }> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Purchasing ${dto.grams}g CO2 offset for ${dto.agentId}`);
-    
+
     // Simulate offset cost ($0.02 per kg CO2)
     const cost = (dto.grams / 1000) * 0.02;
-    
-    const footprint = this.carbon.get(dto.agentId) || { totalGrams: 0, computeHours: 0 };
+
+    const footprint = this.carbon.get(dto.agentId) || {
+      totalGrams: 0,
+      computeHours: 0,
+    };
     footprint.totalGrams = Math.max(0, footprint.totalGrams - dto.grams);
     this.carbon.set(dto.agentId, footprint);
-    
+
     return {
       success: true,
       offsetGrams: dto.grams,

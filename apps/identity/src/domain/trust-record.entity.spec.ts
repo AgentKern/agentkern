@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Trust Record Entity Tests
- * 
+ *
  * Unit tests for trust scoring and resolution functions.
  */
 
@@ -128,7 +128,7 @@ describe('TrustRecordEntity', () => {
     it('should mark revoked record as not trusted', () => {
       const record = createTrustRecord('agent-1', 'user-1');
       record.revoked = true;
-      
+
       const resolution = createTrustResolution(record);
 
       expect(resolution.trusted).toBe(false);

@@ -1,5 +1,16 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { AgentStatus, AgentBudget, AgentUsage, AgentReputation } from '../domain/agent.entity';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import {
+  AgentStatus,
+  AgentBudget,
+  AgentUsage,
+  AgentReputation,
+} from '../domain/agent.entity';
 
 @Entity('agent_records')
 export class AgentRecordEntity {

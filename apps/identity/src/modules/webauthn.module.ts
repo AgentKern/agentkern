@@ -9,15 +9,20 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebAuthnController } from '../controllers/webauthn.controller';
 import { WebAuthnService } from '../services/webauthn.service';
-import { WebAuthnCredentialEntity, WebAuthnChallengeEntity } from '../entities/webauthn-credential.entity';
+import {
+  WebAuthnCredentialEntity,
+  WebAuthnChallengeEntity,
+} from '../entities/webauthn-credential.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WebAuthnCredentialEntity, WebAuthnChallengeEntity]),
+    TypeOrmModule.forFeature([
+      WebAuthnCredentialEntity,
+      WebAuthnChallengeEntity,
+    ]),
   ],
   controllers: [WebAuthnController],
   providers: [WebAuthnService],
   exports: [WebAuthnService],
 })
 export class WebAuthnModule {}
-

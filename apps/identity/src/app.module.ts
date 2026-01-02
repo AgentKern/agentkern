@@ -16,7 +16,10 @@ import { GateModule } from './modules/gate.module';
 import { TreasuryModule } from './modules/treasury.module';
 import { SynapseModule } from './modules/synapse.module';
 import { ArbiterModule } from './modules/arbiter.module';
-import { configValidationSchema, configValidationOptions } from './config/config.validation';
+import {
+  configValidationSchema,
+  configValidationOptions,
+} from './config/config.validation';
 
 @Module({
   imports: [
@@ -46,24 +49,24 @@ import { configValidationSchema, configValidationOptions } from './config/config
         limit: 200, // 200 requests per minute
       },
     ]),
-    
+
     // Core modules
     DatabaseModule,
     EnterpriseModule, // Enterprise license integration
-    
+
     // Six Pillars API
-    NexusModule,      // 🔀 Protocol translation (merged from Gateway)
-    GateModule,       // 🛡️ Security & Policy Enforcement
-    TreasuryModule,   // 💰 Agent Payments & Carbon
-    SynapseModule,    // 🧠 Memory & State Management
-    ArbiterModule,    // ⚖️ Governance & Coordination
-    
+    NexusModule, // 🔀 Protocol translation (merged from Gateway)
+    GateModule, // 🛡️ Security & Policy Enforcement
+    TreasuryModule, // 💰 Agent Payments & Carbon
+    SynapseModule, // 🧠 Memory & State Management
+    ArbiterModule, // ⚖️ Governance & Coordination
+
     // Identity endpoints
     ProofModule,
     DnsModule,
     DashboardModule,
     WebAuthnModule,
-    
+
     // Security framework
     SecurityModule,
   ],

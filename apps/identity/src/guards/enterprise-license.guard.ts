@@ -114,12 +114,18 @@ export class EnterpriseLicenseGuard implements CanActivate {
    */
   private async getLicenseInfo(): Promise<LicenseInfo> {
     // Check cache
-    if (this.cachedLicense && this.cacheExpiry && new Date() < this.cacheExpiry) {
+    if (
+      this.cachedLicense &&
+      this.cacheExpiry &&
+      new Date() < this.cacheExpiry
+    ) {
       return this.cachedLicense;
     }
 
     // Try to get license from ee/ service first
-    const eeServiceUrl = this.configService.get<string>('EE_LICENSE_SERVICE_URL');
+    const eeServiceUrl = this.configService.get<string>(
+      'EE_LICENSE_SERVICE_URL',
+    );
     if (eeServiceUrl) {
       try {
         const license = await this.fetchFromEeService(eeServiceUrl);
@@ -142,7 +148,7 @@ export class EnterpriseLicenseGuard implements CanActivate {
    */
   private async fetchFromEeService(serviceUrl: string): Promise<LicenseInfo> {
     const licenseKey = this.configService.get<string>('LICENSE_KEY');
-    
+
     const response = await fetch(`${serviceUrl}/api/v1/license/validate`, {
       method: 'POST',
       headers: {
@@ -156,7 +162,7 @@ export class EnterpriseLicenseGuard implements CanActivate {
       throw new Error(`License service returned ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<LicenseInfo>;
   }
 
   /**
@@ -164,7 +170,7 @@ export class EnterpriseLicenseGuard implements CanActivate {
    * Checks AGENTKERN_LICENSE_KEY (per ee/ docs) then LICENSE_KEY for compatibility
    */
   private checkLocalLicense(): LicenseInfo {
-    const licenseKey = 
+    const licenseKey =
       this.configService.get<string>('AGENTKERN_LICENSE_KEY') ||
       this.configService.get<string>('LICENSE_KEY');
 
@@ -179,7 +185,7 @@ export class EnterpriseLicenseGuard implements CanActivate {
     // Parse license key format: TIER-ORG-EXPIRY-SIGNATURE
     // Example: ENT-org123-20251231-abc123
     const parts = licenseKey.split('-');
-    
+
     if (parts.length < 2) {
       this.logger.warn('Invalid license key format');
       return {

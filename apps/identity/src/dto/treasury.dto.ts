@@ -59,7 +59,9 @@ export class TransferDto {
   @Min(0.001)
   amount: number;
 
-  @ApiPropertyOptional({ description: 'Transfer reference (e.g., service call ID)' })
+  @ApiPropertyOptional({
+    description: 'Transfer reference (e.g., service call ID)',
+  })
   @IsOptional()
   @IsString()
   reference?: string;
@@ -70,7 +72,10 @@ export class TransferResponseDto {
   @IsString()
   transactionId: string;
 
-  @ApiProperty({ description: 'Transaction status', enum: ['pending', 'completed', 'failed'] })
+  @ApiProperty({
+    description: 'Transaction status',
+    enum: ['pending', 'completed', 'failed'],
+  })
   @IsString()
   status: 'pending' | 'completed' | 'failed';
 
@@ -122,7 +127,10 @@ export class BudgetDto {
   @IsNumber()
   remaining: number;
 
-  @ApiProperty({ description: 'Budget period', enum: ['hourly', 'daily', 'weekly', 'monthly'] })
+  @ApiProperty({
+    description: 'Budget period',
+    enum: ['hourly', 'daily', 'weekly', 'monthly'],
+  })
   @IsString()
   period: 'hourly' | 'daily' | 'weekly' | 'monthly';
 }
@@ -133,7 +141,10 @@ export class SetBudgetDto {
   @Min(0)
   limit: number;
 
-  @ApiProperty({ description: 'Budget period', enum: ['hourly', 'daily', 'weekly', 'monthly'] })
+  @ApiProperty({
+    description: 'Budget period',
+    enum: ['hourly', 'daily', 'weekly', 'monthly'],
+  })
   @IsEnum(['hourly', 'daily', 'weekly', 'monthly'])
   period: 'hourly' | 'daily' | 'weekly' | 'monthly';
 }

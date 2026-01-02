@@ -1,6 +1,6 @@
 /**
  * AgentKernIdentity - Proof Signing Service
- * 
+ *
  * Creates signed Liability Proofs using ES256 (ECDSA P-256).
  * In production, signing happens on the client device via WebAuthn.
  * This service is for testing and demonstration purposes.
@@ -16,7 +16,6 @@ import {
   Intent,
   Constraints,
   createProofPayload,
-  serializeProofHeader,
 } from '../domain/liability-proof.entity';
 
 export interface CreateProofRequest {
@@ -34,11 +33,13 @@ export class ProofSigningService {
 
   /**
    * Create and sign a Liability Proof
-   * 
+   *
    * NOTE: In production, signing happens on the CLIENT device via WebAuthn.
    * This method is for server-side testing and development only.
    */
-  async createSignedProof(request: CreateProofRequest): Promise<LiabilityProof> {
+  async createSignedProof(
+    request: CreateProofRequest,
+  ): Promise<LiabilityProof> {
     // Create the unsigned payload
     const payload = createProofPayload(
       request.principal,
@@ -50,7 +51,9 @@ export class ProofSigningService {
       },
     );
 
-    this.logger.log(`Creating proof: ${payload.proofId} for principal: ${request.principal.id}`);
+    this.logger.log(
+      `Creating proof: ${payload.proofId} for principal: ${request.principal.id}`,
+    );
 
     // Sign the payload
     const signature = await this.signPayload(payload, request.privateKey);
@@ -65,7 +68,10 @@ export class ProofSigningService {
   /**
    * Sign a payload using ES256 (ECDSA with P-256 curve)
    */
-  private async signPayload(payload: LiabilityProofPayload, privateKeyPem: string): Promise<string> {
+  private async signPayload(
+    payload: LiabilityProofPayload,
+    privateKeyPem: string,
+  ): Promise<string> {
     try {
       // Import the private key
       const privateKey = await jose.importPKCS8(privateKeyPem, 'ES256');
@@ -74,7 +80,9 @@ export class ProofSigningService {
       const payloadJson = JSON.stringify(payload);
 
       // Create a compact JWS
-      const jws = await new jose.CompactSign(new TextEncoder().encode(payloadJson))
+      const jws = await new jose.CompactSign(
+        new TextEncoder().encode(payloadJson),
+      )
         .setProtectedHeader({ alg: 'ES256' })
         .sign(privateKey);
 

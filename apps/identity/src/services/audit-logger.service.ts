@@ -13,7 +13,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, Between, In } from 'typeorm';
-import { AuditEventEntity, AuditEventTypeEnum } from '../entities/audit-event.entity';
+import {
+  AuditEventEntity,
+  AuditEventTypeEnum,
+} from '../entities/audit-event.entity';
 
 // Re-export for backwards compatibility
 export { AuditEventTypeEnum as AuditEventType };
@@ -45,7 +48,9 @@ export class AuditLoggerService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const count = await this.auditRepository.count();
-    this.logger.log(`📋 Audit logger initialized with ${count} existing events`);
+    this.logger.log(
+      `📋 Audit logger initialized with ${count} existing events`,
+    );
   }
 
   /**
@@ -155,14 +160,17 @@ export class AuditLoggerService implements OnModuleInit {
   /**
    * Get audit trail for a principal
    */
-  async getAuditTrailForPrincipal(principalId: string, limit = 100): Promise<AuditEvent[]> {
+  async getAuditTrailForPrincipal(
+    principalId: string,
+    limit = 100,
+  ): Promise<AuditEvent[]> {
     const entities = await this.auditRepository.find({
       where: { principalId },
       order: { timestamp: 'DESC' },
       take: limit,
     });
 
-    return entities.map(this.entityToEvent);
+    return entities.map((e) => this.entityToEvent(e));
   }
 
   /**
@@ -174,7 +182,7 @@ export class AuditLoggerService implements OnModuleInit {
       order: { timestamp: 'DESC' },
     });
 
-    return entities.map(this.entityToEvent);
+    return entities.map((e) => this.entityToEvent(e));
   }
 
   /**
@@ -191,7 +199,7 @@ export class AuditLoggerService implements OnModuleInit {
       AuditEventTypeEnum.KILL_SWITCH_ACTIVATED,
     ];
 
-    const where: any = {
+    const where: Record<string, unknown> = {
       type: In(securityTypes),
     };
 
@@ -200,12 +208,16 @@ export class AuditLoggerService implements OnModuleInit {
     }
 
     const entities = await this.auditRepository.find({
-      where,
+      where: where as unknown as typeof AuditEventEntity extends {
+        new (): infer E;
+      }
+        ? Partial<E>
+        : never,
       order: { timestamp: 'DESC' },
       take: limit,
     });
 
-    return entities.map(this.entityToEvent);
+    return entities.map((e) => this.entityToEvent(e));
   }
 
   /**
@@ -217,7 +229,7 @@ export class AuditLoggerService implements OnModuleInit {
     principalId?: string;
     types?: AuditEventTypeEnum[];
   }): Promise<AuditEvent[]> {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (filters?.startDate && filters?.endDate) {
       where.timestamp = Between(filters.startDate, filters.endDate);
@@ -234,11 +246,15 @@ export class AuditLoggerService implements OnModuleInit {
     }
 
     const entities = await this.auditRepository.find({
-      where,
+      where: where as unknown as typeof AuditEventEntity extends {
+        new (): infer E;
+      }
+        ? Partial<E>
+        : never,
       order: { timestamp: 'DESC' },
     });
 
-    return entities.map(this.entityToEvent);
+    return entities.map((e) => this.entityToEvent(e));
   }
 
   /**
@@ -250,7 +266,7 @@ export class AuditLoggerService implements OnModuleInit {
       take: limit,
     });
 
-    return entities.map(this.entityToEvent);
+    return entities.map((e) => this.entityToEvent(e));
   }
 
   /**
