@@ -42,7 +42,7 @@ arrow = { version = "57", optional = true }
 crdts-lib = { package = "crdts", version = "7", optional = true }
 
 # Graph storage for state ledger
-petgraph = { version = "0.6", optional = true }
+petgraph = { version = "0.8", optional = true }
 
 # HTTP server (Dec 2025 - verified)
 axum = "0.8.8"
