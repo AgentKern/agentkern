@@ -187,7 +187,7 @@ export class NexusService {
    * Translate message between protocols using ProtocolTranslator.
    * Supports bidirectional translation: A2A <-> MCP <-> AgentKern
    */
-  translateMessage(dto: TranslateMessageDto): NexusMessage {
+  translateMessage(dto: TranslateMessageDto): any {
     const { sourceProtocol, targetProtocol, message } = dto;
 
     this.logger.log(`Translating ${sourceProtocol} -> ${targetProtocol}`);
@@ -200,7 +200,9 @@ export class NexusService {
       );
 
       this.logger.debug(
-        `Translation complete: ${translated.method} (${translated.id})`,
+        `Translation complete: ${
+          (translated as NexusMessage).method || 'unknown'
+        } (${(translated as NexusMessage).id || 'unknown'})`,
       );
 
       return translated;

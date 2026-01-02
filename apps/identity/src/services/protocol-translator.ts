@@ -65,6 +65,32 @@ export interface AgentKernMessage {
 }
 
 /**
+ * NLIP Message format (ECMA-430 Natural Language Interaction Protocol)
+ * Ported from Rust implementation (packages/pillars/nexus/src/protocols/nlip.rs)
+ */
+export interface NLIPMessage {
+  nlipVersion: string;
+  header: {
+    messageId?: string;
+    conversationId?: string;
+    timestamp?: string;
+    sender?: string;
+    recipient?: string;
+    intent?: string; // Maps to method
+    metadata?: Record<string, unknown>;
+  };
+  payload: {
+    content: unknown; // Multimodal content
+    modality?: string; // text, audio, image, etc.
+    context?: {
+      history?: unknown[];
+      system?: string;
+      variables?: Record<string, unknown>;
+    };
+  };
+}
+
+/**
  * Protocol Translator - Converts between agent protocols
  */
 export class ProtocolTranslator {
@@ -75,7 +101,7 @@ export class ProtocolTranslator {
     sourceProtocol: Protocol,
     targetProtocol: Protocol,
     message: unknown,
-  ): NexusMessage {
+  ): any {
     // Parse to unified format
     const unified = this.parseToUnified(sourceProtocol, message);
 
@@ -100,8 +126,10 @@ export class ProtocolTranslator {
       case 'agentkern':
         return this.parseAgentKern(msg as unknown as AgentKernMessage, baseId);
 
-      case 'anp':
       case 'nlip':
+        return this.parseNLIP(msg as unknown as NLIPMessage, baseId);
+
+      case 'anp':
       case 'aitp':
         // Future protocol support - pass through with basic mapping
         return {
@@ -195,6 +223,32 @@ export class ProtocolTranslator {
   }
 
   /**
+   * Parse NLIP message to unified format
+   */
+  private static parseNLIP(msg: NLIPMessage, baseId: string): NexusMessage {
+    // Extract method from intent or default
+    const method = msg.header.intent || 'message.send';
+
+    return {
+      id: msg.header.messageId || baseId,
+      method, // NLIP intent maps directly to method
+      params: {
+        conversationId: msg.header.conversationId,
+        content: msg.payload.content,
+        modality: msg.payload.modality,
+        context: msg.payload.context,
+        timestamp: msg.header.timestamp,
+      },
+      sourceProtocol: 'nlip',
+      timestamp: msg.header.timestamp || new Date().toISOString(),
+      sourceAgent: msg.header.sender,
+      targetAgent: msg.header.recipient,
+      correlationId: msg.header.conversationId,
+      metadata: msg.header.metadata,
+    };
+  }
+
+  /**
    * Parse AgentKern native message to unified format
    */
   private static parseAgentKern(
@@ -217,7 +271,7 @@ export class ProtocolTranslator {
   static serializeFromUnified(
     targetProtocol: Protocol,
     msg: NexusMessage,
-  ): NexusMessage {
+  ): any {
     switch (targetProtocol) {
       case 'a2a':
         return this.serializeToA2A(msg);
@@ -225,11 +279,13 @@ export class ProtocolTranslator {
       case 'mcp':
         return this.serializeToMCP(msg);
 
+      case 'nlip':
+        return this.serializeToNLIP(msg);
+
       case 'agentkern':
         return this.serializeToAgentKern(msg);
 
       case 'anp':
-      case 'nlip':
       case 'aitp':
         // Future protocol support - return with target marker
         return {
@@ -330,6 +386,35 @@ export class ProtocolTranslator {
       metadata: {
         ...msg.metadata,
         jsonrpc: '2.0',
+      },
+    };
+  }
+
+  /**
+
+
+  /**
+   * Serialize to NLIP format
+   */
+  private static serializeToNLIP(msg: NexusMessage): NLIPMessage {
+    const params = msg.params as Record<string, unknown>;
+
+    return {
+      nlipVersion: '1.0',
+      header: {
+        messageId: msg.id,
+        conversationId: msg.correlationId,
+        timestamp: msg.timestamp,
+        sender: msg.sourceAgent,
+        recipient: msg.targetAgent,
+        intent: msg.method,
+        metadata: msg.metadata,
+      },
+      payload: {
+        content: params?.content || params?.text || [],
+        modality: (params?.modality as string) || 'text',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        context: params?.context as any,
       },
     };
   }
