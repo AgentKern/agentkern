@@ -14,17 +14,15 @@ import {
 } from 'typeorm';
 
 @Entity('trust_records')
-@Index(['agentId', 'principalId'], { unique: true })
+@Index('idx_trust_records_agent_principal', ['agentId', 'principalId'], { unique: true })
 export class TrustRecordEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  @Index()
   agentId: string;
 
   @Column()
-  @Index()
   principalId: string;
 
   @Column({ type: 'int', default: 500 })

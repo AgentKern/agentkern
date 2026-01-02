@@ -27,6 +27,8 @@ import {
   TrustScoreEntity,
   TrustEventEntity,
 } from '../entities/trust-event.entity';
+import { GatePolicyEntity } from '../entities/gate-policy.entity';
+import { GatePolicyRepository } from '../repositories/gate-policy.repository';
 import { CspReportController } from '../controllers/csp-report.controller';
 import { AgentsController } from '../controllers/agents.controller';
 
@@ -40,6 +42,7 @@ import { AgentsController } from '../controllers/agents.controller';
       AuditEventEntity,
       TrustScoreEntity,
       TrustEventEntity,
+      GatePolicyEntity,
     ]),
   ],
   controllers: [CspReportController, AgentsController],
@@ -49,7 +52,8 @@ import { AgentsController } from '../controllers/agents.controller';
     TrustService,
     AgentSandboxService,
     AuditLoggerService,
+    GatePolicyRepository,
   ],
-  exports: [GateService, TrustService, AgentSandboxService, AuditLoggerService],
+  exports: [GateService, TrustService, AgentSandboxService, AuditLoggerService, GatePolicyRepository],
 })
 export class SecurityModule {}

@@ -49,7 +49,7 @@ interface NativeBridge {
   arbiterKillSwitchActivate(reason: string, agentId?: string): Promise<string>;
   arbiterKillSwitchStatus(): Promise<string>;
   arbiterKillSwitchDeactivate(): Promise<string>;
-  arbiterQueryAudit(limit: number): Promise<string>;
+  arbiterQueryAudit(): Promise<string>;
   arbiterChaosStats(): string;
 }
 
@@ -163,7 +163,7 @@ export class ArbiterService implements OnModuleInit {
     }
 
     try {
-      const result = await this.bridge.arbiterQueryAudit(limit);
+      const result = await this.bridge.arbiterQueryAudit();
       return JSON.parse(result) as AuditStatistics;
     } catch (error) {
       this.logger.error(`Failed to query audit: ${error}`);

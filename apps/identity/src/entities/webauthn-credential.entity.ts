@@ -47,7 +47,7 @@ export type AuthenticatorTransport =
  * public key and metadata needed for verification.
  */
 @Entity('webauthn_credentials')
-@Index(['principalId'])
+@Index('idx_webauthn_credentials_principalid', ['principalId'])
 export class WebAuthnCredentialEntity {
   /**
    * Credential ID from the authenticator (base64url encoded)
@@ -61,7 +61,7 @@ export class WebAuthnCredentialEntity {
    * Principal (user) who owns this credential
    */
   @Column('varchar', { length: 255 })
-  @Index()
+  @Index('idx_webauthn_credentials_principalid_col')
   principalId: string;
 
   /**
@@ -170,7 +170,7 @@ export class WebAuthnCredentialEntity {
  * Per WebAuthn spec: Challenges prevent replay attacks.
  */
 @Entity('webauthn_challenges')
-@Index(['expiresAt'])
+@Index('idx_webauthn_challenges_expiresat', ['expiresAt'])
 export class WebAuthnChallengeEntity {
   /**
    * Principal ID this challenge is for

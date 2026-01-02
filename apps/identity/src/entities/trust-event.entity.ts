@@ -27,13 +27,13 @@ export enum TrustEventType {
 }
 
 @Entity('trust_events')
-@Index(['agentId', 'timestamp'])
+@Index('idx_trust_events_agent_timestamp', ['agentId', 'timestamp'])
 export class TrustEventEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  @Index()
+  @Index('idx_trust_events_agentid')
   agentId: string;
 
   @Column({
@@ -82,7 +82,7 @@ export class TrustScoreEntity {
   id: string;
 
   @Column({ unique: true })
-  @Index()
+  @Index('idx_trust_scores_agentid')
   agentId: string;
 
   /**

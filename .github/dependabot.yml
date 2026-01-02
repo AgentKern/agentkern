@@ -1,61 +1,60 @@
 version: 2
 updates:
-  # NPM dependencies
+  # NPM - Root workspace
   - package-ecosystem: "npm"
-    directory: "/packages/sdk"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
       - "npm"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "typescript"
+          - "eslint*"
+          - "prettier*"
+          - "jest*"
+        update-types:
+          - "minor"
+          - "patch"
 
+  # NPM - Identity app
+  - package-ecosystem: "npm"
+    directory: "/apps/identity"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "identity"
+
+  # NPM - Playground app
   - package-ecosystem: "npm"
     directory: "/apps/playground"
     schedule:
       interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
       - "npm"
+      - "playground"
 
-  - package-ecosystem: "npm"
-    directory: "/apps/gateway"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "npm"
-
-  # Rust dependencies
+  # Rust - Root workspace
   - package-ecosystem: "cargo"
-    directory: "/packages/pillars/gate"
+    directory: "/"
     schedule:
       interval: "weekly"
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "rust"
-
-  - package-ecosystem: "cargo"
-    directory: "/packages/pillars/synapse"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "rust"
-
-  - package-ecosystem: "cargo"
-    directory: "/packages/pillars/arbiter"
-    schedule:
-      interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore(deps)"
     labels:
@@ -67,6 +66,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore(ci)"
     labels:

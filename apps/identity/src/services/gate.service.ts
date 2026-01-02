@@ -65,6 +65,7 @@ interface NativeBridge {
     action: string,
     contextJson?: string,
   ): Promise<string>;
+  registerPolicy(policyYaml: string): Promise<string>;
 }
 
 @Injectable()
@@ -88,6 +89,9 @@ export class GateService implements OnModuleInit {
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('🌉 N-API Bridge loaded successfully');
+      
+      // Initial policy sync
+      this.syncPolicies().catch(e => this.logger.error(`Initial policy sync failed: ${e}`));
     } catch (error) {
       // CRITICAL: Log as ERROR, not WARN - this is a security degradation
       this.logger.error(
@@ -370,7 +374,52 @@ export class GateService implements OnModuleInit {
       description: dto.description,
       rules: dto.rules,
     });
+    
+    // Sync to Bridge
+    this.syncPolicies().catch(e => this.logger.error(`Policy sync failed after create: ${e}`));
+
     return this.policyToResponse(entity);
+  }
+
+  /**
+   * Sync all policies from DB to Rule Engine
+   */
+  async syncPolicies(): Promise<void> {
+    if (!this.bridgeLoaded) return;
+
+    const policies = await this.policyRepository.findAll();
+    this.logger.log(`Syncing ${policies.length} policies to Gate Engine...`);
+
+    for (const p of policies) {
+        // Convert to Rust Policy structure (JSON is valid YAML)
+        const rustPolicy = {
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            priority: 100, // Default priority
+            enabled: p.active,
+            jurisdictions: [], // Empty = Global
+            rules: p.rules.map(r => ({
+                id: r.id,
+                condition: r.condition,
+                action: r.action,
+                // Map metadata to Rust fields if available
+                message: (r.metadata?.message as string) || undefined,
+                risk_score: (r.metadata?.risk_score as number) || undefined
+            }))
+        };
+        
+        try {
+            const yaml = JSON.stringify(rustPolicy);
+            const result = await this.bridge.registerPolicy(yaml);
+            const parsed = JSON.parse(result);
+            if (parsed.error) {
+                this.logger.error(`Failed to register policy ${p.id}: ${parsed.error}`);
+            }
+        } catch (e) {
+             this.logger.error(`Bridge error syncing policy ${p.id}: ${e}`);
+        }
+    }
   }
 
   /**

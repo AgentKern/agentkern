@@ -23,10 +23,17 @@ export interface StateUpdateResult {
   error?: string;
 }
 
+export interface SimilarityResult {
+  node_id: string;
+  score: number;
+}
+
 // Bridge interface (loaded from native module)
 interface NativeBridge {
   synapseGetState(agentId: string): Promise<string>;
   synapseUpdateState(agentId: string, stateJson: string): Promise<string>;
+  synapseStoreMemory(agentId: string, text: string): Promise<string>;
+  synapseQueryMemory(text: string, limit: number): Promise<string>;
 }
 
 @Injectable()
@@ -126,5 +133,58 @@ export class SynapseService implements OnModuleInit {
     }
 
     return this.updateState(agentId, deletions);
+  }
+
+  /**
+   * Store agent memory (embed + vector store)
+   */
+  async storeMemory(
+    agentId: string,
+    text: string,
+  ): Promise<{ id?: string; error?: string }> {
+    if (!this.bridgeLoaded) {
+      return { error: 'Bridge not loaded' };
+    }
+
+    try {
+      const result = await this.bridge.synapseStoreMemory(agentId, text);
+      const parsed = JSON.parse(result);
+      if (parsed.error) {
+        return { error: parsed.error };
+      }
+      return { id: parsed.id };
+    } catch (error) {
+      this.logger.error(`Failed to store memory for ${agentId}: ${error}`);
+      return { error: String(error) };
+    }
+  }
+
+  /**
+   * Query similar memories
+   */
+  async queryMemory(
+    text: string,
+    limit: number = 5,
+  ): Promise<SimilarityResult[]> {
+    if (!this.bridgeLoaded) {
+        this.logger.warn('Bridge not loaded, returning empty memory query');
+        return [];
+    }
+
+    try {
+      const result = await this.bridge.synapseQueryMemory(text, limit);
+      // Rust returns Vec<SimilarityResult>, which serializes to array
+      const parsed = JSON.parse(result);
+      if (Array.isArray(parsed)) {
+          return parsed as SimilarityResult[];
+      }
+      if (parsed.error) {
+          this.logger.error(`Memory query failed: ${parsed.error}`);
+      }
+      return [];
+    } catch (error) {
+      this.logger.error(`Failed to query memory: ${error}`);
+      return [];
+    }
   }
 }

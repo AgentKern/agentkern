@@ -8,6 +8,9 @@ on:
       - '.github/workflows/deploy-playground.yml'
   workflow_dispatch:
 
+env:
+  PNPM_VERSION: '9'
+
 jobs:
   deploy:
     name: Deploy to Vercel
@@ -16,26 +19,26 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Setup pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
       
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
       
       - name: Install dependencies
-        working-directory: apps/playground
         run: pnpm install --frozen-lockfile
       
       - name: Build
         working-directory: apps/playground
-        run: pnpm run build
+        run: pnpm build
+      
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
       
       - name: Deploy to Vercel
         working-directory: apps/playground
@@ -46,10 +49,15 @@ jobs:
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "⚠️ VERCEL_TOKEN not configured. Skipping deployment."
-            echo "To enable Vercel deployments, add these secrets to your repo:"
+            echo "To enable Vercel deployments, add these secrets:"
             echo "- VERCEL_TOKEN"
-            echo "- VERCEL_ORG_ID"  
+            echo "- VERCEL_ORG_ID"
             echo "- VERCEL_PROJECT_ID"
             exit 0
           fi
           vercel --token="$VERCEL_TOKEN" --prod --yes
+      
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Playground Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "Playground build completed successfully." >> $GITHUB_STEP_SUMMARY

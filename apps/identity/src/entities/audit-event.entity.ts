@@ -34,10 +34,10 @@ export enum AuditEventTypeEnum {
 }
 
 @Entity('audit_events')
-@Index(['principalId'])
-@Index(['agentId'])
-@Index(['type'])
-@Index(['timestamp'])
+@Index('idx_audit_events_principalid', ['principalId'])
+@Index('idx_audit_events_agentid', ['agentId'])
+@Index('idx_audit_events_type', ['type'])
+@Index('idx_audit_events_timestamp', ['timestamp'])
 export class AuditEventEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

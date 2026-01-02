@@ -321,6 +321,40 @@ impl SolarCurve {
     }
 }
 
+
+/// Carbon offset purchase record.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarbonOffset {
+    /// Transaction ID
+    pub transaction_id: String,
+    /// Agent ID
+    pub agent_id: AgentId,
+    /// Tons of CO2 offset
+    pub tons: f64,
+    /// Cost in USD
+    pub cost: f64,
+    /// Provider name
+    pub provider: String,
+    /// Certificate URL (if available)
+    pub certificate_url: Option<String>,
+    /// Timestamp
+    pub timestamp: DateTime<Utc>,
+}
+
+impl CarbonOffset {
+    pub fn new(agent_id: AgentId, tons: f64, cost: f64, provider: &str) -> Self {
+        Self {
+            transaction_id: uuid::Uuid::new_v4().to_string(),
+            agent_id,
+            tons,
+            cost,
+            provider: provider.to_string(),
+            certificate_url: None,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
 /// Carbon footprint for a single action.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CarbonFootprint {
@@ -477,6 +511,8 @@ pub struct CarbonUsage {
 pub struct CarbonLedger {
     /// Recorded footprints
     footprints: Arc<RwLock<Vec<CarbonFootprint>>>,
+    /// Purchased offsets
+    offsets: Arc<RwLock<Vec<CarbonOffset>>>,
     /// Agent budgets
     budgets: Arc<RwLock<HashMap<AgentId, CarbonBudget>>>,
     /// Default region
@@ -496,6 +532,7 @@ impl CarbonLedger {
     pub fn new() -> Self {
         Self {
             footprints: Arc::new(RwLock::new(Vec::new())),
+            offsets: Arc::new(RwLock::new(Vec::new())),
             budgets: Arc::new(RwLock::new(HashMap::new())),
             default_region: CarbonRegion::UsAverage,
             max_history: 100_000,
@@ -534,6 +571,33 @@ impl CarbonLedger {
         }
 
         Ok(())
+    }
+
+    /// Purchase carbon offset (internal accounting).
+    /// Returns the created offset record.
+    pub fn purchase_offset(
+        &self,
+        agent_id: AgentId,
+        tons: f64,
+    ) -> Result<CarbonOffset, CarbonError> {
+        if tons <= 0.0 {
+            return Err(CarbonError::InvalidAmount);
+        }
+
+        // Internal "Manual" provider until external API integration
+        // Cost updated to $15/ton market rate
+        let cost = tons * 15.0;
+        let offset = CarbonOffset::new(agent_id, tons, cost, "Internal Ledger (Manual)");
+
+        let mut offsets = self.offsets.write();
+        offsets.push(offset.clone());
+
+        // Trim if too large (optional)
+        if offsets.len() > self.max_history {
+            offsets.remove(0);
+        }
+
+        Ok(offset)
     }
 
     /// Record compute and calculate footprint automatically.
@@ -799,6 +863,8 @@ pub enum CarbonError {
         current: Decimal,
         requested: Decimal,
     },
+    #[error("Invalid offset amount")]
+    InvalidAmount,
 }
 
 // ============================================================================

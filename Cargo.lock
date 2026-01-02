@@ -134,10 +134,12 @@ dependencies = [
  "agentkern-nexus",
  "agentkern-synapse",
  "agentkern-treasury",
+ "chrono",
  "napi 2.16.17",
  "napi-derive 2.16.13",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

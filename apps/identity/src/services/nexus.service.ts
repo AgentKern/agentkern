@@ -1,235 +1,286 @@
 /**
- * AgentKern Gateway - Nexus Service
+ * AgentKern Identity - Nexus Service
  *
- * Business logic for protocol translation and agent discovery.
- * Now uses TypeORM-backed persistent storage instead of in-memory Map.
+ * Wrapper for N-API bridge to Rust Nexus logic.
+ * Handles protocol translation and agent registration via the Gateway.
+ *
+ * Per DECISION_RECORD_BRIDGE.md: N-API for hot path (0ms latency)
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import * as path from 'path';
 import {
-  RegisterAgentDto,
-  RouteTaskDto,
-  TranslateMessageDto,
   AgentCard,
+  TranslateMessageDto,
+  RouteTaskDto,
   NexusMessage,
+  Skill,
+  Capability,
+  RegisterAgentDto,
 } from '../dto/nexus.dto';
-import { NexusAgentRepository } from '../repositories/nexus-agent.repository';
-import { NexusAgentEntity } from '../entities/nexus-agent.entity';
-import { ProtocolTranslator } from './protocol-translator';
+import { v4 as uuidv4 } from 'uuid';
+
+// Bridge interface (loaded from native module)
+interface NativeBridge {
+  nexusReceive(payload: string): Promise<string>;
+  nexusRegisterAgent(cardJson: string): Promise<string>;
+  nexusListAgents(): Promise<string>;
+  nexusGetAgent(id: string): Promise<string>;
+  nexusUnregisterAgent(id: string): Promise<boolean>;
+  nexusDiscoverAgent(url: string): Promise<string>;
+  nexusRouteTask(taskJson: string): Promise<string>;
+  nexusGetStats(): Promise<string>;
+  nexusCreateA2aTask(id: string, description: string): string;
+  nexusSend(msgJson: string, targetProtocol: string): Promise<string>;
+}
 
 @Injectable()
-export class NexusService {
+export class NexusService implements OnModuleInit {
   private readonly logger = new Logger(NexusService.name);
+  private bridge!: NativeBridge;
+  private bridgeLoaded = false;
 
-  constructor(private readonly agentRepository: NexusAgentRepository) {}
+  async onModuleInit(): Promise<void> {
+    await Promise.resolve(); // Ensure async context
 
-  /**
-   * Convert entity to AgentCard DTO
-   */
-  private toAgentCard(entity: NexusAgentEntity): AgentCard {
-    return {
-      id: entity.id,
-      name: entity.name,
-      description: entity.description,
-      url: entity.url,
-      version: entity.version,
-      capabilities: entity.capabilities,
-      skills: entity.skills,
-      protocols: entity.protocols,
-      registeredAt: entity.registeredAt.toISOString(),
-    };
+    try {
+      const bridgePath = path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      this.bridge = require(bridgePath) as NativeBridge;
+      this.bridgeLoaded = true;
+      this.logger.log('🌐 Nexus N-API Bridge loaded successfully');
+    } catch (error) {
+      this.logger.error(`🚨 Failed to load Nexus N-API bridge: ${error}`);
+      this.logger.warn('NexusService will operate in degraded mode');
+    }
+  }
+
+  isOperational(): boolean {
+    return this.bridgeLoaded;
   }
 
   /**
-   * Register an agent (persisted to database).
+   * Receive and translate a raw message payload.
+   * Auto-detects protocol (A2A, MCP, etc.) in Rust.
+   */
+  async receive(payload: string): Promise<NexusMessage | { error: string }> {
+    if (!this.bridgeLoaded) return { error: 'Bridge not loaded' };
+
+    try {
+      const result = await this.bridge.nexusReceive(payload);
+      return JSON.parse(result);
+    } catch (error) {
+      this.logger.error(`Failed to receive message: ${error}`);
+      return { error: String(error) };
+    }
+  }
+
+  /**
+   * Register a new agent with the Nexus Gateway.
    */
   async registerAgent(dto: RegisterAgentDto): Promise<AgentCard> {
-    const entity = await this.agentRepository.register({
-      id: dto.id,
-      name: dto.name,
-      description: dto.description,
-      url: dto.url,
-      version: dto.version,
-      capabilities: dto.capabilities,
-      skills: dto.skills,
-      protocols: dto.protocols,
-    });
+    if (!this.bridgeLoaded) throw new Error('Bridge not loaded');
 
-    return this.toAgentCard(entity);
+    try {
+      // Ensure ID exists
+      const id = dto.id || uuidv4();
+      
+      // Convert DTO to Card (filling defaults)
+      const card: AgentCard = {
+        ...dto,
+        id,
+        description: dto.description || '',
+        skills: dto.skills || [],
+        capabilities: dto.capabilities || [],
+        protocols: dto.protocols || ['a2a', 'mcp'],
+        version: dto.version || '1.0.0',
+        registeredAt: new Date().toISOString(),
+      };
+
+      const json = JSON.stringify(card);
+      const result = await this.bridge.nexusRegisterAgent(json);
+      const parsed = JSON.parse(result);
+      if (parsed.error) throw new Error(parsed.error);
+      
+      return card;
+    } catch (error) {
+      this.logger.error(`Failed to register agent ${dto.name}: ${error}`);
+      throw error;
+    }
   }
 
   /**
-   * List all agents (from database).
+   * List all agents.
    */
   async listAgents(): Promise<AgentCard[]> {
-    const entities = await this.agentRepository.findAll();
-    return entities.map((e) => this.toAgentCard(e));
+    if (!this.bridgeLoaded) return [];
+
+    try {
+      const result = await this.bridge.nexusListAgents();
+      const agents = JSON.parse(result);
+      return this.mapAgents(agents);
+    } catch (error) {
+      this.logger.error(`Failed to list agents: ${error}`);
+      return [];
+    }
   }
 
   /**
-   * Get agent by ID (from database).
-   */
-  async getAgent(id: string): Promise<AgentCard | null> {
-    const entity = await this.agentRepository.findById(id);
-    return entity ? this.toAgentCard(entity) : null;
-  }
-
-  /**
-   * Unregister an agent (soft delete in database).
-   */
-  async unregisterAgent(id: string): Promise<boolean> {
-    return this.agentRepository.unregister(id);
-  }
-
-  /**
-   * Find agents by skill (JSONB search in database).
+   * Find agents by skill (client-side filtering for now).
    */
   async findAgentsBySkill(skill: string): Promise<AgentCard[]> {
-    const entities = await this.agentRepository.findBySkill(skill);
-    return entities.map((e) => this.toAgentCard(e));
+    const agents = await this.listAgents();
+    return agents.filter((a) => a.skills?.some(s => s.name === skill || s.id === skill));
   }
 
   /**
-   * Discover agent from URL (fetches /.well-known/agent.json).
-   * This is genuinely async due to network I/O.
+   * Get agent by ID.
    */
-  async discoverAgent(url: string): Promise<AgentCard> {
-    const wellKnownUrl = `${url.replace(/\/$/, '')}/.well-known/agent.json`;
-
-    this.logger.log(`Discovering agent from: ${wellKnownUrl}`);
+  async getAgent(id: string): Promise<AgentCard | null> {
+    if (!this.bridgeLoaded) return null;
 
     try {
-      const response = await fetch(wellKnownUrl);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch agent card: ${response.status}`);
-      }
-
-      const card = (await response.json()) as AgentCard;
-
-      // Register the discovered agent with source tracking
-      const entity = await this.agentRepository.register({
-        id: card.id,
-        name: card.name,
-        description: card.description,
-        url: card.url,
-        version: card.version,
-        capabilities: card.capabilities,
-        skills: card.skills,
-        protocols: card.protocols,
-        discoveredFrom: url,
-      });
-
-      this.logger.log(`Agent discovered and registered: ${entity.id}`);
-      return this.toAgentCard(entity);
+      const result = await this.bridge.nexusGetAgent(id);
+      if (result === 'null') return null;
+      const agent = JSON.parse(result);
+      return this.mapAgent(agent);
     } catch (error) {
-      this.logger.error(`Discovery failed for ${url}: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Route task to best matching agent (queries database).
-   */
-  async routeTask(
-    dto: RouteTaskDto,
-  ): Promise<(AgentCard & { matchScore: number }) | null> {
-    const agents = await this.agentRepository.findAll();
-
-    if (agents.length === 0) {
+      this.logger.error(`Failed to get agent ${id}: ${error}`);
       return null;
     }
-
-    // Score each agent
-    const scored = agents.map((agent) => ({
-      ...this.toAgentCard(agent),
-      matchScore: this.calculateMatchScore(agent, dto),
-    }));
-
-    // Sort by score descending
-    scored.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Return best match if score > 0
-    const best = scored[0];
-    return best.matchScore > 0 ? best : null;
   }
 
   /**
-   * Calculate match score for agent vs task.
+   * Unregister agent.
    */
-  private calculateMatchScore(
-    agent: NexusAgentEntity,
-    task: RouteTaskDto,
-  ): number {
-    let score = 0;
-    const requiredSkills = task.requiredSkills || [];
-
-    if (requiredSkills.length === 0) {
-      return 100; // No skills required = any agent matches
-    }
-
-    for (const required of requiredSkills) {
-      const hasSkill = agent.skills.some(
-        (s) =>
-          s.id === required ||
-          s.name.toLowerCase() === required.toLowerCase() ||
-          s.tags?.includes(required),
-      );
-      if (hasSkill) {
-        score += 100 / requiredSkills.length;
-      }
-    }
-
-    return Math.round(score);
-  }
-
-  /**
-   * Translate message between protocols using ProtocolTranslator.
-   * Supports bidirectional translation: A2A <-> MCP <-> AgentKern
-   */
-  translateMessage(dto: TranslateMessageDto): any {
-    const { sourceProtocol, targetProtocol, message } = dto;
-
-    this.logger.log(`Translating ${sourceProtocol} -> ${targetProtocol}`);
+  async unregisterAgent(id: string): Promise<boolean> {
+    if (!this.bridgeLoaded) return false;
 
     try {
-      const translated = ProtocolTranslator.translate(
-        sourceProtocol,
-        targetProtocol,
-        message,
-      );
-
-      this.logger.debug(
-        `Translation complete: ${
-          (translated as NexusMessage).method || 'unknown'
-        } (${(translated as NexusMessage).id || 'unknown'})`,
-      );
-
-      return translated;
+      return await this.bridge.nexusUnregisterAgent(id);
     } catch (error) {
-      this.logger.error(`Translation failed: ${error}`);
+      this.logger.error(`Failed to unregister agent ${id}: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Discover agent from URL.
+   */
+  async discoverAgent(url: string): Promise<AgentCard> {
+    if (!this.bridgeLoaded) throw new Error('Bridge not loaded');
+
+    try {
+      const result = await this.bridge.nexusDiscoverAgent(url);
+      const parsed = JSON.parse(result);
+      if (parsed.error) throw new Error(parsed.error);
+      return this.mapAgent(parsed);
+    } catch (error) {
+      this.logger.error(`Failed to discover agent at ${url}: ${error}`);
       throw error;
     }
   }
 
   /**
-   * Get service statistics (from database).
+   * Route task to best matching agent.
    */
-  async getStats(): Promise<{
-    registeredAgents: number;
-    supportedProtocols: number;
-  }> {
-    const stats = await this.agentRepository.getStats();
-    return {
-      registeredAgents: stats.activeAgents,
-      supportedProtocols: 6,
-    };
+  async routeTask(dto: RouteTaskDto): Promise<(AgentCard & { matchScore: number }) | null> {
+    if (!this.bridgeLoaded) return null;
+
+    try {
+      const taskJson = JSON.stringify(dto);
+      const result = await this.bridge.nexusRouteTask(taskJson);
+      const parsed = JSON.parse(result);
+      if (parsed.error) throw new Error(parsed.error);
+      
+      const agent = this.mapAgent(parsed);
+      return { ...agent, matchScore: parsed.matchScore || 0 };
+    } catch (error) {
+      this.logger.error(`Failed to route task: ${error}`);
+      return null;
+    }
   }
 
   /**
-   * List supported protocols (synchronous operation).
+   * Translate message between protocols.
    */
-  listProtocols(): string[] {
-    return ['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'];
+  async translateMessage(dto: TranslateMessageDto): Promise<any> {
+    if (!this.bridgeLoaded) return { error: 'Bridge not loaded' };
+
+    try {
+      // 1. Receive (Foreign -> Native)
+      const payload = typeof dto.message === 'string' ? dto.message : JSON.stringify(dto.message);
+      const nativeMsg = await this.receive(payload);
+
+      if ('error' in nativeMsg) throw new Error(nativeMsg.error);
+
+      // 2. Send (Native -> Target)
+      const nativeJson = JSON.stringify(nativeMsg);
+      const result = await this.bridge.nexusSend(nativeJson, dto.targetProtocol);
+      
+      try {
+        return JSON.parse(result);
+      } catch {
+        return { payload: result };
+      }
+    } catch (error) {
+      this.logger.error(`Failed to translate message: ${error}`);
+      return { error: String(error) };
+    }
+  }
+
+  /**
+   * Get Nexus stats.
+   */
+  async getStats(): Promise<{ registeredAgents: number; supportedProtocols: number }> {
+    if (!this.bridgeLoaded) {
+      return { registeredAgents: 0, supportedProtocols: 0 };
+    }
+
+    try {
+      const result = await this.bridge.nexusGetStats();
+      return JSON.parse(result);
+    } catch (error) {
+      this.logger.error(`Failed to get stats: ${error}`);
+      return { registeredAgents: 0, supportedProtocols: 0 };
+    }
+  }
+
+  /**
+   * Helper: Map bridge agent to DTO AgentCard
+   * Handles loose typing from bridge (e.g. capabilities might be strings or objects)
+   */
+  private mapAgent(raw: any): AgentCard {
+    const skills: Skill[] = Array.isArray(raw.skills) 
+      ? raw.skills.map((s: any) => typeof s === 'string' ? { id: s, name: s } : s)
+      : [];
+
+    const capabilities: Capability[] = Array.isArray(raw.capabilities)
+      ? raw.capabilities.map((c: any) => typeof c === 'string' ? { name: c } : c)
+      : [];
+
+    return {
+      ...raw,
+      skills,
+      capabilities,
+      protocols: raw.protocols || ['a2a', 'mcp'], // Default if missing
+    };
+  }
+  
+  private mapAgents(list: any[]): AgentCard[] {
+      return list.map(a => this.mapAgent(a));
+  }
+
+  createA2ATask(id: string, description: string): string {
+    if (!this.bridgeLoaded) return JSON.stringify({ error: 'Bridge not loaded' });
+    try {
+      return this.bridge.nexusCreateA2aTask(id, description);
+    } catch (error) {
+      return JSON.stringify({ error: String(error) });
+    }
   }
 }

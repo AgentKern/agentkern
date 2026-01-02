@@ -1,4 +1,4 @@
-name: AI-Assisted Code Review
+name: AI Code Review
 
 on:
   pull_request:
@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   # ============================================
-  # Security & Compliance Analysis
+  # Security & Quality Analysis
   # ============================================
-  security-review:
-    name: Security Analysis
+  ai-review:
+    name: AI Security Review
     runs-on: ubuntu-latest
     
     steps:
@@ -24,67 +24,59 @@ jobs:
       - name: Get Changed Files
         id: changed
         run: |
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | tr '\n' ' ')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "count=$(echo $FILES | wc -w)" >> $GITHUB_OUTPUT
 
-      # Zero-Trust Compliance Check
-      - name: Zero-Trust Compliance
-        id: zero-trust
+      - name: Security Analysis
+        id: security
         run: |
-          echo "## 🔐 Zero-Trust Compliance" > review.md
+          echo "## 🔐 Security Review" > review.md
+          echo "" >> review.md
           
           # Check for hardcoded secrets
-          if grep -rn "PRIVATE_KEY\|SECRET\|PASSWORD" --include="*.rs" --include="*.ts" ${{ steps.changed.outputs.files }} 2>/dev/null; then
-            echo "⚠️ **Warning**: Potential hardcoded secrets detected" >> review.md
+          if grep -rn "PRIVATE_KEY\|SECRET\|PASSWORD\|API_KEY" --include="*.rs" --include="*.ts" ${{ steps.changed.outputs.files }} 2>/dev/null | grep -v "process.env\|secrets\.\|\.example"; then
+            echo "⚠️ **Potential hardcoded secrets detected**" >> review.md
           else
-            echo "✅ No hardcoded secrets detected" >> review.md
+            echo "✅ No hardcoded secrets found" >> review.md
           fi
           
-          # Check for mTLS usage
-          if grep -rn "mtls\|TlsConfig" --include="*.rs" ${{ steps.changed.outputs.files }} 2>/dev/null; then
-            echo "✅ mTLS configuration present" >> review.md
+          # Check for unsafe patterns
+          echo "" >> review.md
+          if grep -rn "eval\|exec\|innerHTML\|dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" ${{ steps.changed.outputs.files }} 2>/dev/null; then
+            echo "⚠️ **Potential unsafe code patterns detected**" >> review.md
+          else
+            echo "✅ No unsafe patterns found" >> review.md
+          fi
+          
+          # Check for proper error handling
+          echo "" >> review.md
+          echo "### Error Handling" >> review.md
+          if grep -rn "catch\s*{\s*}" --include="*.ts" ${{ steps.changed.outputs.files }} 2>/dev/null; then
+            echo "⚠️ Empty catch blocks detected" >> review.md
+          else
+            echo "✅ No empty catch blocks" >> review.md
           fi
 
-      # PQC Readiness Check
-      - name: Quantum-Safe Crypto Check
-        id: pqc
-        run: |
-          echo "## 🔮 Post-Quantum Cryptography" >> review.md
-          
-          # Check for classical-only crypto
-          if grep -rn "RSA\|ECDSA" --include="*.rs" ${{ steps.changed.outputs.files }} 2>/dev/null; then
-            echo "⚠️ **Notice**: Classical cryptography detected. Consider hybrid PQC migration." >> review.md
-          fi
-          
-          # Check for ML-KEM/ML-DSA usage
-          if grep -rn "ml-kem\|ml-dsa\|FIPS.203\|FIPS.204" --include="*.rs" --include="*.toml" ${{ steps.changed.outputs.files }} 2>/dev/null; then
-            echo "✅ Post-quantum cryptography detected" >> review.md
-          fi
-
-      # Performance Regression Detection
       - name: Performance Check
-        id: perf
         run: |
+          echo "" >> review.md
           echo "## ⚡ Performance" >> review.md
           
-          # Check for potential N+1 queries
-          if grep -rn "for.*await\|\.iter\(\).*await" --include="*.rs" ${{ steps.changed.outputs.files }} 2>/dev/null; then
-            echo "⚠️ **Warning**: Potential N+1 async pattern detected" >> review.md
-          fi
-          
-          # Check for unbounded allocations
-          if grep -rn "Vec::new\(\)" --include="*.rs" ${{ steps.changed.outputs.files }} 2>/dev/null | grep -v "with_capacity"; then
-            echo "💡 **Suggestion**: Consider using `Vec::with_capacity()` for known sizes" >> review.md
+          # Check for N+1 patterns
+          if grep -rn "for.*await\|\.forEach.*async" --include="*.ts" ${{ steps.changed.outputs.files }} 2>/dev/null; then
+            echo "💡 Consider using `Promise.all()` for parallel async operations" >> review.md
+          else
+            echo "✅ No obvious N+1 patterns" >> review.md
           fi
 
-      # Comment on PR
-      - name: Post Review Comment
+      - name: Post Review
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const review = fs.readFileSync('review.md', 'utf8');
             
-            // Find existing comment to update
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -93,10 +85,10 @@ jobs:
             
             const botComment = comments.find(c => 
               c.user.type === 'Bot' && 
-              c.body.includes('🔐 Zero-Trust Compliance')
+              c.body.includes('🔐 Security Review')
             );
             
-            const body = `# 🤖 AI Security Review\n\n${review}\n\n---\n*Automated review by AgentKern CI*`;
+            const body = `# 🤖 AI Code Review\n\n${review}\n\n---\n*Files analyzed: ${{ steps.changed.outputs.count }}*`;
             
             if (botComment) {
               await github.rest.issues.updateComment({
@@ -112,36 +104,4 @@ jobs:
                 issue_number: context.issue.number,
                 body,
               });
-            }
-
-  # ============================================
-  # Dependency Audit
-  # ============================================
-  dependency-audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Rust Security Audit
-        run: |
-          cargo install cargo-audit --locked 2>/dev/null || true
-          cargo audit --json > audit.json 2>/dev/null || echo "{}" > audit.json
-
-      - name: Check for Vulnerabilities
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let audit = {};
-            try {
-              audit = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
-            } catch (e) {
-              console.log('No audit results');
-              return;
-            }
-            
-            if (audit.vulnerabilities && audit.vulnerabilities.count > 0) {
-              core.setFailed(`Found ${audit.vulnerabilities.count} vulnerabilities`);
             }

@@ -17,13 +17,13 @@ import {
 
 @Entity('verification_keys')
 @Unique(['principalId', 'credentialId'])
-@Index(['principalId'])
+@Index('idx_verification_keys_principalid', ['principalId'])
 export class VerificationKeyEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  @Index()
+  @Index('idx_verification_keys_principalid_col')
   principalId: string;
 
   @Column()

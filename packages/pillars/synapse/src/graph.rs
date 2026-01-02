@@ -55,7 +55,7 @@ pub enum EdgeType {
 }
 
 /// Vector similarity result.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimilarityResult {
     pub node_id: uuid::Uuid,
     pub score: f64,

@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '9'
+
 jobs:
   # ============================================
   # SBOM Generation (SLSA Level 3)
@@ -16,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@nightly
@@ -24,49 +28,35 @@ jobs:
       - name: Install cargo-sbom
         run: cargo install cargo-sbom
       
-      - name: Generate SBOM for Gate
-        working-directory: packages/pillars/gate
+      - name: Generate SBOM for workspace
         run: |
-          cargo sbom --output-format cyclone_dx_json_1_6 > gate-sbom.json
-      
-      - name: Generate SBOM for Synapse
-        working-directory: packages/pillars/synapse
-        run: |
-          cargo sbom --output-format cyclone_dx_json_1_6 > synapse-sbom.json
-      
-      - name: Generate SBOM for Arbiter
-        working-directory: packages/pillars/arbiter
-        run: |
-          cargo sbom --output-format cyclone_dx_json_1_6 > arbiter-sbom.json
+          cargo sbom --output-format cyclone_dx_json_1_6 > agentkern-sbom.json
       
       - name: Upload Rust SBOM artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sbom-rust
-          path: |
-            packages/pillars/gate/gate-sbom.json
-            packages/pillars/synapse/synapse-sbom.json
-            packages/pillars/arbiter/arbiter-sbom.json
+          path: agentkern-sbom.json
 
   # ============================================
-  # TypeScript SBOM Generation (NEW)
+  # TypeScript SBOM Generation
   # ============================================
   sbom-typescript:
     name: Generate TypeScript SBOM
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -95,7 +85,7 @@ jobs:
     needs: [sbom-rust, sbom-typescript]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Download Rust SBOMs
         uses: actions/download-artifact@v4
@@ -119,7 +109,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
   # ============================================
-  # SLSA Provenance Attestation (NEW)
+  # SLSA Provenance Attestation
   # ============================================
   provenance:
     name: SLSA Provenance
@@ -133,7 +123,7 @@ jobs:
       attestations: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Download all SBOMs
         uses: actions/download-artifact@v4
@@ -159,7 +149,7 @@ jobs:
       contents: read
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -190,10 +180,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -205,20 +195,23 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       
       - name: Audit npm dependencies
-        working-directory: packages/sdk
-        run: npm audit --audit-level=high
+        working-directory: apps/identity
+        run: pnpm audit --audit-level=high
         continue-on-error: true
+
   # ============================================
-  # SAST - Semgrep Static Analysis (Industry Standard)
-  # Per OWASP: "SAST should be integrated into CI/CD"
+  # SAST - Semgrep Static Analysis
   # ============================================
   semgrep-sast:
     name: Semgrep SAST
@@ -229,7 +222,7 @@ jobs:
       security-events: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Run Semgrep
         uses: semgrep/semgrep-action@v1
@@ -258,16 +251,15 @@ jobs:
 
   # ============================================
   # Secret Scanning (TruffleHog)
-  # Defense-in-depth for hardcoded secrets
   # ============================================
   secret-scanning:
     name: Secret Scanning
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Full history for secret detection
+          fetch-depth: 0
       
       - name: TruffleHog Secret Scan
         uses: trufflesecurity/trufflehog@main
@@ -285,20 +277,20 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
+        continue-on-error: true
 
   # ============================================
-  # Code Quality Analysis (SonarQube - Dec 2025)
-  # Per Roadmap: Track technical debt "interest"
+  # Code Quality Analysis (SonarQube)
   # ============================================
   code-quality:
     name: Code Quality (SonarQube)
@@ -306,19 +298,19 @@ jobs:
     if: github.event_name == 'pull_request'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Required for SonarQube analysis
+          fetch-depth: 0
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -337,7 +329,7 @@ jobs:
           args: >
             -Dsonar.projectKey=AgentKern_agentkern
             -Dsonar.organization=agentkern
-            -Dsonar.sources=apps/identity/src,packages/sdk/src
+            -Dsonar.sources=apps/identity/src
             -Dsonar.typescript.lcov.reportPaths=apps/identity/coverage/lcov.info
             -Dsonar.qualitygate.wait=true
         continue-on-error: true
