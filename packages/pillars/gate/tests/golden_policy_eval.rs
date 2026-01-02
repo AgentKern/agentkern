@@ -14,7 +14,9 @@
 
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::policy::{Policy, PolicyAction, PolicyRule};
-use agentkern_gate::types::{DataRegion, LatencyBreakdown, VerificationRequest, VerificationResult};
+use agentkern_gate::types::{
+    DataRegion, LatencyBreakdown, VerificationRequest, VerificationResult,
+};
 use serde_json::json;
 use std::collections::HashMap;
 
