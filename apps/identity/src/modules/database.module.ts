@@ -9,12 +9,20 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TrustRecordEntity } from '../entities/trust-record.entity';
-import { TrustEventEntity, TrustScoreEntity } from '../entities/trust-event.entity';
+import {
+  TrustEventEntity,
+  TrustScoreEntity,
+} from '../entities/trust-event.entity';
 import { AuditEventEntity } from '../entities/audit-event.entity';
 import { AgentRecordEntity } from '../entities/agent-record.entity';
-import { WebAuthnCredentialEntity, WebAuthnChallengeEntity } from '../entities/webauthn-credential.entity';
+import {
+  WebAuthnCredentialEntity,
+  WebAuthnChallengeEntity,
+} from '../entities/webauthn-credential.entity';
 import { VerificationKeyEntity } from '../entities/verification-key.entity';
 import { SystemConfigEntity } from '../entities/system-config.entity';
+import { NexusAgentEntity } from '../entities/nexus-agent.entity';
+import { GatePolicyEntity } from '../entities/gate-policy.entity';
 
 // All entities registered with the Identity database
 const ENTITIES = [
@@ -27,6 +35,8 @@ const ENTITIES = [
   WebAuthnChallengeEntity,
   VerificationKeyEntity,
   SystemConfigEntity,
+  NexusAgentEntity,
+  GatePolicyEntity,
 ];
 
 @Module({
@@ -43,15 +53,16 @@ const ENTITIES = [
             type: 'postgres',
             host: url.hostname || 'localhost',
             port: parseInt(url.port, 10) || 5432,
-            username: url.username || 'agentkern-identity',
-            password: decodeURIComponent(url.password) || 'agentkern-identity',
-            database: url.pathname.slice(1) || 'agentkern-identity',
+            username: url.username || 'agentkern',
+            password: decodeURIComponent(url.password) || 'agentkern_secret',
+            database: url.pathname.slice(1) || 'agentkern_identity',
             entities: ENTITIES,
-            synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
+            synchronize: configService.get('DATABASE_SYNC', 'false') === 'true', // Default false for production safety
             logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
-            ssl: configService.get('DATABASE_SSL', 'false') === 'true'
-              ? { rejectUnauthorized: false }
-              : false,
+            ssl:
+              configService.get('DATABASE_SSL', 'false') === 'true'
+                ? { rejectUnauthorized: false }
+                : false,
           };
         }
 
@@ -59,15 +70,25 @@ const ENTITIES = [
           type: 'postgres',
           host: configService.get<string>('DATABASE_HOST', 'localhost'),
           port: configService.get<number>('DATABASE_PORT', 5432),
-          username: configService.get<string>('DATABASE_USER', 'agentkern-identity'),
-          password: configService.get<string>('DATABASE_PASSWORD', 'agentkern-identity'),
-          database: configService.get<string>('DATABASE_NAME', 'agentkern-identity'),
+          username: configService.get<string>(
+            'DATABASE_USER',
+            'agentkern',
+          ),
+          password: configService.get<string>(
+            'DATABASE_PASSWORD',
+            'agentkern_secret',
+          ),
+          database: configService.get<string>(
+            'DATABASE_NAME',
+            'agentkern_identity',
+          ),
           entities: ENTITIES,
-          synchronize: configService.get('DATABASE_SYNC', 'true') === 'true',
+          synchronize: configService.get('DATABASE_SYNC', 'false') === 'true', // Default false for production safety
           logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
-          ssl: configService.get('DATABASE_SSL', 'false') === 'true'
-            ? { rejectUnauthorized: false }
-            : false,
+          ssl:
+            configService.get('DATABASE_SSL', 'false') === 'true'
+              ? { rejectUnauthorized: false }
+              : false,
         };
       },
     }),

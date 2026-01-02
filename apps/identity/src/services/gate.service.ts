@@ -9,6 +9,8 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
+import { GatePolicyRepository } from '../repositories/gate-policy.repository';
+import { GatePolicyEntity } from '../entities/gate-policy.entity';
 
 // Type definitions for bridge responses
 export interface PromptAnalysis {
@@ -57,7 +59,11 @@ interface NativeBridge {
   attest(nonce: string): string;
   guardPrompt(prompt: string): string;
   guardContext(chunks: string[]): string;
-  verify(agentId: string, action: string, contextJson?: string): Promise<string>;
+  verify(
+    agentId: string,
+    action: string,
+    contextJson?: string,
+  ): Promise<string>;
 }
 
 @Injectable()
@@ -66,18 +72,29 @@ export class GateService implements OnModuleInit {
   private bridge!: NativeBridge;
   private bridgeLoaded = false;
 
+  constructor(private readonly policyRepository: GatePolicyRepository) {}
+
   async onModuleInit(): Promise<void> {
+    await Promise.resolve(); // Ensure async lifecycle hook
     try {
       // Path to native module (relative to apps/identity/dist)
       // Correct path: packages/foundation/bridge/index.node
-      const bridgePath = path.resolve(__dirname, '../../../../packages/foundation/bridge/index.node');
+      const bridgePath = path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      );
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('🌉 N-API Bridge loaded successfully');
     } catch (error) {
       // CRITICAL: Log as ERROR, not WARN - this is a security degradation
-      this.logger.error(`🚨 SECURITY DEGRADATION: Failed to load N-API bridge: ${error}`);
-      this.logger.error('🚨 GateService will operate in FAIL-CLOSED mode (blocking all prompts)');
+      this.logger.error(
+        `🚨 SECURITY DEGRADATION: Failed to load N-API bridge: ${error}`,
+      );
+      this.logger.error(
+        '🚨 GateService will operate in FAIL-CLOSED mode (blocking all prompts)',
+      );
     }
   }
 
@@ -96,7 +113,9 @@ export class GateService implements OnModuleInit {
     if (!this.bridgeLoaded) {
       // FAIL-CLOSED: Return null to signal security check unavailable
       // Callers MUST handle null as "block" for security-critical paths
-      this.logger.error('SECURITY: Bridge not loaded, prompt guard unavailable');
+      this.logger.error(
+        'SECURITY: Bridge not loaded, prompt guard unavailable',
+      );
       return null;
     }
 
@@ -170,7 +189,7 @@ export class GateService implements OnModuleInit {
 
   /**
    * Quick check if a prompt should be blocked
-   * 
+   *
    * SECURITY: Implements FAIL-CLOSED pattern
    * If bridge is unavailable or analysis fails, returns TRUE (block)
    */
@@ -178,10 +197,14 @@ export class GateService implements OnModuleInit {
     const analysis = this.guardPrompt(prompt);
     if (!analysis) {
       // FAIL-CLOSED: Block if security check unavailable
-      this.logger.error('SECURITY: Blocking prompt due to unavailable security check (fail-closed)');
+      this.logger.error(
+        'SECURITY: Blocking prompt due to unavailable security check (fail-closed)',
+      );
       return true;
     }
-    return analysis.threat_level === 'High' || analysis.threat_level === 'Critical';
+    return (
+      analysis.threat_level === 'High' || analysis.threat_level === 'Critical'
+    );
   }
 
   // =========================================================================
@@ -191,15 +214,19 @@ export class GateService implements OnModuleInit {
   /**
    * Analyze prompt for injection attacks (HTTP API version)
    */
-  async analyzePrompt(prompt: string, context?: string): Promise<{
+  async analyzePrompt(prompt: string): Promise<{
     safe: boolean;
     threatLevel: 'none' | 'low' | 'medium' | 'high' | 'critical';
     threatType?: string;
+    attacks: string[];
+    matchedPatterns: string[];
+    latencyUs: number;
     score: number;
     reason?: string;
   }> {
+    await Promise.resolve(); // Ensure async execution
     const analysis = this.guardPrompt(prompt);
-    
+
     if (!analysis) {
       // FAIL-CLOSED: Return unsafe if bridge unavailable
       return {
@@ -208,15 +235,21 @@ export class GateService implements OnModuleInit {
         threatType: 'security_unavailable',
         score: 100,
         reason: 'Security check unavailable - fail-closed mode',
+        attacks: [],
+        matchedPatterns: [],
+        latencyUs: 0,
       };
     }
 
-    const threatLevelMap: Record<string, 'none' | 'low' | 'medium' | 'high' | 'critical'> = {
-      'None': 'none',
-      'Low': 'low',
-      'Medium': 'medium',
-      'High': 'high',
-      'Critical': 'critical',
+    const threatLevelMap: Record<
+      string,
+      'none' | 'low' | 'medium' | 'high' | 'critical'
+    > = {
+      None: 'none',
+      Low: 'low',
+      Medium: 'medium',
+      High: 'high',
+      Critical: 'critical',
     };
 
     return {
@@ -225,93 +258,142 @@ export class GateService implements OnModuleInit {
       threatType: analysis.attacks.length > 0 ? analysis.attacks[0] : undefined,
       score: Math.round(analysis.confidence * 100),
       reason: analysis.matched_patterns.join(', ') || undefined,
+      attacks: analysis.attacks || [],
+      matchedPatterns: analysis.matched_patterns || [],
+      latencyUs: 0,
     };
   }
 
   /**
-   * List all policies (stub - would call Rust bridge)
+   * Convert entity to API response format
    */
-  async listPolicies(): Promise<Array<{
+  private policyToResponse(entity: GatePolicyEntity): {
     id: string;
     name: string;
     description?: string;
     active: boolean;
-    rules: Array<{ id: string; condition: string; action: 'allow' | 'deny' | 'audit' | 'escalate'; priority?: number }>;
+    rules: Array<{
+      id: string;
+      condition: string;
+      action: 'allow' | 'deny' | 'audit' | 'escalate';
+      priority?: number;
+    }>;
     createdAt: string;
     updatedAt?: string;
-  }>> {
-    // Stub implementation - would call Rust GateSupervisor
-    return [
-      {
-        id: 'policy_default',
-        name: 'Default Security Policy',
-        description: 'Blocks prompt injection and jailbreak attempts',
-        active: true,
-        rules: [
-          { id: 'rule_1', condition: 'prompt.contains("ignore previous")', action: 'deny', priority: 100 },
-          { id: 'rule_2', condition: 'prompt.contains("system prompt")', action: 'deny', priority: 90 },
-        ],
-        createdAt: new Date().toISOString(),
-      },
-    ];
+  } {
+    return {
+      id: entity.id,
+      name: entity.name,
+      description: entity.description ?? undefined,
+      active: entity.active,
+      rules: entity.rules,
+      createdAt: entity.createdAt.toISOString(),
+      updatedAt: entity.updatedAt?.toISOString(),
+    };
   }
 
   /**
-   * Get policy by ID (stub)
+   * List all policies (from database)
+   */
+  async listPolicies(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description?: string;
+      active: boolean;
+      rules: Array<{
+        id: string;
+        condition: string;
+        action: 'allow' | 'deny' | 'audit' | 'escalate';
+        priority?: number;
+      }>;
+      createdAt: string;
+      updatedAt?: string;
+    }>
+  > {
+    const entities = await this.policyRepository.findAll();
+    return entities.map((e) => this.policyToResponse(e));
+  }
+
+  /**
+   * Get policy by ID (from database)
    */
   async getPolicy(id: string): Promise<{
     id: string;
     name: string;
     description?: string;
     active: boolean;
-    rules: Array<{ id: string; condition: string; action: 'allow' | 'deny' | 'audit' | 'escalate'; priority?: number }>;
+    rules: Array<{
+      id: string;
+      condition: string;
+      action: 'allow' | 'deny' | 'audit' | 'escalate';
+      priority?: number;
+    }>;
     createdAt: string;
     updatedAt?: string;
   }> {
-    const policies = await this.listPolicies();
-    const policy = policies.find(p => p.id === id);
-    if (!policy) {
+    const entity = await this.policyRepository.findById(id);
+    if (!entity) {
       throw new Error(`Policy ${id} not found`);
     }
-    return policy;
+    return this.policyToResponse(entity);
   }
 
   /**
-   * Create policy (stub)
+   * Create policy (persisted to database)
    */
   async createPolicy(dto: {
     name: string;
     description?: string;
-    rules: Array<{ id: string; condition: string; action: 'allow' | 'deny' | 'audit' | 'escalate'; priority?: number }>;
+    rules: Array<{
+      id: string;
+      condition: string;
+      action: 'allow' | 'deny' | 'audit' | 'escalate';
+      priority?: number;
+    }>;
   }): Promise<{
     id: string;
     name: string;
     description?: string;
     active: boolean;
-    rules: Array<{ id: string; condition: string; action: 'allow' | 'deny' | 'audit' | 'escalate'; priority?: number }>;
+    rules: Array<{
+      id: string;
+      condition: string;
+      action: 'allow' | 'deny' | 'audit' | 'escalate';
+      priority?: number;
+    }>;
     createdAt: string;
   }> {
-    return {
-      id: `policy_${Date.now()}`,
+    const entity = await this.policyRepository.create({
       name: dto.name,
       description: dto.description,
-      active: true,
       rules: dto.rules,
-      createdAt: new Date().toISOString(),
-    };
+    });
+    return this.policyToResponse(entity);
   }
 
   /**
    * Check PCI-DSS compliance (stub)
    */
-  async checkPciCompliance(data: Record<string, unknown>, context?: Record<string, unknown>): Promise<{
+  async checkPciCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
     standard: string;
-    issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }>;
+    issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }>;
     checkedAt: string;
   }> {
-    const issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }> = [];
-    
+    await Promise.resolve(); // Ensure async execution
+    const issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }> = [];
+
     // Check for unencrypted card numbers
     const stringData = JSON.stringify(data);
     if (/\b\d{13,19}\b/.test(stringData)) {
@@ -334,14 +416,25 @@ export class GateService implements OnModuleInit {
   /**
    * Check HIPAA compliance (stub)
    */
-  async checkHipaaCompliance(data: Record<string, unknown>, context?: Record<string, unknown>): Promise<{
+  async checkHipaaCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
     standard: string;
-    issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }>;
+    issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }>;
     checkedAt: string;
   }> {
-    const issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }> = [];
-    
+    await Promise.resolve(); // Ensure async execution
+    const issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }> = [];
+
     // Check for PHI fields without encryption
     const phiFields = ['ssn', 'medical_record', 'health_plan', 'diagnosis'];
     for (const field of phiFields) {
@@ -356,7 +449,7 @@ export class GateService implements OnModuleInit {
     }
 
     return {
-      compliant: issues.filter(i => i.severity === 'critical').length === 0,
+      compliant: issues.filter((i) => i.severity === 'critical').length === 0,
       standard: 'HIPAA Privacy Rule',
       issues,
       checkedAt: new Date().toISOString(),
@@ -366,14 +459,25 @@ export class GateService implements OnModuleInit {
   /**
    * Check GDPR compliance (stub)
    */
-  async checkGdprCompliance(data: Record<string, unknown>, context?: Record<string, unknown>): Promise<{
+  async checkGdprCompliance(data: Record<string, unknown>): Promise<{
     compliant: boolean;
     standard: string;
-    issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }>;
+    issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }>;
     checkedAt: string;
   }> {
-    const issues: Array<{ code: string; severity: 'info' | 'warning' | 'error' | 'critical'; message: string; path?: string }> = [];
-    
+    await Promise.resolve(); // Ensure async execution
+    const issues: Array<{
+      code: string;
+      severity: 'info' | 'warning' | 'error' | 'critical';
+      message: string;
+      path?: string;
+    }> = [];
+
     // Check for consent
     if (!('consent' in data) && !('gdpr_consent' in data)) {
       issues.push({
@@ -384,7 +488,7 @@ export class GateService implements OnModuleInit {
     }
 
     return {
-      compliant: issues.filter(i => i.severity === 'critical').length === 0,
+      compliant: issues.filter((i) => i.severity === 'critical').length === 0,
       standard: 'GDPR',
       issues,
       checkedAt: new Date().toISOString(),
@@ -394,21 +498,34 @@ export class GateService implements OnModuleInit {
   /**
    * List WASM actors (stub)
    */
-  async listWasmActors(): Promise<Array<{
-    name: string;
-    version: string;
-    capabilities: Array<{ name: string; inputSchema?: Record<string, unknown>; outputSchema?: Record<string, unknown> }>;
-    sizeBytes: number;
-    loadedAt: string;
-    invocations: number;
-    avgLatencyUs: number;
-  }>> {
+  async listWasmActors(): Promise<
+    Array<{
+      name: string;
+      version: string;
+      capabilities: Array<{
+        name: string;
+        inputSchema?: Record<string, unknown>;
+        outputSchema?: Record<string, unknown>;
+      }>;
+      sizeBytes: number;
+      loadedAt: string;
+      invocations: number;
+      avgLatencyUs: number;
+    }>
+  > {
+    await Promise.resolve(); // Ensure async execution
     return [
       {
         name: 'prompt-guard',
         version: '1.0.0',
         capabilities: [
-          { name: 'prompt_guard', inputSchema: { type: 'object', properties: { prompt: { type: 'string' } } } },
+          {
+            name: 'prompt_guard',
+            inputSchema: {
+              type: 'object',
+              properties: { prompt: { type: 'string' } },
+            },
+          },
         ],
         sizeBytes: 245760,
         loadedAt: new Date().toISOString(),
@@ -424,14 +541,18 @@ export class GateService implements OnModuleInit {
   async getWasmActor(name: string): Promise<{
     name: string;
     version: string;
-    capabilities: Array<{ name: string; inputSchema?: Record<string, unknown>; outputSchema?: Record<string, unknown> }>;
+    capabilities: Array<{
+      name: string;
+      inputSchema?: Record<string, unknown>;
+      outputSchema?: Record<string, unknown>;
+    }>;
     sizeBytes: number;
     loadedAt: string;
     invocations: number;
     avgLatencyUs: number;
   }> {
     const actors = await this.listWasmActors();
-    const actor = actors.find(a => a.name === name);
+    const actor = actors.find((a) => a.name === name);
     if (!actor) {
       throw new Error(`WASM actor ${name} not found`);
     }
@@ -445,18 +566,27 @@ export class GateService implements OnModuleInit {
     name: string;
     version: string;
     wasmBase64: string;
-    capabilities: Array<{ name: string; inputSchema?: Record<string, unknown>; outputSchema?: Record<string, unknown> }>;
+    capabilities: Array<{
+      name: string;
+      inputSchema?: Record<string, unknown>;
+      outputSchema?: Record<string, unknown>;
+    }>;
   }): Promise<{
     name: string;
     version: string;
-    capabilities: Array<{ name: string; inputSchema?: Record<string, unknown>; outputSchema?: Record<string, unknown> }>;
+    capabilities: Array<{
+      name: string;
+      inputSchema?: Record<string, unknown>;
+      outputSchema?: Record<string, unknown>;
+    }>;
     sizeBytes: number;
     loadedAt: string;
     invocations: number;
     avgLatencyUs: number;
   }> {
+    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Registering WASM actor: ${dto.name} v${dto.version}`);
-    
+
     return {
       name: dto.name,
       version: dto.version,

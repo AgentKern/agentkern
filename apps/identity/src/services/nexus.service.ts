@@ -1,113 +1,127 @@
 /**
  * AgentKern Gateway - Nexus Service
- * 
+ *
  * Business logic for protocol translation and agent discovery.
- * In production, this would call the Rust Nexus crate via FFI or HTTP.
+ * Now uses TypeORM-backed persistent storage instead of in-memory Map.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { 
-  RegisterAgentDto, 
-  RouteTaskDto, 
+import {
+  RegisterAgentDto,
+  RouteTaskDto,
   TranslateMessageDto,
   AgentCard,
   NexusMessage,
   Protocol,
 } from '../dto/nexus.dto';
+import { NexusAgentRepository } from '../repositories/nexus-agent.repository';
+import { NexusAgentEntity } from '../entities/nexus-agent.entity';
 
 @Injectable()
 export class NexusService {
   private readonly logger = new Logger(NexusService.name);
-  
-  // In-memory registry (would be Rust FFI in production)
-  private agents = new Map<string, AgentCard>();
+
+  constructor(private readonly agentRepository: NexusAgentRepository) {}
 
   /**
-   * Register an agent.
+   * Convert entity to AgentCard DTO
+   */
+  private toAgentCard(entity: NexusAgentEntity): AgentCard {
+    return {
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      url: entity.url,
+      version: entity.version,
+      capabilities: entity.capabilities,
+      skills: entity.skills,
+      protocols: entity.protocols,
+      registeredAt: entity.registeredAt.toISOString(),
+    };
+  }
+
+  /**
+   * Register an agent (persisted to database).
    */
   async registerAgent(dto: RegisterAgentDto): Promise<AgentCard> {
-    const card: AgentCard = {
-      id: dto.id || crypto.randomUUID(),
+    const entity = await this.agentRepository.register({
+      id: dto.id,
       name: dto.name,
-      description: dto.description || '',
+      description: dto.description,
       url: dto.url,
-      version: dto.version || '1.0.0',
-      capabilities: dto.capabilities || [],
-      skills: dto.skills || [],
-      protocols: dto.protocols || ['agentkern'],
-      registeredAt: new Date().toISOString(),
-    };
+      version: dto.version,
+      capabilities: dto.capabilities,
+      skills: dto.skills,
+      protocols: dto.protocols,
+    });
 
-    this.agents.set(card.id, card);
-    this.logger.log(`Agent registered: ${card.id} (${card.name})`);
-    
-    return card;
+    return this.toAgentCard(entity);
   }
 
   /**
-   * List all agents.
+   * List all agents (from database).
    */
   async listAgents(): Promise<AgentCard[]> {
-    return Array.from(this.agents.values());
+    const entities = await this.agentRepository.findAll();
+    return entities.map((e) => this.toAgentCard(e));
   }
 
   /**
-   * Get agent by ID.
+   * Get agent by ID (from database).
    */
   async getAgent(id: string): Promise<AgentCard | null> {
-    return this.agents.get(id) || null;
+    const entity = await this.agentRepository.findById(id);
+    return entity ? this.toAgentCard(entity) : null;
   }
 
   /**
-   * Unregister an agent.
+   * Unregister an agent (soft delete in database).
    */
   async unregisterAgent(id: string): Promise<boolean> {
-    const existed = this.agents.has(id);
-    this.agents.delete(id);
-    if (existed) {
-      this.logger.log(`Agent unregistered: ${id}`);
-    }
-    return existed;
+    return this.agentRepository.unregister(id);
   }
 
   /**
-   * Find agents by skill.
+   * Find agents by skill (JSONB search in database).
    */
   async findAgentsBySkill(skill: string): Promise<AgentCard[]> {
-    return Array.from(this.agents.values()).filter(agent =>
-      agent.skills.some(s => 
-        s.id === skill || 
-        s.name.toLowerCase().includes(skill.toLowerCase()) ||
-        s.tags?.includes(skill)
-      )
-    );
+    const entities = await this.agentRepository.findBySkill(skill);
+    return entities.map((e) => this.toAgentCard(e));
   }
 
   /**
    * Discover agent from URL (fetches /.well-known/agent.json).
+   * This is genuinely async due to network I/O.
    */
   async discoverAgent(url: string): Promise<AgentCard> {
     const wellKnownUrl = `${url.replace(/\/$/, '')}/.well-known/agent.json`;
-    
+
     this.logger.log(`Discovering agent from: ${wellKnownUrl}`);
 
     try {
       const response = await fetch(wellKnownUrl);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch agent card: ${response.status}`);
       }
 
       const card = (await response.json()) as AgentCard;
-      
-      // Register the discovered agent
-      this.agents.set(card.id, {
-        ...card,
-        registeredAt: new Date().toISOString(),
+
+      // Register the discovered agent with source tracking
+      const entity = await this.agentRepository.register({
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        url: card.url,
+        version: card.version,
+        capabilities: card.capabilities,
+        skills: card.skills,
+        protocols: card.protocols,
+        discoveredFrom: url,
       });
 
-      this.logger.log(`Agent discovered and registered: ${card.id}`);
-      return card;
+      this.logger.log(`Agent discovered and registered: ${entity.id}`);
+      return this.toAgentCard(entity);
     } catch (error) {
       this.logger.error(`Discovery failed for ${url}: ${error}`);
       throw error;
@@ -115,18 +129,20 @@ export class NexusService {
   }
 
   /**
-   * Route task to best matching agent.
+   * Route task to best matching agent (queries database).
    */
-  async routeTask(dto: RouteTaskDto): Promise<AgentCard & { matchScore: number } | null> {
-    const agents = Array.from(this.agents.values());
-    
+  async routeTask(
+    dto: RouteTaskDto,
+  ): Promise<(AgentCard & { matchScore: number }) | null> {
+    const agents = await this.agentRepository.findAll();
+
     if (agents.length === 0) {
       return null;
     }
 
     // Score each agent
-    const scored = agents.map(agent => ({
-      ...agent,
+    const scored = agents.map((agent) => ({
+      ...this.toAgentCard(agent),
       matchScore: this.calculateMatchScore(agent, dto),
     }));
 
@@ -141,7 +157,10 @@ export class NexusService {
   /**
    * Calculate match score for agent vs task.
    */
-  private calculateMatchScore(agent: AgentCard, task: RouteTaskDto): number {
+  private calculateMatchScore(
+    agent: NexusAgentEntity,
+    task: RouteTaskDto,
+  ): number {
     let score = 0;
     const requiredSkills = task.requiredSkills || [];
 
@@ -150,10 +169,11 @@ export class NexusService {
     }
 
     for (const required of requiredSkills) {
-      const hasSkill = agent.skills.some(s => 
-        s.id === required || 
-        s.name.toLowerCase() === required.toLowerCase() ||
-        s.tags?.includes(required)
+      const hasSkill = agent.skills.some(
+        (s) =>
+          s.id === required ||
+          s.name.toLowerCase() === required.toLowerCase() ||
+          s.tags?.includes(required),
       );
       if (hasSkill) {
         score += 100 / requiredSkills.length;
@@ -164,15 +184,18 @@ export class NexusService {
   }
 
   /**
-   * Translate message between protocols.
+   * Translate message between protocols (synchronous operation).
    */
-  async translateMessage(dto: TranslateMessageDto): Promise<NexusMessage> {
+  translateMessage(dto: TranslateMessageDto): NexusMessage {
     const { sourceProtocol, targetProtocol, message } = dto;
 
     this.logger.log(`Translating ${sourceProtocol} -> ${targetProtocol}`);
 
     // Parse based on source protocol
-    const unified = this.parseToUnified(sourceProtocol, message);
+    const unified = this.parseToUnified(
+      sourceProtocol,
+      message as NexusMessage,
+    );
 
     // Serialize to target protocol
     const translated = this.serializeFromUnified(targetProtocol, unified);
@@ -183,11 +206,14 @@ export class NexusService {
   /**
    * Parse protocol-specific message to unified format.
    */
-  private parseToUnified(protocol: Protocol, message: any): NexusMessage {
+  private parseToUnified(
+    protocol: Protocol,
+    message: NexusMessage,
+  ): NexusMessage {
     const base: NexusMessage = {
       id: message.id || crypto.randomUUID(),
-      method: '',
-      params: {},
+      method: message.method || '',
+      params: message.params || {},
       sourceProtocol: protocol,
       timestamp: new Date().toISOString(),
     };
@@ -222,7 +248,10 @@ export class NexusService {
   /**
    * Serialize unified message to protocol-specific format.
    */
-  private serializeFromUnified(protocol: Protocol, msg: NexusMessage): NexusMessage {
+  private serializeFromUnified(
+    protocol: Protocol,
+    msg: NexusMessage,
+  ): NexusMessage {
     switch (protocol) {
       case 'a2a':
         return {
@@ -230,7 +259,7 @@ export class NexusService {
           // A2A specific fields
           jsonrpc: '2.0',
           targetProtocol: 'a2a',
-        } as any;
+        } as NexusMessage;
 
       case 'mcp':
         return {
@@ -238,7 +267,7 @@ export class NexusService {
           // MCP specific fields
           jsonrpc: '2.0',
           targetProtocol: 'mcp',
-        } as any;
+        } as NexusMessage;
 
       case 'agentkern':
       default:
@@ -250,12 +279,23 @@ export class NexusService {
   }
 
   /**
-   * Get service statistics.
+   * Get service statistics (from database).
    */
-  async getStats() {
+  async getStats(): Promise<{
+    registeredAgents: number;
+    supportedProtocols: number;
+  }> {
+    const stats = await this.agentRepository.getStats();
     return {
-      registeredAgents: this.agents.size,
+      registeredAgents: stats.activeAgents,
       supportedProtocols: 6,
     };
+  }
+
+  /**
+   * List supported protocols (synchronous operation).
+   */
+  listProtocols(): string[] {
+    return ['a2a', 'mcp', 'agentkern', 'anp', 'nlip', 'aitp'];
   }
 }
