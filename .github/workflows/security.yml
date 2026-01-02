@@ -88,13 +88,13 @@ jobs:
       - uses: actions/checkout@v6
       
       - name: Download Rust SBOMs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: sbom-rust
           path: sbom-rust/
       
       - name: Download TypeScript SBOMs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: sbom-typescript
           path: sbom-typescript/
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@v6
       
       - name: Download all SBOMs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: sbom/
       
@@ -155,7 +155,7 @@ jobs:
         uses: sigstore/cosign-installer@v3
       
       - name: Download all SBOMs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: sbom/
       
