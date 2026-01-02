@@ -14,7 +14,7 @@ mod adapter;
 mod agentkern;
 mod mcp;
 mod nlip; // ECMA-430 Natural Language Interaction Protocol (Dec 2025)
-mod translator;
+pub mod translator;
 
 pub use crate::types::Protocol;
 pub use adapter::{AdapterRegistry, ProtocolAdapter};

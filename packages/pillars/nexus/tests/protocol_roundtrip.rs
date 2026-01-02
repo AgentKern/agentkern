@@ -143,7 +143,7 @@ fn golden_status_translation_preserves_value() {
         TaskStatus::Working,
         TaskStatus::Completed,
         TaskStatus::Failed,
-        TaskStatus::Cancelled,
+        TaskStatus::Canceled,
     ];
 
     for status in statuses {
