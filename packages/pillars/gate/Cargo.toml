@@ -120,7 +120,7 @@ deunicode = "1.6"
 
 [dev-dependencies]
 tokio-test = "0.4"
-criterion = "0.5"
+criterion = "0.8"
 rust_decimal = "1.36"
 rust_decimal_macros = "1.36"
 wat = "1.0"  # For WASM integration tests
