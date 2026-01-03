@@ -16,6 +16,9 @@ COPY packages/foundation/bridge/src ./packages/foundation/bridge/src/
 
 # Build N-API bridge
 WORKDIR /app/packages/foundation/bridge
+# Reduce memory usage to prevent OOM (exit code 101)
+ENV CARGO_BUILD_JOBS=1
+ENV RUSTFLAGS="-C codegen-units=1"
 RUN cargo build --release
 
 # ========================
@@ -35,8 +38,8 @@ RUN pnpm install --frozen-lockfile
 # Copy source
 COPY . .
 
-# Copy built bridge from Rust stage
-COPY --from=rust-builder /app/packages/foundation/bridge/index.node ./packages/foundation/bridge/
+# Copy built bridge from Rust stage (rename .so to .node)
+COPY --from=rust-builder /app/target/release/libagentkern_bridge.so ./packages/foundation/bridge/index.node
 
 # Verify bridge exists before building
 RUN test -f packages/foundation/bridge/index.node || \
