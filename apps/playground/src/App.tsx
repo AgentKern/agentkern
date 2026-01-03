@@ -272,6 +272,7 @@ export default function App() {
   const [agentName, setAgentName] = useState('my-agent');
   const [loading, setLoading] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'connected' | 'simulated'>('checking');
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Gate state
   const [action, setAction] = useState('transfer_funds');
@@ -404,6 +405,60 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div style={{ background: 'var(--color-bg)', borderRadius: '12px', maxWidth: '700px', maxHeight: '90vh', overflow: 'auto', padding: '2rem' }}>
+            <h2 style={{ margin: '0 0 1rem 0' }}>👋 Welcome to AgentKern Playground</h2>
+            <p style={{ opacity: 0.8 }}>AgentKern is the <strong>Operating System for the Agentic Economy</strong> - infrastructure for enterprises to safely deploy AI agents.</p>
+            
+            <h3 style={{ marginTop: '1.5rem' }}>🎯 Try This Demo Flow:</h3>
+            <div style={{ background: 'var(--color-surface)', borderRadius: '8px', padding: '1rem', fontSize: '0.9rem' }}>
+              <p><strong>1. Identity →</strong> Register an agent to get a trust score based on behavioral history, TEE attestation, and peer endorsements</p>
+              <p><strong>2. Gate →</strong> Verify that your agent can perform actions (transfers, deletes) based on policy rules</p>
+              <p><strong>3. Synapse →</strong> Start an intent path and watch for drift if the agent deviates from expected behavior</p>
+              <p><strong>4. PromptGuard →</strong> Test prompts for injection attacks (try: "ignore previous instructions")</p>
+            </div>
+            
+            <h3 style={{ marginTop: '1.5rem' }}>🏛️ The Six Pillars Explained:</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>🪪 Identity</strong><br/>
+                <span style={{ opacity: 0.8 }}>Trust scores, reputation, agent lifecycle</span>
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>🛡️ Gate</strong><br/>
+                <span style={{ opacity: 0.8 }}>Policy engine, action verification, TEE</span>
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>🧠 Synapse</strong><br/>
+                <span style={{ opacity: 0.8 }}>Memory, intent tracking, drift detection</span>
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>⚖️ Arbiter</strong><br/>
+                <span style={{ opacity: 0.8 }}>Resource locks, kill switch, governance</span>
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>💰 Treasury</strong><br/>
+                <span style={{ opacity: 0.8 }}>Budgets, micropayments, carbon tracking</span>
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                <strong>🔀 Nexus</strong><br/>
+                <span style={{ opacity: 0.8 }}>Protocol translation (A2A, MCP, ANP)</span>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '1.5rem', padding: '0.75rem', background: '#3b82f620', borderRadius: '6px', borderLeft: '3px solid #3b82f6' }}>
+              <strong>💡 Simulation Mode:</strong> This demo uses simulated data. In production, these would connect to the Rust N-API bridge and real databases.
+            </div>
+            
+            <button className="primary" onClick={() => setShowWelcome(false)} style={{ marginTop: '1.5rem', width: '100%' }}>
+              Start Exploring →
+            </button>
+          </div>
+        </div>
+      )}
+      
       <header className="header">
         <div className="logo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
