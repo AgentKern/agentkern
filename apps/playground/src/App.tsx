@@ -502,15 +502,51 @@ export default function App() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Amount (for transfers)</label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount"
-                />
-              </div>
+              {action === 'transfer_funds' && (
+                <div className="form-group">
+                  <label>Amount ($)</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Enter transfer amount"
+                  />
+                </div>
+              )}
+
+              {action === 'read_data' && (
+                <div className="form-group">
+                  <label>Data Resource</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., customers.pii"
+                    defaultValue="customers.pii"
+                  />
+                </div>
+              )}
+
+              {action === 'delete_record' && (
+                <div className="form-group">
+                  <label>Record ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., record-12345"
+                    defaultValue="record-12345"
+                  />
+                  <p className="hint" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>⚠️ Delete operations are high-risk</p>
+                </div>
+              )}
+
+              {action === 'send_email' && (
+                <div className="form-group">
+                  <label>Recipient Count</label>
+                  <input
+                    type="number"
+                    placeholder="Number of recipients"
+                    defaultValue="1"
+                  />
+                </div>
+              )}
 
               <button className="primary" onClick={handleVerify} disabled={loading || !agent}>
                 {loading ? 'Verifying...' : 'Verify Action'}
