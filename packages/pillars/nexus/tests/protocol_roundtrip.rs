@@ -9,7 +9,7 @@
 //! These characterization tests lock in the current translation behavior
 //! to prevent silent regressions during future refactoring.
 
-use agentkern_nexus::protocols::translator::{ProtocolTranslator, TranslationResult};
+use agentkern_nexus::protocols::translator::ProtocolTranslator;
 use agentkern_nexus::types::{NexusMessage, Protocol};
 use std::collections::HashMap;
 

@@ -15,19 +15,23 @@
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::policy::{Policy, PolicyAction, PolicyRule};
 use agentkern_gate::types::{
-    DataRegion, LatencyBreakdown, VerificationRequest, VerificationResult,
+    DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
-use serde_json::json;
+use chrono::Utc;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Helper to create a standard verification request.
 fn create_request(agent_id: &str, action: &str, resource: &str) -> VerificationRequest {
+    let mut context_data = HashMap::new();
+    context_data.insert("resource".to_string(), serde_json::Value::String(resource.to_string()));
+    
     VerificationRequest {
+        request_id: Uuid::new_v4(),
         agent_id: agent_id.to_string(),
         action: action.to_string(),
-        resource: resource.to_string(),
-        context: HashMap::new(),
-        region: Some(DataRegion::EuWest),
+        context: VerificationContext { data: context_data },
+        timestamp: Utc::now(),
     }
 }
 
@@ -36,15 +40,17 @@ fn create_policy(name: &str, action: &str, policy_action: PolicyAction) -> Polic
     Policy {
         id: uuid::Uuid::new_v4().to_string(),
         name: name.to_string(),
-        version: "1.0.0".to_string(),
+        description: format!("Policy for {}", name),
+        priority: 100,
+        enabled: true,
+        jurisdictions: vec![],
         rules: vec![PolicyRule {
             id: "rule-1".to_string(),
-            name: format!("{}_rule", name),
             condition: format!("action == \"{}\"", action),
             action: policy_action,
-            priority: 100,
+            message: Some(format!("Rule for {}", action)),
+            risk_score: Some(if policy_action == PolicyAction::Deny { 100 } else { 0 }),
         }],
-        enabled: true,
     }
 }
 
@@ -56,16 +62,14 @@ fn create_policy(name: &str, action: &str, policy_action: PolicyAction) -> Polic
 async fn golden_allow_read_action() {
     let engine = GateEngine::new();
     let policy = create_policy("allow_read", "read", PolicyAction::Allow);
-    engine.register_policy(policy).await.unwrap();
+    engine.register_policy(policy).await;
 
     let request = create_request("agent-1", "read", "resource-1");
-    let result = engine.verify(&request).await;
+    let result = engine.verify(request).await;
 
     // GOLDEN: Read actions should be allowed
-    assert!(result.is_ok());
-    let verification = result.unwrap();
     assert!(
-        verification.allowed,
+        result.allowed,
         "GOLDEN: read action should be allowed"
     );
 }
@@ -74,16 +78,14 @@ async fn golden_allow_read_action() {
 async fn golden_block_delete_action() {
     let engine = GateEngine::new();
     let policy = create_policy("block_delete", "delete", PolicyAction::Deny);
-    engine.register_policy(policy).await.unwrap();
+    engine.register_policy(policy).await;
 
     let request = create_request("agent-1", "delete", "resource-1");
-    let result = engine.verify(&request).await;
+    let result = engine.verify(request).await;
 
     // GOLDEN: Delete actions should be blocked
-    assert!(result.is_ok());
-    let verification = result.unwrap();
     assert!(
-        !verification.allowed,
+        !result.allowed,
         "GOLDEN: delete action should be blocked"
     );
 }
@@ -94,14 +96,12 @@ async fn golden_default_allow_unmatched() {
     // No policies registered
 
     let request = create_request("agent-1", "unknown_action", "resource-1");
-    let result = engine.verify(&request).await;
+    let result = engine.verify(request).await;
 
     // GOLDEN: Unmatched actions should use default policy (allow)
-    assert!(result.is_ok());
-    let verification = result.unwrap();
     // Note: Actual default behavior may vary - this test documents current behavior
     assert!(
-        verification.allowed || !verification.allowed,
+        result.allowed || !result.allowed,
         "GOLDEN: Should return a valid verification result"
     );
 }
@@ -114,42 +114,44 @@ async fn golden_priority_ordering() {
     let allow_policy = Policy {
         id: "allow-1".to_string(),
         name: "allow_write".to_string(),
-        version: "1.0.0".to_string(),
+        description: "Allow write actions".to_string(),
+        priority: 50, // Lower priority
+        enabled: true,
+        jurisdictions: vec![],
         rules: vec![PolicyRule {
             id: "rule-allow".to_string(),
-            name: "allow_write_rule".to_string(),
             condition: "action == \"write\"".to_string(),
             action: PolicyAction::Allow,
-            priority: 50, // Lower priority
+            message: Some("Allow write rule".to_string()),
+            risk_score: Some(0),
         }],
-        enabled: true,
     };
 
     let deny_policy = Policy {
         id: "deny-1".to_string(),
         name: "deny_write".to_string(),
-        version: "1.0.0".to_string(),
+        description: "Deny write actions".to_string(),
+        priority: 100, // Higher priority wins
+        enabled: true,
+        jurisdictions: vec![],
         rules: vec![PolicyRule {
             id: "rule-deny".to_string(),
-            name: "deny_write_rule".to_string(),
             condition: "action == \"write\"".to_string(),
             action: PolicyAction::Deny,
-            priority: 100, // Higher priority wins
+            message: Some("Deny write rule".to_string()),
+            risk_score: Some(100),
         }],
-        enabled: true,
     };
 
-    engine.register_policy(allow_policy).await.unwrap();
-    engine.register_policy(deny_policy).await.unwrap();
+    engine.register_policy(allow_policy).await;
+    engine.register_policy(deny_policy).await;
 
     let request = create_request("agent-1", "write", "resource-1");
-    let result = engine.verify(&request).await;
+    let result = engine.verify(request).await;
 
     // GOLDEN: Higher priority rule (deny) should win
-    assert!(result.is_ok());
-    let verification = result.unwrap();
     assert!(
-        !verification.allowed,
+        !result.allowed,
         "GOLDEN: Higher priority deny should override lower priority allow"
     );
 }
@@ -161,10 +163,14 @@ async fn golden_priority_ordering() {
 #[test]
 fn golden_verification_result_serialization() {
     let result = VerificationResult {
-        request_id: "req-123".to_string(),
+        request_id: Uuid::new_v4(),
         allowed: true,
-        reason: "Policy matched".to_string(),
-        matched_rules: vec!["rule-1".to_string()],
+        evaluated_policies: vec!["policy-1".to_string()],
+        blocking_policies: vec![],
+        symbolic_risk_score: 0,
+        neural_risk_score: None,
+        final_risk_score: 0,
+        reasoning: "Policy matched".to_string(),
         latency: LatencyBreakdown {
             total_us: 1234,
             symbolic_us: 1234,
@@ -175,9 +181,9 @@ fn golden_verification_result_serialization() {
     let json = serde_json::to_value(&result).unwrap();
 
     // GOLDEN: JSON structure should remain stable for API compatibility
-    assert_eq!(json["request_id"], "req-123");
+    assert!(json["request_id"].is_string());
     assert_eq!(json["allowed"], true);
-    assert!(json["reason"].is_string());
-    assert!(json["matched_rules"].is_array());
+    assert!(json["reasoning"].is_string());
+    assert!(json["evaluated_policies"].is_array());
     assert!(json["latency"]["total_us"].is_number());
 }
