@@ -129,6 +129,15 @@ const realRegister = async (name: string): Promise<Agent> => {
     name: data.agent.name,
     capabilities: data.agent.capabilities || ['read', 'write'],
     trustScore: data.agent.trustScore || 100,
+    reputation: data.agent.reputation || {
+      behavioral: 85,
+      attestation: 0,
+      networkEndorsements: 0,
+      complianceHistory: 100,
+      ageBonus: 0,
+    },
+    registeredAt: data.agent.registeredAt || new Date().toISOString(),
+    lastActivity: data.agent.lastActivity || new Date().toISOString(),
   };
 };
 
