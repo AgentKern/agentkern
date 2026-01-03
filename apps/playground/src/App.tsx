@@ -249,6 +249,21 @@ export default function App() {
   const [promptText, setPromptText] = useState('');
   const [promptResult, setPromptResult] = useState<PromptCheckResult | null>(null);
 
+  // Arbiter state
+  const [resource, setResource] = useState('database:accounts');
+  const [priority, setPriority] = useState(5);
+  const [lockResult, setLockResult] = useState<{ acquired: boolean; lockId?: string; queue?: number; expiresIn?: number } | null>(null);
+  const [killSwitchActive, setKillSwitchActive] = useState(false);
+
+  // Treasury state
+  const [balance, setBalance] = useState(10000);
+  const [carbonUsage, setCarbonUsage] = useState(0);
+  const [transactions, setTransactions] = useState<Array<{ id: string; type: string; amount: number; carbon: number; time: string }>>([]);
+
+  // Nexus state
+  const [discoveredAgents, setDiscoveredAgents] = useState<Array<{ id: string; name: string; protocols: string[]; status: string }>>([]);
+  const [selectedProtocol, setSelectedProtocol] = useState('a2a');
+
   // Check bridge status on mount
   useEffect(() => {
     setBridgeStatus(bridgeAvailable ? 'connected' : 'simulated');
@@ -294,6 +309,59 @@ export default function App() {
     setLoading(true);
     const result = await checkPrompt(promptText);
     setPromptResult(result);
+    setLoading(false);
+  };
+
+  // Arbiter handlers
+  const handleRequestLock = async () => {
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 300));
+    const acquired = Math.random() > 0.3;
+    setLockResult({
+      acquired,
+      lockId: acquired ? `lock-${Date.now().toString(36)}` : undefined,
+      queue: acquired ? undefined : Math.floor(Math.random() * 3) + 1,
+      expiresIn: acquired ? 30 : undefined,
+    });
+    setLoading(false);
+  };
+
+  const handleReleaseLock = () => {
+    setLockResult(null);
+  };
+
+  const handleKillSwitch = () => {
+    setKillSwitchActive(!killSwitchActive);
+  };
+
+  // Treasury handlers
+  const handleAllocateBudget = async (allocationAmount: number) => {
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 200));
+    const carbon = Math.round(allocationAmount * 0.001 * 10) / 10; // 0.1g CO2 per $1
+    const tx = {
+      id: `tx-${Date.now().toString(36)}`,
+      type: 'allocation',
+      amount: allocationAmount,
+      carbon,
+      time: new Date().toLocaleTimeString(),
+    };
+    setBalance(prev => prev - allocationAmount);
+    setCarbonUsage(prev => prev + carbon);
+    setTransactions(prev => [tx, ...prev].slice(0, 5));
+    setLoading(false);
+  };
+
+  // Nexus handlers
+  const handleDiscoverAgents = async () => {
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 500));
+    const mockAgents = [
+      { id: 'agent-001', name: 'DataFetcher', protocols: ['a2a', 'mcp'], status: 'online' },
+      { id: 'agent-002', name: 'Analyzer', protocols: ['a2a'], status: 'online' },
+      { id: 'agent-003', name: 'Reporter', protocols: ['mcp', 'anp'], status: 'busy' },
+    ];
+    setDiscoveredAgents(mockAgents);
     setLoading(false);
   };
 
@@ -552,27 +620,34 @@ export default function App() {
           {activeTab === 'arbiter' && (
             <div className="panel">
               <h2>⚖️ Arbiter</h2>
-              <p className="description">Coordinate access to shared resources.</p>
+              <p className="description">Coordinate access to shared resources and emergency controls.</p>
 
               <div className="form-group">
-                <label>Resource</label>
+                <label>Resource Lock</label>
                 <input
                   type="text"
+                  value={resource}
+                  onChange={(e) => setResource(e.target.value)}
                   placeholder="e.g., database:accounts"
-                  defaultValue="database:accounts"
                 />
               </div>
 
               <div className="form-group">
-                <label>Priority</label>
-                <input type="number" defaultValue="5" min="1" max="10" />
+                <label>Priority (1-10)</label>
+                <input 
+                  type="number" 
+                  value={priority} 
+                  onChange={(e) => setPriority(parseInt(e.target.value) || 5)}
+                  min="1" 
+                  max="10" 
+                />
               </div>
 
               <div className="button-group">
-                <button className="primary" disabled={!agent}>
-                  Request Lock
+                <button className="primary" onClick={handleRequestLock} disabled={loading || !agent}>
+                  {loading ? 'Requesting...' : 'Request Lock'}
                 </button>
-                <button className="secondary" disabled={!agent}>
+                <button className="secondary" onClick={handleReleaseLock} disabled={!lockResult}>
                   Release Lock
                 </button>
               </div>
@@ -581,14 +656,34 @@ export default function App() {
                 <p className="hint">⚠️ Register an agent first in the Identity tab.</p>
               )}
 
-              <div className="info-box">
-                <h4>ℹ️ How Arbiter Works</h4>
-                <ul>
-                  <li>Agents request locks on resources they need</li>
-                  <li>Higher priority agents can preempt lower priority ones</li>
-                  <li>Locks automatically expire to prevent deadlocks</li>
-                  <li>Queued agents are notified when locks become available</li>
-                </ul>
+              {lockResult && (
+                <div className={`result ${lockResult.acquired ? 'success-result' : 'error-result'}`}>
+                  <h4>{lockResult.acquired ? '🔐 Lock Acquired' : '⏳ Queued'}</h4>
+                  {lockResult.acquired ? (
+                    <>
+                      <p><strong>Lock ID:</strong> {lockResult.lockId}</p>
+                      <p><strong>Expires in:</strong> {lockResult.expiresIn}s</p>
+                      <p><strong>Resource:</strong> {resource}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p><strong>Queue Position:</strong> #{lockResult.queue}</p>
+                      <p><strong>Resource:</strong> {resource}</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="info-box" style={{ marginTop: '1.5rem' }}>
+                <h4>🚨 Emergency Kill Switch</h4>
+                <p>Immediately terminate all agent operations.</p>
+                <button 
+                  className={killSwitchActive ? 'primary' : 'secondary'} 
+                  onClick={handleKillSwitch}
+                  style={{ background: killSwitchActive ? '#dc2626' : undefined }}
+                >
+                  {killSwitchActive ? '🔴 KILL SWITCH ACTIVE' : '⚪ Activate Kill Switch'}
+                </button>
               </div>
             </div>
           )}
@@ -598,16 +693,48 @@ export default function App() {
               <h2>💰 Treasury</h2>
               <p className="description">Manage agent budgets, micropayments, and carbon tracking.</p>
 
-              <div className="info-box">
-                <h4>🚧 Coming Soon</h4>
-                <p>Treasury integration is under development. Features include:</p>
-                <ul>
-                  <li>Agent budget allocation and tracking</li>
-                  <li>Micropayment channels for agent-to-agent transactions</li>
-                  <li>Carbon footprint monitoring and ESG reporting</li>
-                  <li>Cost optimization recommendations</li>
-                </ul>
+              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="stat-card" style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Balance</label>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>${balance.toLocaleString()}</div>
+                </div>
+                <div className="stat-card" style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Carbon Usage</label>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{carbonUsage.toFixed(1)}g CO₂</div>
+                </div>
               </div>
+
+              <div className="form-group">
+                <label>Quick Allocate</label>
+                <div className="button-group">
+                  <button className="secondary" onClick={() => handleAllocateBudget(100)} disabled={loading || balance < 100}>
+                    $100
+                  </button>
+                  <button className="secondary" onClick={() => handleAllocateBudget(500)} disabled={loading || balance < 500}>
+                    $500
+                  </button>
+                  <button className="secondary" onClick={() => handleAllocateBudget(1000)} disabled={loading || balance < 1000}>
+                    $1,000
+                  </button>
+                </div>
+              </div>
+
+              {transactions.length > 0 && (
+                <div className="result" style={{ marginTop: '1rem' }}>
+                  <h4>📜 Recent Transactions</h4>
+                  <div style={{ fontSize: '0.875rem' }}>
+                    {transactions.map(tx => (
+                      <div key={tx.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                        <span style={{ opacity: 0.7 }}>{tx.time}</span>
+                        {' - '}
+                        <strong>${tx.amount}</strong>
+                        {' allocated '}
+                        <span style={{ color: '#22c55e' }}>({tx.carbon}g CO₂)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -616,14 +743,54 @@ export default function App() {
               <h2>🔀 Nexus</h2>
               <p className="description">Protocol translation gateway for A2A, MCP, and ANP.</p>
 
-              <div className="info-box">
-                <h4>🚧 Coming Soon</h4>
-                <p>Nexus integration is under development. Features include:</p>
+              <div className="form-group">
+                <label>Protocol Filter</label>
+                <select value={selectedProtocol} onChange={(e) => setSelectedProtocol(e.target.value)}>
+                  <option value="all">All Protocols</option>
+                  <option value="a2a">Google A2A</option>
+                  <option value="mcp">Anthropic MCP</option>
+                  <option value="anp">ANP (Agent Network Protocol)</option>
+                </select>
+              </div>
+
+              <button className="primary" onClick={handleDiscoverAgents} disabled={loading}>
+                {loading ? 'Discovering...' : '🔍 Discover Agents'}
+              </button>
+
+              {discoveredAgents.length > 0 && (
+                <div className="result" style={{ marginTop: '1rem' }}>
+                  <h4>📡 Discovered Agents</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {discoveredAgents
+                      .filter(a => selectedProtocol === 'all' || a.protocols.includes(selectedProtocol))
+                      .map(agent => (
+                        <div key={agent.id} style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <strong>{agent.name}</strong>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{agent.id}</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            {agent.protocols.map(p => (
+                              <span key={p} style={{ padding: '0.25rem 0.5rem', background: p === 'a2a' ? '#3b82f6' : p === 'mcp' ? '#8b5cf6' : '#22c55e', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                {p.toUpperCase()}
+                              </span>
+                            ))}
+                            <span style={{ padding: '0.25rem 0.5rem', background: agent.status === 'online' ? '#22c55e' : '#eab308', borderRadius: '4px', fontSize: '0.75rem' }}>
+                              {agent.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="info-box" style={{ marginTop: '1.5rem' }}>
+                <h4>🌐 Protocol Support</h4>
                 <ul>
-                  <li>Google A2A protocol support</li>
-                  <li>Anthropic MCP integration</li>
-                  <li>Agent discovery via <code>/.well-known/agent.json</code></li>
-                  <li>Multi-protocol task routing</li>
+                  <li><strong>A2A</strong> - Google's Agent-to-Agent protocol</li>
+                  <li><strong>MCP</strong> - Anthropic's Model Context Protocol</li>
+                  <li><strong>ANP</strong> - Agent Network Protocol (internal)</li>
                 </ul>
               </div>
             </div>
