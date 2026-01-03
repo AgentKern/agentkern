@@ -14,6 +14,13 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3003));
     tracing::info!("Treasury listening on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind to address");
+    
+    tracing::info!("✅ Treasury server started successfully");
+    
+    axum::serve(listener, app)
+        .await
+        .expect("Server error occurred");
 }

@@ -9,6 +9,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
+import * as fs from 'fs';
 import { GatePolicyRepository } from '../repositories/gate-policy.repository';
 import { GatePolicyEntity } from '../entities/gate-policy.entity';
 import { ComplianceEngine } from './compliance.engine';
@@ -78,28 +79,109 @@ export class GateService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await Promise.resolve(); // Ensure async lifecycle hook
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const bridgePath = this.resolveBridgePath();
+
     try {
-      // Path to native module (relative to apps/identity/dist)
-      // Correct path: packages/foundation/bridge/index.node
-      const bridgePath = path.resolve(
-        __dirname,
-        '../../../../packages/foundation/bridge/index.node',
-      );
+      // Verify bridge file exists before attempting to load
+      if (!fs.existsSync(bridgePath)) {
+        throw new Error(
+          `Bridge file not found at: ${bridgePath}. Run: cd packages/foundation/bridge && pnpm build`,
+        );
+      }
+
+      // Load bridge
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('🌉 N-API Bridge loaded successfully');
-      
+
+      // Verify bridge is operational
+      await this.verifyBridge();
+
       // Initial policy sync
-      this.syncPolicies().catch(e => this.logger.error(`Initial policy sync failed: ${e}`));
-    } catch (error) {
-      // CRITICAL: Log as ERROR, not WARN - this is a security degradation
-      this.logger.error(
-        `🚨 SECURITY DEGRADATION: Failed to load N-API bridge: ${error}`,
+      this.syncPolicies().catch((e) =>
+        this.logger.error(`Initial policy sync failed: ${e}`),
       );
-      this.logger.error(
-        '🚨 GateService will operate in FAIL-CLOSED mode (blocking all prompts)',
-      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      if (isProduction) {
+        // PRODUCTION: Fail-fast - bridge is mandatory
+        this.logger.error(
+          `🚨 CRITICAL: Failed to load N-API bridge in production: ${errorMessage}`,
+        );
+        this.logger.error(
+          '🚨 Application cannot start without operational bridge',
+        );
+        throw new Error(
+          `N-API bridge is required in production but failed to load: ${errorMessage}`,
+        );
+      } else {
+        // DEVELOPMENT: Allow degraded mode with warnings
+        this.logger.error(
+          `🚨 SECURITY DEGRADATION: Failed to load N-API bridge: ${errorMessage}`,
+        );
+        this.logger.warn(
+          '⚠️ GateService will operate in FAIL-CLOSED mode (blocking all prompts)',
+        );
+        this.logger.warn(
+          '⚠️ To fix: cd packages/foundation/bridge && pnpm build',
+        );
+      }
+    }
+  }
+
+  /**
+   * Resolve bridge path with proper error handling
+   * Tries multiple possible locations (development vs production)
+   */
+  private resolveBridgePath(): string {
+    const possiblePaths = [
+      // Development: from source
+      path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      ),
+      // Production: from dist (after build)
+      path.resolve(
+        __dirname,
+        '../../../packages/foundation/bridge/index.node',
+      ),
+      // Docker/container: absolute path
+      '/app/packages/foundation/bridge/index.node',
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+
+    throw new Error(
+      `Bridge not found in any expected location: ${possiblePaths.join(', ')}`,
+    );
+  }
+
+  /**
+   * Verify bridge is operational by calling a test function
+   */
+  private async verifyBridge(): Promise<void> {
+    try {
+      // Test with a simple call that should always work
+      const testResult = this.bridge.guardPrompt('test');
+      if (!testResult) {
+        throw new Error('Bridge returned null for test call');
+      }
+      // Verify it's valid JSON
+      JSON.parse(testResult);
+      this.logger.log('✅ Bridge verification successful');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Bridge verification failed: ${errorMessage}`);
     }
   }
 
@@ -112,16 +194,38 @@ export class GateService implements OnModuleInit {
 
   /**
    * Guard prompt against injection attacks (0ms latency)
-   * Returns null ONLY on parse errors; bridge unavailability is handled by shouldBlockPrompt()
+   * 
+   * Production-ready: Fails-fast if bridge unavailable in production.
+   * Development: Returns null for graceful degradation.
+   * 
+   * @throws Error in production if bridge is not loaded
+   * @returns PromptAnalysis or null (development only)
    */
   guardPrompt(prompt: string): PromptAnalysis | null {
     if (!this.bridgeLoaded) {
-      // FAIL-CLOSED: Return null to signal security check unavailable
-      // Callers MUST handle null as "block" for security-critical paths
-      this.logger.error(
-        'SECURITY: Bridge not loaded, prompt guard unavailable',
-      );
-      return null;
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      if (isProduction) {
+        // PRODUCTION: Fail-fast - security cannot be compromised
+        this.logger.error(
+          '🚨 CRITICAL: Prompt guard unavailable - bridge not loaded in production',
+        );
+        throw new Error(
+          'N-API bridge is required for prompt guard in production but is not loaded',
+        );
+      } else {
+        // DEVELOPMENT: Allow degraded mode with warnings
+        this.logger.error(
+          '🚨 SECURITY DEGRADATION: Bridge not loaded, prompt guard unavailable',
+        );
+        this.logger.warn(
+          '⚠️ DEPRECATED: GateService operating without Rust bridge. See EPISTEMIC_HEALTH.md',
+        );
+        this.logger.warn(
+          '⚠️ To fix: cd packages/foundation/bridge && pnpm build',
+        );
+        return null;
+      }
     }
 
     try {
@@ -374,9 +478,11 @@ export class GateService implements OnModuleInit {
       description: dto.description,
       rules: dto.rules,
     });
-    
+
     // Sync to Bridge
-    this.syncPolicies().catch(e => this.logger.error(`Policy sync failed after create: ${e}`));
+    this.syncPolicies().catch((e) =>
+      this.logger.error(`Policy sync failed after create: ${e}`),
+    );
 
     return this.policyToResponse(entity);
   }
@@ -391,34 +497,39 @@ export class GateService implements OnModuleInit {
     this.logger.log(`Syncing ${policies.length} policies to Gate Engine...`);
 
     for (const p of policies) {
-        // Convert to Rust Policy structure (JSON is valid YAML)
-        const rustPolicy = {
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            priority: 100, // Default priority
-            enabled: p.active,
-            jurisdictions: [], // Empty = Global
-            rules: p.rules.map(r => ({
-                id: r.id,
-                condition: r.condition,
-                action: r.action,
-                // Map metadata to Rust fields if available
-                message: (r.metadata?.message as string) || undefined,
-                risk_score: (r.metadata?.risk_score as number) || undefined
-            }))
+      // Convert to Rust Policy structure (JSON is valid YAML)
+      const rustPolicy = {
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        priority: 100, // Default priority
+        enabled: p.active,
+        jurisdictions: [], // Empty = Global
+        rules: p.rules.map((r) => ({
+          id: r.id,
+          condition: r.condition,
+          action: r.action,
+          // Map metadata to Rust fields if available
+          message: (r.metadata?.message as string) || undefined,
+          risk_score: (r.metadata?.risk_score as number) || undefined,
+        })),
+      };
+
+      try {
+        const yaml = JSON.stringify(rustPolicy);
+        const result = await this.bridge.registerPolicy(yaml);
+        const parsed = JSON.parse(result) as {
+          error?: string;
+          success?: boolean;
         };
-        
-        try {
-            const yaml = JSON.stringify(rustPolicy);
-            const result = await this.bridge.registerPolicy(yaml);
-            const parsed = JSON.parse(result);
-            if (parsed.error) {
-                this.logger.error(`Failed to register policy ${p.id}: ${parsed.error}`);
-            }
-        } catch (e) {
-             this.logger.error(`Bridge error syncing policy ${p.id}: ${e}`);
+        if (parsed.error) {
+          this.logger.error(
+            `Failed to register policy ${p.id}: ${parsed.error}`,
+          );
         }
+      } catch (e) {
+        this.logger.error(`Bridge error syncing policy ${p.id}: ${e}`);
+      }
     }
   }
 

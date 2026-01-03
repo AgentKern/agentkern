@@ -58,7 +58,8 @@ const ENTITIES = [
             database: url.pathname.slice(1) || 'agentkern_identity',
             entities: ENTITIES,
             synchronize: configService.get('DATABASE_SYNC', 'false') === 'true', // Default false for production safety
-            dropSchema: configService.get('DATABASE_DROP_SCHEMA', 'false') === 'true', // For tests only
+            dropSchema:
+              configService.get('DATABASE_DROP_SCHEMA', 'false') === 'true', // For tests only
             logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
             ssl:
               configService.get('DATABASE_SSL', 'false') === 'true'
@@ -82,7 +83,8 @@ const ENTITIES = [
           ),
           entities: ENTITIES,
           synchronize: configService.get('DATABASE_SYNC', 'false') === 'true', // Default false for production safety
-          dropSchema: configService.get('DATABASE_DROP_SCHEMA', 'false') === 'true', // For tests only
+          dropSchema:
+            configService.get('DATABASE_DROP_SCHEMA', 'false') === 'true', // For tests only
           logging: configService.get('DATABASE_LOGGING', 'false') === 'true',
           ssl:
             configService.get('DATABASE_SSL', 'false') === 'true'

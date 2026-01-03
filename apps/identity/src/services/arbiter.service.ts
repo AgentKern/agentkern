@@ -9,6 +9,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // Type definitions for bridge responses
 export interface KillSwitchStatus {
@@ -60,22 +61,95 @@ export class ArbiterService implements OnModuleInit {
   private bridgeLoaded = false;
 
   async onModuleInit(): Promise<void> {
-    // Ensure async/await pattern for NestJS lifecycle hook
     await Promise.resolve();
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const bridgePath = this.resolveBridgePath();
+
     try {
-      const bridgePath = path.resolve(
-        __dirname,
-        '../../../../packages/foundation/bridge/index.node',
-      );
-      // Native .node modules require require() in CommonJS
+      // Verify bridge file exists
+      if (!fs.existsSync(bridgePath)) {
+        throw new Error(
+          `Bridge file not found at: ${bridgePath}. Run: cd packages/foundation/bridge && pnpm build`,
+        );
+      }
+
+      // Load bridge
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('⚖️ Arbiter N-API Bridge loaded successfully');
-    } catch (error) {
-      this.logger.error(`🚨 Failed to load Arbiter N-API bridge: ${error}`);
-      this.logger.warn('ArbiterService will operate in degraded mode');
+
+      // Verify bridge is operational
+      await this.verifyBridge();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      if (isProduction) {
+        this.logger.error(
+          `🚨 CRITICAL: Failed to load N-API bridge in production: ${errorMessage}`,
+        );
+        throw new Error(
+          `N-API bridge is required in production but failed to load: ${errorMessage}`,
+        );
+      } else {
+        this.logger.error(
+          `🚨 Failed to load Arbiter N-API bridge: ${errorMessage}`,
+        );
+        this.logger.warn(
+          '⚠️ DEPRECATED: ArbiterService operating in degraded mode. See EPISTEMIC_HEALTH.md',
+        );
+        this.logger.warn(
+          '⚠️ To fix: cd packages/foundation/bridge && pnpm build',
+        );
+      }
+    }
+  }
+
+  /**
+   * Resolve bridge path with proper error handling
+   */
+  private resolveBridgePath(): string {
+    const possiblePaths = [
+      path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      ),
+      path.resolve(
+        __dirname,
+        '../../../packages/foundation/bridge/index.node',
+      ),
+      '/app/packages/foundation/bridge/index.node',
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+
+    throw new Error(
+      `Bridge not found in any expected location: ${possiblePaths.join(', ')}`,
+    );
+  }
+
+  /**
+   * Verify bridge is operational
+   */
+  private async verifyBridge(): Promise<void> {
+    try {
+      // Test with a simple call
+      const testResult = await this.bridge.arbiterKillSwitchStatus();
+      if (!testResult) {
+        throw new Error('Bridge returned null for test call');
+      }
+      JSON.parse(testResult);
+      this.logger.log('✅ Bridge verification successful');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Bridge verification failed: ${errorMessage}`);
     }
   }
 
@@ -93,12 +167,20 @@ export class ArbiterService implements OnModuleInit {
   /**
    * Activate kill switch - terminate specific agent or all agents
    */
+  /**
+   * @deprecated When bridge is not loaded, this returns an error.
+   * This is a temporary fallback. The Rust Arbiter implementation should always be available in production.
+   * See EPISTEMIC_HEALTH.md for architectural integration status.
+   */
   async activateKillSwitch(
     reason: string,
     agentId?: string,
   ): Promise<KillRecord | { error: string }> {
     if (!this.bridgeLoaded) {
-      return { error: 'Bridge not loaded' };
+      this.logger.warn(
+        '⚠️ DEPRECATED: Bridge not loaded, ArbiterService operating in degraded mode. See EPISTEMIC_HEALTH.md',
+      );
+      return { error: 'Bridge not loaded - Arbiter functionality unavailable' };
     }
 
     try {
@@ -154,9 +236,11 @@ export class ArbiterService implements OnModuleInit {
 
   /**
    * Query audit statistics
+   * @param _limit - Limit for future implementation (currently not used by bridge)
    */
+
   async getAuditStatistics(
-    limit: number = 100,
+    _limit: number = 100,
   ): Promise<AuditStatistics | null> {
     if (!this.bridgeLoaded) {
       return null;
@@ -165,8 +249,10 @@ export class ArbiterService implements OnModuleInit {
     try {
       const result = await this.bridge.arbiterQueryAudit();
       return JSON.parse(result) as AuditStatistics;
-    } catch (error) {
-      this.logger.error(`Failed to query audit: ${error}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to query audit: ${errorMessage}`);
       return null;
     }
   }

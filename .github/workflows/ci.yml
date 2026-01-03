@@ -77,6 +77,17 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
       
+      - name: Build N-API Bridge
+        working-directory: packages/foundation/bridge
+        run: |
+          pnpm install
+          pnpm build
+      
+      - name: Verify Bridge Exists
+        run: |
+          test -f packages/foundation/bridge/index.node || (echo "❌ Bridge build failed" && exit 1)
+          echo "✅ N-API bridge built successfully"
+      
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       

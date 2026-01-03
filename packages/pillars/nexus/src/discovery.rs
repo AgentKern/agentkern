@@ -26,7 +26,7 @@ impl AgentDiscovery {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .expect("Failed to create HTTP client");
+            .expect("Failed to create HTTP client for agent discovery - this is a critical initialization error");
 
         Self { registry, client }
     }

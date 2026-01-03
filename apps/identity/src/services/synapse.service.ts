@@ -9,6 +9,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
+import * as fs from 'fs';
 
 // Type definitions for bridge responses
 export interface AgentState {
@@ -43,23 +44,95 @@ export class SynapseService implements OnModuleInit {
   private bridgeLoaded = false;
 
   async onModuleInit(): Promise<void> {
-    // Ensure async/await pattern for NestJS lifecycle hook
     await Promise.resolve();
 
-    try {
-      const bridgePath = path.resolve(
-        __dirname,
-        '../../../../packages/foundation/bridge/index.node',
-      );
+    const isProduction = process.env.NODE_ENV === 'production';
+    const bridgePath = this.resolveBridgePath();
 
-      // Native .node modules require require() in CommonJS
+    try {
+      // Verify bridge file exists
+      if (!fs.existsSync(bridgePath)) {
+        throw new Error(
+          `Bridge file not found at: ${bridgePath}. Run: cd packages/foundation/bridge && pnpm build`,
+        );
+      }
+
+      // Load bridge
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('🧠 Synapse N-API Bridge loaded successfully');
-    } catch (error) {
-      this.logger.error(`🚨 Failed to load Synapse N-API bridge: ${error}`);
-      this.logger.warn('SynapseService will operate in degraded mode');
+
+      // Verify bridge is operational
+      await this.verifyBridge();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      if (isProduction) {
+        this.logger.error(
+          `🚨 CRITICAL: Failed to load N-API bridge in production: ${errorMessage}`,
+        );
+        throw new Error(
+          `N-API bridge is required in production but failed to load: ${errorMessage}`,
+        );
+      } else {
+        this.logger.error(
+          `🚨 Failed to load Synapse N-API bridge: ${errorMessage}`,
+        );
+        this.logger.warn(
+          '⚠️ DEPRECATED: SynapseService operating in degraded mode. See EPISTEMIC_HEALTH.md',
+        );
+        this.logger.warn(
+          '⚠️ To fix: cd packages/foundation/bridge && pnpm build',
+        );
+      }
+    }
+  }
+
+  /**
+   * Resolve bridge path with proper error handling
+   */
+  private resolveBridgePath(): string {
+    const possiblePaths = [
+      path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      ),
+      path.resolve(
+        __dirname,
+        '../../../packages/foundation/bridge/index.node',
+      ),
+      '/app/packages/foundation/bridge/index.node',
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+
+    throw new Error(
+      `Bridge not found in any expected location: ${possiblePaths.join(', ')}`,
+    );
+  }
+
+  /**
+   * Verify bridge is operational
+   */
+  private async verifyBridge(): Promise<void> {
+    try {
+      // Test with a simple call
+      const testResult = await this.bridge.synapseGetState('test-verify');
+      if (!testResult) {
+        throw new Error('Bridge returned null for test call');
+      }
+      JSON.parse(testResult);
+      this.logger.log('✅ Bridge verification successful');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Bridge verification failed: ${errorMessage}`);
     }
   }
 
@@ -72,10 +145,16 @@ export class SynapseService implements OnModuleInit {
 
   /**
    * Get agent state
+   * 
+   * @deprecated When bridge is not loaded, this returns null.
+   * This is a temporary fallback. The Rust Synapse implementation should always be available in production.
+   * See EPISTEMIC_HEALTH.md for architectural integration status.
    */
   async getState(agentId: string): Promise<AgentState | null> {
     if (!this.bridgeLoaded) {
-      this.logger.warn('Bridge not loaded, returning null for getState');
+      this.logger.warn(
+        '⚠️ DEPRECATED: Bridge not loaded, SynapseService operating in degraded mode. See EPISTEMIC_HEALTH.md',
+      );
       return null;
     }
 
@@ -148,14 +227,21 @@ export class SynapseService implements OnModuleInit {
 
     try {
       const result = await this.bridge.synapseStoreMemory(agentId, text);
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(result) as { error?: string; id?: string };
       if (parsed.error) {
         return { error: parsed.error };
       }
+      if (!parsed.id) {
+        return { error: 'Memory storage failed: no ID returned' };
+      }
       return { id: parsed.id };
-    } catch (error) {
-      this.logger.error(`Failed to store memory for ${agentId}: ${error}`);
-      return { error: String(error) };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to store memory for ${agentId}: ${errorMessage}`,
+      );
+      return { error: errorMessage };
     }
   }
 
@@ -167,19 +253,21 @@ export class SynapseService implements OnModuleInit {
     limit: number = 5,
   ): Promise<SimilarityResult[]> {
     if (!this.bridgeLoaded) {
-        this.logger.warn('Bridge not loaded, returning empty memory query');
-        return [];
+      this.logger.warn('Bridge not loaded, returning empty memory query');
+      return [];
     }
 
     try {
       const result = await this.bridge.synapseQueryMemory(text, limit);
       // Rust returns Vec<SimilarityResult>, which serializes to array
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(result) as
+        | SimilarityResult[]
+        | { error?: string };
       if (Array.isArray(parsed)) {
-          return parsed as SimilarityResult[];
+        return parsed;
       }
       if (parsed.error) {
-          this.logger.error(`Memory query failed: ${parsed.error}`);
+        this.logger.error(`Memory query failed: ${parsed.error}`);
       }
       return [];
     } catch (error) {

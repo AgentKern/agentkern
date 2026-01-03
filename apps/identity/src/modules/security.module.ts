@@ -54,6 +54,12 @@ import { AgentsController } from '../controllers/agents.controller';
     AuditLoggerService,
     GatePolicyRepository,
   ],
-  exports: [GateService, TrustService, AgentSandboxService, AuditLoggerService, GatePolicyRepository],
+  exports: [
+    GateService,
+    TrustService,
+    AgentSandboxService,
+    AuditLoggerService,
+    GatePolicyRepository,
+  ],
 })
 export class SecurityModule {}

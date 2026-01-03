@@ -685,10 +685,10 @@ impl CarbonLedger {
         let (start, end) = if footprints.is_empty() {
             (Utc::now(), Utc::now())
         } else {
-            (
-                footprints.first().unwrap().timestamp,
-                footprints.last().unwrap().timestamp,
-            )
+            // Safe: We've checked footprints.is_empty() above
+            let first = footprints.first().expect("Non-empty footprints should have first element");
+            let last = footprints.last().expect("Non-empty footprints should have last element");
+            (first.timestamp, last.timestamp)
         };
 
         CarbonUsage {

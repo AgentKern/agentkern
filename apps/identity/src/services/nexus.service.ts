@@ -9,6 +9,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as path from 'path';
+import * as fs from 'fs';
 import {
   AgentCard,
   TranslateMessageDto,
@@ -34,6 +35,25 @@ interface NativeBridge {
   nexusSend(msgJson: string, targetProtocol: string): Promise<string>;
 }
 
+// Type definitions for bridge responses
+interface BridgeErrorResponse {
+  error: string;
+}
+
+interface BridgeAgentResponse extends Partial<AgentCard> {
+  error?: string;
+  matchScore?: number;
+}
+
+interface BridgeStatsResponse {
+  registeredAgents: number;
+  supportedProtocols: number;
+}
+
+interface BridgeAgentsResponse extends Array<Partial<AgentCard>> {
+  error?: string;
+}
+
 @Injectable()
 export class NexusService implements OnModuleInit {
   private readonly logger = new Logger(NexusService.name);
@@ -41,21 +61,95 @@ export class NexusService implements OnModuleInit {
   private bridgeLoaded = false;
 
   async onModuleInit(): Promise<void> {
-    await Promise.resolve(); // Ensure async context
+    await Promise.resolve();
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const bridgePath = this.resolveBridgePath();
 
     try {
-      const bridgePath = path.resolve(
-        __dirname,
-        '../../../../packages/foundation/bridge/index.node',
-      );
+      // Verify bridge file exists
+      if (!fs.existsSync(bridgePath)) {
+        throw new Error(
+          `Bridge file not found at: ${bridgePath}. Run: cd packages/foundation/bridge && pnpm build`,
+        );
+      }
 
+      // Load bridge
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.bridge = require(bridgePath) as NativeBridge;
       this.bridgeLoaded = true;
       this.logger.log('🌐 Nexus N-API Bridge loaded successfully');
-    } catch (error) {
-      this.logger.error(`🚨 Failed to load Nexus N-API bridge: ${error}`);
-      this.logger.warn('NexusService will operate in degraded mode');
+
+      // Verify bridge is operational
+      await this.verifyBridge();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      if (isProduction) {
+        this.logger.error(
+          `🚨 CRITICAL: Failed to load N-API bridge in production: ${errorMessage}`,
+        );
+        throw new Error(
+          `N-API bridge is required in production but failed to load: ${errorMessage}`,
+        );
+      } else {
+        this.logger.error(
+          `🚨 Failed to load Nexus N-API bridge: ${errorMessage}`,
+        );
+        this.logger.warn(
+          '⚠️ DEPRECATED: NexusService operating in degraded mode. See EPISTEMIC_HEALTH.md',
+        );
+        this.logger.warn(
+          '⚠️ To fix: cd packages/foundation/bridge && pnpm build',
+        );
+      }
+    }
+  }
+
+  /**
+   * Resolve bridge path with proper error handling
+   */
+  private resolveBridgePath(): string {
+    const possiblePaths = [
+      path.resolve(
+        __dirname,
+        '../../../../packages/foundation/bridge/index.node',
+      ),
+      path.resolve(
+        __dirname,
+        '../../../packages/foundation/bridge/index.node',
+      ),
+      '/app/packages/foundation/bridge/index.node',
+    ];
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+
+    throw new Error(
+      `Bridge not found in any expected location: ${possiblePaths.join(', ')}`,
+    );
+  }
+
+  /**
+   * Verify bridge is operational
+   */
+  private async verifyBridge(): Promise<void> {
+    try {
+      // Test with a simple call
+      const testResult = await this.bridge.nexusGetStats();
+      if (!testResult) {
+        throw new Error('Bridge returned null for test call');
+      }
+      JSON.parse(testResult);
+      this.logger.log('✅ Bridge verification successful');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Bridge verification failed: ${errorMessage}`);
     }
   }
 
@@ -72,10 +166,12 @@ export class NexusService implements OnModuleInit {
 
     try {
       const result = await this.bridge.nexusReceive(payload);
-      return JSON.parse(result);
-    } catch (error) {
-      this.logger.error(`Failed to receive message: ${error}`);
-      return { error: String(error) };
+      return JSON.parse(result) as NexusMessage | BridgeErrorResponse;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to receive message: ${errorMessage}`);
+      return { error: errorMessage };
     }
   }
 
@@ -88,7 +184,7 @@ export class NexusService implements OnModuleInit {
     try {
       // Ensure ID exists
       const id = dto.id || uuidv4();
-      
+
       // Convert DTO to Card (filling defaults)
       const card: AgentCard = {
         ...dto,
@@ -103,12 +199,19 @@ export class NexusService implements OnModuleInit {
 
       const json = JSON.stringify(card);
       const result = await this.bridge.nexusRegisterAgent(json);
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(result) as {
+        error?: string;
+        success?: boolean;
+      };
       if (parsed.error) throw new Error(parsed.error);
-      
+
       return card;
-    } catch (error) {
-      this.logger.error(`Failed to register agent ${dto.name}: ${error}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to register agent ${dto.name}: ${errorMessage}`,
+      );
       throw error;
     }
   }
@@ -121,10 +224,12 @@ export class NexusService implements OnModuleInit {
 
     try {
       const result = await this.bridge.nexusListAgents();
-      const agents = JSON.parse(result);
+      const agents = JSON.parse(result) as BridgeAgentsResponse | AgentCard[];
       return this.mapAgents(agents);
-    } catch (error) {
-      this.logger.error(`Failed to list agents: ${error}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to list agents: ${errorMessage}`);
       return [];
     }
   }
@@ -134,7 +239,9 @@ export class NexusService implements OnModuleInit {
    */
   async findAgentsBySkill(skill: string): Promise<AgentCard[]> {
     const agents = await this.listAgents();
-    return agents.filter((a) => a.skills?.some(s => s.name === skill || s.id === skill));
+    return agents.filter((a) =>
+      a.skills?.some((s) => s.name === skill || s.id === skill),
+    );
   }
 
   /**
@@ -146,10 +253,12 @@ export class NexusService implements OnModuleInit {
     try {
       const result = await this.bridge.nexusGetAgent(id);
       if (result === 'null') return null;
-      const agent = JSON.parse(result);
+      const agent = JSON.parse(result) as BridgeAgentResponse;
       return this.mapAgent(agent);
-    } catch (error) {
-      this.logger.error(`Failed to get agent ${id}: ${error}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get agent ${id}: ${errorMessage}`);
       return null;
     }
   }
@@ -162,8 +271,10 @@ export class NexusService implements OnModuleInit {
 
     try {
       return await this.bridge.nexusUnregisterAgent(id);
-    } catch (error) {
-      this.logger.error(`Failed to unregister agent ${id}: ${error}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to unregister agent ${id}: ${errorMessage}`);
       return false;
     }
   }
@@ -176,31 +287,37 @@ export class NexusService implements OnModuleInit {
 
     try {
       const result = await this.bridge.nexusDiscoverAgent(url);
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(result) as BridgeAgentResponse;
       if (parsed.error) throw new Error(parsed.error);
       return this.mapAgent(parsed);
-    } catch (error) {
-      this.logger.error(`Failed to discover agent at ${url}: ${error}`);
-      throw error;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to discover agent at ${url}: ${errorMessage}`);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 
   /**
    * Route task to best matching agent.
    */
-  async routeTask(dto: RouteTaskDto): Promise<(AgentCard & { matchScore: number }) | null> {
+  async routeTask(
+    dto: RouteTaskDto,
+  ): Promise<(AgentCard & { matchScore: number }) | null> {
     if (!this.bridgeLoaded) return null;
 
     try {
       const taskJson = JSON.stringify(dto);
       const result = await this.bridge.nexusRouteTask(taskJson);
-      const parsed = JSON.parse(result);
+      const parsed = JSON.parse(result) as BridgeAgentResponse;
       if (parsed.error) throw new Error(parsed.error);
-      
+
       const agent = this.mapAgent(parsed);
-      return { ...agent, matchScore: parsed.matchScore || 0 };
-    } catch (error) {
-      this.logger.error(`Failed to route task: ${error}`);
+      return { ...agent, matchScore: parsed.matchScore ?? 0 };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to route task: ${errorMessage}`);
       return null;
     }
   }
@@ -208,44 +325,59 @@ export class NexusService implements OnModuleInit {
   /**
    * Translate message between protocols.
    */
-  async translateMessage(dto: TranslateMessageDto): Promise<any> {
+  async translateMessage(
+    dto: TranslateMessageDto,
+  ): Promise<NexusMessage | { error: string; payload?: string }> {
     if (!this.bridgeLoaded) return { error: 'Bridge not loaded' };
 
     try {
       // 1. Receive (Foreign -> Native)
-      const payload = typeof dto.message === 'string' ? dto.message : JSON.stringify(dto.message);
+      const payload =
+        typeof dto.message === 'string'
+          ? dto.message
+          : JSON.stringify(dto.message);
       const nativeMsg = await this.receive(payload);
 
       if ('error' in nativeMsg) throw new Error(nativeMsg.error);
 
       // 2. Send (Native -> Target)
       const nativeJson = JSON.stringify(nativeMsg);
-      const result = await this.bridge.nexusSend(nativeJson, dto.targetProtocol);
-      
+      const result = await this.bridge.nexusSend(
+        nativeJson,
+        dto.targetProtocol,
+      );
+
       try {
-        return JSON.parse(result);
+        return JSON.parse(result) as NexusMessage;
       } catch {
-        return { payload: result };
+        return { error: 'Failed to parse result', payload: result };
       }
-    } catch (error) {
-      this.logger.error(`Failed to translate message: ${error}`);
-      return { error: String(error) };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to translate message: ${errorMessage}`);
+      return { error: errorMessage };
     }
   }
 
   /**
    * Get Nexus stats.
    */
-  async getStats(): Promise<{ registeredAgents: number; supportedProtocols: number }> {
+  async getStats(): Promise<{
+    registeredAgents: number;
+    supportedProtocols: number;
+  }> {
     if (!this.bridgeLoaded) {
       return { registeredAgents: 0, supportedProtocols: 0 };
     }
 
     try {
       const result = await this.bridge.nexusGetStats();
-      return JSON.parse(result);
-    } catch (error) {
-      this.logger.error(`Failed to get stats: ${error}`);
+      return JSON.parse(result) as BridgeStatsResponse;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to get stats: ${errorMessage}`);
       return { registeredAgents: 0, supportedProtocols: 0 };
     }
   }
@@ -254,33 +386,51 @@ export class NexusService implements OnModuleInit {
    * Helper: Map bridge agent to DTO AgentCard
    * Handles loose typing from bridge (e.g. capabilities might be strings or objects)
    */
-  private mapAgent(raw: any): AgentCard {
-    const skills: Skill[] = Array.isArray(raw.skills) 
-      ? raw.skills.map((s: any) => typeof s === 'string' ? { id: s, name: s } : s)
+  private mapAgent(raw: BridgeAgentResponse | Partial<AgentCard>): AgentCard {
+    const rawSkills = raw.skills;
+    const skills: Skill[] = Array.isArray(rawSkills)
+      ? rawSkills.map((s: string | Skill) =>
+          typeof s === 'string' ? { id: s, name: s } : s,
+        )
       : [];
 
-    const capabilities: Capability[] = Array.isArray(raw.capabilities)
-      ? raw.capabilities.map((c: any) => typeof c === 'string' ? { name: c } : c)
+    const rawCapabilities = raw.capabilities;
+    const capabilities: Capability[] = Array.isArray(rawCapabilities)
+      ? rawCapabilities.map((c: string | Capability) =>
+          typeof c === 'string' ? { name: c } : c,
+        )
       : [];
 
     return {
-      ...raw,
+      id: raw.id ?? '',
+      name: raw.name ?? '',
+      description: raw.description ?? '',
       skills,
       capabilities,
-      protocols: raw.protocols || ['a2a', 'mcp'], // Default if missing
+      protocols: raw.protocols ?? ['a2a', 'mcp'], // Default if missing
+      version: raw.version ?? '1.0.0',
+      registeredAt: raw.registeredAt ?? new Date().toISOString(),
     };
   }
-  
-  private mapAgents(list: any[]): AgentCard[] {
-      return list.map(a => this.mapAgent(a));
+
+  private mapAgents(
+    list: BridgeAgentsResponse | AgentCard[] | Partial<AgentCard>[],
+  ): AgentCard[] {
+    if (Array.isArray(list)) {
+      return list.map((a) => this.mapAgent(a));
+    }
+    return [];
   }
 
   createA2ATask(id: string, description: string): string {
-    if (!this.bridgeLoaded) return JSON.stringify({ error: 'Bridge not loaded' });
+    if (!this.bridgeLoaded)
+      return JSON.stringify({ error: 'Bridge not loaded' });
     try {
       return this.bridge.nexusCreateA2aTask(id, description);
-    } catch (error) {
-      return JSON.stringify({ error: String(error) });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return JSON.stringify({ error: errorMessage });
     }
   }
 }

@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
+import { HealthController } from './controllers/health.controller';
 import { ProofModule } from './modules/proof.module';
 import { DnsModule } from './modules/dns.module';
 import { DashboardModule } from './modules/dashboard.module';
@@ -70,7 +71,7 @@ import {
     // Security framework
     SecurityModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     // Global rate limiting guard
     {

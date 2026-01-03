@@ -10,7 +10,12 @@
  * - Immutable audit trail (append-only)
  */
 
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, Between, In } from 'typeorm';
 import {
@@ -35,6 +40,41 @@ export interface AuditEvent {
   success: boolean;
   errorMessage?: string;
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Database error interface for type-safe error handling
+ */
+interface DatabaseError {
+  message?: string;
+  stack?: string;
+  code?: string;
+  name?: string;
+}
+
+/**
+ * Type guard to check if error has a message property
+ */
+function isErrorWithMessage(error: unknown): error is DatabaseError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as DatabaseError).message === 'string'
+  );
+}
+
+/**
+ * Safely extract error message from unknown error type
+ */
+function getErrorMessage(error: unknown): string {
+  if (isErrorWithMessage(error)) {
+    return error.message ?? 'Unknown database error';
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error occurred';
 }
 
 @Injectable()
@@ -122,11 +162,12 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
         this.logger[logLevel](JSON.stringify(auditEvent));
 
         return auditEvent;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         const isConnectionError =
-          error?.message?.includes('Connection terminated') ||
-          error?.message?.includes('Connection closed') ||
-          error?.message?.includes('Connection ended');
+          errorMessage.includes('Connection terminated') ||
+          errorMessage.includes('Connection closed') ||
+          errorMessage.includes('Connection ended');
 
         // During graceful shutdown or test teardown, handle connection errors gracefully
         if (
@@ -168,7 +209,7 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
         if (attempt < maxRetries && this.isRetryableError(error)) {
           const delayMs = baseDelayMs * Math.pow(2, attempt);
           this.logger.warn(
-            `Retrying audit log write (attempt ${attempt + 1}/${maxRetries}) after ${delayMs}ms: ${error.message}`,
+            `Retrying audit log write (attempt ${attempt + 1}/${maxRetries}) after ${delayMs}ms: ${errorMessage}`,
           );
           await new Promise((resolve) => setTimeout(resolve, delayMs));
           continue;
@@ -176,12 +217,13 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
 
         // Production: Log critical error and throw (compliance requirement)
         // Audit logs are critical - we must know if they're failing
+        const errorStack = isErrorWithMessage(error) ? error.stack : undefined;
         this.logger.error(
           `CRITICAL: Failed to persist audit event after ${attempt + 1} attempts`,
           {
             eventType: event.type,
-            error: error.message,
-            stack: error.stack,
+            error: errorMessage,
+            stack: errorStack,
           },
         );
 
@@ -208,7 +250,7 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
 
         // Production: rethrow to trigger monitoring/alerting
         throw new Error(
-          `Failed to persist audit event: ${error.message}. This is a compliance-critical failure.`,
+          `Failed to persist audit event: ${errorMessage}. This is a compliance-critical failure.`,
         );
       }
     }
@@ -220,8 +262,9 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
   /**
    * Determine if an error is retryable (transient database issues)
    */
-  private isRetryableError(error: any): boolean {
-    if (!error?.message) return false;
+  private isRetryableError(error: unknown): boolean {
+    const errorMessage = getErrorMessage(error);
+    if (!errorMessage) return false;
 
     const retryablePatterns = [
       'Connection terminated',
@@ -235,9 +278,9 @@ export class AuditLoggerService implements OnModuleInit, OnModuleDestroy {
       'connection',
     ];
 
-    const errorMessage = error.message.toLowerCase();
+    const lowerErrorMessage = errorMessage.toLowerCase();
     return retryablePatterns.some((pattern) =>
-      errorMessage.includes(pattern.toLowerCase()),
+      lowerErrorMessage.includes(pattern.toLowerCase()),
     );
   }
 

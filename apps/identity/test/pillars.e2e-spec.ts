@@ -224,8 +224,9 @@ describe('Pillars Integration (e2e)', () => {
       expect(balanceRes.status).toBe(200);
 
       // 2. Get state (Synapse)
-      const stateRes = await request(app.getHttpServer())
-        .get(`/api/v1/synapse/state/${agentId}`);
+      const stateRes = await request(app.getHttpServer()).get(
+        `/api/v1/synapse/state/${agentId}`,
+      );
       expect(stateRes.status).toBe(200);
 
       // 3. Check arbiter status

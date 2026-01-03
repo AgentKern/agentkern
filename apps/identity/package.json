@@ -9,7 +9,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "prebuild": "node scripts/build-bridge.js",
     "build": "nest build",
+    "postbuild": "node scripts/verify-bridge.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

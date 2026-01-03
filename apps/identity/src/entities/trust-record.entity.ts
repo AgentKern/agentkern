@@ -14,7 +14,9 @@ import {
 } from 'typeorm';
 
 @Entity('trust_records')
-@Index('idx_trust_records_agent_principal', ['agentId', 'principalId'], { unique: true })
+@Index('idx_trust_records_agent_principal', ['agentId', 'principalId'], {
+  unique: true,
+})
 export class TrustRecordEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
