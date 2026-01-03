@@ -10,6 +10,15 @@ interface Agent {
   name: string;
   capabilities: string[];
   trustScore: number;
+  reputation: {
+    behavioral: number;      // Based on action history
+    attestation: number;     // Hardware/TEE attestation
+    networkEndorsements: number;  // Peer endorsements
+    complianceHistory: number;    // Policy compliance rate
+    ageBonus: number;             // Longevity bonus
+  };
+  registeredAt: string;
+  lastActivity: string;
 }
 
 interface VerificationResult {
@@ -125,11 +134,39 @@ const realRegister = async (name: string): Promise<Agent> => {
 
 const simulateRegister = async (name: string): Promise<Agent> => {
   await new Promise(r => setTimeout(r, 500));
+  
+  // Simulate realistic trust calculation
+  const behavioral = 80 + Math.floor(Math.random() * 15);  // 80-95
+  const attestation = Math.random() > 0.3 ? 100 : 0;        // 70% have TEE
+  const networkEndorsements = Math.floor(Math.random() * 5); // 0-4 endorsements
+  const complianceHistory = 90 + Math.floor(Math.random() * 10); // 90-100
+  const ageBonus = 0;  // New agent, no longevity bonus
+  
+  // Calculate composite trust score
+  const trustScore = Math.round(
+    (behavioral * 0.35) + 
+    (attestation * 0.25) + 
+    (networkEndorsements * 5) +  // 5 points per endorsement
+    (complianceHistory * 0.25) + 
+    (ageBonus * 0.15)
+  );
+  
+  const now = new Date().toISOString();
+  
   return {
     id: `agent-${Date.now().toString(36)}`,
     name,
     capabilities: ['read', 'write'],
-    trustScore: 100,
+    trustScore: Math.min(100, trustScore),
+    reputation: {
+      behavioral,
+      attestation,
+      networkEndorsements,
+      complianceHistory,
+      ageBonus,
+    },
+    registeredAt: now,
+    lastActivity: now,
   };
 };
 
@@ -478,7 +515,48 @@ export default function App() {
               {agent && (
                 <div className="result success-result">
                   <h4>✅ Agent Registered</h4>
-                  <pre><code>{JSON.stringify(agent, null, 2)}</code></pre>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                    <div>
+                      <p><strong>ID:</strong> <code>{agent.id}</code></p>
+                      <p><strong>Name:</strong> {agent.name}</p>
+                      <p><strong>Capabilities:</strong> {agent.capabilities.join(', ')}</p>
+                      <p><strong>Registered:</strong> {new Date(agent.registeredAt).toLocaleString()}</p>
+                    </div>
+                    <div style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
+                      <h5 style={{ margin: '0 0 0.5rem 0' }}>🎯 Trust Score: <span style={{ fontSize: '1.5rem', color: agent.trustScore >= 70 ? '#22c55e' : agent.trustScore >= 50 ? '#eab308' : '#ef4444' }}>{agent.trustScore}</span>/100</h5>
+                      <div style={{ fontSize: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span>Behavioral History</span>
+                          <span>{agent.reputation.behavioral}%</span>
+                        </div>
+                        <div className="meter" style={{ height: '4px', marginTop: '2px' }}>
+                          <div style={{ width: `${agent.reputation.behavioral}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span>TEE Attestation</span>
+                          <span>{agent.reputation.attestation ? '✓ Verified' : '✗ None'}</span>
+                        </div>
+                        <div className="meter" style={{ height: '4px', marginTop: '2px' }}>
+                          <div style={{ width: `${agent.reputation.attestation}%`, height: '100%', background: agent.reputation.attestation ? '#22c55e' : '#dc2626', borderRadius: '2px' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span>Network Endorsements</span>
+                          <span>{agent.reputation.networkEndorsements} peers</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span>Compliance History</span>
+                          <span>{agent.reputation.complianceHistory}%</span>
+                        </div>
+                        <div className="meter" style={{ height: '4px', marginTop: '2px' }}>
+                          <div style={{ width: `${agent.reputation.complianceHistory}%`, height: '100%', background: '#8b5cf6', borderRadius: '2px' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                          <span>Age Bonus</span>
+                          <span>{agent.reputation.ageBonus > 0 ? `+${agent.reputation.ageBonus}` : 'New Agent'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
