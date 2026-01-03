@@ -24,8 +24,11 @@ use uuid::Uuid;
 /// Helper to create a standard verification request.
 fn create_request(agent_id: &str, action: &str, resource: &str) -> VerificationRequest {
     let mut context_data = HashMap::new();
-    context_data.insert("resource".to_string(), serde_json::Value::String(resource.to_string()));
-    
+    context_data.insert(
+        "resource".to_string(),
+        serde_json::Value::String(resource.to_string()),
+    );
+
     VerificationRequest {
         request_id: Uuid::new_v4(),
         agent_id: agent_id.to_string(),
@@ -49,7 +52,11 @@ fn create_policy(name: &str, action: &str, policy_action: PolicyAction) -> Polic
             condition: format!("action == \"{}\"", action),
             action: policy_action,
             message: Some(format!("Rule for {}", action)),
-            risk_score: Some(if policy_action == PolicyAction::Deny { 100 } else { 0 }),
+            risk_score: Some(if policy_action == PolicyAction::Deny {
+                100
+            } else {
+                0
+            }),
         }],
     }
 }
@@ -68,10 +75,7 @@ async fn golden_allow_read_action() {
     let result = engine.verify(request).await;
 
     // GOLDEN: Read actions should be allowed
-    assert!(
-        result.allowed,
-        "GOLDEN: read action should be allowed"
-    );
+    assert!(result.allowed, "GOLDEN: read action should be allowed");
 }
 
 #[tokio::test]
@@ -84,10 +88,7 @@ async fn golden_block_delete_action() {
     let result = engine.verify(request).await;
 
     // GOLDEN: Delete actions should be blocked
-    assert!(
-        !result.allowed,
-        "GOLDEN: delete action should be blocked"
-    );
+    assert!(!result.allowed, "GOLDEN: delete action should be blocked");
 }
 
 #[tokio::test]
