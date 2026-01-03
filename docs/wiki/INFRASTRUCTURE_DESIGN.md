@@ -6,11 +6,14 @@
 
 ## Table of Contents
 
-1. [SDK (TypeScript)](#1-sdk-typescript)
-2. [Universal Runtime](#2-universal-runtime)
-3. [N-API Bridge](#3-n-api-bridge)
-4. [Edge Runtime](#4-edge-runtime)
-5. [Complete Module Map](#5-complete-module-map)
+- [Infrastructure \& SDKs Design](#infrastructure--sdks-design)
+  - [Table of Contents](#table-of-contents)
+  - [1. SDK (TypeScript)](#1-sdk-typescript)
+    - [Core Features](#core-features)
+  - [2. Universal Runtime](#2-universal-runtime)
+  - [3. N-API Bridge](#3-n-api-bridge)
+  - [4. Edge Runtime](#4-edge-runtime)
+  - [5. Complete Module Map](#5-complete-module-map)
 
 ---
 
