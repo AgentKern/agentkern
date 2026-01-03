@@ -402,6 +402,7 @@ export class NexusService implements OnModuleInit {
       id: raw.id ?? '',
       name: raw.name ?? '',
       description: raw.description ?? '',
+      url: raw.url ?? '', // Required field
       skills,
       capabilities,
       protocols: raw.protocols ?? ['a2a', 'mcp'], // Default if missing
