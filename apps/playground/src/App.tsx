@@ -267,7 +267,7 @@ const registerAgent = async (name: string): Promise<Agent> => {
 // ============================================================================
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'identity' | 'gate' | 'synapse' | 'arbiter' | 'treasury' | 'nexus' | 'promptguard'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'gate' | 'synapse' | 'arbiter' | 'treasury' | 'nexus' | 'promptguard' | 'integrate'>('identity');
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agentName, setAgentName] = useState('my-agent');
   const [loading, setLoading] = useState(false);
@@ -532,6 +532,17 @@ export default function App() {
               onClick={() => setActiveTab('promptguard')}
             >
               🔒 PromptGuard
+            </button>
+          </div>
+
+          <div className="sidebar-section">
+            <h3>Developer</h3>
+            <button
+              className={`sidebar-item ${activeTab === 'integrate' ? 'active' : ''}`}
+              onClick={() => setActiveTab('integrate')}
+              style={{ background: activeTab === 'integrate' ? 'var(--color-primary)' : undefined }}
+            >
+              🔌 Integrate
             </button>
           </div>
 
@@ -1027,6 +1038,90 @@ export default function App() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'integrate' && (
+            <div className="panel">
+              <h2>🔌 Integrate Your Agent</h2>
+              <p className="description">Connect your AI agent to AgentKern in 3 steps.</p>
+
+              <div className="info-box" style={{ marginBottom: '1.5rem', borderLeft: '3px solid #22c55e' }}>
+                <h4>📦 Step 1: Install the SDK</h4>
+                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                  <div style={{ color: '#8b949e' }}># For TypeScript/Node.js</div>
+                  <div style={{ color: '#a5d6ff' }}>pnpm add @agentkern/sdk</div>
+                  <div style={{ color: '#8b949e', marginTop: '0.5rem' }}># For Rust</div>
+                  <div style={{ color: '#a5d6ff' }}>cargo add agentkern</div>
+                </div>
+              </div>
+
+              <div className="info-box" style={{ marginBottom: '1.5rem', borderLeft: '3px solid #3b82f6' }}>
+                <h4>🔧 Step 2: Initialize AgentKern</h4>
+                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '0.5rem', overflow: 'auto' }}>
+                  <div style={{ color: '#8b949e' }}>// TypeScript Example</div>
+                  <div><span style={{ color: '#ff7b72' }}>import</span> {'{'} <span style={{ color: '#79c0ff' }}>AgentKern</span> {'}'} <span style={{ color: '#ff7b72' }}>from</span> <span style={{ color: '#a5d6ff' }}>'@agentkern/sdk'</span>;</div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#ff7b72' }}>const</span> kern = <span style={{ color: '#ff7b72' }}>new</span> <span style={{ color: '#d2a8ff' }}>AgentKern</span>({'{'})</div>
+                  <div style={{ paddingLeft: '1rem' }}>apiUrl: <span style={{ color: '#a5d6ff' }}>'https://api.agentkern.io'</span>,</div>
+                  <div style={{ paddingLeft: '1rem' }}>apiKey: process.env.<span style={{ color: '#79c0ff' }}>AGENTKERN_API_KEY</span>,</div>
+                  <div>{'}'});</div>
+                  <div style={{ marginTop: '1rem', color: '#8b949e' }}>// Register your agent</div>
+                  <div><span style={{ color: '#ff7b72' }}>const</span> agent = <span style={{ color: '#ff7b72' }}>await</span> kern.identity.<span style={{ color: '#d2a8ff' }}>register</span>({'{'})</div>
+                  <div style={{ paddingLeft: '1rem' }}>name: <span style={{ color: '#a5d6ff' }}>'my-trading-agent'</span>,</div>
+                  <div style={{ paddingLeft: '1rem' }}>capabilities: [<span style={{ color: '#a5d6ff' }}>'trade'</span>, <span style={{ color: '#a5d6ff' }}>'read_market'</span>],</div>
+                  <div>{'}'});</div>
+                </div>
+              </div>
+
+              <div className="info-box" style={{ marginBottom: '1.5rem', borderLeft: '3px solid #8b5cf6' }}>
+                <h4>🛡️ Step 3: Verify Before Every Action</h4>
+                <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '0.5rem', overflow: 'auto' }}>
+                  <div style={{ color: '#8b949e' }}>// Before your agent takes an action, verify it</div>
+                  <div><span style={{ color: '#ff7b72' }}>const</span> result = <span style={{ color: '#ff7b72' }}>await</span> kern.gate.<span style={{ color: '#d2a8ff' }}>verify</span>(agent.id, <span style={{ color: '#a5d6ff' }}>'transfer_funds'</span>, {'{'}</div>
+                  <div style={{ paddingLeft: '1rem' }}>amount: <span style={{ color: '#79c0ff' }}>5000</span>,</div>
+                  <div style={{ paddingLeft: '1rem' }}>recipient: <span style={{ color: '#a5d6ff' }}>'vendor-123'</span>,</div>
+                  <div>{'}'});</div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#ff7b72' }}>if</span> (!result.allowed) {'{'}</div>
+                  <div style={{ paddingLeft: '1rem', color: '#8b949e' }}>// Action blocked by policy</div>
+                  <div style={{ paddingLeft: '1rem' }}><span style={{ color: '#ff7b72' }}>throw new</span> <span style={{ color: '#d2a8ff' }}>Error</span>(<span style={{ color: '#a5d6ff' }}>`Blocked: ${'{'}result.reasoning{'}'}`</span>);</div>
+                  <div>{'}'}</div>
+                  <div style={{ marginTop: '0.5rem', color: '#8b949e' }}>// Safe to proceed</div>
+                  <div><span style={{ color: '#ff7b72' }}>await</span> <span style={{ color: '#d2a8ff' }}>executeTransfer</span>(...);</div>
+                </div>
+              </div>
+
+              <h4 style={{ marginTop: '2rem', marginBottom: '1rem' }}>📡 API Endpoints</h4>
+              <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                  <span style={{ background: '#22c55e', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/agents/register</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Register agent</span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                  <span style={{ background: '#3b82f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/gate/verify</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Verify action</span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                  <span style={{ background: '#8b5cf6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/gate/guard-prompt</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Check prompt</span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                  <span style={{ background: '#f59e0b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>GET</span>
+                  <code>/api/v1/agents/:id/trust</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Get trust score</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                <a href="https://github.com/AgentKern/agentkern/tree/main/docs" target="_blank" rel="noopener noreferrer" className="btn primary" style={{ textDecoration: 'none' }}>
+                  📚 Full Documentation
+                </a>
+                <a href="https://github.com/AgentKern/agentkern" target="_blank" rel="noopener noreferrer" className="btn secondary" style={{ textDecoration: 'none' }}>
+                  ⭐ GitHub
+                </a>
+              </div>
             </div>
           )}
         </section>
