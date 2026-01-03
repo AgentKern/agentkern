@@ -6,7 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
-import { getBody, TrustRecordResponse } from './test-types';
+import { getBody, TrustRecordResponse, getServer } from './test-types';
 
 describe('DnsController (e2e)', () => {
   let app: INestApplication;
@@ -37,7 +37,7 @@ describe('DnsController (e2e)', () => {
       const aid = `agent-dns-test-${ts}`;
       const pid = `principal-dns-test-${ts}`;
 
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/dns/register')
         .send({
           agentId: aid,
@@ -57,13 +57,13 @@ describe('DnsController (e2e)', () => {
   describe('GET /api/v1/dns/resolve', () => {
     it('should resolve registered trust', async () => {
       // First register
-      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+      await request(getServer(app)).post('/api/v1/dns/register').send({
         agentId: 'agent-resolve-test',
         principalId: 'principal-resolve-test',
       });
 
       // Then resolve
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .get('/api/v1/dns/resolve')
         .query({
           agentId: 'agent-resolve-test',
@@ -80,13 +80,13 @@ describe('DnsController (e2e)', () => {
   describe('POST /api/v1/dns/revoke', () => {
     it('should revoke trust', async () => {
       // Register first
-      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+      await request(getServer(app)).post('/api/v1/dns/register').send({
         agentId: 'agent-revoke-test2',
         principalId: 'principal-revoke-test2',
       });
 
       // Revoke
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/dns/revoke')
         .send({
           agentId: 'agent-revoke-test2',
@@ -103,19 +103,19 @@ describe('DnsController (e2e)', () => {
   describe('POST /api/v1/dns/reinstate', () => {
     it('should reinstate revoked trust', async () => {
       // Register and revoke
-      await request(app.getHttpServer()).post('/api/v1/dns/register').send({
+      await request(getServer(app)).post('/api/v1/dns/register').send({
         agentId: 'agent-reinstate2',
         principalId: 'principal-reinstate2',
       });
 
-      await request(app.getHttpServer()).post('/api/v1/dns/revoke').send({
+      await request(getServer(app)).post('/api/v1/dns/revoke').send({
         agentId: 'agent-reinstate2',
         principalId: 'principal-reinstate2',
         reason: 'Temporary',
       });
 
       // Reinstate
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/dns/reinstate')
         .send({
           agentId: 'agent-reinstate2',
@@ -136,14 +136,14 @@ describe('DnsController (e2e)', () => {
       const pid1 = `batch-principal-b-${ts}`;
       const id2 = `batch-agent-2b-${ts}`;
 
-      await request(app.getHttpServer())
+      await request(getServer(app))
         .post('/api/v1/dns/register')
         .send({ agentId: id1, principalId: pid1 });
-      await request(app.getHttpServer())
+      await request(getServer(app))
         .post('/api/v1/dns/register')
         .send({ agentId: id2, principalId: pid1 });
 
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/dns/resolve/batch')
         .send({
           queries: [

@@ -111,3 +111,18 @@ export interface ErrorResponse {
   message?: string;
   statusCode?: number;
 }
+
+// =========================================================================
+// HTTP Server Type Utility
+// =========================================================================
+
+import { INestApplication } from '@nestjs/common';
+import { Server } from 'http';
+
+/**
+ * Type-safe server accessor for supertest
+ * Eliminates @typescript-eslint/no-unsafe-argument warnings
+ */
+export function getServer(app: INestApplication): Server {
+  return app.getHttpServer() as Server;
+}

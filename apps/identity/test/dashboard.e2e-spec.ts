@@ -11,6 +11,7 @@ import {
   getBody,
   DashboardApiInfo,
   DashboardErrorResponse,
+  getServer,
 } from './test-types';
 
 describe('DashboardController (e2e)', () => {
@@ -38,7 +39,7 @@ describe('DashboardController (e2e)', () => {
 
   describe('GET /api/v1/dashboard', () => {
     it('should return dashboard endpoints', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/dashboard')
         .expect(200)
         .expect((res) => {
@@ -51,7 +52,7 @@ describe('DashboardController (e2e)', () => {
 
   describe('GET /api/v1/dashboard/stats (Enterprise)', () => {
     it('should return 403 without license', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/dashboard/stats')
         .expect(403)
         .expect((res) => {
@@ -63,7 +64,7 @@ describe('DashboardController (e2e)', () => {
 
   describe('GET /api/v1/dashboard/policies', () => {
     it('should return policies (allowed in OSS tier)', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/dashboard/policies')
         .expect(200)
         .expect((res) => {

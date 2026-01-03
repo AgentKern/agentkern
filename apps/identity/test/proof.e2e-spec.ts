@@ -11,6 +11,7 @@ import {
   ProofStatusResponse,
   ProofCreationResponse,
   ProofSuccessResponse,
+  getServer,
 } from './test-types';
 
 describe('ProofController (e2e)', () => {
@@ -38,7 +39,7 @@ describe('ProofController (e2e)', () => {
 
   describe('GET /api/v1/proof/health', () => {
     it('should return health status', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/proof/health')
         .expect(200)
         .expect((res) => {
@@ -50,7 +51,7 @@ describe('ProofController (e2e)', () => {
 
   describe('POST /api/v1/proof/create', () => {
     it('should create a signed proof', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/proof/create')
         .send({
           principal: {
@@ -83,7 +84,7 @@ describe('ProofController (e2e)', () => {
 
   describe('POST /api/v1/proof/register-key', () => {
     it('should register a public key', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(getServer(app))
         .post('/api/v1/proof/register-key')
         .send({
           principalId: 'principal-key-test',

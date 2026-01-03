@@ -15,6 +15,7 @@ import {
   HealthResponse,
   NexusProtocolsResponse,
   ArbiterStatusResponse,
+  getServer,
 } from './test-types';
 
 describe('Pillars Integration (e2e)', () => {
@@ -50,7 +51,7 @@ describe('Pillars Integration (e2e)', () => {
   // ============================================================================
   describe('Identity Pillar', () => {
     it('should return API info on root', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/')
         .expect(200)
         .expect((res) => {
@@ -65,14 +66,14 @@ describe('Pillars Integration (e2e)', () => {
   // ============================================================================
   describe('Gate Pillar', () => {
     it('should attest (simulated TEE)', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/gate/attest')
         .send({ nonce: 'test-nonce-123' })
         .expect(200);
     });
 
     it('should verify action', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/gate/verify')
         .send({
           agentId: 'agent-e2e-test',
@@ -83,7 +84,7 @@ describe('Pillars Integration (e2e)', () => {
     });
 
     it('should guard prompts', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/gate/guard-prompt')
         .send({ prompt: 'Hello, how are you?' })
         .expect(200);
@@ -97,27 +98,27 @@ describe('Pillars Integration (e2e)', () => {
     const testAgentId = 'agent-synapse-e2e';
 
     it('should get agent state', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get(`/api/v1/synapse/state/${testAgentId}`)
         .expect(200);
     });
 
     it('should update agent state', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .put(`/api/v1/synapse/state/${testAgentId}`)
         .send({ state: { lastAction: 'e2e-test', counter: 1 } })
         .expect(200);
     });
 
     it('should create memory passport', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/synapse/memory/passport')
         .send({ agentId: testAgentId, layers: ['semantic', 'episodic'] })
         .expect(201);
     });
 
     it('should guard context (RAG)', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/synapse/context/guard')
         .send({ documents: ['test document 1', 'test document 2'] })
         .expect(200);
@@ -129,20 +130,20 @@ describe('Pillars Integration (e2e)', () => {
   // ============================================================================
   describe('Arbiter Pillar', () => {
     it('should get kill switch status', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/arbiter/killswitch/status')
         .expect(200);
     });
 
     it('should query audit log', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/arbiter/audit')
         .query({ limit: 10 })
         .expect(200);
     });
 
     it('should inject chaos', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/arbiter/chaos/inject')
         .send({ type: 'latency', target: 'test-agent', durationSeconds: 5 })
         .expect(200);
@@ -156,20 +157,20 @@ describe('Pillars Integration (e2e)', () => {
     const agentA = 'agent-treasury-a';
 
     it('should get balance', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get(`/api/v1/treasury/balance/${agentA}`)
         .expect(200);
     });
 
     it('should deposit funds', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post(`/api/v1/treasury/balance/${agentA}/deposit`)
         .send({ amount: 100.0 })
         .expect(200);
     });
 
     it('should get carbon footprint', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get(`/api/v1/treasury/carbon/${agentA}`)
         .expect(200);
     });
@@ -180,7 +181,7 @@ describe('Pillars Integration (e2e)', () => {
   // ============================================================================
   describe('Nexus Pillar', () => {
     it('should list protocols', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/nexus/protocols')
         .expect(200)
         .expect((res) => {
@@ -190,7 +191,7 @@ describe('Pillars Integration (e2e)', () => {
     });
 
     it('should register an agent (or fail without bridge)', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .post('/api/v1/nexus/agents')
         .send({
           name: 'E2E Test Agent',
@@ -203,13 +204,11 @@ describe('Pillars Integration (e2e)', () => {
     });
 
     it('should list agents', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1/nexus/agents')
-        .expect(200);
+      return request(getServer(app)).get('/api/v1/nexus/agents').expect(200);
     });
 
     it('should get nexus health', () => {
-      return request(app.getHttpServer())
+      return request(getServer(app))
         .get('/api/v1/nexus/health')
         .expect(200)
         .expect((res) => {
@@ -227,25 +226,25 @@ describe('Pillars Integration (e2e)', () => {
       const agentId = 'agent-cross-pillar';
 
       // 1. Get balance (Treasury)
-      const balanceRes = await request(app.getHttpServer()).get(
+      const balanceRes = await request(getServer(app)).get(
         `/api/v1/treasury/balance/${agentId}`,
       );
       expect(balanceRes.status).toBe(200);
 
       // 2. Get state (Synapse)
-      const stateRes = await request(app.getHttpServer()).get(
+      const stateRes = await request(getServer(app)).get(
         `/api/v1/synapse/state/${agentId}`,
       );
       expect(stateRes.status).toBe(200);
 
       // 3. Check arbiter status
-      const arbiterRes = await request(app.getHttpServer()).get(
+      const arbiterRes = await request(getServer(app)).get(
         '/api/v1/arbiter/killswitch/status',
       );
       expect(arbiterRes.status).toBe(200);
 
       // 4. Verify via gate
-      const gateRes = await request(app.getHttpServer())
+      const gateRes = await request(getServer(app))
         .post('/api/v1/gate/verify')
         .send({ agentId, action: 'cross_pillar_test' });
       expect(gateRes.status).toBe(200);
