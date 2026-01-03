@@ -17,9 +17,9 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind to address");
-    
+
     tracing::info!("✅ Treasury server started successfully");
-    
+
     axum::serve(listener, app)
         .await
         .expect("Server error occurred");
