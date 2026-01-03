@@ -67,7 +67,15 @@ jobs:
       - name: Generate SBOM for Identity
         working-directory: apps/identity
         run: |
-          npx @cyclonedx/cyclonedx-npm --spec-version 1.6 --output-format JSON --output-file identity-sbom.json
+          # Generate SBOM using CycloneDX
+          # --ignore-npm-errors: Ignore npm-ls errors about optional peer dependencies
+          # These are dev tools (eclint, evalmd, etc.) that aren't required at runtime
+          # The SBOM will still be generated correctly from package.json and the dependency tree
+          npx @cyclonedx/cyclonedx-npm \
+            --spec-version 1.6 \
+            --output-format JSON \
+            --output-file identity-sbom.json \
+            --ignore-npm-errors
       
       - name: Upload TypeScript SBOM artifacts
         uses: actions/upload-artifact@v4
