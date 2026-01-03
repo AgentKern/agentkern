@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/playground/**'
+      - 'docs/**'
+      - '.github/workflows/deploy-gh-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PNPM_VERSION: '9'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Playground
+        working-directory: apps/playground
+        env:
+          # Use /agentkern/playground/ for GitHub Pages project site compatibility
+          # If using custom domain agentkern.io, this might need to change to /playground/
+          VITE_BASE_PATH: /agentkern/playground/
+        run: pnpm build
+
+      - name: Prepare Deployment Artifacts
+        run: |
+          mkdir -p dist/playground
+          
+          # Copy Landing Page (Docs)
+          cp -r docs/* dist/
+          
+          # Copy Playground Build
+          cp -r apps/playground/dist/* dist/playground/
+          
+          # Ensure .nojekyll exists to bypass Jekyll processing
+          touch dist/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          commit_message: "deploy: update playground and docs [skip ci]"
