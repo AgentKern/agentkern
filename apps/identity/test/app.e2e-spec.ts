@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { getBody, HealthResponse } from './test-types';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -27,7 +28,8 @@ describe('AppController (e2e)', () => {
       .get('/')
       .expect(200)
       .expect((res) => {
-        expect(res.body.name).toBe('AgentKernIdentity API');
+        const body = getBody<HealthResponse>(res);
+        expect(body.name).toBe('AgentKernIdentity API');
       });
   });
 });

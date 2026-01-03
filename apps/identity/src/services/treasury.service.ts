@@ -107,7 +107,7 @@ export class TreasuryService implements OnModuleInit {
       this.logger.log('💰 Treasury N-API Bridge loaded successfully');
 
       // Verify bridge is operational
-      await this.verifyBridge();
+      this.verifyBridge();
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -142,10 +142,7 @@ export class TreasuryService implements OnModuleInit {
         __dirname,
         '../../../../packages/foundation/bridge/index.node',
       ),
-      path.resolve(
-        __dirname,
-        '../../../packages/foundation/bridge/index.node',
-      ),
+      path.resolve(__dirname, '../../../packages/foundation/bridge/index.node'),
       '/app/packages/foundation/bridge/index.node',
     ];
 
@@ -163,7 +160,7 @@ export class TreasuryService implements OnModuleInit {
   /**
    * Verify bridge is operational
    */
-  private async verifyBridge(): Promise<void> {
+  private verifyBridge(): void {
     try {
       // Test with a simple call
       const testResult = this.bridge.treasuryGetBalance('test-verify');

@@ -59,9 +59,6 @@ async function runLoadTest(
   const startTime = Date.now();
   const endTime = startTime + config.duration * 1000;
 
-  // Calculate requests per interval
-  const interval = 1000 / config.concurrency;
-
   console.log(`  Starting load test: ${method} ${endpoint}`);
   console.log(
     `  Concurrency: ${config.concurrency}, Duration: ${config.duration}s`,

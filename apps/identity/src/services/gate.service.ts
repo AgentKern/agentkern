@@ -98,7 +98,7 @@ export class GateService implements OnModuleInit {
       this.logger.log('🌉 N-API Bridge loaded successfully');
 
       // Verify bridge is operational
-      await this.verifyBridge();
+      this.verifyBridge();
 
       // Initial policy sync
       this.syncPolicies().catch((e) =>
@@ -146,10 +146,7 @@ export class GateService implements OnModuleInit {
         '../../../../packages/foundation/bridge/index.node',
       ),
       // Production: from dist (after build)
-      path.resolve(
-        __dirname,
-        '../../../packages/foundation/bridge/index.node',
-      ),
+      path.resolve(__dirname, '../../../packages/foundation/bridge/index.node'),
       // Docker/container: absolute path
       '/app/packages/foundation/bridge/index.node',
     ];
@@ -168,7 +165,7 @@ export class GateService implements OnModuleInit {
   /**
    * Verify bridge is operational by calling a test function
    */
-  private async verifyBridge(): Promise<void> {
+  private verifyBridge(): void {
     try {
       // Test with a simple call that should always work
       const testResult = this.bridge.guardPrompt('test');
@@ -194,17 +191,17 @@ export class GateService implements OnModuleInit {
 
   /**
    * Guard prompt against injection attacks (0ms latency)
-   * 
+   *
    * Production-ready: Fails-fast if bridge unavailable in production.
    * Development: Returns null for graceful degradation.
-   * 
+   *
    * @throws Error in production if bridge is not loaded
    * @returns PromptAnalysis or null (development only)
    */
   guardPrompt(prompt: string): PromptAnalysis | null {
     if (!this.bridgeLoaded) {
       const isProduction = process.env.NODE_ENV === 'production';
-      
+
       if (isProduction) {
         // PRODUCTION: Fail-fast - security cannot be compromised
         this.logger.error(

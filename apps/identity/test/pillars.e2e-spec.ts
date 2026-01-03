@@ -10,6 +10,12 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import {
+  getBody,
+  HealthResponse,
+  NexusProtocolsResponse,
+  ArbiterStatusResponse,
+} from './test-types';
 
 describe('Pillars Integration (e2e)', () => {
   let app: INestApplication<App>;
@@ -48,7 +54,8 @@ describe('Pillars Integration (e2e)', () => {
         .get('/')
         .expect(200)
         .expect((res) => {
-          expect(res.body.name).toBe('AgentKernIdentity API');
+          const body = getBody<HealthResponse>(res);
+          expect(body.name).toBe('AgentKernIdentity API');
         });
     });
   });
@@ -177,7 +184,8 @@ describe('Pillars Integration (e2e)', () => {
         .get('/api/v1/nexus/protocols')
         .expect(200)
         .expect((res) => {
-          expect(res.body.protocols).toBeDefined();
+          const body = getBody<NexusProtocolsResponse>(res);
+          expect(body.protocols).toBeDefined();
         });
     });
 
@@ -205,7 +213,8 @@ describe('Pillars Integration (e2e)', () => {
         .get('/api/v1/nexus/health')
         .expect(200)
         .expect((res) => {
-          expect(res.body.status).toBe('healthy');
+          const body = getBody<ArbiterStatusResponse>(res);
+          expect(body.status).toBe('healthy');
         });
     });
   });

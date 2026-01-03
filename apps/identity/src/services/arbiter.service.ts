@@ -116,10 +116,7 @@ export class ArbiterService implements OnModuleInit {
         __dirname,
         '../../../../packages/foundation/bridge/index.node',
       ),
-      path.resolve(
-        __dirname,
-        '../../../packages/foundation/bridge/index.node',
-      ),
+      path.resolve(__dirname, '../../../packages/foundation/bridge/index.node'),
       '/app/packages/foundation/bridge/index.node',
     ];
 
@@ -139,7 +136,7 @@ export class ArbiterService implements OnModuleInit {
    */
   private async verifyBridge(): Promise<void> {
     try {
-      // Test with a simple call
+      // Bridge methods return Promises
       const testResult = await this.bridge.arbiterKillSwitchStatus();
       if (!testResult) {
         throw new Error('Bridge returned null for test call');
@@ -240,8 +237,11 @@ export class ArbiterService implements OnModuleInit {
    */
 
   async getAuditStatistics(
-    _limit: number = 100,
+    limit: number = 100,
   ): Promise<AuditStatistics | null> {
+    // Reserved for future implementation when bridge supports limit parameter
+    void limit;
+
     if (!this.bridgeLoaded) {
       return null;
     }

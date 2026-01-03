@@ -6,6 +6,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import {
+  getBody,
+  ProofStatusResponse,
+  ProofCreationResponse,
+  ProofSuccessResponse,
+} from './test-types';
 
 describe('ProofController (e2e)', () => {
   let app: INestApplication;
@@ -36,7 +42,8 @@ describe('ProofController (e2e)', () => {
         .get('/api/v1/proof/health')
         .expect(200)
         .expect((res) => {
-          expect(res.body.status).toBe('healthy');
+          const body = getBody<ProofStatusResponse>(res);
+          expect(body.status).toBe('healthy');
         });
     });
   });
@@ -67,9 +74,10 @@ describe('ProofController (e2e)', () => {
         })
         .expect(201);
 
-      expect(response.body.header).toBeDefined();
-      expect(response.body.proofId).toBeDefined();
-      expect(response.body.expiresAt).toBeDefined();
+      const body = getBody<ProofCreationResponse>(response);
+      expect(body.header).toBeDefined();
+      expect(body.proofId).toBeDefined();
+      expect(body.expiresAt).toBeDefined();
     });
   });
 
@@ -84,7 +92,8 @@ describe('ProofController (e2e)', () => {
         })
         .expect(201);
 
-      expect(response.body.success).toBe(true);
+      const body = getBody<ProofSuccessResponse>(response);
+      expect(body.success).toBe(true);
     });
   });
 });

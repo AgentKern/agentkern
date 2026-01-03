@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { getBody, TrustRecordResponse } from './test-types';
 
 describe('DnsController (e2e)', () => {
   let app: INestApplication;
@@ -46,9 +47,10 @@ describe('DnsController (e2e)', () => {
         })
         .expect(201);
 
-      expect(response.body.agentId).toBe(aid);
-      expect(response.body.principalId).toBe(pid);
-      expect(response.body.trusted).toBe(true);
+      const body = getBody<TrustRecordResponse>(response);
+      expect(body.agentId).toBe(aid);
+      expect(body.principalId).toBe(pid);
+      expect(body.trusted).toBe(true);
     });
   });
 
@@ -69,8 +71,9 @@ describe('DnsController (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body.trusted).toBe(true);
-      expect(response.body.trustScore).toBeGreaterThan(0);
+      const body = getBody<TrustRecordResponse>(response);
+      expect(body.trusted).toBe(true);
+      expect(body.trustScore).toBeGreaterThan(0);
     });
   });
 
@@ -92,7 +95,8 @@ describe('DnsController (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body.revoked).toBe(true);
+      const body = getBody<TrustRecordResponse>(response);
+      expect(body.revoked).toBe(true);
     });
   });
 
@@ -119,7 +123,8 @@ describe('DnsController (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body.revoked).toBe(false);
+      const body = getBody<TrustRecordResponse>(response);
+      expect(body.revoked).toBe(false);
     });
   });
 
@@ -148,9 +153,10 @@ describe('DnsController (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body.length).toBe(2);
-      expect(response.body[0].trusted).toBe(true);
-      expect(response.body[1].trusted).toBe(true);
+      const body = getBody<TrustRecordResponse[]>(response);
+      expect(body.length).toBe(2);
+      expect(body[0].trusted).toBe(true);
+      expect(body[1].trusted).toBe(true);
     });
   });
 });

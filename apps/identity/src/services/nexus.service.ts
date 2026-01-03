@@ -116,10 +116,7 @@ export class NexusService implements OnModuleInit {
         __dirname,
         '../../../../packages/foundation/bridge/index.node',
       ),
-      path.resolve(
-        __dirname,
-        '../../../packages/foundation/bridge/index.node',
-      ),
+      path.resolve(__dirname, '../../../packages/foundation/bridge/index.node'),
       '/app/packages/foundation/bridge/index.node',
     ];
 
@@ -139,7 +136,7 @@ export class NexusService implements OnModuleInit {
    */
   private async verifyBridge(): Promise<void> {
     try {
-      // Test with a simple call
+      // Bridge methods return Promises
       const testResult = await this.bridge.nexusGetStats();
       if (!testResult) {
         throw new Error('Bridge returned null for test call');

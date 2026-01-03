@@ -99,10 +99,7 @@ export class SynapseService implements OnModuleInit {
         __dirname,
         '../../../../packages/foundation/bridge/index.node',
       ),
-      path.resolve(
-        __dirname,
-        '../../../packages/foundation/bridge/index.node',
-      ),
+      path.resolve(__dirname, '../../../packages/foundation/bridge/index.node'),
       '/app/packages/foundation/bridge/index.node',
     ];
 
@@ -122,7 +119,7 @@ export class SynapseService implements OnModuleInit {
    */
   private async verifyBridge(): Promise<void> {
     try {
-      // Test with a simple call
+      // Bridge methods return Promises
       const testResult = await this.bridge.synapseGetState('test-verify');
       if (!testResult) {
         throw new Error('Bridge returned null for test call');
@@ -145,7 +142,7 @@ export class SynapseService implements OnModuleInit {
 
   /**
    * Get agent state
-   * 
+   *
    * @deprecated When bridge is not loaded, this returns null.
    * This is a temporary fallback. The Rust Synapse implementation should always be available in production.
    * See EPISTEMIC_HEALTH.md for architectural integration status.

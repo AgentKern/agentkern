@@ -1,6 +1,6 @@
 /**
  * Health Check Controller
- * 
+ *
  * Provides health check endpoints for monitoring and alerting.
  * Includes bridge health status for all pillar services.
  */
@@ -40,7 +40,7 @@ export class HealthController {
     status: 200,
     description: 'Bridge health status for all pillar services',
   })
-  async getBridgeHealth(): Promise<{
+  getBridgeHealth(): {
     status: 'healthy' | 'degraded' | 'unavailable';
     services: {
       gate: boolean;
@@ -50,7 +50,7 @@ export class HealthController {
       treasury: boolean;
     };
     timestamp: string;
-  }> {
+  } {
     const services = {
       gate: this.gateService.isOperational(),
       synapse: this.synapseService.isOperational(),
@@ -78,4 +78,3 @@ export class HealthController {
     };
   }
 }
-

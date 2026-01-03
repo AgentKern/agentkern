@@ -7,6 +7,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import {
+  getBody,
+  DashboardApiInfo,
+  DashboardErrorResponse,
+} from './test-types';
 
 describe('DashboardController (e2e)', () => {
   let app: INestApplication;
@@ -37,8 +42,9 @@ describe('DashboardController (e2e)', () => {
         .get('/api/v1/dashboard')
         .expect(200)
         .expect((res) => {
-          expect(res.body.name).toBe('AgentKernIdentity Dashboard API');
-          expect(res.body.endpoints).toBeDefined();
+          const body = getBody<DashboardApiInfo>(res);
+          expect(body.name).toBe('AgentKernIdentity Dashboard API');
+          expect(body.endpoints).toBeDefined();
         });
     });
   });
@@ -49,7 +55,8 @@ describe('DashboardController (e2e)', () => {
         .get('/api/v1/dashboard/stats')
         .expect(403)
         .expect((res) => {
-          expect(res.body.error).toBe('Forbidden');
+          const body = getBody<DashboardErrorResponse>(res);
+          expect(body.error).toBe('Forbidden');
         });
     });
   });
@@ -60,7 +67,8 @@ describe('DashboardController (e2e)', () => {
         .get('/api/v1/dashboard/policies')
         .expect(200)
         .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
+          const body = getBody<unknown[]>(res);
+          expect(Array.isArray(body)).toBe(true);
         });
     });
   });
