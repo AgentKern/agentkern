@@ -1,0 +1,17 @@
+[package]
+name = "agentkern-microvm-ee"
+version = "0.1.0"
+edition = "2024"
+license = "Commercial"
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+wasmtime = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+async-trait = { workspace = true }
+agentkern-connectors-ee = { path = "../connectors" }

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "agentkern"
+version = "0.1.0"
+description = "AgentKern SDK - Liability Proofs and Agent Cryptography for Python"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+keywords = ["ai-agents", "cryptography", "liability", "sdk", "ed25519"]
+authors = [
+    {name = "AgentKern Team", email = "team@agentkern.ai"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/agentkern/agentkern"
+Documentation = "https://docs.agentkern.ai"
+Repository = "https://github.com/agentkern/agentkern"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "agentkern._native"
+python-source = "python"

@@ -1136,42 +1136,38 @@ mod tests {
 
     #[test]
     fn test_treasury_requires_license() {
-        // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY") };
-        let result = Treasury::new("org-123");
-        assert!(result.is_err());
+        temp_env::with_var_unset("AGENTKERN_LICENSE_KEY", || {
+            let result = Treasury::new("org-123");
+            assert!(result.is_err());
+        });
     }
 
     #[test]
     fn test_treasury_payments() {
-        // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license") };
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let mut treasury = Treasury::new("org-123").unwrap();
 
-        let mut treasury = Treasury::new("org-123").unwrap();
+            treasury.register_agent("agent-A");
+            treasury.register_agent("agent-B");
 
-        treasury.register_agent("agent-A");
-        treasury.register_agent("agent-B");
+            treasury
+                .deposit("agent-A", Currency::Credits, 100.0)
+                .unwrap();
 
-        treasury
-            .deposit("agent-A", Currency::Credits, 100.0)
-            .unwrap();
+            let payment_id = treasury
+                .pay("agent-A", "agent-B", 25.0, Currency::Credits)
+                .unwrap();
 
-        let payment_id = treasury
-            .pay("agent-A", "agent-B", 25.0, Currency::Credits)
-            .unwrap();
-
-        assert!(!payment_id.is_empty());
-        assert_eq!(
-            treasury.balance("agent-A", Currency::Credits).unwrap(),
-            75.0
-        );
-        assert_eq!(
-            treasury.balance("agent-B", Currency::Credits).unwrap(),
-            25.0
-        );
-
-        // SAFETY: Only used in tests, no concurrent access
-        unsafe { std::env::remove_var("AGENTKERN_LICENSE_KEY") };
+            assert!(!payment_id.is_empty());
+            assert_eq!(
+                treasury.balance("agent-A", Currency::Credits).unwrap(),
+                75.0
+            );
+            assert_eq!(
+                treasury.balance("agent-B", Currency::Credits).unwrap(),
+                25.0
+            );
+        });
     }
 
     #[test]

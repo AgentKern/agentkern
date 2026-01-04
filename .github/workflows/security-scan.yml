@@ -1,0 +1,142 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1' # Weekly Monday 6am
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # =========================================================================
+  # Rust Dependency Audit
+  # =========================================================================
+  cargo-audit:
+    name: Cargo Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+        
+      - name: Run audit
+        run: cargo audit --deny warnings
+        
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: cargo-audit.sarif
+        continue-on-error: true
+
+  # =========================================================================
+  # SAST with Semgrep
+  # =========================================================================
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/rust
+            p/typescript
+            p/security-audit
+            p/secrets
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          generateSarif: true
+        continue-on-error: true
+        
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true
+
+  # =========================================================================
+  # Secret Scanning
+  # =========================================================================
+  trufflehog:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+  # =========================================================================
+  # Rust Tests with Coverage
+  # =========================================================================
+  test-rust:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+        
+      - name: Run tests with coverage
+        run: |
+          cargo llvm-cov test --workspace \
+            --lcov --output-path lcov.info \
+            --ignore-filename-regex 'target|tests?/'
+            
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+
+  # =========================================================================
+  # TypeScript Security (Identity Service)
+  # =========================================================================
+  npm-audit:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/identity
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Run audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+        
+      - name: Run ESLint security
+        run: pnpm lint

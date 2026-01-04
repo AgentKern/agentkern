@@ -105,5 +105,10 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "pnpm": {
+    "overrides": {
+      "qs": ">=6.14.1"
+    }
   }
 }

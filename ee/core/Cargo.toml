@@ -1,0 +1,13 @@
+[package]
+name = "agentkern-core-ee"
+version = "0.1.0"
+edition = "2024"
+license = "Commercial"
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }

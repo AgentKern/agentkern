@@ -44,6 +44,28 @@ members = [
     "ee/sso",
     "ee/treasury",
     "ee/trust",
+    "ee/connectors",
+    # Phase 1: Core Infrastructure (Hardening)
+    "ee/core",
+    "ee/idp",
+    "ee/microvm",
+    "ee/sovereign-memory",
+    # Phase 2: Vertical Modules
+    "ee/energy",
+    "ee/escalation",
+    # Phase 3: Domain Modules
+    "ee/retail",
+    "ee/models",
+    "ee/productivity",
+    # ===========================================================================
+    # SDK PACKAGES
+    # ===========================================================================
+    "packages/sdk-core",
+    "packages/sdk-node",
+    # ===========================================================================
+    # EXTERNAL SDKs
+    # ===========================================================================
+    "sdks/python",
 ]
 
 
@@ -72,6 +94,7 @@ anyhow = "1.0.95"
 sha2 = "0.10.8"
 hmac = "0.12.1"
 ring = "0.17.8"
+hex = "0.4"
 
 # HTTP
 reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
@@ -103,6 +126,13 @@ rand = "0.9"
 # Neural
 ort = "2.0.0-rc.10"
 ndarray = "0.16"
+
+# Testing
+temp-env = "0.3"
+
+# Cloud KMS
+aws-config = "1.5"
+aws-sdk-kms = "1.60"
 
 
 [profile.release]

@@ -22,3 +22,6 @@ async-trait = "0.1.83"
 # HTTP client for Stripe API (Dec 2025 - verified)
 reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
 
+
+[dev-dependencies]
+temp-env = { workspace = true }

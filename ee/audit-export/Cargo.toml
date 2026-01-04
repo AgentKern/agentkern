@@ -12,3 +12,6 @@ serde_json = "1"
 thiserror = "2.0"
 tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+temp-env = { workspace = true }

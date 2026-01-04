@@ -1,0 +1,31 @@
+[package]
+name = "agentkern-python"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "AgentKern SDK Python Bindings via PyO3"
+repository = "https://github.com/agentkern/agentkern"
+
+[lib]
+name = "agentkern"
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 for Python bindings
+pyo3 = { version = "0.23", features = ["extension-module"] }
+
+# SDK Core
+agentkern-sdk-core = { path = "../../packages/sdk-core" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Encoding
+base64 = "0.22"
+
+# Time
+chrono = { workspace = true }
+
+[build-dependencies]
+pyo3-build-config = "0.23"
