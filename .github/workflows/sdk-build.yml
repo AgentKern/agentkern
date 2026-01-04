@@ -1,0 +1,167 @@
+# Build and Test SDKs
+#
+# Builds SDK packages on push/PR and releases on tags
+# Includes: Rust core tests, Node.js build, Python wheel build
+
+name: SDK Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/sdk-core/**'
+      - 'packages/sdk-node/**'
+      - 'sdks/python/**'
+  pull_request:
+    paths:
+      - 'packages/sdk-core/**'
+      - 'packages/sdk-node/**'
+      - 'sdks/python/**'
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ============================================================
+  # Rust Core - Tests
+  # ============================================================
+  test-core:
+    name: Test SDK Core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+        
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/sdk-core
+          
+      - name: Run tests
+        run: cargo test -p agentkern-sdk-core --verbose
+
+  # ============================================================
+  # Node.js SDK - Build
+  # ============================================================
+  build-node:
+    name: Build Node.js SDK (${{ matrix.os }})
+    needs: test-core
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+          
+      - name: Install pnpm
+        run: npm install -g pnpm
+        
+      - name: Install dependencies
+        working-directory: packages/sdk-node
+        run: pnpm install
+        
+      - name: Build
+        working-directory: packages/sdk-node
+        run: pnpm build -- --target ${{ matrix.target }}
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-node-${{ matrix.target }}
+          path: packages/sdk-node/*.node
+
+  # ============================================================
+  # Python SDK - Build wheels
+  # ============================================================
+  build-python:
+    name: Build Python SDK
+    needs: test-core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --manifest-path sdks/python/Cargo.toml -o dist
+          manylinux: auto
+          
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-python-wheels
+          path: dist
+
+  # ============================================================
+  # Publish - npm and PyPI
+  # ============================================================
+  publish:
+    name: Publish SDKs
+    if: github.event_name == 'release'
+    needs: [build-node, build-python]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Node.js artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sdk-node-*
+          path: packages/sdk-node
+          merge-multiple: true
+          
+      - name: Download Python wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-python-wheels
+          path: dist
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          
+      - name: Publish to npm
+        working-directory: packages/sdk-node
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages_dir: dist
+          password: ${{ secrets.PYPI_TOKEN }}

@@ -515,6 +515,7 @@ dependencies = [
  "agentkern-connectors-ee",
  "aws-config",
  "aws-sdk-kms",
+ "base64",
  "ring",
  "serde",
  "serde_json",
