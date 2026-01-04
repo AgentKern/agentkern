@@ -8,6 +8,7 @@ coverage
 # Rust build artifacts
 target/
 *.rs.bk
+*.node
 
 # IDE
 .idea/
