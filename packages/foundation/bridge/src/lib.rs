@@ -531,11 +531,16 @@ pub async fn nexus_route_task(task_json: String) -> String {
             match nexus.route(&task).await {
                 Ok(agent) => {
                     // Enrich with match score (mock for now as route returns strict AgentCard)
-                    let mut value = serde_json::to_value(&agent).unwrap();
-                    if let Some(obj) = value.as_object_mut() {
-                        obj.insert("matchScore".to_string(), serde_json::json!(0.95));
+                    match serde_json::to_value(&agent) {
+                        Ok(mut value) => {
+                            if let Some(obj) = value.as_object_mut() {
+                                obj.insert("matchScore".to_string(), serde_json::json!(0.95));
+                            }
+                            serde_json::to_string(&value)
+                                .unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+                        }
+                        Err(_) => "{\"error\": \"serialization_failed\"}".to_string(),
                     }
-                    serde_json::to_string(&value).unwrap()
                 }
                 Err(e) => format!("{{\"error\": \"{}\"}}", e),
             }

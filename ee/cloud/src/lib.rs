@@ -106,7 +106,7 @@ impl License {
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         if data.claims.exp < now {
@@ -384,7 +384,7 @@ impl MitosisController {
     pub fn evaluate(&mut self, metrics: &MeshMetrics) -> ScalingDecision {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         // Check cooldown
