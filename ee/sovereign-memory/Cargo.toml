@@ -15,6 +15,7 @@ ring = { workspace = true }
 agentkern-connectors-ee = { path = "../connectors" }
 aws-config = { workspace = true }
 aws-sdk-kms = { workspace = true }
+base64 = "0.22"
 
 [dev-dependencies]
 temp-env = { workspace = true }

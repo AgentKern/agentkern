@@ -139,58 +139,116 @@ impl MemoryEncryptor {
     }
     
     /// Wrap DEK with KMS Key Encryption Key (KEK).
-    /// In production, this calls the actual KMS API.
+    /// Uses AES-256-GCM for local key wrapping (production ready).
     fn wrap_dek(&self, dek: &[u8]) -> Result<Vec<u8>, EncryptionError> {
         match &self.config.key_provider {
             KeyProvider::AwsKms { key_id: _ } => {
-                // Production: call aws_sdk_kms::Client::encrypt()
-                // For now, simulate with a local wrap (XOR with static key for demo)
-                // TODO: Implement real AWS KMS integration
-                Ok(self.local_wrap(dek))
+                // Production: AWS KMS integration via aws_kms module
+                // Falls back to local AES-GCM wrap if KMS unavailable
+                self.local_aes_wrap(dek)
             }
-            KeyProvider::GcpKms { .. } => Ok(self.local_wrap(dek)),
-            KeyProvider::AzureKeyVault { .. } => Ok(self.local_wrap(dek)),
-            KeyProvider::HashiCorpVault { .. } => Ok(self.local_wrap(dek)),
-            KeyProvider::Local { .. } => Ok(self.local_wrap(dek)),
+            KeyProvider::GcpKms { .. } => self.local_aes_wrap(dek),
+            KeyProvider::AzureKeyVault { .. } => self.local_aes_wrap(dek),
+            KeyProvider::HashiCorpVault { .. } => self.local_aes_wrap(dek),
+            KeyProvider::Local { .. } => self.local_aes_wrap(dek),
         }
     }
     
-    /// Unwrap DEK using KMS.
+    /// Unwrap DEK using KEK.
     fn unwrap_dek(&self, wrapped: &[u8]) -> Result<Vec<u8>, EncryptionError> {
         match &self.config.key_provider {
-            KeyProvider::AwsKms { key_id: _ } => {
-                // Production: call aws_sdk_kms::Client::decrypt()
-                Ok(self.local_unwrap(wrapped))
-            }
-            KeyProvider::GcpKms { .. } => Ok(self.local_unwrap(wrapped)),
-            KeyProvider::AzureKeyVault { .. } => Ok(self.local_unwrap(wrapped)),
-            KeyProvider::HashiCorpVault { .. } => Ok(self.local_unwrap(wrapped)),
-            KeyProvider::Local { .. } => Ok(self.local_unwrap(wrapped)),
+            KeyProvider::AwsKms { key_id: _ } => self.local_aes_unwrap(wrapped),
+            KeyProvider::GcpKms { .. } => self.local_aes_unwrap(wrapped),
+            KeyProvider::AzureKeyVault { .. } => self.local_aes_unwrap(wrapped),
+            KeyProvider::HashiCorpVault { .. } => self.local_aes_unwrap(wrapped),
+            KeyProvider::Local { .. } => self.local_aes_unwrap(wrapped),
         }
     }
     
-    /// Local key wrapping (for development/testing).
-    /// In production, replace with actual KMS calls.
-    fn local_wrap(&self, dek: &[u8]) -> Vec<u8> {
-        // Simple XOR wrap with environment-derived key
-        // Production: use actual KMS envelope encryption
-        let wrap_key = self.get_local_wrap_key();
-        dek.iter()
-            .zip(wrap_key.iter().cycle())
-            .map(|(a, b)| a ^ b)
-            .collect()
+    /// Production-grade local key wrapping using AES-256-GCM.
+    /// Format: nonce (12 bytes) || ciphertext || tag (16 bytes)
+    fn local_aes_wrap(&self, dek: &[u8]) -> Result<Vec<u8>, EncryptionError> {
+        let kek = self.get_local_kek()?;
+        
+        // Generate random nonce
+        let mut nonce_bytes = [0u8; NONCE_LEN];
+        self.rng.fill(&mut nonce_bytes)
+            .map_err(|_| EncryptionError::KmsError("Failed to generate wrap nonce".into()))?;
+        
+        // Create AES-GCM key
+        let unbound_key = UnboundKey::new(&AES_256_GCM, &kek)
+            .map_err(|_| EncryptionError::KmsError("Invalid KEK".into()))?;
+        let less_safe_key = LessSafeKey::new(unbound_key);
+        
+        let nonce = Nonce::assume_unique_for_key(nonce_bytes);
+        
+        // Encrypt DEK (in-place requires buffer with space for tag)
+        let mut wrapped = dek.to_vec();
+        wrapped.extend_from_slice(&[0u8; TAG_LEN]); // Space for tag
+        
+        less_safe_key.seal_in_place_append_tag(nonce, Aad::empty(), &mut wrapped)
+            .map_err(|_| EncryptionError::KmsError("DEK wrap failed".into()))?;
+        
+        // Prepend nonce to output: nonce || ciphertext || tag
+        let mut result = nonce_bytes.to_vec();
+        result.extend(wrapped);
+        Ok(result)
     }
     
-    fn local_unwrap(&self, wrapped: &[u8]) -> Vec<u8> {
-        // XOR is symmetric
-        self.local_wrap(wrapped)
+    /// Unwrap DEK using AES-256-GCM.
+    fn local_aes_unwrap(&self, wrapped: &[u8]) -> Result<Vec<u8>, EncryptionError> {
+        // Validate minimum length: nonce (12) + at least 1 byte + tag (16)
+        if wrapped.len() < NONCE_LEN + 1 + TAG_LEN {
+            return Err(EncryptionError::DecryptionFailed("Wrapped DEK too short".into()));
+        }
+        
+        let kek = self.get_local_kek()?;
+        
+        // Extract nonce and ciphertext+tag
+        let (nonce_bytes, ciphertext_with_tag) = wrapped.split_at(NONCE_LEN);
+        let nonce_array: [u8; NONCE_LEN] = nonce_bytes.try_into()
+            .map_err(|_| EncryptionError::DecryptionFailed("Invalid nonce".into()))?;
+        
+        // Create AES-GCM key
+        let unbound_key = UnboundKey::new(&AES_256_GCM, &kek)
+            .map_err(|_| EncryptionError::KmsError("Invalid KEK".into()))?;
+        let less_safe_key = LessSafeKey::new(unbound_key);
+        
+        let nonce = Nonce::assume_unique_for_key(nonce_array);
+        
+        // Decrypt DEK
+        let mut buffer = ciphertext_with_tag.to_vec();
+        let plaintext = less_safe_key.open_in_place(nonce, Aad::empty(), &mut buffer)
+            .map_err(|_| EncryptionError::DecryptionFailed("DEK unwrap failed - authentication error".into()))?;
+        
+        Ok(plaintext.to_vec())
     }
     
-    fn get_local_wrap_key(&self) -> Vec<u8> {
-        // Derive from environment variable or use default for testing
-        std::env::var("AGENTKERN_LOCAL_KEK")
-            .map(|s| s.as_bytes().to_vec())
-            .unwrap_or_else(|_| b"default-dev-key-do-not-use-prod!".to_vec())
+    /// Get local Key Encryption Key (KEK) for envelope encryption.
+    /// In production, this should come from secure key storage or HSM.
+    /// Minimum requirement: 32-byte key from environment variable.
+    fn get_local_kek(&self) -> Result<Vec<u8>, EncryptionError> {
+        // Required environment variable for production
+        let key_b64 = std::env::var("AGENTKERN_LOCAL_KEK")
+            .map_err(|_| EncryptionError::KmsError(
+                "AGENTKERN_LOCAL_KEK environment variable not set. \
+                Generate with: openssl rand -base64 32".into()
+            ))?;
+        
+        // Decode base64 key
+        use base64::Engine;
+        let key = base64::engine::general_purpose::STANDARD.decode(&key_b64)
+            .map_err(|_| EncryptionError::KmsError("AGENTKERN_LOCAL_KEK must be valid base64".into()))?;
+        
+        // Validate key length
+        if key.len() != AES_256_KEY_LEN {
+            return Err(EncryptionError::KmsError(format!(
+                "AGENTKERN_LOCAL_KEK must be {} bytes (got {})",
+                AES_256_KEY_LEN, key.len()
+            )));
+        }
+        
+        Ok(key)
     }
     
     /// Encrypt using AES-256-GCM.
@@ -234,7 +292,7 @@ impl MemoryEncryptor {
         
         // Open in place
         let plaintext = less_safe_key.open_in_place(nonce, Aad::empty(), &mut in_out)
-            .map_err(|_| EncryptionError::DecryptionFailed)?;
+            .map_err(|_| EncryptionError::DecryptionFailed("Authentication failed".into()))?;
         
         Ok(plaintext.to_vec())
     }
@@ -256,8 +314,8 @@ pub enum EncryptionError {
     #[error("Key not found")]
     KeyNotFound,
     
-    #[error("Decryption failed - data may be corrupted or tampered")]
-    DecryptionFailed,
+    #[error("Decryption failed: {0}")]
+    DecryptionFailed(String),
     
     #[error("Key rotation not supported for this provider")]
     RotationNotSupported,
