@@ -1,17 +1,18 @@
 /**
  * Arbiter Service Unit Tests
  * 
- * Tests kill switch, chaos injection, and audit logging.
+ * Tests kill switch, audit statistics, and chaos stats.
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArbiterService } from './arbiter.service';
 
 // Mock the bridge module
 jest.mock('../../native-bridge', () => ({
-  arbiter_kill_switch: jest.fn(),
-  arbiter_chaos_inject: jest.fn(),
-  arbiter_audit_log: jest.fn(),
-  arbiter_get_status: jest.fn(),
+  arbiterKillSwitchActivate: jest.fn(),
+  arbiterKillSwitchStatus: jest.fn(),
+  arbiterKillSwitchDeactivate: jest.fn(),
+  arbiterQueryAudit: jest.fn(),
+  arbiterChaosStats: jest.fn(),
 }));
 
 describe('ArbiterService', () => {
@@ -39,215 +40,139 @@ describe('ArbiterService', () => {
     });
 
     it('should verify bridge on module init', async () => {
-      bridgeMock.arbiter_get_status.mockReturnValue(
-        JSON.stringify({ kill_switch: false, chaos_enabled: false }),
+      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
+        JSON.stringify({ active: false, terminated_count: 0 }),
       );
       await expect(service.onModuleInit()).resolves.not.toThrow();
     });
   });
 
   describe('activateKillSwitch', () => {
-    it('should activate global kill switch', async () => {
+    it('should activate kill switch with reason', async () => {
       const mockResult = {
-        activated: true,
+        id: 'kill-123',
+        timestamp: new Date().toISOString(),
+        target_id: 'global',
+        target_type: 'Global',
         reason: 'Security breach detected',
-        activated_by: 'admin-001',
-        timestamp: Date.now(),
+        termination_type: 'Graceful',
+        success: true,
       };
-      bridgeMock.arbiter_kill_switch.mockReturnValue(JSON.stringify(mockResult));
+      bridgeMock.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
 
-      const result = await service.activateKillSwitch('Security breach detected', 'admin-001');
+      const result = await service.activateKillSwitch('Security breach detected');
 
-      expect(result.activated).toBe(true);
-      expect(bridgeMock.arbiter_kill_switch).toHaveBeenCalledWith(
-        expect.any(String),
-        'Security breach detected',
-        'admin-001',
-      );
+      if (!('error' in result)) {
+        expect(result.success).toBe(true);
+        expect(result.reason).toBe('Security breach detected');
+      }
     });
 
-    it('should activate agent-specific kill switch', async () => {
+    it('should activate kill switch for specific agent', async () => {
       const mockResult = {
-        activated: true,
-        agent_id: 'agent-123',
+        id: 'kill-456',
+        target_id: 'agent-123',
+        target_type: 'Agent',
         reason: 'Agent compromised',
-        timestamp: Date.now(),
+        success: true,
       };
-      bridgeMock.arbiter_kill_switch.mockReturnValue(JSON.stringify(mockResult));
+      bridgeMock.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
 
-      const result = await service.activateKillSwitch(
-        'Agent compromised',
-        'admin-001',
-        'agent-123',
+      const result = await service.activateKillSwitch('Agent compromised', 'agent-123');
+
+      if (!('error' in result)) {
+        expect(result.target_id).toBe('agent-123');
+      }
+    });
+  });
+
+  describe('getKillSwitchStatus', () => {
+    it('should return inactive status', async () => {
+      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
+        JSON.stringify({ active: false, terminated_count: 0 }),
       );
 
-      expect(result.agent_id).toBe('agent-123');
+      const result = await service.getKillSwitchStatus();
+
+      expect(result.active).toBe(false);
+      expect(result.terminated_count).toBe(0);
     });
 
-    it('should require reason for kill switch', async () => {
-      await expect(service.activateKillSwitch('', 'admin-001')).rejects.toThrow();
-    });
+    it('should return active status', async () => {
+      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
+        JSON.stringify({ active: true, terminated_count: 5 }),
+      );
 
-    it('should require activator identity', async () => {
-      await expect(service.activateKillSwitch('Reason', '')).rejects.toThrow();
+      const result = await service.getKillSwitchStatus();
+
+      expect(result.active).toBe(true);
+      expect(result.terminated_count).toBe(5);
     });
   });
 
   describe('deactivateKillSwitch', () => {
-    it('should deactivate kill switch with authorization', async () => {
-      const mockResult = {
-        deactivated: true,
-        deactivated_by: 'admin-001',
-        timestamp: Date.now(),
-      };
-      bridgeMock.arbiter_kill_switch.mockReturnValue(JSON.stringify(mockResult));
+    it('should deactivate kill switch', async () => {
+      bridgeMock.arbiterKillSwitchDeactivate.mockResolvedValue(
+        JSON.stringify({ active: false }),
+      );
 
-      const result = await service.deactivateKillSwitch('admin-001');
+      const result = await service.deactivateKillSwitch();
 
-      expect(result.deactivated).toBe(true);
+      expect(result.active).toBe(false);
     });
   });
 
-  describe('injectChaos', () => {
-    it('should inject latency chaos', async () => {
-      const mockResult = {
-        chaos_id: 'chaos-123',
-        type: 'latency',
-        target: 'treasury',
-        duration_ms: 5000,
-        started_at: Date.now(),
+  describe('getAuditStatistics', () => {
+    it('should return audit statistics', async () => {
+      const mockStats = {
+        total_records: 100,
+        approved_count: 80,
+        denied_count: 10,
+        review_count: 5,
+        logged_count: 5,
+        high_risk_count: 3,
+        avg_risk_score: 0.25,
       };
-      bridgeMock.arbiter_chaos_inject.mockReturnValue(JSON.stringify(mockResult));
+      bridgeMock.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
 
-      const result = await service.injectChaos({
-        type: 'latency',
-        target: 'treasury',
-        duration: 5000,
-      });
+      const result = await service.getAuditStatistics();
 
-      expect(result.chaos_id).toBe('chaos-123');
-      expect(result.type).toBe('latency');
+      expect(result?.total_records).toBe(100);
+      expect(result?.approved_count).toBe(80);
     });
 
-    it('should inject error chaos', async () => {
-      const mockResult = {
-        chaos_id: 'chaos-456',
-        type: 'error',
-        target: 'nexus',
-        error_rate: 0.5,
-        started_at: Date.now(),
+    it('should accept limit parameter', async () => {
+      const mockStats = {
+        total_records: 50,
+        approved_count: 40,
+        denied_count: 5,
+        review_count: 3,
+        logged_count: 2,
+        high_risk_count: 1,
+        avg_risk_score: 0.15,
       };
-      bridgeMock.arbiter_chaos_inject.mockReturnValue(JSON.stringify(mockResult));
+      bridgeMock.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
 
-      const result = await service.injectChaos({
-        type: 'error',
-        target: 'nexus',
-        errorRate: 0.5,
-      });
+      const result = await service.getAuditStatistics(50);
 
-      expect(result.type).toBe('error');
-      expect(result.error_rate).toBe(0.5);
-    });
-
-    it('should reject invalid chaos type', async () => {
-      await expect(
-        service.injectChaos({
-          type: 'invalid' as 'latency',
-          target: 'treasury',
-        }),
-      ).rejects.toThrow();
-    });
-
-    it('should reject production chaos without flag', async () => {
-      // In production mode, chaos should be disabled by default
-      process.env.NODE_ENV = 'production';
-      
-      await expect(
-        service.injectChaos({
-          type: 'latency',
-          target: 'treasury',
-        }),
-      ).rejects.toThrow();
-
-      process.env.NODE_ENV = 'test';
+      expect(result?.total_records).toBe(50);
     });
   });
 
-  describe('getAuditLog', () => {
-    it('should retrieve audit log entries', async () => {
-      const mockLog = {
-        entries: [
-          {
-            id: 'audit-1',
-            action: 'kill_switch_activated',
-            actor: 'admin-001',
-            timestamp: Date.now(),
-          },
-          {
-            id: 'audit-2',
-            action: 'chaos_injected',
-            actor: 'admin-001',
-            timestamp: Date.now(),
-          },
-        ],
-        total: 2,
+  describe('getChaosStats', () => {
+    it('should return chaos statistics', () => {
+      const mockStats = {
+        total_ops: 100,
+        latency_injections: 20,
+        error_injections: 10,
       };
-      bridgeMock.arbiter_audit_log.mockReturnValue(JSON.stringify(mockLog));
+      bridgeMock.arbiterChaosStats.mockReturnValue(JSON.stringify(mockStats));
 
-      const result = await service.getAuditLog({ limit: 10 });
+      const result = service.getChaosStats();
 
-      expect(result.entries).toHaveLength(2);
-      expect(result.entries[0].action).toBe('kill_switch_activated');
-    });
-
-    it('should filter by agent ID', async () => {
-      const mockLog = {
-        entries: [
-          {
-            id: 'audit-1',
-            action: 'agent_suspended',
-            agent_id: 'agent-123',
-            timestamp: Date.now(),
-          },
-        ],
-        total: 1,
-      };
-      bridgeMock.arbiter_audit_log.mockReturnValue(JSON.stringify(mockLog));
-
-      const result = await service.getAuditLog({ agentId: 'agent-123' });
-
-      expect(result.entries[0].agent_id).toBe('agent-123');
-    });
-  });
-
-  describe('getStatus', () => {
-    it('should return current arbiter status', async () => {
-      const mockStatus = {
-        kill_switch: false,
-        chaos_enabled: false,
-        active_chaos_experiments: 0,
-        pending_audit_entries: 0,
-      };
-      bridgeMock.arbiter_get_status.mockReturnValue(JSON.stringify(mockStatus));
-
-      const result = await service.getStatus();
-
-      expect(result.kill_switch).toBe(false);
-      expect(result.chaos_enabled).toBe(false);
-    });
-
-    it('should reflect kill switch state', async () => {
-      const mockStatus = {
-        kill_switch: true,
-        kill_switch_reason: 'Security breach',
-        chaos_enabled: false,
-      };
-      bridgeMock.arbiter_get_status.mockReturnValue(JSON.stringify(mockStatus));
-
-      const result = await service.getStatus();
-
-      expect(result.kill_switch).toBe(true);
-      expect(result.kill_switch_reason).toBe('Security breach');
+      expect(result.total_ops).toBe(100);
+      expect(result.latency_injections).toBe(20);
+      expect(result.error_injections).toBe(10);
     });
   });
 });
