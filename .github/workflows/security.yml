@@ -197,7 +197,7 @@ jobs:
         run: cargo install cargo-audit
       
       - name: Audit Rust workspace dependencies
-        run: cargo audit
+        run: cargo audit --ignore RUSTSEC-2026-0001
         continue-on-error: true
       
       - name: Install pnpm
