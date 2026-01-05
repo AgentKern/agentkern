@@ -260,6 +260,17 @@ export class AuditLogResponseDto {
   @ApiProperty({ description: 'Has more entries' })
   @IsBoolean()
   hasMore: boolean;
+
+  @ApiPropertyOptional({ description: 'Aggregate statistics' })
+  @IsOptional()
+  statistics?: {
+    approved: number;
+    denied: number;
+    inReview: number;
+    logged: number;
+    highRisk: number;
+    avgRiskScore: number;
+  };
 }
 
 // ============================================================================
@@ -315,4 +326,12 @@ export class ChaosResultDto {
   @ApiProperty({ description: 'Whether fault is recoverable' })
   @IsBoolean()
   recoverable: boolean;
+
+  @ApiPropertyOptional({ description: 'Chaos statistics' })
+  @IsOptional()
+  stats?: {
+    totalOps: number;
+    latencyInjections: number;
+    errorInjections: number;
+  };
 }

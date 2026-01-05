@@ -25,8 +25,12 @@ pqc = ["pqcrypto-mlkem", "pqcrypto-traits", "ml-dsa"]
 sql = ["sqlx"]
 # OpenTelemetry distributed tracing
 otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-opentelemetry"]
+# HTTP client for production API calls (SWIFT, etc.)
+http = ["reqwest"]
+# SAP NW RFC SDK bindings (requires licensed SDK installation)
+sap-rfc = []
 # Full feature set
-full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql", "otel"]
+full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql", "otel", "http"]
 
 [dependencies]
 # Async runtime (Dec 2025 - verified tokio 1.48.0)
@@ -68,6 +72,9 @@ opentelemetry = { version = "0.27", optional = true }
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"], optional = true }
 opentelemetry-otlp = { version = "0.27", features = ["http-proto"], optional = true }
 tracing-opentelemetry = { version = "0.28", optional = true }
+
+# HTTP client for production API calls (SWIFT GPI, etc.)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], optional = true }
 
 # Error handling (Dec 2025)
 thiserror = "2.0"

@@ -50,6 +50,9 @@ pub enum NexusError {
 
     #[error("Timeout")]
     Timeout,
+
+    #[error("Configuration error: {message}")]
+    ConfigurationError { message: String },
 }
 
 impl From<serde_json::Error> for NexusError {

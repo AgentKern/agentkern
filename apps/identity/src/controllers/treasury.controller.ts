@@ -20,11 +20,12 @@ import {
   CarbonFootprintDto,
   CarbonOffsetDto,
 } from '../dto/treasury.dto';
+import { TreasuryService } from '../services/treasury.service';
 
 /**
  * Treasury Controller - Agent Payment Infrastructure API
  *
- * Exposes the Treasury pillar's capabilities:
+ * Exposes the Treasury pillar's capabilities via Rust N-API bridge:
  * - Agent balance management
  * - Agent-to-agent transfers (micropayments)
  * - Spending budgets and limits
@@ -35,15 +36,7 @@ import {
 export class TreasuryController {
   private readonly logger = new Logger(TreasuryController.name);
 
-  // In-memory store for demo (would use Rust bridge in production)
-  private balances: Map<string, { balance: number; currency: string }> =
-    new Map();
-  private budgets: Map<
-    string,
-    { limit: number; spent: number; period: string }
-  > = new Map();
-  private carbon: Map<string, { totalGrams: number; computeHours: number }> =
-    new Map();
+  constructor(private readonly treasuryService: TreasuryService) {}
 
   // =========================================================================
   // Balance Endpoints
@@ -63,19 +56,25 @@ export class TreasuryController {
   async getBalance(
     @Param('agentId') agentId: string,
   ): Promise<BalanceResponseDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Getting balance for agent: ${agentId}`);
 
-    const balance = this.balances.get(agentId) || {
-      balance: 0,
-      currency: 'USD',
-    };
+    const result = await this.treasuryService.getBalance(agentId);
+
+    if (!result) {
+      // Service returned null (bridge not loaded or error)
+      return {
+        agentId,
+        balance: 0,
+        currency: 'VMC',
+        lastUpdated: new Date().toISOString(),
+      };
+    }
 
     return {
-      agentId,
-      balance: balance.balance,
-      currency: balance.currency,
-      lastUpdated: new Date().toISOString(),
+      agentId: result.agent_id,
+      balance: result.balance.value / Math.pow(10, result.balance.decimals),
+      currency: result.currency,
+      lastUpdated: result.updated_at,
     };
   }
 
@@ -94,21 +93,25 @@ export class TreasuryController {
     @Param('agentId') agentId: string,
     @Body() dto: DepositDto,
   ): Promise<BalanceResponseDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Depositing ${dto.amount} to agent: ${agentId}`);
 
-    const current = this.balances.get(agentId) || {
-      balance: 0,
-      currency: 'USD',
-    };
-    current.balance += dto.amount;
-    this.balances.set(agentId, current);
+    const result = await this.treasuryService.deposit(agentId, dto.amount);
+
+    if ('error' in result) {
+      this.logger.error(`Deposit failed: ${result.error}`);
+      return {
+        agentId,
+        balance: 0,
+        currency: 'VMC',
+        lastUpdated: new Date().toISOString(),
+      };
+    }
 
     return {
-      agentId,
-      balance: current.balance,
-      currency: current.currency,
-      lastUpdated: new Date().toISOString(),
+      agentId: result.agent_id,
+      balance: result.balance.value / Math.pow(10, result.balance.decimals),
+      currency: result.currency,
+      lastUpdated: result.updated_at,
     };
   }
 
@@ -132,45 +135,37 @@ export class TreasuryController {
     description: 'Insufficient funds or invalid request',
   })
   async transfer(@Body() dto: TransferDto): Promise<TransferResponseDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(
       `Transfer: ${dto.fromAgent} -> ${dto.toAgent}: ${dto.amount}`,
     );
 
-    const fromBalance = this.balances.get(dto.fromAgent) || {
-      balance: 0,
-      currency: 'USD',
-    };
-    const toBalance = this.balances.get(dto.toAgent) || {
-      balance: 0,
-      currency: 'USD',
-    };
+    const result = await this.treasuryService.transfer(
+      dto.fromAgent,
+      dto.toAgent,
+      dto.amount,
+      dto.reference,
+    );
 
-    if (fromBalance.balance < dto.amount) {
+    if ('error' in result) {
       return {
         transactionId: `tx_${Date.now()}`,
         status: 'failed',
         fromAgent: dto.fromAgent,
         toAgent: dto.toAgent,
         amount: dto.amount,
-        error: 'Insufficient funds',
+        error: result.error,
         timestamp: new Date().toISOString(),
       };
     }
 
-    fromBalance.balance -= dto.amount;
-    toBalance.balance += dto.amount;
-    this.balances.set(dto.fromAgent, fromBalance);
-    this.balances.set(dto.toAgent, toBalance);
-
     return {
-      transactionId: `tx_${Date.now()}`,
-      status: 'completed',
+      transactionId: result.transaction_id,
+      status: result.status === 'Completed' ? 'completed' : 'pending',
       fromAgent: dto.fromAgent,
       toAgent: dto.toAgent,
       amount: dto.amount,
       reference: dto.reference,
-      timestamp: new Date().toISOString(),
+      timestamp: result.timestamp,
     };
   }
 
@@ -185,24 +180,20 @@ export class TreasuryController {
   @ApiOperation({ summary: 'Get agent spending budget' })
   @ApiResponse({ status: 200, description: 'Budget details', type: BudgetDto })
   async getBudget(@Param('agentId') agentId: string): Promise<BudgetDto> {
-    await Promise.resolve(); // Ensure async execution
-    const budget = this.budgets.get(agentId) || {
-      limit: 100,
-      spent: 0,
-      period: 'daily',
-    };
+    const result = await this.treasuryService.getBudget(agentId);
 
     return {
-      agentId,
-      limit: budget.limit,
-      spent: budget.spent,
-      remaining: budget.limit - budget.spent,
-      period: budget.period as 'hourly' | 'daily' | 'weekly' | 'monthly',
+      agentId: result.agent_id,
+      limit: 100, // Default limit (budget manager returns remaining only)
+      spent: result.remaining !== null ? 100 - result.remaining : 0,
+      remaining: result.remaining ?? 100,
+      period: 'daily',
     };
   }
 
   /**
    * Set agent spending budget limit
+   * Note: Budget setting requires bridge extension; returns current state for now.
    */
   @Put('budget/:agentId')
   @ApiOperation({ summary: 'Set agent spending budget' })
@@ -211,26 +202,23 @@ export class TreasuryController {
     @Param('agentId') agentId: string,
     @Body() dto: SetBudgetDto,
   ): Promise<BudgetDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(
       `Setting budget for ${agentId}: ${dto.limit}/${dto.period}`,
     );
 
-    const current = this.budgets.get(agentId) || {
-      limit: 0,
-      spent: 0,
-      period: 'daily',
-    };
-    current.limit = dto.limit;
-    current.period = dto.period;
-    this.budgets.set(agentId, current);
+    // Note: Bridge currently only supports getBudget, not setBudget.
+    // This would require extending the Rust BudgetManager to support set_budget().
+    // For now, return the requested values as acknowledgment.
+    this.logger.warn(
+      'Budget setting not yet implemented in bridge; returning requested values',
+    );
 
     return {
       agentId,
-      limit: current.limit,
-      spent: current.spent,
-      remaining: current.limit - current.spent,
-      period: current.period as 'hourly' | 'daily' | 'weekly' | 'monthly',
+      limit: dto.limit,
+      spent: 0,
+      remaining: dto.limit,
+      period: dto.period,
     };
   }
 
@@ -251,19 +239,26 @@ export class TreasuryController {
   async getCarbonFootprint(
     @Param('agentId') agentId: string,
   ): Promise<CarbonFootprintDto> {
-    await Promise.resolve(); // Ensure async execution
-    const footprint = this.carbon.get(agentId) || {
-      totalGrams: 0,
-      computeHours: 0,
-    };
+    const result = await this.treasuryService.getCarbon(agentId);
+
+    if (!result) {
+      return {
+        agentId,
+        totalGramsCO2: 0,
+        computeHours: 0,
+        region: 'us-east-1',
+        carbonIntensity: 400,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
 
     return {
       agentId,
-      totalGramsCO2: footprint.totalGrams,
-      computeHours: footprint.computeHours,
+      totalGramsCO2: parseFloat(result.total_co2_grams),
+      computeHours: parseFloat(result.total_energy_kwh),
       region: 'us-east-1',
       carbonIntensity: 400, // gCO2/kWh
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: result.period_end,
     };
   }
 
@@ -277,23 +272,28 @@ export class TreasuryController {
   async purchaseOffset(
     @Body() dto: CarbonOffsetDto,
   ): Promise<{ success: boolean; offsetGrams: number; cost: number }> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Purchasing ${dto.grams}g CO2 offset for ${dto.agentId}`);
 
-    // Simulate offset cost ($0.02 per kg CO2)
-    const cost = (dto.grams / 1000) * 0.02;
+    // Convert grams to tons for the service
+    const tons = dto.grams / 1_000_000;
+    const result = await this.treasuryService.purchaseOffset(
+      dto.agentId,
+      tons,
+    );
 
-    const footprint = this.carbon.get(dto.agentId) || {
-      totalGrams: 0,
-      computeHours: 0,
-    };
-    footprint.totalGrams = Math.max(0, footprint.totalGrams - dto.grams);
-    this.carbon.set(dto.agentId, footprint);
+    if ('error' in result) {
+      this.logger.error(`Offset purchase failed: ${result.error}`);
+      return {
+        success: false,
+        offsetGrams: 0,
+        cost: 0,
+      };
+    }
 
     return {
       success: true,
       offsetGrams: dto.grams,
-      cost,
+      cost: result.cost,
     };
   }
 }

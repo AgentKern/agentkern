@@ -4,7 +4,7 @@ use axum::{routing::get, Router};
 use std::net::SocketAddr;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     tracing::info!("AgentKern-Treasury starting...");
@@ -16,11 +16,13 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("Failed to bind to address");
+        .map_err(|e| anyhow::anyhow!("Failed to bind to {}: {}", addr, e))?;
 
     tracing::info!("✅ Treasury server started successfully");
 
     axum::serve(listener, app)
         .await
-        .expect("Server error occurred");
+        .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
+
+    Ok(())
 }

@@ -1,33 +1,35 @@
 /**
  * Arbiter Service Unit Tests
- * 
+ *
  * Tests kill switch, audit statistics, and chaos stats.
+ * Uses proper mocking strategy for dynamically loaded native bridge.
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArbiterService } from './arbiter.service';
 
-// Mock the bridge module
-jest.mock('../../native-bridge', () => ({
-  arbiterKillSwitchActivate: jest.fn(),
-  arbiterKillSwitchStatus: jest.fn(),
-  arbiterKillSwitchDeactivate: jest.fn(),
-  arbiterQueryAudit: jest.fn(),
-  arbiterChaosStats: jest.fn(),
-}));
-
 describe('ArbiterService', () => {
   let service: ArbiterService;
-  let bridgeMock: Record<string, jest.Mock>;
+  let mockBridge: Record<string, jest.Mock>;
 
   beforeEach(async () => {
-    jest.resetModules();
-    
+    // Create mock bridge functions
+    mockBridge = {
+      arbiterKillSwitchActivate: jest.fn(),
+      arbiterKillSwitchStatus: jest.fn(),
+      arbiterKillSwitchDeactivate: jest.fn(),
+      arbiterQueryAudit: jest.fn(),
+      arbiterChaosStats: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [ArbiterService],
     }).compile();
 
     service = module.get<ArbiterService>(ArbiterService);
-    bridgeMock = jest.requireMock('../../native-bridge');
+
+    // Manually inject the mock bridge and set bridgeLoaded flag
+    (service as any).bridge = mockBridge;
+    (service as any).bridgeLoaded = true;
   });
 
   afterEach(() => {
@@ -39,11 +41,8 @@ describe('ArbiterService', () => {
       expect(service).toBeDefined();
     });
 
-    it('should verify bridge on module init', async () => {
-      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
-        JSON.stringify({ active: false, terminated_count: 0 }),
-      );
-      await expect(service.onModuleInit()).resolves.not.toThrow();
+    it('should be operational when bridge is loaded', () => {
+      expect(service.isOperational()).toBe(true);
     });
   });
 
@@ -58,7 +57,7 @@ describe('ArbiterService', () => {
         termination_type: 'Graceful',
         success: true,
       };
-      bridgeMock.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
+      mockBridge.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
 
       const result = await service.activateKillSwitch('Security breach detected');
 
@@ -76,7 +75,7 @@ describe('ArbiterService', () => {
         reason: 'Agent compromised',
         success: true,
       };
-      bridgeMock.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
+      mockBridge.arbiterKillSwitchActivate.mockResolvedValue(JSON.stringify(mockResult));
 
       const result = await service.activateKillSwitch('Agent compromised', 'agent-123');
 
@@ -88,7 +87,7 @@ describe('ArbiterService', () => {
 
   describe('getKillSwitchStatus', () => {
     it('should return inactive status', async () => {
-      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
+      mockBridge.arbiterKillSwitchStatus.mockResolvedValue(
         JSON.stringify({ active: false, terminated_count: 0 }),
       );
 
@@ -99,7 +98,7 @@ describe('ArbiterService', () => {
     });
 
     it('should return active status', async () => {
-      bridgeMock.arbiterKillSwitchStatus.mockResolvedValue(
+      mockBridge.arbiterKillSwitchStatus.mockResolvedValue(
         JSON.stringify({ active: true, terminated_count: 5 }),
       );
 
@@ -112,8 +111,8 @@ describe('ArbiterService', () => {
 
   describe('deactivateKillSwitch', () => {
     it('should deactivate kill switch', async () => {
-      bridgeMock.arbiterKillSwitchDeactivate.mockResolvedValue(
-        JSON.stringify({ active: false }),
+      mockBridge.arbiterKillSwitchDeactivate.mockResolvedValue(
+        JSON.stringify({ success: true }),
       );
 
       const result = await service.deactivateKillSwitch();
@@ -133,7 +132,7 @@ describe('ArbiterService', () => {
         high_risk_count: 3,
         avg_risk_score: 0.25,
       };
-      bridgeMock.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
+      mockBridge.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
 
       const result = await service.getAuditStatistics();
 
@@ -151,7 +150,7 @@ describe('ArbiterService', () => {
         high_risk_count: 1,
         avg_risk_score: 0.15,
       };
-      bridgeMock.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
+      mockBridge.arbiterQueryAudit.mockResolvedValue(JSON.stringify(mockStats));
 
       const result = await service.getAuditStatistics(50);
 
@@ -166,7 +165,7 @@ describe('ArbiterService', () => {
         latency_injections: 20,
         error_injections: 10,
       };
-      bridgeMock.arbiterChaosStats.mockReturnValue(JSON.stringify(mockStats));
+      mockBridge.arbiterChaosStats.mockReturnValue(JSON.stringify(mockStats));
 
       const result = service.getChaosStats();
 

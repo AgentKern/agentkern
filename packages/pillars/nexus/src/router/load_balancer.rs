@@ -145,7 +145,7 @@ impl LoadBalancer {
 
         let random_point = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_nanos() as u32)
             % total_weight;
 
@@ -169,7 +169,7 @@ impl LoadBalancer {
     fn select_random<'a>(&self, agents: &[&'a AgentCard]) -> Option<&'a AgentCard> {
         let idx = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_nanos() as usize)
             % agents.len();
         agents.get(idx).copied()

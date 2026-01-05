@@ -661,10 +661,14 @@ export class TrustService implements OnModuleInit {
 
   /**
    * Verify a Verifiable Credential
+   *
+   * CRITICAL: This method performs cryptographic verification of the JWS proof
+   * to ensure the credential was issued by this service and has not been tampered with.
    */
   async verifyCredential(credential: VerifiableCredential): Promise<boolean> {
     // Check required fields
     if (!credential['@context'] || !credential.id || !credential.issuer) {
+      this.logger.warn('Credential missing required fields');
       return false;
     }
 
@@ -672,38 +676,69 @@ export class TrustService implements OnModuleInit {
     const issuance = new Date(credential.issuanceDate);
     const expiry = new Date(issuance.getTime() + 30 * 24 * 60 * 60 * 1000);
     if (new Date() > expiry) {
+      this.logger.warn('Credential has expired');
       return false;
     }
 
     // Verify proof exists and has required fields
     if (!credential.proof?.jws) {
+      this.logger.warn('Credential missing JWS proof');
       return false;
     }
 
-    // Verify the credential subject matches current state
-    const agentId = credential.credentialSubject.id.replace(
-      'did:agentkern:agent:',
-      '',
-    );
-    const currentScore = await this.getTrustScore(agentId);
-
-    // Validate score hasn't drifted significantly (allows for natural changes)
-    const claimedScore = credential.credentialSubject.trustScore;
-    if (
-      claimedScore !== undefined &&
-      Math.abs(currentScore.score - claimedScore) > 10
-    ) {
-      this.logger.warn(`Trust score changed significantly for ${agentId}`);
-    }
-
-    // Verify JWS structure (header.payload.signature)
-    const jwsParts = credential.proof.jws.split('.');
-    if (jwsParts.length !== 3) {
-      this.logger.warn('Invalid JWS structure');
+    // Verify the signing key is initialized
+    if (!this.signingKeyPair) {
+      this.logger.error('Signing key not initialized - cannot verify credentials');
       return false;
     }
 
-    return true;
+    // =========================================================================
+    // CRITICAL: Cryptographic Signature Verification
+    // =========================================================================
+    try {
+      // Verify the JWS using the service's public key
+      const { payload } = await jose.jwtVerify(
+        credential.proof.jws,
+        this.signingKeyPair.publicKey,
+        {
+          algorithms: ['EdDSA'],
+        },
+      );
+
+      // Verify the payload matches the credential subject
+      const agentId = credential.credentialSubject.id.replace(
+        'did:agentkern:agent:',
+        '',
+      );
+
+      if (payload.sub !== agentId) {
+        this.logger.warn(
+          `JWS subject mismatch: expected ${agentId}, got ${payload.sub}`,
+        );
+        return false;
+      }
+
+      // Verify the score in the JWS matches the credential
+      const claimedScore = credential.credentialSubject.trustScore;
+      if (claimedScore !== undefined && payload.score !== claimedScore) {
+        this.logger.warn(
+          `JWS score mismatch: credential claims ${claimedScore}, JWS has ${payload.score}`,
+        );
+        return false;
+      }
+
+      // Check JWS expiration (already handled by jose, but log for clarity)
+      if (payload.exp && Date.now() / 1000 > payload.exp) {
+        this.logger.warn('JWS proof has expired');
+        return false;
+      }
+
+      this.logger.log(`Credential verified successfully for agent: ${agentId}`);
+      return true;
+    } catch (error) {
+      this.logger.error('Credential verification failed', error);
+      return false;
+    }
   }
 
   /**

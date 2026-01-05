@@ -38,7 +38,7 @@ struct VerifyRequest {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
@@ -78,8 +78,15 @@ async fn main() {
 
     tracing::info!("🚀 AgentKern-Gate server running on http://{}", addr);
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to bind to {}: {}", addr, e))?;
+    
+    axum::serve(listener, app)
+        .await
+        .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
+
+    Ok(())
 }
 
 /// P2: Authentication Middleware

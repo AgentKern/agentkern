@@ -176,6 +176,18 @@ impl ConnectorHealth {
             message: Some(message.into()),
         }
     }
+
+    /// Create degraded status (working but limited).
+    pub fn degraded(message: impl Into<String>) -> Self {
+        Self {
+            healthy: true, // Still technically healthy
+            last_success_ms: Some(chrono::Utc::now().timestamp_millis() as u64),
+            last_failure_ms: None,
+            latency_ms: None,
+            error_count: 0,
+            message: Some(message.into()),
+        }
+    }
 }
 
 /// A2A Task representation for connector translation.

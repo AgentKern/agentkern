@@ -295,7 +295,14 @@ impl ExplainabilityEngine {
             });
         }
 
-        contributions.sort_by(|a, b| b.value.abs().partial_cmp(&a.value.abs()).unwrap());
+        // Sort by absolute value of contribution, largest first
+        // Use unwrap_or to handle NaN values safely (treat them as equal)
+        contributions.sort_by(|a, b| {
+            b.value
+                .abs()
+                .partial_cmp(&a.value.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Explanation {
             summary: format!(

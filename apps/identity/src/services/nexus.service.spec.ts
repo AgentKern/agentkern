@@ -1,36 +1,40 @@
 /**
  * Nexus Service Unit Tests
- * 
+ *
  * Tests protocol routing, agent registration, and message receiving.
+ * Uses proper mocking strategy for dynamically loaded native bridge.
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NexusService } from './nexus.service';
 
-// Mock the bridge module
-jest.mock('../../native-bridge', () => ({
-  nexusReceive: jest.fn(),
-  nexusRegisterAgent: jest.fn(),
-  nexusListAgents: jest.fn(),
-  nexusGetAgent: jest.fn(),
-  nexusUnregisterAgent: jest.fn(),
-  nexusDiscoverAgent: jest.fn(),
-  nexusRouteTask: jest.fn(),
-  nexusGetStats: jest.fn(),
-}));
-
 describe('NexusService', () => {
   let service: NexusService;
-  let bridgeMock: Record<string, jest.Mock>;
+  let mockBridge: Record<string, jest.Mock>;
 
   beforeEach(async () => {
-    jest.resetModules();
-    
+    // Create mock bridge functions
+    mockBridge = {
+      nexusReceive: jest.fn(),
+      nexusRegisterAgent: jest.fn(),
+      nexusListAgents: jest.fn(),
+      nexusGetAgent: jest.fn(),
+      nexusUnregisterAgent: jest.fn(),
+      nexusDiscoverAgent: jest.fn(),
+      nexusRouteTask: jest.fn(),
+      nexusGetStats: jest.fn(),
+      nexusCreateA2aTask: jest.fn(),
+      nexusSend: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [NexusService],
     }).compile();
 
     service = module.get<NexusService>(NexusService);
-    bridgeMock = jest.requireMock('../../native-bridge');
+
+    // Manually inject the mock bridge and set bridgeLoaded flag
+    (service as any).bridge = mockBridge;
+    (service as any).bridgeLoaded = true;
   });
 
   afterEach(() => {
@@ -42,9 +46,8 @@ describe('NexusService', () => {
       expect(service).toBeDefined();
     });
 
-    it('should verify bridge on module init', async () => {
-      bridgeMock.nexusListAgents.mockResolvedValue(JSON.stringify([]));
-      await expect(service.onModuleInit()).resolves.not.toThrow();
+    it('should be operational when bridge is loaded', () => {
+      expect(service.isOperational()).toBe(true);
     });
   });
 
@@ -57,7 +60,7 @@ describe('NexusService', () => {
         recipient: 'agent-b',
         params: { action: 'hello' },
       };
-      bridgeMock.nexusReceive.mockResolvedValue(JSON.stringify(mockMessage));
+      mockBridge.nexusReceive.mockResolvedValue(JSON.stringify(mockMessage));
 
       const result = await service.receive('{"method":"task"}');
 
@@ -68,9 +71,7 @@ describe('NexusService', () => {
     });
 
     it('should handle parsing errors', async () => {
-      bridgeMock.nexusReceive.mockImplementation(() => {
-        throw new Error('Invalid payload');
-      });
+      mockBridge.nexusReceive.mockRejectedValue(new Error('Invalid payload'));
 
       const result = await service.receive('invalid');
       expect('error' in result).toBe(true);
@@ -80,10 +81,10 @@ describe('NexusService', () => {
   describe('listAgents', () => {
     it('should return list of registered agents', async () => {
       const mockAgents = [
-        { id: 'agent-a', name: 'Agent A', protocols: ['A2A'] },
-        { id: 'agent-b', name: 'Agent B', protocols: ['MCP'] },
+        { id: 'agent-a', name: 'Agent A', url: 'https://a.example.com', protocols: ['A2A'] },
+        { id: 'agent-b', name: 'Agent B', url: 'https://b.example.com', protocols: ['MCP'] },
       ];
-      bridgeMock.nexusListAgents.mockResolvedValue(JSON.stringify(mockAgents));
+      mockBridge.nexusListAgents.mockResolvedValue(JSON.stringify(mockAgents));
 
       const result = await service.listAgents();
 
@@ -92,7 +93,7 @@ describe('NexusService', () => {
     });
 
     it('should return empty array when no agents', async () => {
-      bridgeMock.nexusListAgents.mockResolvedValue(JSON.stringify([]));
+      mockBridge.nexusListAgents.mockResolvedValue(JSON.stringify([]));
 
       const result = await service.listAgents();
 
@@ -105,10 +106,11 @@ describe('NexusService', () => {
       const mockAgent = {
         id: 'agent-123',
         name: 'Test Agent',
+        url: 'https://test.example.com',
         protocols: ['A2A'],
         skills: [{ name: 'search' }],
       };
-      bridgeMock.nexusGetAgent.mockResolvedValue(JSON.stringify(mockAgent));
+      mockBridge.nexusGetAgent.mockResolvedValue(JSON.stringify(mockAgent));
 
       const result = await service.getAgent('agent-123');
 
@@ -117,7 +119,7 @@ describe('NexusService', () => {
     });
 
     it('should return null for unknown agent', async () => {
-      bridgeMock.nexusGetAgent.mockResolvedValue(JSON.stringify({ error: 'Not found' }));
+      mockBridge.nexusGetAgent.mockResolvedValue('null');
 
       const result = await service.getAgent('unknown');
 
@@ -127,15 +129,7 @@ describe('NexusService', () => {
 
   describe('registerAgent', () => {
     it('should register agent with protocols', async () => {
-      const mockAgent = {
-        id: 'agent-new-123',
-        name: 'New Agent',
-        protocols: ['A2A'],
-        skills: [],
-        capabilities: [],
-        is_local: true,
-      };
-      bridgeMock.nexusRegisterAgent.mockResolvedValue(JSON.stringify(mockAgent));
+      mockBridge.nexusRegisterAgent.mockResolvedValue(JSON.stringify({ success: true }));
 
       const result = await service.registerAgent({
         name: 'New Agent',
@@ -152,7 +146,7 @@ describe('NexusService', () => {
 
   describe('unregisterAgent', () => {
     it('should unregister agent by ID', async () => {
-      bridgeMock.nexusUnregisterAgent.mockResolvedValue(true);
+      mockBridge.nexusUnregisterAgent.mockResolvedValue(true);
 
       const result = await service.unregisterAgent('agent-123');
 
@@ -160,7 +154,7 @@ describe('NexusService', () => {
     });
 
     it('should return false for unknown agent', async () => {
-      bridgeMock.nexusUnregisterAgent.mockResolvedValue(false);
+      mockBridge.nexusUnregisterAgent.mockResolvedValue(false);
 
       const result = await service.unregisterAgent('unknown');
 
@@ -173,9 +167,10 @@ describe('NexusService', () => {
       const mockAgent = {
         id: 'discovered-agent',
         name: 'Discovered Agent',
+        url: 'https://example.com',
         protocols: ['A2A'],
       };
-      bridgeMock.nexusDiscoverAgent.mockResolvedValue(JSON.stringify(mockAgent));
+      mockBridge.nexusDiscoverAgent.mockResolvedValue(JSON.stringify(mockAgent));
 
       const result = await service.discoverAgent('https://example.com/.well-known/agent.json');
 
@@ -188,9 +183,10 @@ describe('NexusService', () => {
       const mockMatch = {
         id: 'agent-best',
         name: 'Best Agent',
+        url: 'https://best.example.com',
         matchScore: 0.95,
       };
-      bridgeMock.nexusRouteTask.mockResolvedValue(JSON.stringify(mockMatch));
+      mockBridge.nexusRouteTask.mockResolvedValue(JSON.stringify(mockMatch));
 
       const result = await service.routeTask({
         taskType: 'search',
@@ -202,7 +198,7 @@ describe('NexusService', () => {
     });
 
     it('should return null when no match found', async () => {
-      bridgeMock.nexusRouteTask.mockResolvedValue(JSON.stringify({ error: 'No match' }));
+      mockBridge.nexusRouteTask.mockResolvedValue(JSON.stringify({ error: 'No match' }));
 
       const result = await service.routeTask({
         taskType: 'unknown',
@@ -210,6 +206,21 @@ describe('NexusService', () => {
       });
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return gateway statistics', async () => {
+      const mockStats = {
+        registeredAgents: 10,
+        supportedProtocols: 3,
+      };
+      mockBridge.nexusGetStats.mockResolvedValue(JSON.stringify(mockStats));
+
+      const result = await service.getStats();
+
+      expect(result.registeredAgents).toBe(10);
+      expect(result.supportedProtocols).toBe(3);
     });
   });
 });

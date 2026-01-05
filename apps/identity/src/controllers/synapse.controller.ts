@@ -22,11 +22,13 @@ import {
   GraphQueryDto,
   GraphQueryResultDto,
 } from '../dto/synapse.dto';
+import { SynapseService } from '../services/synapse.service';
+import { GateService } from '../services/gate.service';
 
 /**
  * Synapse Controller - Agent Memory & State API
  *
- * Exposes the Synapse pillar's capabilities:
+ * Exposes the Synapse pillar's capabilities via Rust N-API bridge:
  * - Agent state management (CRDTs)
  * - Memory passports (portable agent memory)
  * - RAG context guard (memory injection protection)
@@ -37,15 +39,19 @@ import {
 export class SynapseController {
   private readonly logger = new Logger(SynapseController.name);
 
-  // In-memory stores (would use Rust bridge in production)
-  private states: Map<string, Record<string, unknown>> = new Map();
+  // In-memory store for passports (not yet in bridge)
   private passports: Map<
     string,
     { id: string; agentId: string; layers: string[]; createdAt: string }
   > = new Map();
 
+  constructor(
+    private readonly synapseService: SynapseService,
+    private readonly gateService: GateService,
+  ) {}
+
   // =========================================================================
-  // State Management Endpoints
+  // State Management Endpoints (Rust Bridge)
   // =========================================================================
 
   /**
@@ -56,15 +62,23 @@ export class SynapseController {
   @ApiResponse({ status: 200, description: 'Agent state', type: AgentStateDto })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   async getState(@Param('agentId') agentId: string): Promise<AgentStateDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Getting state for agent: ${agentId}`);
 
-    const state = this.states.get(agentId) || {};
+    const result = await this.synapseService.getState(agentId);
+
+    if (!result) {
+      return {
+        agentId,
+        state: {},
+        version: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
 
     return {
-      agentId,
-      state,
-      version: 1,
+      agentId: result.agent_id,
+      state: result.state,
+      version: result.version,
       lastUpdated: new Date().toISOString(),
     };
   }
@@ -83,17 +97,21 @@ export class SynapseController {
     @Param('agentId') agentId: string,
     @Body() dto: UpdateStateDto,
   ): Promise<AgentStateDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Updating state for agent: ${agentId}`);
 
-    const current = this.states.get(agentId) || {};
-    const merged = { ...current, ...dto.state };
-    this.states.set(agentId, merged);
+    const result = await this.synapseService.updateState(agentId, dto.state);
+
+    if (!result.success) {
+      this.logger.error(`State update failed: ${result.error}`);
+    }
+
+    // Fetch updated state
+    const updated = await this.synapseService.getState(agentId);
 
     return {
       agentId,
-      state: merged,
-      version: (dto.version || 0) + 1,
+      state: updated?.state || dto.state,
+      version: result.version || (dto.version || 0) + 1,
       lastUpdated: new Date().toISOString(),
     };
   }
@@ -106,17 +124,23 @@ export class SynapseController {
   @ApiOperation({ summary: 'Delete agent state' })
   @ApiResponse({ status: 204, description: 'State deleted' })
   async deleteState(@Param('agentId') agentId: string): Promise<void> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Deleting state for agent: ${agentId}`);
-    this.states.delete(agentId);
+
+    // Get current state keys and delete them all
+    const current = await this.synapseService.getState(agentId);
+    if (current) {
+      const keys = Object.keys(current.state);
+      await this.synapseService.deleteKeys(agentId, keys);
+    }
   }
 
   // =========================================================================
-  // Memory Passport Endpoints
+  // Memory Passport Endpoints (Local - Bridge extension needed)
   // =========================================================================
 
   /**
    * Create a memory passport (portable agent memory)
+   * Note: Passport serialization requires bridge extension.
    */
   @Post('memory/passport')
   @HttpCode(HttpStatus.CREATED)
@@ -129,9 +153,9 @@ export class SynapseController {
   async createPassport(
     @Body() dto: CreatePassportDto,
   ): Promise<MemoryPassportDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Creating passport for agent: ${dto.agentId}`);
 
+    // TODO: Extend Rust Synapse to support passport serialization
     const id = `passport_${Date.now()}`;
     const passport = {
       id,
@@ -166,7 +190,6 @@ export class SynapseController {
   async getPassport(
     @Param('id') passportId: string,
   ): Promise<MemoryPassportDto> {
-    await Promise.resolve(); // Ensure async execution
     const passport = this.passports.get(passportId);
 
     if (!passport) {
@@ -193,7 +216,6 @@ export class SynapseController {
   async exportPassport(
     @Body() dto: ExportPassportDto,
   ): Promise<{ exportUrl: string; expiresAt: string }> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Exporting passport: ${dto.passportId} as ${dto.format}`);
 
     return {
@@ -203,11 +225,12 @@ export class SynapseController {
   }
 
   // =========================================================================
-  // Context Guard Endpoints
+  // Context Guard Endpoints (Rust Bridge via GateService)
   // =========================================================================
 
   /**
    * Analyze RAG context for injection attacks
+   * Uses Gate pillar's context guard.
    */
   @Post('context/guard')
   @HttpCode(HttpStatus.OK)
@@ -220,36 +243,39 @@ export class SynapseController {
   async guardContext(
     @Body() dto: ContextGuardDto,
   ): Promise<ContextGuardResultDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log('Analyzing RAG context for injection');
 
-    // Simulate context guard analysis
-    const threats: Array<{ type: string; severity: string; content: string }> =
-      [];
+    const startTime = Date.now();
 
-    for (const doc of dto.documents) {
-      if (
-        doc.toLowerCase().includes('ignore previous') ||
-        doc.toLowerCase().includes('system prompt')
-      ) {
-        threats.push({
-          type: 'context_injection',
-          severity: 'high',
-          content: doc.substring(0, 100),
-        });
-      }
+    // Use Gate pillar's context guard (Rust N-API)
+    const result = await this.gateService.guardContext(dto.documents);
+
+    if (!result) {
+      return {
+        safe: true,
+        analyzedDocuments: dto.documents.length,
+        threats: [],
+        processingTimeMs: Date.now() - startTime,
+      };
     }
 
+    // Map suspicious chunk indices to threat objects
+    const threats = result.suspicious_chunks.map((idx) => ({
+      type: 'context_injection',
+      severity: 'high' as const,
+      content: dto.documents[idx]?.substring(0, 100) || 'Unknown',
+    }));
+
     return {
-      safe: threats.length === 0,
+      safe: result.safe,
       analyzedDocuments: dto.documents.length,
       threats,
-      processingTimeMs: Math.random() * 50 + 10,
+      processingTimeMs: Date.now() - startTime,
     };
   }
 
   // =========================================================================
-  // Graph Vector Database Endpoints
+  // Graph Vector Database Endpoints (Rust Bridge)
   // =========================================================================
 
   /**
@@ -264,27 +290,41 @@ export class SynapseController {
     type: GraphQueryResultDto,
   })
   async queryGraph(@Body() dto: GraphQueryDto): Promise<GraphQueryResultDto> {
-    await Promise.resolve(); // Ensure async execution
     this.logger.log(`Graph query: ${dto.query.substring(0, 50)}...`);
 
-    // Simulate graph query results
+    const startTime = Date.now();
+
+    // Use Synapse's memory query (vector similarity search)
+    const results = await this.synapseService.queryMemory(
+      dto.query,
+      dto.limit || 10,
+    );
+
     return {
-      results: [
-        {
-          nodeId: 'node_1',
-          type: 'agent',
-          similarity: 0.95,
-          data: { name: 'Agent Alpha' },
-        },
-        {
-          nodeId: 'node_2',
-          type: 'intent',
-          similarity: 0.87,
-          data: { action: 'search' },
-        },
-      ],
-      totalResults: 2,
-      queryTimeMs: Math.random() * 20 + 5,
+      results: results.map((r) => ({
+        nodeId: r.node_id,
+        type: 'memory',
+        similarity: r.score,
+        data: {},
+      })),
+      totalResults: results.length,
+      queryTimeMs: Date.now() - startTime,
     };
+  }
+
+  /**
+   * Store memory for an agent
+   */
+  @Post('memory/:agentId')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Store agent memory' })
+  @ApiResponse({ status: 201, description: 'Memory stored' })
+  async storeMemory(
+    @Param('agentId') agentId: string,
+    @Body() dto: { text: string },
+  ): Promise<{ id?: string; error?: string }> {
+    this.logger.log(`Storing memory for agent: ${agentId}`);
+
+    return this.synapseService.storeMemory(agentId, dto.text);
   }
 }

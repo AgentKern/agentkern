@@ -103,8 +103,14 @@ impl TokioRuntime {
 }
 
 impl Default for TokioRuntime {
+    /// Creates a new TokioRuntime with default configuration.
+    ///
+    /// # Panics
+    /// Panics if the Tokio runtime cannot be created. This is intentional
+    /// as constructing a default runtime from the Default trait cannot
+    /// return a Result. Use `TokioRuntime::new()` for fallible construction.
     fn default() -> Self {
-        Self::new().expect("Failed to create Tokio runtime")
+        Self::new().expect("Failed to create Tokio runtime - this is a fatal initialization error")
     }
 }
 
@@ -123,6 +129,10 @@ impl HyperRuntime {
     }
 
     /// Run a future on the best available runtime.
+    ///
+    /// # Panics
+    /// Panics if the runtime cannot be created (non-io_uring path).
+    /// Use `try_run()` for fallible execution.
     #[cfg(all(target_os = "linux", feature = "io_uring"))]
     pub fn run<F: Future>(future: F) -> F::Output {
         uring::start(future)
@@ -130,8 +140,22 @@ impl HyperRuntime {
 
     #[cfg(not(all(target_os = "linux", feature = "io_uring")))]
     pub fn run<F: Future>(future: F) -> F::Output {
-        let rt = TokioRuntime::new().expect("Failed to create runtime");
+        let rt = TokioRuntime::new().expect("Failed to create runtime - this is a fatal initialization error");
         rt.block_on(future)
+    }
+
+    /// Run a future with fallible runtime creation.
+    ///
+    /// Returns an error if the runtime cannot be created.
+    #[cfg(not(all(target_os = "linux", feature = "io_uring")))]
+    pub fn try_run<F: Future>(future: F) -> std::io::Result<F::Output> {
+        let rt = TokioRuntime::new()?;
+        Ok(rt.block_on(future))
+    }
+
+    #[cfg(all(target_os = "linux", feature = "io_uring"))]
+    pub fn try_run<F: Future>(future: F) -> std::io::Result<F::Output> {
+        Ok(uring::start(future))
     }
 
     pub fn config(&self) -> &IoUringRuntimeConfig {

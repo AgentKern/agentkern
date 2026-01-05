@@ -1,0 +1,39 @@
+# ZAP Rules Configuration
+# Format: Rule ID	Action	Description
+# Actions: IGNORE (ignore), WARN (warning only), FAIL (fail the build)
+#
+# Per OWASP ZAP documentation and 2026 best practices:
+# - FAIL on high-severity, exploitable vulnerabilities
+# - WARN on medium/low for visibility
+# - IGNORE known false positives specific to this codebase
+
+# High Severity - FAIL on these
+10016	FAIL	# Web Browser XSS Protection Not Enabled
+10017	FAIL	# Cross-Domain JavaScript Source File Inclusion
+10038	FAIL	# Content Security Policy (CSP) Header Not Set
+10055	FAIL	# CSP: Wildcard Directive
+90022	FAIL	# Application Error Disclosure
+90033	FAIL	# Loosely Scoped Cookie
+
+# Medium Severity - WARN for visibility
+10010	WARN	# Cookie No HttpOnly Flag
+10011	WARN	# Cookie Without Secure Flag
+10012	WARN	# Password Autocomplete in Browser
+10015	WARN	# Incomplete or No Cache-control and Pragma HTTP Header Set
+10020	WARN	# X-Frame-Options Header Not Set
+10021	WARN	# X-Content-Type-Options Header Missing
+10035	WARN	# Strict-Transport-Security Header Not Set
+10036	WARN	# Server Leaks Version Information
+10037	WARN	# Server Leaks Information via "X-Powered-By" HTTP Response Header
+10094	WARN	# Base64 Disclosure
+10095	WARN	# Backup File Disclosure
+10098	WARN	# Cross-Domain Misconfiguration
+90003	WARN	# Sub Resource Integrity Attribute Missing
+
+# Informational - WARN to reduce noise
+10027	WARN	# Information Disclosure - Suspicious Comments
+10096	WARN	# Timestamp Disclosure
+10109	WARN	# Modern Web Application
+
+# Known False Positives for AgentKern - IGNORE
+# (Add codebase-specific entries here as discovered)

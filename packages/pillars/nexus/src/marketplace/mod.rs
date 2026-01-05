@@ -213,12 +213,15 @@ impl TaskAuction {
             }
         }
 
-        if winner_id.is_none() {
-            self.status = AuctionStatus::Cancelled;
-            return None;
-        }
+        // Use if-let pattern instead of separate is_none() check and unwrap()
+        let winner_id = match winner_id {
+            Some(id) => id,
+            None => {
+                self.status = AuctionStatus::Cancelled;
+                return None;
+            }
+        };
 
-        let winner_id = winner_id.unwrap();
         self.winning_bid = Some(winner_id.clone());
         self.status = AuctionStatus::Awarded;
 
