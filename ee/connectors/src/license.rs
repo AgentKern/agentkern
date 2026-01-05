@@ -57,7 +57,8 @@ pub fn get_license_tier() -> Option<LicenseTier> {
     } else if key.contains("PRO") || key.starts_with("PRO-") {
         Some(LicenseTier::Pro)
     } else if key.len() >= 32 {
-        Some(LicenseTier::Pro)
+        // Valid key without explicit tier defaults to Standard
+        Some(LicenseTier::Standard)
     } else {
         None
     }
@@ -66,6 +67,7 @@ pub fn get_license_tier() -> Option<LicenseTier> {
 /// License tier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LicenseTier {
+    Standard,
     Pro,
     Enterprise,
 }
@@ -78,6 +80,10 @@ impl LicenseTier {
             LicenseTier::Pro => {
                 // Pro tier features
                 matches!(feature, "salesforce" | "dynamics365" | "slack" | "teams")
+            }
+            LicenseTier::Standard => {
+                // Standard tier - basic integrations only
+                matches!(feature, "slack")
             }
         }
     }

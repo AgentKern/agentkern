@@ -80,6 +80,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup Rust (for N-API Bridge)
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/
+            target/
+          key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
+
       - name: Build N-API Bridge
         run: pnpm --filter @agentkern/bridge run build
       

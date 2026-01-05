@@ -86,6 +86,10 @@ jobs:
         working-directory: packages/sdk-node
         run: pnpm install
         
+      - name: Install napi-cli
+        working-directory: packages/sdk-node
+        run: pnpm add -D @napi-rs/cli
+        
       - name: Build
         working-directory: packages/sdk-node
         run: pnpm build -- --target ${{ matrix.target }}
