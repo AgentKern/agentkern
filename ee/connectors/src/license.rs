@@ -95,7 +95,10 @@ mod tests {
 
     #[test]
     fn test_no_license() {
-        env::remove_var("AGENTKERN_LICENSE_KEY");
+        // SAFETY: This test runs in isolation and no other threads are reading env vars
+        unsafe {
+            env::remove_var("AGENTKERN_LICENSE_KEY");
+        }
         assert!(check_license().is_err());
     }
 
