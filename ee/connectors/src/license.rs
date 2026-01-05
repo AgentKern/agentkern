@@ -109,4 +109,3 @@ mod tests {
         assert!(!LicenseTier::Pro.includes("swift"));
     }
 }
-

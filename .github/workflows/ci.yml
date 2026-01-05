@@ -92,8 +92,17 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
 
+      - name: Install napi-cli
+        working-directory: packages/foundation/bridge
+        run: pnpm add -D @napi-rs/cli
+
       - name: Build N-API Bridge
-        run: pnpm --filter @agentkern/bridge run build
+        working-directory: packages/foundation/bridge
+        run: |
+          echo "📦 Building N-API Bridge..."
+          pnpm build
+          echo "📁 Contents after build:"
+          ls -la
       
       - name: Verify Bridge Exists
         run: |
