@@ -95,11 +95,10 @@ mod tests {
 
     #[test]
     fn test_no_license() {
-        // SAFETY: This test runs in isolation and no other threads are reading env vars
-        unsafe {
-            env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
-        assert!(check_license().is_err());
+        // Use temp_env for safe, thread-safe environment modification (Rust 2024 compliant)
+        temp_env::with_var_unset("AGENTKERN_LICENSE_KEY", || {
+            assert!(check_license().is_err());
+        });
     }
 
     #[test]
@@ -110,3 +109,4 @@ mod tests {
         assert!(!LicenseTier::Pro.includes("swift"));
     }
 }
+
