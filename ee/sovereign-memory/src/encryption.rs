@@ -395,6 +395,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_encrypt_decrypt_roundtrip() {
         let encryptor = create_test_encryptor();
         let plaintext = b"Hello, Production Encryption!";
@@ -411,6 +412,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_different_plaintexts_different_ciphertexts() {
         let encryptor = create_test_encryptor();
 
@@ -424,6 +426,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_same_plaintext_different_ciphertexts() {
         let encryptor = create_test_encryptor();
         let plaintext = b"Same message";
@@ -437,6 +440,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_tampered_ciphertext_fails() {
         let encryptor = create_test_encryptor();
         let mut blob = encryptor.encrypt(b"Secret data").unwrap();
@@ -451,6 +455,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_tampered_tag_fails() {
         let encryptor = create_test_encryptor();
         let mut blob = encryptor.encrypt(b"Secret data").unwrap();
@@ -463,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_wrong_nonce_fails() {
         let encryptor = create_test_encryptor();
         let mut blob = encryptor.encrypt(b"Secret data").unwrap();
@@ -475,6 +481,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_empty_plaintext() {
         let encryptor = create_test_encryptor();
         let blob = encryptor.encrypt(b"").unwrap();
@@ -483,6 +490,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires AGENTKERN_LOCAL_KEK environment variable"]
     fn test_large_plaintext() {
         let encryptor = create_test_encryptor();
         let plaintext = vec![0xABu8; 1_000_000]; // 1 MB
