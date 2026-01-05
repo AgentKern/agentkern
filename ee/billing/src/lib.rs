@@ -541,52 +541,39 @@ mod tests {
 
     #[test]
     fn test_meter_requires_license() {
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
-        let result = Meter::new("org-123");
-        assert!(result.is_err());
+        temp_env::with_var_unset("AGENTKERN_LICENSE_KEY", || {
+            let result = Meter::new("org-123");
+            assert!(result.is_err());
+        });
     }
 
     #[test]
     fn test_meter_with_license() {
-        unsafe {
-            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
-        }
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let mut meter = Meter::new("org-123").unwrap();
 
-        let mut meter = Meter::new("org-123").unwrap();
+            meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
+            meter.record(UsageEvent::policy_check("org-123", "policy-1"));
 
-        meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
-        meter.record(UsageEvent::policy_check("org-123", "policy-1"));
-
-        let usage = meter.current_usage();
-        assert_eq!(usage.get(&MetricType::ApiCalls), Some(&1));
-
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
+            let usage = meter.current_usage();
+            assert_eq!(usage.get(&MetricType::ApiCalls), Some(&1));
+        });
     }
 
     #[test]
     fn test_invoice_generation() {
-        unsafe {
-            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
-        }
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let mut meter = Meter::new("org-123").unwrap();
 
-        let mut meter = Meter::new("org-123").unwrap();
+            for _ in 0..100 {
+                meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
+            }
 
-        for _ in 0..100 {
-            meter.record(UsageEvent::api_call("org-123", "/api/v1/check"));
-        }
+            let invoice = Invoice::generate(&meter, BillingPeriod::current());
 
-        let invoice = Invoice::generate(&meter, BillingPeriod::current());
-
-        assert!(!invoice.line_items.is_empty());
-        assert!(invoice.total_cents > 0.0);
-
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
+            assert!(!invoice.line_items.is_empty());
+            assert!(invoice.total_cents > 0.0);
+        });
     }
 
     #[test]
