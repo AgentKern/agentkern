@@ -17,6 +17,7 @@ pub struct TeamsConfig {
 
 /// Microsoft Teams integration.
 pub struct TeamsIntegration {
+    #[allow(dead_code)] // webhook_url accessed via self.config in post_webhook
     config: TeamsConfig,
 }
 
@@ -95,7 +96,7 @@ impl TeamsIntegration {
         self.post_webhook(&payload)
     }
 
-    fn post_webhook(&self, payload: &serde_json::Value) -> Result<(), TeamsError> {
+    fn post_webhook(&self, _payload: &serde_json::Value) -> Result<(), TeamsError> {
         // Would use reqwest to POST to webhook_url
         Ok(())
     }

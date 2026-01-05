@@ -39,7 +39,7 @@ impl GracefulService for DemoProductivity {
 
 #[async_trait]
 impl OutlookConnector for DemoProductivity {
-    async fn send_email(&self, email: &EmailMessage) -> Result<String, OutlookError> {
+    async fn send_email(&self, _email: &EmailMessage) -> Result<String, OutlookError> {
         Ok(format!("DEMO-EMAIL-{}", uuid::Uuid::new_v4()))
     }
 

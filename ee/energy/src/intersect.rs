@@ -102,7 +102,7 @@ impl IntersectClient {
     }
 
     /// Report carbon savings.
-    pub fn report_savings(&self, action: &str, saved_kg_co2e: f64) -> Result<(), IntersectError> {
+    pub fn report_savings(&self, _action: &str, _saved_kg_co2e: f64) -> Result<(), IntersectError> {
         // Would log to Carbon Footprint dashboard
         Ok(())
     }

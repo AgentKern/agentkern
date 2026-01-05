@@ -39,7 +39,7 @@ impl AwsKmsWrapper {
                 Ok(Arc::new(client))
             })
             .await
-            .map(|c| c.clone())
+            .map(Arc::clone)
     }
 
     /// Encrypt data using AWS KMS envelope encryption.

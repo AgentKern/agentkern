@@ -100,7 +100,7 @@ impl SlackIntegration {
         ]
     }
 
-    fn build_approval_modal(&self, request: &ApprovalRequest) -> SlackView {
+    fn build_approval_modal(&self, _request: &ApprovalRequest) -> SlackView {
         SlackView {
             view_type: "modal".into(),
             title: "Review Escalation".into(),
@@ -128,7 +128,7 @@ impl SlackIntegration {
     fn post_message(
         &self,
         channel: &str,
-        blocks: &[SlackBlock],
+        _blocks: &[SlackBlock],
     ) -> Result<SlackResponse, SlackError> {
         // Would use Slack Web API
         Ok(SlackResponse {
@@ -138,16 +138,16 @@ impl SlackIntegration {
         })
     }
 
-    fn open_view(&self, trigger_id: &str, view: &SlackView) -> Result<(), SlackError> {
+    fn open_view(&self, _trigger_id: &str, _view: &SlackView) -> Result<(), SlackError> {
         // Would use views.open API
         Ok(())
     }
 
     fn update_message(
         &self,
-        channel: &str,
-        ts: &str,
-        blocks: &[SlackBlock],
+        _channel: &str,
+        _ts: &str,
+        _blocks: &[SlackBlock],
     ) -> Result<(), SlackError> {
         // Would use chat.update API
         Ok(())

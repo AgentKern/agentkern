@@ -6,8 +6,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Grid API for real-time carbon data.
+#[derive(Default)]
 pub struct GridApi {
     providers: Vec<GridProvider>,
+    #[allow(dead_code)] // Reserved for caching responses
     cache: HashMap<String, RegionData>,
 }
 
@@ -67,7 +69,7 @@ impl GridApi {
 
     /// Get all regions' data.
     pub fn get_all_regions(&self) -> Result<Vec<RegionData>, GridError> {
-        let regions = vec!["us-east-1", "eu-west-1", "ap-southeast-1"];
+        let regions = ["us-east-1", "eu-west-1", "ap-southeast-1"];
         regions.iter().map(|r| self.get_region_data(r)).collect()
     }
 
@@ -120,14 +122,7 @@ impl GridApi {
     }
 }
 
-impl Default for GridApi {
-    fn default() -> Self {
-        Self {
-            providers: vec![],
-            cache: HashMap::new(),
-        }
-    }
-}
+// Default is now derived via #[derive(Default)]
 
 /// Real-time carbon intensity feed.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -5,7 +5,6 @@
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Frontier model trait - implement for each model family.
 #[async_trait]

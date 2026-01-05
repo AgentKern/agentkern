@@ -81,7 +81,7 @@ impl WasmModule {
     }
 
     /// Verify signature.
-    pub fn verify(&self, public_key: &[u8]) -> bool {
+    pub fn verify(&self, _public_key: &[u8]) -> bool {
         // Would verify Ed25519 signature
         self.signature.is_some()
     }
@@ -115,7 +115,7 @@ impl<D: MicroVmDriver> WasmInVm<D> {
     pub async fn execute(
         &self,
         module: &WasmModule,
-        args: &[String],
+        _args: &[String],
     ) -> Result<ExecutionResult, WasmExecutionError> {
         // 1. Verify module if required
         if self.config.verify_modules && module.signature.is_none() {
@@ -127,13 +127,13 @@ impl<D: MicroVmDriver> WasmInVm<D> {
             .driver
             .create(&self.config.vm)
             .await
-            .map_err(|e| WasmExecutionError::VmError(e))?;
+            .map_err(WasmExecutionError::VmError)?;
 
         // 3. Start VM
         self.driver
             .start(&vm.id)
             .await
-            .map_err(|e| WasmExecutionError::VmError(e))?;
+            .map_err(WasmExecutionError::VmError)?;
 
         // 4. Execute WASM
         // In production: copy module to VM, run wasmtime
@@ -150,7 +150,7 @@ impl<D: MicroVmDriver> WasmInVm<D> {
                 ],
             )
             .await
-            .map_err(|e| WasmExecutionError::VmError(e))?;
+            .map_err(WasmExecutionError::VmError)?;
 
         // 5. Destroy VM (stateless)
         let _ = self.driver.destroy(&vm.id).await;

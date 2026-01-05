@@ -4,7 +4,7 @@
 //! Used when no real API keys are configured
 
 use super::adapter::*;
-use agentkern_core_ee::{ConnectionMode, ConnectionStatus, GracefulResult, GracefulService};
+use agentkern_core_ee::{ConnectionMode, ConnectionStatus, GracefulService};
 use async_trait::async_trait;
 
 /// Demo model that works without credentials.
@@ -83,7 +83,7 @@ impl FrontierModel for DemoModel {
         // Always works - returns demo or live response
         let content = if self.mode.is_live() {
             // Would call real API here
-            format!("[Live API response would go here]")
+            "[Live API response would go here]".to_string()
         } else {
             self.generate_demo_response(request)
         };

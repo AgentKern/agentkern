@@ -3,7 +3,6 @@
 //! Migrate Memory Passports between AWS, GCP, and Azure
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Cloud provider target.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -198,7 +197,7 @@ impl CloudMigrator {
         self.read_source(passport_id) // Simplified for demo
     }
 
-    fn delete_source(&self, passport_id: &str) -> Result<(), MigrationError> {
+    fn delete_source(&self, _passport_id: &str) -> Result<(), MigrationError> {
         // Would delete from source cloud
         Ok(())
     }
@@ -245,6 +244,7 @@ pub struct AzureCredentials {
 
 /// AWS adapter.
 struct AwsAdapter {
+    #[allow(dead_code)] // Used when AWS SDK is integrated
     creds: AwsCredentials,
 }
 
@@ -253,18 +253,19 @@ impl AwsAdapter {
         Self { creds }
     }
 
-    fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
+    fn read(&self, _key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use aws-sdk-s3
         Ok(vec![])
     }
 
-    fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
+    fn write(&self, _key: &str, _data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
 }
 
 /// GCP adapter.
 struct GcpAdapter {
+    #[allow(dead_code)] // Used when GCS SDK is integrated
     creds: GcpCredentials,
 }
 
@@ -273,18 +274,19 @@ impl GcpAdapter {
         Self { creds }
     }
 
-    fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
+    fn read(&self, _key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use google-cloud-storage
         Ok(vec![])
     }
 
-    fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
+    fn write(&self, _key: &str, _data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
 }
 
 /// Azure adapter.
 struct AzureAdapter {
+    #[allow(dead_code)] // Used when Azure SDK is integrated
     creds: AzureCredentials,
 }
 
@@ -293,12 +295,12 @@ impl AzureAdapter {
         Self { creds }
     }
 
-    fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
+    fn read(&self, _key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use azure_storage_blobs
         Ok(vec![])
     }
 
-    fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
+    fn write(&self, _key: &str, _data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
 }
