@@ -236,8 +236,6 @@ jobs:
         uses: semgrep/semgrep-action@v1
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ github.repository_owner }}
-          generateSarif: "1"
         env:
           SEMGREP_RULES: >
             p/default
@@ -291,6 +289,7 @@ jobs:
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
+        continue-on-error: true
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
