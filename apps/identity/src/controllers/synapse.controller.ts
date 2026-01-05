@@ -260,14 +260,15 @@ export class SynapseController {
     }
 
     // Map suspicious chunk indices to threat objects
-    const threats = result.suspicious_chunks.map((idx) => ({
+    const suspiciousChunks = result.suspicious_chunks || [];
+    const threats = suspiciousChunks.map((idx) => ({
       type: 'context_injection',
       severity: 'high' as const,
       content: dto.documents[idx]?.substring(0, 100) || 'Unknown',
     }));
 
     return {
-      safe: result.safe,
+      safe: result.safe ?? true,
       analyzedDocuments: dto.documents.length,
       threats,
       processingTimeMs: Date.now() - startTime,

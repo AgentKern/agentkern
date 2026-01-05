@@ -248,12 +248,6 @@ jobs:
             p/sql-injection
             p/xss
             p/command-injection
-      
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-        if: always()
 
   # ============================================
   # Secret Scanning (TruffleHog)
