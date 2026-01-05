@@ -167,6 +167,30 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust (for N-API Bridge)
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/
+            target/
+          key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install napi-cli
+        working-directory: packages/foundation/bridge
+        run: pnpm add -D @napi-rs/cli
+
+      - name: Build N-API Bridge
+        working-directory: packages/foundation/bridge
+        run: |
+          pnpm build
+          if [ ! -f index.node ]; then
+            find . -maxdepth 1 -name "*.node" -not -name "index.node" -exec cp {} index.node \; -quit
+          fi
       
       - name: Run E2E tests (Pillars Integration)
         working-directory: apps/identity
