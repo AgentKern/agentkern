@@ -64,18 +64,20 @@ jobs:
         node-version: ['22', '24']
     
     steps:
-      - uses: actions/checkout@v6
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -101,6 +103,12 @@ jobs:
         run: |
           echo "📦 Building N-API Bridge..."
           pnpm build
+          # Ensure index.node exists by copying the platform-specific build if needed
+          if [ ! -f index.node ]; then
+            echo "🔧 Copying platform binary to index.node..."
+            # Find the first .node file that isn't index.node (should be bridge.linux-x64-gnu.node etc)
+            find . -maxdepth 1 -name "*.node" -not -name "index.node" -exec cp {} index.node \; -quit
+          fi
           echo "📁 Contents after build:"
           ls -la
       
