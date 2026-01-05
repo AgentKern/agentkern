@@ -61,6 +61,7 @@ pub struct SapRfcConnector {
     /// Language
     language: String,
     /// Connection type
+    #[allow(dead_code)] // Reserved for message server routing
     connection_type: SapConnectionType,
     /// Whether to use simulation mode (default: true)
     use_simulation: bool,
@@ -442,7 +443,7 @@ impl LegacyConnector for SapRfcConnector {
             match self.ping().await {
                 Ok(true) => Ok(ConnectorHealth::healthy()),
                 Ok(false) => Ok(ConnectorHealth::degraded("RFC_PING returned error")),
-                Err(e) => Ok(ConnectorHealth::unhealthy(&e.to_string())),
+                Err(e) => Ok(ConnectorHealth::unhealthy(e.to_string())),
             }
         } else {
             Ok(ConnectorHealth::degraded("Running in simulation mode"))

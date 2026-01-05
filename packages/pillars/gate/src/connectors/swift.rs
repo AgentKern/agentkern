@@ -50,6 +50,7 @@ pub struct SwiftGpiConnector {
     /// BIC code of the institution
     bic: String,
     /// GPI participant flag
+    #[allow(dead_code)] // Reserved for future GPI-specific logic
     gpi_enabled: bool,
     /// API key for SWIFT API Gateway
     api_key: Option<String>,
@@ -245,6 +246,7 @@ impl SwiftGpiConnector {
     }
 
     /// Convert SWIFT API response to internal format.
+    #[allow(dead_code)] // Used only with http feature
     fn convert_tracker_response(
         &self,
         uetr: &str,
@@ -388,10 +390,11 @@ impl SwiftGpiConnector {
 }
 
 // =============================================================================
-// SWIFT API Response Types
+// SWIFT API Response Types (used when http feature enabled)
 // =============================================================================
 
 /// SWIFT Tracker API response structure.
+#[allow(dead_code)] // Used only with http feature
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 struct SwiftTrackerResponse {
@@ -401,6 +404,7 @@ struct SwiftTrackerResponse {
     last_update_time: Option<String>,
 }
 
+#[allow(dead_code)] // Used only with http feature
 #[derive(Debug, Clone, serde::Deserialize)]
 struct PaymentEvent {
     from: String,
@@ -409,6 +413,7 @@ struct PaymentEvent {
     date_time: String,
 }
 
+#[allow(dead_code)] // Used only with http feature
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ConfirmedAmount {
     currency: String,

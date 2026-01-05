@@ -568,7 +568,7 @@ impl InferenceSession {
         let mut suspicious = 0.1;
         let mut malicious = 0.05;
         let mut financial = 0.1;
-        let mut data_access = 0.1;
+        let data_access = 0.1;
         let mut system_op = 0.05;
 
         // Keyword detection based on token patterns
