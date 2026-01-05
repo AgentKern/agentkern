@@ -204,7 +204,8 @@ mod tests {
     #[tokio::test]
     async fn test_demo_sharepoint_search() {
         let platform = DemoProductivity::new();
-        let results = platform.search("test", 10).await;
+        // Explicitly call SharePointConnector::search to disambiguate from OutlookConnector::search
+        let results = SharePointConnector::search(&platform, "test", 10).await;
         assert!(results.is_ok());
     }
 }
