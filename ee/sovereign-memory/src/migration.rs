@@ -24,7 +24,7 @@ impl CloudTarget {
             Self::OnPremise { .. } => "OnPremise",
         }
     }
-    
+
     /// Get region.
     pub fn region(&self) -> &str {
         match self {
@@ -65,7 +65,7 @@ impl CloudMigrator {
     /// Create new migrator.
     pub fn new(config: MigrationConfig) -> Result<Self, MigrationError> {
         agentkern_connectors_ee::license::check_feature_license("cross_cloud")?;
-        
+
         Ok(Self {
             config,
             aws_adapter: None,
@@ -73,50 +73,50 @@ impl CloudMigrator {
             azure_adapter: None,
         })
     }
-    
+
     /// Configure AWS credentials.
     pub fn with_aws(&mut self, creds: AwsCredentials) -> &mut Self {
         self.aws_adapter = Some(AwsAdapter::new(creds));
         self
     }
-    
+
     /// Configure GCP credentials.
     pub fn with_gcp(&mut self, creds: GcpCredentials) -> &mut Self {
         self.gcp_adapter = Some(GcpAdapter::new(creds));
         self
     }
-    
+
     /// Configure Azure credentials.
     pub fn with_azure(&mut self, creds: AzureCredentials) -> &mut Self {
         self.azure_adapter = Some(AzureAdapter::new(creds));
         self
     }
-    
+
     /// Migrate a memory passport.
     pub fn migrate(&self, passport_id: &str) -> Result<MigrationResult, MigrationError> {
         // 1. Read from source
         let data = self.read_source(passport_id)?;
-        
+
         // 2. Encrypt if needed
         let transfer_data = if self.config.encrypt_transfer {
             self.encrypt_for_transfer(&data)?
         } else {
             data.clone()
         };
-        
+
         // 3. Write to destination
         self.write_destination(passport_id, &transfer_data)?;
-        
+
         // 4. Verify if needed
         if self.config.verify {
             self.verify_migration(passport_id, &data)?;
         }
-        
+
         // 5. Delete source if needed
         if self.config.delete_source {
             self.delete_source(passport_id)?;
         }
-        
+
         Ok(MigrationResult {
             passport_id: passport_id.to_string(),
             source: self.config.source.clone(),
@@ -126,21 +126,27 @@ impl CloudMigrator {
             source_deleted: self.config.delete_source,
         })
     }
-    
+
     fn read_source(&self, passport_id: &str) -> Result<Vec<u8>, MigrationError> {
         match &self.config.source {
             CloudTarget::Aws { .. } => {
-                let adapter = self.aws_adapter.as_ref()
+                let adapter = self
+                    .aws_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("AWS".into()))?;
                 adapter.read(passport_id)
             }
             CloudTarget::Gcp { .. } => {
-                let adapter = self.gcp_adapter.as_ref()
+                let adapter = self
+                    .gcp_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("GCP".into()))?;
                 adapter.read(passport_id)
             }
             CloudTarget::Azure { .. } => {
-                let adapter = self.azure_adapter.as_ref()
+                let adapter = self
+                    .azure_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("Azure".into()))?;
                 adapter.read(passport_id)
             }
@@ -149,21 +155,27 @@ impl CloudMigrator {
             }
         }
     }
-    
+
     fn write_destination(&self, passport_id: &str, data: &[u8]) -> Result<(), MigrationError> {
         match &self.config.destination {
             CloudTarget::Aws { .. } => {
-                let adapter = self.aws_adapter.as_ref()
+                let adapter = self
+                    .aws_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("AWS".into()))?;
                 adapter.write(passport_id, data)
             }
             CloudTarget::Gcp { .. } => {
-                let adapter = self.gcp_adapter.as_ref()
+                let adapter = self
+                    .gcp_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("GCP".into()))?;
                 adapter.write(passport_id, data)
             }
             CloudTarget::Azure { .. } => {
-                let adapter = self.azure_adapter.as_ref()
+                let adapter = self
+                    .azure_adapter
+                    .as_ref()
                     .ok_or(MigrationError::AdapterNotConfigured("Azure".into()))?;
                 adapter.write(passport_id, data)
             }
@@ -172,7 +184,7 @@ impl CloudMigrator {
             }
         }
     }
-    
+
     fn verify_migration(&self, passport_id: &str, original: &[u8]) -> Result<(), MigrationError> {
         let migrated = self.read_destination(passport_id)?;
         if migrated != original {
@@ -180,17 +192,17 @@ impl CloudMigrator {
         }
         Ok(())
     }
-    
+
     fn read_destination(&self, passport_id: &str) -> Result<Vec<u8>, MigrationError> {
         // Same logic as read_source but for destination
         self.read_source(passport_id) // Simplified for demo
     }
-    
+
     fn delete_source(&self, passport_id: &str) -> Result<(), MigrationError> {
         // Would delete from source cloud
         Ok(())
     }
-    
+
     fn encrypt_for_transfer(&self, data: &[u8]) -> Result<Vec<u8>, MigrationError> {
         // Would use envelope encryption
         Ok(data.to_vec())
@@ -240,12 +252,12 @@ impl AwsAdapter {
     fn new(creds: AwsCredentials) -> Self {
         Self { creds }
     }
-    
+
     fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use aws-sdk-s3
         Ok(vec![])
     }
-    
+
     fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
@@ -260,12 +272,12 @@ impl GcpAdapter {
     fn new(creds: GcpCredentials) -> Self {
         Self { creds }
     }
-    
+
     fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use google-cloud-storage
         Ok(vec![])
     }
-    
+
     fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
@@ -280,12 +292,12 @@ impl AzureAdapter {
     fn new(creds: AzureCredentials) -> Self {
         Self { creds }
     }
-    
+
     fn read(&self, key: &str) -> Result<Vec<u8>, MigrationError> {
         // Would use azure_storage_blobs
         Ok(vec![])
     }
-    
+
     fn write(&self, key: &str, data: &[u8]) -> Result<(), MigrationError> {
         Ok(())
     }
@@ -296,19 +308,19 @@ impl AzureAdapter {
 pub enum MigrationError {
     #[error("Adapter not configured: {0}")]
     AdapterNotConfigured(String),
-    
+
     #[error("Verification failed")]
     VerificationFailed,
-    
+
     #[error("Not supported: {0}")]
     NotSupported(String),
-    
+
     #[error("Read error: {0}")]
     ReadError(String),
-    
+
     #[error("Write error: {0}")]
     WriteError(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }
@@ -319,7 +331,9 @@ mod tests {
 
     #[test]
     fn test_cloud_target() {
-        let aws = CloudTarget::Aws { region: "us-east-1".into() };
+        let aws = CloudTarget::Aws {
+            region: "us-east-1".into(),
+        };
         assert_eq!(aws.provider(), "AWS");
         assert_eq!(aws.region(), "us-east-1");
     }

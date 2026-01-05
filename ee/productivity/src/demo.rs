@@ -31,7 +31,7 @@ impl GracefulService for DemoProductivity {
     fn mode(&self) -> ConnectionMode {
         self.mode
     }
-    
+
     fn status(&self) -> ConnectionStatus {
         ConnectionStatus::new("productivity")
     }
@@ -42,61 +42,55 @@ impl OutlookConnector for DemoProductivity {
     async fn send_email(&self, email: &EmailMessage) -> Result<String, OutlookError> {
         Ok(format!("DEMO-EMAIL-{}", uuid::Uuid::new_v4()))
     }
-    
+
     async fn get_unread(&self, _limit: u32) -> Result<Vec<EmailMessage>, OutlookError> {
-        Ok(vec![
-            EmailMessage {
-                id: Some("demo-1".into()),
-                subject: "[Demo] Weekly Report".into(),
-                body: "This is demo data. Set AGENTKERN_PRODUCTIVITY_API_KEY for live.".into(),
-                body_type: BodyType::Text,
-                from: Some("demo@example.com".into()),
-                to: vec!["you@example.com".into()],
-                cc: vec![],
-                received_at: Some(chrono::Utc::now().to_rfc3339()),
-                is_read: false,
-                importance: Importance::Normal,
-            }
-        ])
+        Ok(vec![EmailMessage {
+            id: Some("demo-1".into()),
+            subject: "[Demo] Weekly Report".into(),
+            body: "This is demo data. Set AGENTKERN_PRODUCTIVITY_API_KEY for live.".into(),
+            body_type: BodyType::Text,
+            from: Some("demo@example.com".into()),
+            to: vec!["you@example.com".into()],
+            cc: vec![],
+            received_at: Some(chrono::Utc::now().to_rfc3339()),
+            is_read: false,
+            importance: Importance::Normal,
+        }])
     }
-    
+
     async fn search(&self, query: &str) -> Result<Vec<EmailMessage>, OutlookError> {
-        Ok(vec![
-            EmailMessage {
-                id: Some("demo-search-1".into()),
-                subject: format!("[Demo] Search result for: {}", query),
-                body: "Demo search result".into(),
-                body_type: BodyType::Text,
-                from: Some("demo@example.com".into()),
-                to: vec![],
-                cc: vec![],
-                received_at: Some(chrono::Utc::now().to_rfc3339()),
-                is_read: true,
-                importance: Importance::Normal,
-            }
-        ])
+        Ok(vec![EmailMessage {
+            id: Some("demo-search-1".into()),
+            subject: format!("[Demo] Search result for: {}", query),
+            body: "Demo search result".into(),
+            body_type: BodyType::Text,
+            from: Some("demo@example.com".into()),
+            to: vec![],
+            cc: vec![],
+            received_at: Some(chrono::Utc::now().to_rfc3339()),
+            is_read: true,
+            importance: Importance::Normal,
+        }])
     }
-    
+
     async fn create_event(&self, _event: &CalendarEvent) -> Result<String, OutlookError> {
         Ok(format!("DEMO-EVENT-{}", uuid::Uuid::new_v4()))
     }
-    
+
     async fn get_upcoming(&self, _days: u32) -> Result<Vec<CalendarEvent>, OutlookError> {
-        Ok(vec![
-            CalendarEvent {
-                id: Some("demo-event-1".into()),
-                subject: "[Demo] Team Standup".into(),
-                body: Some("Demo meeting".into()),
-                start: chrono::Utc::now().to_rfc3339(),
-                end: (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339(),
-                location: Some("Demo Room".into()),
-                attendees: vec![],
-                is_online_meeting: true,
-                online_meeting_url: Some("https://demo.teams.microsoft.com/meeting".into()),
-            }
-        ])
+        Ok(vec![CalendarEvent {
+            id: Some("demo-event-1".into()),
+            subject: "[Demo] Team Standup".into(),
+            body: Some("Demo meeting".into()),
+            start: chrono::Utc::now().to_rfc3339(),
+            end: (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339(),
+            location: Some("Demo Room".into()),
+            attendees: vec![],
+            is_online_meeting: true,
+            online_meeting_url: Some("https://demo.teams.microsoft.com/meeting".into()),
+        }])
     }
-    
+
     async fn triage_meetings(&self, _instructions: &str) -> Result<TriageResult, OutlookError> {
         Ok(TriageResult {
             accepted: vec!["demo-meeting-1".into()],
@@ -109,26 +103,24 @@ impl OutlookConnector for DemoProductivity {
 #[async_trait]
 impl SharePointConnector for DemoProductivity {
     async fn search(&self, query: &str, _limit: u32) -> Result<Vec<SearchResult>, SharePointError> {
-        Ok(vec![
-            SearchResult {
-                document: Document {
-                    id: "demo-doc-1".into(),
-                    name: format!("[Demo] {}.docx", query),
-                    path: "/Demo Documents/".into(),
-                    web_url: "https://demo.sharepoint.com/doc".into(),
-                    size_bytes: 1024,
-                    mime_type: "application/docx".into(),
-                    created_at: chrono::Utc::now().to_rfc3339(),
-                    modified_at: chrono::Utc::now().to_rfc3339(),
-                    created_by: Some("demo@example.com".into()),
-                    modified_by: None,
-                },
-                relevance_score: 0.95,
-                highlights: vec!["...demo match...".into()],
-            }
-        ])
+        Ok(vec![SearchResult {
+            document: Document {
+                id: "demo-doc-1".into(),
+                name: format!("[Demo] {}.docx", query),
+                path: "/Demo Documents/".into(),
+                web_url: "https://demo.sharepoint.com/doc".into(),
+                size_bytes: 1024,
+                mime_type: "application/docx".into(),
+                created_at: chrono::Utc::now().to_rfc3339(),
+                modified_at: chrono::Utc::now().to_rfc3339(),
+                created_by: Some("demo@example.com".into()),
+                modified_by: None,
+            },
+            relevance_score: 0.95,
+            highlights: vec!["...demo match...".into()],
+        }])
     }
-    
+
     async fn get_document(&self, doc_id: &str) -> Result<Document, SharePointError> {
         Ok(Document {
             id: doc_id.to_string(),
@@ -143,32 +135,35 @@ impl SharePointConnector for DemoProductivity {
             modified_by: None,
         })
     }
-    
+
     async fn get_content(&self, _doc_id: &str) -> Result<String, SharePointError> {
         Ok("[Demo Content] This is demo data. Set AGENTKERN_M365_API_KEY for live content.".into())
     }
-    
+
     async fn list_folder(&self, folder_path: &str) -> Result<Vec<Document>, SharePointError> {
-        Ok(vec![
-            Document {
-                id: "demo-doc-folder-1".into(),
-                name: "[Demo] File1.docx".into(),
-                path: format!("{}/File1.docx", folder_path),
-                web_url: "https://demo.sharepoint.com/doc1".into(),
-                size_bytes: 1024,
-                mime_type: "application/docx".into(),
-                created_at: chrono::Utc::now().to_rfc3339(),
-                modified_at: chrono::Utc::now().to_rfc3339(),
-                created_by: None,
-                modified_by: None,
-            }
-        ])
+        Ok(vec![Document {
+            id: "demo-doc-folder-1".into(),
+            name: "[Demo] File1.docx".into(),
+            path: format!("{}/File1.docx", folder_path),
+            web_url: "https://demo.sharepoint.com/doc1".into(),
+            size_bytes: 1024,
+            mime_type: "application/docx".into(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            modified_at: chrono::Utc::now().to_rfc3339(),
+            created_by: None,
+            modified_by: None,
+        }])
     }
-    
-    async fn upload(&self, _folder_path: &str, name: &str, _content: &[u8]) -> Result<String, SharePointError> {
+
+    async fn upload(
+        &self,
+        _folder_path: &str,
+        name: &str,
+        _content: &[u8],
+    ) -> Result<String, SharePointError> {
         Ok(format!("demo-uploaded-{}", name))
     }
-    
+
     async fn get_recent(&self, _limit: u32) -> Result<Vec<Document>, SharePointError> {
         self.list_folder("/Recent").await
     }
@@ -182,7 +177,7 @@ impl ProductivityFactory {
     pub fn get() -> DemoProductivity {
         DemoProductivity::new()
     }
-    
+
     /// Get connection status.
     pub fn status() -> ConnectionStatus {
         ConnectionStatus::new("productivity")

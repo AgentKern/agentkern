@@ -81,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to bind to {}: {}", addr, e))?;
-    
+
     axum::serve(listener, app)
         .await
         .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;

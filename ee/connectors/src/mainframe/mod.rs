@@ -7,8 +7,8 @@ mod cics;
 mod ims;
 mod mq;
 
+use super::license::{LicenseError, check_feature_license};
 use serde::{Deserialize, Serialize};
-use super::license::{check_feature_license, LicenseError};
 
 pub use cics::CicsClient;
 pub use ims::ImsClient;
@@ -56,7 +56,7 @@ impl MainframeConnector {
     /// Create new Mainframe connector (requires license).
     pub fn new(config: MainframeConfig) -> Result<Self, LicenseError> {
         check_feature_license("mainframe")?;
-        
+
         Ok(Self {
             config,
             cics: None,
@@ -64,13 +64,13 @@ impl MainframeConnector {
             mq: None,
         })
     }
-    
+
     /// Connect to CICS.
     pub fn connect_cics(&mut self, user: &str, password: &str) -> Result<(), MainframeError> {
         self.cics = Some(CicsClient::connect(&self.config, user, password)?);
         Ok(())
     }
-    
+
     /// Connect to IMS.
     pub fn connect_ims(&mut self, datastores: Vec<String>) -> Result<(), MainframeError> {
         if self.config.ims_port.is_none() {
@@ -79,45 +79,56 @@ impl MainframeConnector {
         self.ims = Some(ImsClient::connect(&self.config, datastores)?);
         Ok(())
     }
-    
+
     /// Connect to MQ.
     pub fn connect_mq(&mut self) -> Result<(), MainframeError> {
-        let qm = self.config.queue_manager.as_ref()
+        let qm = self
+            .config
+            .queue_manager
+            .as_ref()
             .ok_or(MainframeError::MqNotConfigured)?;
         self.mq = Some(MqClient::connect(&self.config, qm)?);
         Ok(())
     }
-    
+
     /// Execute CICS transaction.
-    pub fn exec_transaction(&self, tranid: &str, commarea: &[u8]) -> Result<Vec<u8>, MainframeError> {
+    pub fn exec_transaction(
+        &self,
+        tranid: &str,
+        commarea: &[u8],
+    ) -> Result<Vec<u8>, MainframeError> {
         let cics = self.cics.as_ref().ok_or(MainframeError::NotConnected)?;
         cics.exec_transaction(tranid, commarea)
     }
-    
+
     /// Execute CICS program.
     pub fn link_program(&self, program: &str, commarea: &[u8]) -> Result<Vec<u8>, MainframeError> {
         let cics = self.cics.as_ref().ok_or(MainframeError::NotConnected)?;
         cics.link_program(program, commarea)
     }
-    
+
     /// Run IMS transaction.
-    pub fn ims_transaction(&self, trancode: &str, segments: Vec<&[u8]>) -> Result<Vec<Vec<u8>>, MainframeError> {
+    pub fn ims_transaction(
+        &self,
+        trancode: &str,
+        segments: Vec<&[u8]>,
+    ) -> Result<Vec<Vec<u8>>, MainframeError> {
         let ims = self.ims.as_ref().ok_or(MainframeError::ImsNotConfigured)?;
         ims.exec_transaction(trancode, segments)
     }
-    
+
     /// Put message to MQ queue.
     pub fn mq_put(&self, queue: &str, message: &[u8]) -> Result<String, MainframeError> {
         let mq = self.mq.as_ref().ok_or(MainframeError::MqNotConfigured)?;
         mq.put(queue, message)
     }
-    
+
     /// Get message from MQ queue.
     pub fn mq_get(&self, queue: &str) -> Result<Option<Vec<u8>>, MainframeError> {
         let mq = self.mq.as_ref().ok_or(MainframeError::MqNotConfigured)?;
         mq.get(queue)
     }
-    
+
     /// Health check.
     pub fn health_check(&self) -> MainframeHealth {
         MainframeHealth {
@@ -141,25 +152,25 @@ pub struct MainframeHealth {
 pub enum MainframeError {
     #[error("Not connected")]
     NotConnected,
-    
+
     #[error("IMS not configured")]
     ImsNotConfigured,
-    
+
     #[error("MQ not configured")]
     MqNotConfigured,
-    
+
     #[error("CICS error: {0}")]
     CicsError(String),
-    
+
     #[error("IMS error: {0}")]
     ImsError(String),
-    
+
     #[error("MQ error: {0}")]
     MqError(String),
-    
+
     #[error("Encoding error: {0}")]
     EncodingError(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] LicenseError),
 }

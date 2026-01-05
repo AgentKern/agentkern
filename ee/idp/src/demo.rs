@@ -21,7 +21,7 @@ impl DemoIdentity {
             trust_provider: TrustScoreProvider::new(),
         }
     }
-    
+
     /// Get trust score provider.
     pub fn trust_provider(&self) -> &TrustScoreProvider {
         &self.trust_provider
@@ -38,7 +38,7 @@ impl GracefulService for DemoIdentity {
     fn mode(&self) -> ConnectionMode {
         self.mode
     }
-    
+
     fn status(&self) -> ConnectionStatus {
         ConnectionStatus::new("identity")
     }
@@ -46,7 +46,10 @@ impl GracefulService for DemoIdentity {
 
 #[async_trait]
 impl IdentityBridge for DemoIdentity {
-    async fn register_agent(&self, registration: &AgentRegistration) -> Result<ProviderAgentId, IdentityError> {
+    async fn register_agent(
+        &self,
+        registration: &AgentRegistration,
+    ) -> Result<ProviderAgentId, IdentityError> {
         Ok(ProviderAgentId {
             object_id: format!("demo-obj-{}", uuid::Uuid::new_v4()),
             app_id: format!("demo-app-{}", uuid::Uuid::new_v4()),
@@ -54,7 +57,7 @@ impl IdentityBridge for DemoIdentity {
             did: registration.did.clone(),
         })
     }
-    
+
     async fn map_did_to_provider(&self, did: &str) -> Result<ProviderAgentId, IdentityError> {
         Ok(ProviderAgentId {
             object_id: format!("demo-obj-{}", &did[..8.min(did.len())]),
@@ -63,7 +66,7 @@ impl IdentityBridge for DemoIdentity {
             did: did.to_string(),
         })
     }
-    
+
     async fn get_agent(&self, agent_id: &str) -> Result<ProviderAgent, IdentityError> {
         Ok(ProviderAgent {
             id: ProviderAgentId {
@@ -82,12 +85,20 @@ impl IdentityBridge for DemoIdentity {
             trust_score: Some(0.85),
         })
     }
-    
-    async fn update_lifecycle(&self, _agent_id: &str, _status: LifecycleStatus) -> Result<(), IdentityError> {
+
+    async fn update_lifecycle(
+        &self,
+        _agent_id: &str,
+        _status: LifecycleStatus,
+    ) -> Result<(), IdentityError> {
         Ok(())
     }
-    
-    async fn check_conditional_access(&self, _agent_id: &str, resource: &str) -> Result<AccessDecision, IdentityError> {
+
+    async fn check_conditional_access(
+        &self,
+        _agent_id: &str,
+        resource: &str,
+    ) -> Result<AccessDecision, IdentityError> {
         Ok(AccessDecision {
             allowed: true,
             reason: format!("[Demo] Access to {} allowed in demo mode", resource),
@@ -95,8 +106,12 @@ impl IdentityBridge for DemoIdentity {
             conditions_failed: vec![],
         })
     }
-    
-    async fn report_trust_score(&self, _agent_id: &str, _score: &TrustScore) -> Result<(), IdentityError> {
+
+    async fn report_trust_score(
+        &self,
+        _agent_id: &str,
+        _score: &TrustScore,
+    ) -> Result<(), IdentityError> {
         Ok(())
     }
 }
@@ -109,7 +124,7 @@ impl IdentityFactory {
     pub fn get() -> DemoIdentity {
         DemoIdentity::new()
     }
-    
+
     /// Get connection status.
     pub fn status() -> ConnectionStatus {
         ConnectionStatus::new("identity")
@@ -137,7 +152,7 @@ mod tests {
             agent_type: AgentType::Custom,
             tags: vec![],
         };
-        
+
         let result = identity.register_agent(&registration).await;
         assert!(result.is_ok());
     }

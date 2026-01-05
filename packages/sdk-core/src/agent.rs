@@ -91,7 +91,7 @@ impl Agent {
         let keypair = KeyPair::generate()?;
         let config = AgentConfig::new(name);
         let id = Self::generate_did(&keypair.public_key());
-        
+
         Ok(Self {
             id,
             config,
@@ -104,7 +104,7 @@ impl Agent {
     pub fn generate_with_config(config: AgentConfig) -> SdkResult<Self> {
         let keypair = KeyPair::generate()?;
         let id = Self::generate_did(&keypair.public_key());
-        
+
         Ok(Self {
             id,
             config,
@@ -118,7 +118,7 @@ impl Agent {
         let keypair = KeyPair::from_seed(seed)?;
         let config = AgentConfig::new(name);
         let id = Self::generate_did(&keypair.public_key());
-        
+
         Ok(Self {
             id,
             config,
@@ -143,7 +143,7 @@ impl Agent {
     }
 
     /// Get the keypair seed for persistence (PKCS8 format).
-    /// 
+    ///
     /// **WARNING**: This is sensitive key material. Store securely.
     pub fn seed(&self) -> &[u8] {
         self.keypair.seed()
@@ -201,9 +201,8 @@ impl Agent {
         expires_in: Option<Duration>,
     ) -> SdkResult<LiabilityProof> {
         let now = Utc::now();
-        let expiry = expires_in.unwrap_or(Duration::seconds(
-            self.config.proof_expiry_seconds as i64,
-        ));
+        let expiry =
+            expires_in.unwrap_or(Duration::seconds(self.config.proof_expiry_seconds as i64));
         let exp = now + expiry;
 
         let header = ProofHeader {
@@ -213,7 +212,11 @@ impl Agent {
         };
 
         let claims = ProofClaims {
-            iss: self.config.issuer.clone().unwrap_or_else(|| self.id.clone()),
+            iss: self
+                .config
+                .issuer
+                .clone()
+                .unwrap_or_else(|| self.id.clone()),
             sub: self.id.clone(),
             aud: audience.map(|s| s.to_string()),
             iat: now.timestamp(),
@@ -314,9 +317,9 @@ mod tests {
     fn test_agent_from_seed() {
         let agent1 = Agent::generate("agent1").unwrap();
         let seed = agent1.seed().to_vec();
-        
+
         let agent2 = Agent::from_seed("agent2", &seed).unwrap();
-        
+
         // Same keypair = same public key = same DID
         assert_eq!(agent1.id(), agent2.id());
         assert_eq!(agent1.public_key(), agent2.public_key());
@@ -327,7 +330,7 @@ mod tests {
         let agent = Agent::generate("signer").unwrap();
         let sig1 = agent.sign(b"message");
         let sig2 = agent.sign(b"message");
-        
+
         // Same message = same signature (Ed25519 is deterministic)
         assert_eq!(sig1, sig2);
     }
@@ -336,7 +339,7 @@ mod tests {
     fn test_create_proof() {
         let agent = Agent::generate("prover").unwrap();
         let proof = agent.create_proof("test:action").unwrap();
-        
+
         assert_eq!(proof.claims.action, "test:action");
         assert!(proof.claims.exp > Utc::now().timestamp());
         assert!(!proof.raw.is_empty());
@@ -346,23 +349,24 @@ mod tests {
     fn test_verify_proof() {
         let agent = Agent::generate("prover").unwrap();
         let proof = agent.create_proof("test:action").unwrap();
-        
+
         let is_valid = Agent::verify_proof(&proof).unwrap();
         assert!(is_valid);
     }
 
     #[test]
     fn test_verify_expired_proof() {
-        let config = AgentConfig::new("expirer")
-            .with_expiry(0); // Expires immediately
+        let config = AgentConfig::new("expirer").with_expiry(0); // Expires immediately
         let agent = Agent::generate_with_config(config).unwrap();
-        
-        let proof = agent.create_proof_with_options(
-            "test:action",
-            None,
-            Some(Duration::seconds(-10)), // Already expired
-        ).unwrap();
-        
+
+        let proof = agent
+            .create_proof_with_options(
+                "test:action",
+                None,
+                Some(Duration::seconds(-10)), // Already expired
+            )
+            .unwrap();
+
         let result = Agent::verify_proof(&proof);
         assert!(matches!(result, Err(SdkError::ProofExpired(_))));
     }
@@ -371,11 +375,11 @@ mod tests {
     fn test_proof_jwt_format() {
         let agent = Agent::generate("jwt-test").unwrap();
         let proof = agent.create_proof("test").unwrap();
-        
+
         // JWT should have 3 parts
         let parts: Vec<&str> = proof.raw.split('.').collect();
         assert_eq!(parts.len(), 3);
-        
+
         // Each part should be valid base64url
         use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
         for part in parts {

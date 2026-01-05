@@ -27,38 +27,38 @@ impl ConnectionMode {
         if env::var(&disabled_key).is_ok() {
             return Self::Disabled;
         }
-        
+
         // Check if demo mode forced
         let demo_key = format!("AGENTKERN_{}_DEMO", feature.to_uppercase());
         if env::var(&demo_key).is_ok() {
             return Self::Demo;
         }
-        
+
         // Check if offline mode
         if env::var("AGENTKERN_OFFLINE").is_ok() {
             return Self::Offline;
         }
-        
+
         // Check for credentials
         let cred_key = format!("AGENTKERN_{}_API_KEY", feature.to_uppercase());
         if env::var(&cred_key).is_ok() {
             return Self::Live;
         }
-        
+
         // Default to demo mode (graceful fallback)
         Self::Demo
     }
-    
+
     /// Is this mode operational (can return data)?
     pub fn is_operational(&self) -> bool {
         matches!(self, Self::Live | Self::Demo | Self::Offline)
     }
-    
+
     /// Is this live production mode?
     pub fn is_live(&self) -> bool {
         matches!(self, Self::Live)
     }
-    
+
     /// Should we use mock data?
     pub fn use_mock(&self) -> bool {
         matches!(self, Self::Demo | Self::Offline)
@@ -81,7 +81,7 @@ impl ConnectionStatus {
         let message = match mode {
             ConnectionMode::Live => "Connected to live API".to_string(),
             ConnectionMode::Demo => format!(
-                "Demo mode - set AGENTKERN_{}_API_KEY for live", 
+                "Demo mode - set AGENTKERN_{}_API_KEY for live",
                 feature.to_uppercase()
             ),
             ConnectionMode::Offline => "Offline mode - using cached data".to_string(),
@@ -90,7 +90,7 @@ impl ConnectionStatus {
                 feature.to_uppercase()
             ),
         };
-        
+
         Self {
             feature: feature.to_string(),
             mode,
@@ -104,15 +104,15 @@ impl ConnectionStatus {
 pub trait GracefulService {
     /// Get current connection mode.
     fn mode(&self) -> ConnectionMode;
-    
+
     /// Get connection status.
     fn status(&self) -> ConnectionStatus;
-    
+
     /// Check if service is available.
     fn is_available(&self) -> bool {
         self.mode().is_operational()
     }
-    
+
     /// Check if using real credentials.
     fn is_live(&self) -> bool {
         self.mode().is_live()
@@ -129,15 +129,27 @@ pub struct GracefulResult<T> {
 
 impl<T> GracefulResult<T> {
     pub fn live(data: T) -> Self {
-        Self { data, mode: ConnectionMode::Live, is_mock: false }
+        Self {
+            data,
+            mode: ConnectionMode::Live,
+            is_mock: false,
+        }
     }
-    
+
     pub fn demo(data: T) -> Self {
-        Self { data, mode: ConnectionMode::Demo, is_mock: true }
+        Self {
+            data,
+            mode: ConnectionMode::Demo,
+            is_mock: true,
+        }
     }
-    
+
     pub fn offline(data: T) -> Self {
-        Self { data, mode: ConnectionMode::Offline, is_mock: true }
+        Self {
+            data,
+            mode: ConnectionMode::Offline,
+            is_mock: true,
+        }
     }
 }
 

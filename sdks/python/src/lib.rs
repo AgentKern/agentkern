@@ -3,8 +3,8 @@
 //! PyO3 bindings for sdk-core, enabling Python consumption.
 //! Built with maturin for easy wheel distribution.
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
 use agentkern_sdk_core::{
     agent::{Agent as CoreAgent, AgentConfig as CoreAgentConfig},
@@ -64,8 +64,7 @@ impl Agent {
     /// Generate a new Agent with a random Ed25519 keypair.
     #[staticmethod]
     fn generate(name: &str) -> PyResult<Self> {
-        let core = CoreAgent::generate(name)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let core = CoreAgent::generate(name).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self {
             inner: AgentWrapper::from_core(&core),
         })
@@ -96,10 +95,11 @@ impl Agent {
     #[staticmethod]
     fn from_seed(name: &str, seed_base64: &str) -> PyResult<Self> {
         use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-        let seed = URL_SAFE_NO_PAD.decode(seed_base64)
+        let seed = URL_SAFE_NO_PAD
+            .decode(seed_base64)
             .map_err(|e| PyValueError::new_err(format!("Invalid base64: {}", e)))?;
-        let core = CoreAgent::from_seed(name, &seed)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let core =
+            CoreAgent::from_seed(name, &seed).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self {
             inner: AgentWrapper::from_core(&core),
         })
@@ -144,7 +144,8 @@ impl Agent {
     /// Create a Liability Proof for an action.
     fn create_proof(&self, action: &str) -> PyResult<LiabilityProof> {
         let core = self.inner.to_core()?;
-        let proof = core.create_proof(action)
+        let proof = core
+            .create_proof(action)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(LiabilityProof::from_core(proof))
     }
@@ -153,8 +154,7 @@ impl Agent {
     #[staticmethod]
     fn verify_proof(proof: &LiabilityProof) -> PyResult<bool> {
         let core_proof = proof.to_core()?;
-        CoreAgent::verify_proof(&core_proof)
-            .map_err(|e| PyValueError::new_err(e.to_string()))
+        CoreAgent::verify_proof(&core_proof).map_err(|e| PyValueError::new_err(e.to_string()))
     }
 
     fn __repr__(&self) -> String {
@@ -207,8 +207,7 @@ impl LiabilityProof {
     }
 
     fn to_core(&self) -> PyResult<CoreLiabilityProof> {
-        CoreLiabilityProof::from_jwt(&self.jwt)
-            .map_err(|e| PyValueError::new_err(e.to_string()))
+        CoreLiabilityProof::from_jwt(&self.jwt).map_err(|e| PyValueError::new_err(e.to_string()))
     }
 }
 
@@ -231,8 +230,8 @@ impl LiabilityProof {
 /// Parse a JWT string into a LiabilityProof.
 #[pyfunction]
 fn parse_proof(jwt: &str) -> PyResult<LiabilityProof> {
-    let proof = CoreLiabilityProof::from_jwt(jwt)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let proof =
+        CoreLiabilityProof::from_jwt(jwt).map_err(|e| PyValueError::new_err(e.to_string()))?;
     Ok(LiabilityProof::from_core(proof))
 }
 
@@ -246,7 +245,8 @@ fn create_a2a_request(from: &str, to: &str, payload: &str) -> PyResult<String> {
     let payload_json: serde_json::Value = serde_json::from_str(payload)
         .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
     let msg = CoreA2AMessage::request(from, to, payload_json);
-    msg.to_json().map_err(|e| PyValueError::new_err(e.to_string()))
+    msg.to_json()
+        .map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
 /// Create an A2A notification message.
@@ -255,7 +255,8 @@ fn create_a2a_notification(from: &str, to: &str, payload: &str) -> PyResult<Stri
     let payload_json: serde_json::Value = serde_json::from_str(payload)
         .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
     let msg = CoreA2AMessage::notification(from, to, payload_json);
-    msg.to_json().map_err(|e| PyValueError::new_err(e.to_string()))
+    msg.to_json()
+        .map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
 // ============================================================================

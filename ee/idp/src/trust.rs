@@ -82,28 +82,27 @@ impl TrustScoreProvider {
             weights: TrustWeights::default(),
         }
     }
-    
+
     /// Create with custom weights.
     pub fn with_weights(weights: TrustWeights) -> Self {
         Self { weights }
     }
-    
+
     /// Calculate trust score from factors.
     pub fn calculate(&self, factors: TrustFactors) -> TrustScore {
-        let overall = 
-            factors.identity * self.weights.identity +
-            factors.behavior * self.weights.behavior +
-            factors.compliance * self.weights.compliance +
-            factors.reliability * self.weights.reliability +
-            factors.security * self.weights.security;
-        
+        let overall = factors.identity * self.weights.identity
+            + factors.behavior * self.weights.behavior
+            + factors.compliance * self.weights.compliance
+            + factors.reliability * self.weights.reliability
+            + factors.security * self.weights.security;
+
         let recommendation = match overall {
             s if s >= 0.8 => TrustRecommendation::Allow,
             s if s >= 0.6 => TrustRecommendation::Challenge,
             s if s >= 0.4 => TrustRecommendation::Restrict,
             _ => TrustRecommendation::Block,
         };
-        
+
         TrustScore {
             overall,
             factors,
@@ -112,7 +111,7 @@ impl TrustScoreProvider {
             recommendation,
         }
     }
-    
+
     /// Quick trust check.
     pub fn is_trusted(&self, factors: &TrustFactors, threshold: f64) -> bool {
         let score = self.calculate(factors.clone());
@@ -133,7 +132,7 @@ mod tests {
     #[test]
     fn test_trust_score_calculation() {
         let provider = TrustScoreProvider::new();
-        
+
         let factors = TrustFactors {
             identity: 0.9,
             behavior: 0.8,
@@ -141,7 +140,7 @@ mod tests {
             reliability: 0.85,
             security: 0.9,
         };
-        
+
         let score = provider.calculate(factors);
         assert!(score.overall > 0.8);
         assert_eq!(score.recommendation, TrustRecommendation::Allow);
@@ -150,7 +149,7 @@ mod tests {
     #[test]
     fn test_low_trust_score() {
         let provider = TrustScoreProvider::new();
-        
+
         let factors = TrustFactors {
             identity: 0.3,
             behavior: 0.2,
@@ -158,7 +157,7 @@ mod tests {
             reliability: 0.3,
             security: 0.2,
         };
-        
+
         let score = provider.calculate(factors);
         assert!(score.overall < 0.4);
         assert_eq!(score.recommendation, TrustRecommendation::Block);

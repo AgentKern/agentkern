@@ -3,8 +3,8 @@
 //! Agent-to-Agent (A2A) message encoding and parsing.
 //! Designed for interoperability with the emerging A2A standard.
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::error::{SdkError, SdkResult};
@@ -89,7 +89,10 @@ impl A2AMessage {
             timestamp: Utc::now(),
             proof: None,
             payload,
-            thread_id: request.thread_id.clone().or_else(|| Some(request.id.clone())),
+            thread_id: request
+                .thread_id
+                .clone()
+                .or_else(|| Some(request.id.clone())),
             in_reply_to: Some(request.id.clone()),
         }
     }
@@ -112,7 +115,10 @@ impl A2AMessage {
             timestamp: Utc::now(),
             proof: None,
             payload,
-            thread_id: request.thread_id.clone().or_else(|| Some(request.id.clone())),
+            thread_id: request
+                .thread_id
+                .clone()
+                .or_else(|| Some(request.id.clone())),
             in_reply_to: Some(request.id.clone()),
         }
     }
@@ -277,12 +283,8 @@ mod tests {
 
     #[test]
     fn test_thread() {
-        let msg = A2AMessage::request(
-            "did:key:zFrom",
-            "did:key:zTo",
-            serde_json::json!({}),
-        )
-        .with_thread();
+        let msg = A2AMessage::request("did:key:zFrom", "did:key:zTo", serde_json::json!({}))
+            .with_thread();
 
         assert!(msg.is_threaded());
         assert!(msg.thread_id.is_some());

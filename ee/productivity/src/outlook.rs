@@ -2,8 +2,8 @@
 //!
 //! Email and calendar integration for productivity agents
 
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// Outlook connector configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,19 +23,19 @@ pub struct OutlookConfig {
 pub trait OutlookConnector: Send + Sync {
     /// Send email.
     async fn send_email(&self, email: &EmailMessage) -> Result<String, OutlookError>;
-    
+
     /// Get unread emails.
     async fn get_unread(&self, limit: u32) -> Result<Vec<EmailMessage>, OutlookError>;
-    
+
     /// Search emails.
     async fn search(&self, query: &str) -> Result<Vec<EmailMessage>, OutlookError>;
-    
+
     /// Create calendar event.
     async fn create_event(&self, event: &CalendarEvent) -> Result<String, OutlookError>;
-    
+
     /// Get upcoming events.
     async fn get_upcoming(&self, days: u32) -> Result<Vec<CalendarEvent>, OutlookError>;
-    
+
     /// Delegate meeting triage.
     async fn triage_meetings(&self, instructions: &str) -> Result<TriageResult, OutlookError>;
 }
@@ -114,16 +114,16 @@ pub struct TriageResult {
 pub enum OutlookError {
     #[error("Authentication failed")]
     AuthenticationFailed,
-    
+
     #[error("Rate limited")]
     RateLimited,
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
 }

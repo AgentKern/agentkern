@@ -3,39 +3,40 @@
 //! Generic trait for e-commerce platforms
 //! Supports: Amazon SP-API, Shopify, Walmart, eBay, etc.
 
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// Retail platform trait - implement for each marketplace.
 #[async_trait]
 pub trait RetailPlatform: Send + Sync {
     /// Platform identifier.
     fn platform_id(&self) -> &str;
-    
+
     /// Platform type.
     fn platform_type(&self) -> PlatformType;
-    
+
     /// Get listing by SKU.
     async fn get_listing(&self, sku: &str) -> Result<super::Listing, RetailError>;
-    
+
     /// Update listing.
     async fn update_listing(&self, update: &super::ListingUpdate) -> Result<(), RetailError>;
-    
+
     /// Update price.
     async fn update_price(&self, sku: &str, price: &super::PriceUpdate) -> Result<(), RetailError>;
-    
+
     /// Get orders.
     async fn get_orders(&self, filter: &OrderFilter) -> Result<Vec<super::Order>, RetailError>;
-    
+
     /// Acknowledge order.
     async fn acknowledge_order(&self, order_id: &str) -> Result<(), RetailError>;
-    
+
     /// Submit fulfillment.
-    async fn submit_fulfillment(&self, fulfillment: &super::Fulfillment) -> Result<(), RetailError>;
-    
+    async fn submit_fulfillment(&self, fulfillment: &super::Fulfillment)
+    -> Result<(), RetailError>;
+
     /// Get inventory level.
     async fn get_inventory(&self, sku: &str) -> Result<InventoryLevel, RetailError>;
-    
+
     /// Update inventory.
     async fn update_inventory(&self, sku: &str, quantity: i32) -> Result<(), RetailError>;
 }
@@ -86,9 +87,7 @@ pub enum AuthConfig {
         refresh_token_ref: String,
     },
     /// API Key
-    ApiKey {
-        key_ref: String,
-    },
+    ApiKey { key_ref: String },
     /// HMAC Signature
     HmacSignature {
         access_key_ref: String,
@@ -124,19 +123,19 @@ pub struct InventoryLevel {
 pub enum RetailError {
     #[error("Rate limited")]
     RateLimited,
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Validation error: {0}")]
     ValidationError(String),
-    
+
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Authentication failed")]
     AuthenticationFailed,
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }

@@ -7,4 +7,4 @@ pub mod driver;
 pub mod wasm_executor;
 
 pub use driver::{MicroVmDriver, VmConfig, VmInstance, VmState};
-pub use wasm_executor::{WasmInVm, WasmModule, ExecutionResult};
+pub use wasm_executor::{ExecutionResult, WasmInVm, WasmModule};

@@ -3,8 +3,8 @@
 //! Maps AgentKern DIDs to enterprise identity provider agent IDs
 //! Supports: Entra, Okta, Auth0, Ping Identity, etc.
 
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// Identity provider configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,22 +34,37 @@ impl Default for IdentityConfig {
 #[async_trait]
 pub trait IdentityBridge: Send + Sync {
     /// Register agent in identity provider.
-    async fn register_agent(&self, registration: &AgentRegistration) -> Result<ProviderAgentId, IdentityError>;
-    
+    async fn register_agent(
+        &self,
+        registration: &AgentRegistration,
+    ) -> Result<ProviderAgentId, IdentityError>;
+
     /// Map AgentKern DID to provider agent ID.
     async fn map_did_to_provider(&self, did: &str) -> Result<ProviderAgentId, IdentityError>;
-    
+
     /// Get agent by ID.
     async fn get_agent(&self, agent_id: &str) -> Result<ProviderAgent, IdentityError>;
-    
+
     /// Update agent lifecycle (enable/disable/retire).
-    async fn update_lifecycle(&self, agent_id: &str, status: LifecycleStatus) -> Result<(), IdentityError>;
-    
+    async fn update_lifecycle(
+        &self,
+        agent_id: &str,
+        status: LifecycleStatus,
+    ) -> Result<(), IdentityError>;
+
     /// Apply Conditional Access check.
-    async fn check_conditional_access(&self, agent_id: &str, resource: &str) -> Result<AccessDecision, IdentityError>;
-    
+    async fn check_conditional_access(
+        &self,
+        agent_id: &str,
+        resource: &str,
+    ) -> Result<AccessDecision, IdentityError>;
+
     /// Report trust score to provider.
-    async fn report_trust_score(&self, agent_id: &str, score: &super::TrustScore) -> Result<(), IdentityError>;
+    async fn report_trust_score(
+        &self,
+        agent_id: &str,
+        score: &super::TrustScore,
+    ) -> Result<(), IdentityError>;
 }
 
 /// Agent registration request.
@@ -132,19 +147,19 @@ pub struct AccessDecision {
 pub enum IdentityError {
     #[error("Authentication failed")]
     AuthenticationFailed,
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Already exists: {0}")]
     AlreadyExists(String),
-    
+
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
-    
+
     #[error("Conditional Access denied: {0}")]
     ConditionalAccessDenied(String),
-    
+
     #[error("API error: {0}")]
     ApiError(String),
 }

@@ -3,7 +3,7 @@
 //! Works without credentials - returns realistic demo data
 
 use super::adapter::*;
-use super::{Listing, ListingUpdate, PriceUpdate, Order, OrderItem, OrderStatus, Fulfillment};
+use super::{Fulfillment, Listing, ListingUpdate, Order, OrderItem, OrderStatus, PriceUpdate};
 use agentkern_core_ee::{ConnectionMode, ConnectionStatus, GracefulService};
 use async_trait::async_trait;
 
@@ -17,16 +17,18 @@ impl DemoRetailPlatform {
     /// Create new demo platform.
     pub fn new(platform: PlatformType) -> Self {
         let mode = ConnectionMode::detect("retail");
-        
+
         let config = PlatformConfig {
             platform,
             seller_id: "DEMO_SELLER".into(),
             marketplace_id: Some("DEMO_MARKET".into()),
             endpoint: "https://demo.agentkern.dev/retail".into(),
-            auth: AuthConfig::ApiKey { key_ref: String::new() },
+            auth: AuthConfig::ApiKey {
+                key_ref: String::new(),
+            },
             rate_limit: None,
         };
-        
+
         Self { config, mode }
     }
 }
@@ -35,7 +37,7 @@ impl GracefulService for DemoRetailPlatform {
     fn mode(&self) -> ConnectionMode {
         self.mode
     }
-    
+
     fn status(&self) -> ConnectionStatus {
         ConnectionStatus::new("retail")
     }
@@ -46,11 +48,11 @@ impl RetailPlatform for DemoRetailPlatform {
     fn platform_id(&self) -> &str {
         &self.config.seller_id
     }
-    
+
     fn platform_type(&self) -> PlatformType {
         self.config.platform
     }
-    
+
     async fn get_listing(&self, sku: &str) -> Result<Listing, RetailError> {
         Ok(Listing {
             sku: sku.to_string(),
@@ -71,53 +73,51 @@ impl RetailPlatform for DemoRetailPlatform {
             status: super::listings::ListingStatus::Active,
         })
     }
-    
+
     async fn update_listing(&self, _update: &ListingUpdate) -> Result<(), RetailError> {
         if self.mode.is_live() {
             // Would call real API
         }
         Ok(()) // Demo mode always succeeds
     }
-    
+
     async fn update_price(&self, _sku: &str, _price: &PriceUpdate) -> Result<(), RetailError> {
         Ok(())
     }
-    
+
     async fn get_orders(&self, _filter: &OrderFilter) -> Result<Vec<Order>, RetailError> {
-        Ok(vec![
-            Order {
-                order_id: "DEMO-001".into(),
-                purchase_date: chrono::Utc::now().to_rfc3339(),
-                status: OrderStatus::Unshipped,
-                items: vec![OrderItem {
-                    item_id: "ITEM-001".into(),
-                    sku: "DEMO-SKU".into(),
-                    product_id: "B0DEMO123".into(),
-                    title: "[Demo Order Item]".into(),
-                    quantity_ordered: 1,
-                    quantity_shipped: 0,
-                    item_price: 29.99,
-                    currency: "USD".into(),
-                }],
-                shipping_address: None,
-                buyer_name: Some("Demo Customer".into()),
-                order_total: super::orders::OrderTotal {
-                    amount: 29.99,
-                    currency: "USD".into(),
-                },
-                fulfillment_channel: super::orders::FulfillmentChannel::Merchant,
-            }
-        ])
+        Ok(vec![Order {
+            order_id: "DEMO-001".into(),
+            purchase_date: chrono::Utc::now().to_rfc3339(),
+            status: OrderStatus::Unshipped,
+            items: vec![OrderItem {
+                item_id: "ITEM-001".into(),
+                sku: "DEMO-SKU".into(),
+                product_id: "B0DEMO123".into(),
+                title: "[Demo Order Item]".into(),
+                quantity_ordered: 1,
+                quantity_shipped: 0,
+                item_price: 29.99,
+                currency: "USD".into(),
+            }],
+            shipping_address: None,
+            buyer_name: Some("Demo Customer".into()),
+            order_total: super::orders::OrderTotal {
+                amount: 29.99,
+                currency: "USD".into(),
+            },
+            fulfillment_channel: super::orders::FulfillmentChannel::Merchant,
+        }])
     }
-    
+
     async fn acknowledge_order(&self, _order_id: &str) -> Result<(), RetailError> {
         Ok(())
     }
-    
+
     async fn submit_fulfillment(&self, _fulfillment: &Fulfillment) -> Result<(), RetailError> {
         Ok(())
     }
-    
+
     async fn get_inventory(&self, sku: &str) -> Result<InventoryLevel, RetailError> {
         Ok(InventoryLevel {
             sku: sku.to_string(),
@@ -127,7 +127,7 @@ impl RetailPlatform for DemoRetailPlatform {
             last_updated: chrono::Utc::now().to_rfc3339(),
         })
     }
-    
+
     async fn update_inventory(&self, _sku: &str, _quantity: i32) -> Result<(), RetailError> {
         Ok(())
     }
@@ -141,7 +141,7 @@ impl RetailFactory {
     pub fn get(platform: PlatformType) -> Box<dyn RetailPlatform> {
         Box::new(DemoRetailPlatform::new(platform))
     }
-    
+
     /// Get connection status.
     pub fn status() -> ConnectionStatus {
         ConnectionStatus::new("retail")

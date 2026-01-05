@@ -18,31 +18,31 @@ impl EventMeshClient {
             subscriptions: vec![],
         })
     }
-    
+
     /// Subscribe to queue.
     pub fn subscribe(&mut self, queue: &str) -> Result<(), SapError> {
         self.subscriptions.push(queue.to_string());
         Ok(())
     }
-    
+
     /// Unsubscribe from queue.
     pub fn unsubscribe(&mut self, queue: &str) -> Result<(), SapError> {
         self.subscriptions.retain(|q| q != queue);
         Ok(())
     }
-    
+
     /// Publish event.
     pub fn publish(&self, topic: &str, event: EventPayload) -> Result<(), SapError> {
         // Production would use Event Mesh REST API
         Ok(())
     }
-    
+
     /// Acknowledge message.
     pub fn ack(&self, message_id: &str) -> Result<(), SapError> {
         // Production would ACK via Event Mesh
         Ok(())
     }
-    
+
     /// Get active subscriptions.
     pub fn subscriptions(&self) -> &[String] {
         &self.subscriptions

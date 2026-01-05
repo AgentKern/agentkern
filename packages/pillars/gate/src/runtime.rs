@@ -140,7 +140,8 @@ impl HyperRuntime {
 
     #[cfg(not(all(target_os = "linux", feature = "io_uring")))]
     pub fn run<F: Future>(future: F) -> F::Output {
-        let rt = TokioRuntime::new().expect("Failed to create runtime - this is a fatal initialization error");
+        let rt = TokioRuntime::new()
+            .expect("Failed to create runtime - this is a fatal initialization error");
         rt.block_on(future)
     }
 

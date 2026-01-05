@@ -3,19 +3,19 @@
 //! Full SAP integration: RFC, BAPI, OData, Event Mesh
 //! Per LICENSING.md: Enterprise tier ($100K+ SAP deals)
 
-mod rfc;
 mod bapi;
-mod odata;
 mod event_mesh;
+mod odata;
+mod rfc;
 
+use super::license::{LicenseError, check_feature_license};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::license::{check_feature_license, LicenseError};
 
-pub use rfc::RfcConnection;
 pub use bapi::BapiCaller;
-pub use odata::ODataClient;
 pub use event_mesh::EventMeshClient;
+pub use odata::ODataClient;
+pub use rfc::RfcConnection;
 
 /// SAP connector configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,7 +62,7 @@ impl SapConnector {
     /// Create a new SAP connector (requires license).
     pub fn new(config: SapConfig) -> Result<Self, LicenseError> {
         check_feature_license("sap")?;
-        
+
         Ok(Self {
             config,
             rfc: None,
@@ -70,38 +70,46 @@ impl SapConnector {
             event_mesh: None,
         })
     }
-    
+
     /// Connect via RFC.
     pub fn connect_rfc(&mut self, password: &str) -> Result<(), SapError> {
         self.rfc = Some(RfcConnection::new(&self.config, password)?);
         Ok(())
     }
-    
+
     /// Connect via OData (S/4HANA).
     pub fn connect_odata(&mut self, base_url: &str, auth: ODataAuth) -> Result<(), SapError> {
         self.odata = Some(ODataClient::new(base_url, auth)?);
         Ok(())
     }
-    
+
     /// Call a BAPI function.
-    pub fn call_bapi(&self, bapi_name: &str, params: HashMap<String, serde_json::Value>) -> Result<BapiResult, SapError> {
+    pub fn call_bapi(
+        &self,
+        bapi_name: &str,
+        params: HashMap<String, serde_json::Value>,
+    ) -> Result<BapiResult, SapError> {
         let rfc = self.rfc.as_ref().ok_or(SapError::NotConnected)?;
         let caller = BapiCaller::new(rfc);
         caller.call(bapi_name, params)
     }
-    
+
     /// Read OData entity.
     pub fn read_entity(&self, entity_set: &str, key: &str) -> Result<serde_json::Value, SapError> {
         let odata = self.odata.as_ref().ok_or(SapError::ODataNotConfigured)?;
         odata.get(entity_set, key)
     }
-    
+
     /// Create OData entity.
-    pub fn create_entity(&self, entity_set: &str, data: serde_json::Value) -> Result<serde_json::Value, SapError> {
+    pub fn create_entity(
+        &self,
+        entity_set: &str,
+        data: serde_json::Value,
+    ) -> Result<serde_json::Value, SapError> {
         let odata = self.odata.as_ref().ok_or(SapError::ODataNotConfigured)?;
         odata.post(entity_set, data)
     }
-    
+
     /// Subscribe to Event Mesh.
     pub fn subscribe_events(&mut self, queue: &str) -> Result<(), SapError> {
         let mut mesh = EventMeshClient::new(&self.config)?;
@@ -109,7 +117,7 @@ impl SapConnector {
         self.event_mesh = Some(mesh);
         Ok(())
     }
-    
+
     /// Health check.
     pub fn health_check(&self) -> SapHealth {
         SapHealth {
@@ -123,9 +131,19 @@ impl SapConnector {
 /// OData authentication.
 #[derive(Debug, Clone)]
 pub enum ODataAuth {
-    Basic { username: String, password: String },
-    OAuth2 { client_id: String, client_secret: String, token_url: String },
-    Certificate { cert_path: String, key_path: String },
+    Basic {
+        username: String,
+        password: String,
+    },
+    OAuth2 {
+        client_id: String,
+        client_secret: String,
+        token_url: String,
+    },
+    Certificate {
+        cert_path: String,
+        key_path: String,
+    },
 }
 
 /// BAPI call result.
@@ -159,22 +177,22 @@ pub struct SapHealth {
 pub enum SapError {
     #[error("Not connected to SAP")]
     NotConnected,
-    
+
     #[error("OData not configured")]
     ODataNotConfigured,
-    
+
     #[error("RFC connection failed: {0}")]
     RfcError(String),
-    
+
     #[error("BAPI error: {0}")]
     BapiError(String),
-    
+
     #[error("OData error: {0}")]
     ODataError(String),
-    
+
     #[error("Event Mesh error: {0}")]
     EventMeshError(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] LicenseError),
 }

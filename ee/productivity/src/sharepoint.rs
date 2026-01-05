@@ -2,8 +2,8 @@
 //!
 //! Document scanning and search for productivity agents
 
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// SharePoint connector configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,19 +23,24 @@ pub struct SharePointConfig {
 pub trait SharePointConnector: Send + Sync {
     /// Search documents.
     async fn search(&self, query: &str, limit: u32) -> Result<Vec<SearchResult>, SharePointError>;
-    
+
     /// Get document by ID.
     async fn get_document(&self, doc_id: &str) -> Result<Document, SharePointError>;
-    
+
     /// Get document content.
     async fn get_content(&self, doc_id: &str) -> Result<String, SharePointError>;
-    
+
     /// List documents in folder.
     async fn list_folder(&self, folder_path: &str) -> Result<Vec<Document>, SharePointError>;
-    
+
     /// Upload document.
-    async fn upload(&self, folder_path: &str, name: &str, content: &[u8]) -> Result<String, SharePointError>;
-    
+    async fn upload(
+        &self,
+        folder_path: &str,
+        name: &str,
+        content: &[u8],
+    ) -> Result<String, SharePointError>;
+
     /// Get recent documents.
     async fn get_recent(&self, limit: u32) -> Result<Vec<Document>, SharePointError>;
 }
@@ -68,16 +73,16 @@ pub struct Document {
 pub enum SharePointError {
     #[error("Authentication failed")]
     AuthenticationFailed,
-    
+
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
-    
+
     #[error("Rate limited")]
     RateLimited,
-    
+
     #[error("API error: {0}")]
     ApiError(String),
 }
@@ -94,7 +99,8 @@ mod tests {
             path: "/Documents/report.docx".into(),
             web_url: "https://example.sharepoint.com/doc".into(),
             size_bytes: 1024,
-            mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document".into(),
+            mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                .into(),
             created_at: "2025-01-01T00:00:00Z".into(),
             modified_at: "2025-01-02T00:00:00Z".into(),
             created_by: Some("user@example.com".into()),

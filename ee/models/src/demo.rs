@@ -4,7 +4,7 @@
 //! Used when no real API keys are configured
 
 use super::adapter::*;
-use agentkern_core_ee::{ConnectionMode, ConnectionStatus, GracefulService, GracefulResult};
+use agentkern_core_ee::{ConnectionMode, ConnectionStatus, GracefulResult, GracefulService};
 use async_trait::async_trait;
 
 /// Demo model that works without credentials.
@@ -17,7 +17,7 @@ impl DemoModel {
     /// Create new demo model.
     pub fn new(family: ModelFamily) -> Self {
         let mode = ConnectionMode::detect("models");
-        
+
         let config = ModelConfig {
             model_id: format!("demo-{:?}", family).to_lowercase(),
             endpoint: "https://demo.agentkern.dev/v1".into(),
@@ -28,23 +28,25 @@ impl DemoModel {
             cost_per_output_token: 0.0,
             rate_limit_rpm: None,
         };
-        
+
         Self { config, mode }
     }
-    
+
     /// Try to create a live model, fallback to demo if no credentials.
     pub fn new_graceful(family: ModelFamily) -> Self {
         Self::new(family)
     }
-    
+
     fn generate_demo_response(&self, request: &InferenceRequest) -> String {
-        let user_msg = request.messages.last()
+        let user_msg = request
+            .messages
+            .last()
             .map(|m| match &m.content {
                 MessageContent::Text(t) => t.clone(),
                 MessageContent::Multimodal(_) => "[multimodal input]".to_string(),
             })
             .unwrap_or_default();
-        
+
         format!(
             "[Demo Mode] This is a simulated response to: \"{}\". \
             Set AGENTKERN_MODELS_API_KEY for live responses.",
@@ -57,7 +59,7 @@ impl GracefulService for DemoModel {
     fn mode(&self) -> ConnectionMode {
         self.mode
     }
-    
+
     fn status(&self) -> ConnectionStatus {
         ConnectionStatus::new("models")
     }
@@ -68,15 +70,15 @@ impl FrontierModel for DemoModel {
     fn model_id(&self) -> &str {
         &self.config.model_id
     }
-    
+
     fn family(&self) -> ModelFamily {
         ModelFamily::Custom
     }
-    
+
     fn max_context(&self) -> usize {
         128_000
     }
-    
+
     async fn infer(&self, request: &InferenceRequest) -> Result<ModelResponse, ModelError> {
         // Always works - returns demo or live response
         let content = if self.mode.is_live() {
@@ -85,7 +87,7 @@ impl FrontierModel for DemoModel {
         } else {
             self.generate_demo_response(request)
         };
-        
+
         Ok(ModelResponse {
             content,
             tool_calls: vec![],
@@ -100,7 +102,7 @@ impl FrontierModel for DemoModel {
             latency_ms: 50,
         })
     }
-    
+
     fn estimate_cost(&self, _request: &InferenceRequest) -> CostEstimate {
         CostEstimate {
             input_tokens: 100,
@@ -109,11 +111,11 @@ impl FrontierModel for DemoModel {
             confidence: 1.0,
         }
     }
-    
+
     fn supports(&self, capability: ModelCapability) -> bool {
-        matches!(capability, 
-            ModelCapability::TextGeneration | 
-            ModelCapability::ToolUse
+        matches!(
+            capability,
+            ModelCapability::TextGeneration | ModelCapability::ToolUse
         )
     }
 }
@@ -126,7 +128,7 @@ impl ModelFactory {
     /// Returns live model if credentials available, demo otherwise.
     pub fn get(family: ModelFamily) -> Box<dyn FrontierModel> {
         let mode = ConnectionMode::detect("models");
-        
+
         match mode {
             ConnectionMode::Live => {
                 // Would return real model implementation
@@ -138,7 +140,7 @@ impl ModelFactory {
             }
         }
     }
-    
+
     /// Get connection status.
     pub fn status() -> ConnectionStatus {
         ConnectionStatus::new("models")
@@ -158,7 +160,7 @@ mod tests {
     #[tokio::test]
     async fn test_demo_model_infer() {
         let model = DemoModel::new(ModelFamily::Claude);
-        
+
         let request = InferenceRequest {
             system: None,
             messages: vec![Message {
@@ -172,7 +174,7 @@ mod tests {
             stop: vec![],
             response_format: None,
         };
-        
+
         let result = model.infer(&request).await;
         assert!(result.is_ok());
     }

@@ -45,7 +45,8 @@ impl AgentDiscovery {
     /// Panics if the HTTP client cannot be created.
     #[must_use]
     pub fn new(registry: Arc<AgentRegistry>) -> Self {
-        Self::try_new(registry).expect("Failed to create AgentDiscovery - HTTP client initialization failed")
+        Self::try_new(registry)
+            .expect("Failed to create AgentDiscovery - HTTP client initialization failed")
     }
 
     /// Get the underlying agent registry.

@@ -67,10 +67,12 @@ mod tests {
     fn test_full_flow() {
         // Generate agent
         let agent = Agent::generate("test-agent").expect("Failed to generate agent");
-        
+
         // Create proof
-        let proof = agent.create_proof("test:action").expect("Failed to create proof");
-        
+        let proof = agent
+            .create_proof("test:action")
+            .expect("Failed to create proof");
+
         // Verify proof
         assert!(Agent::verify_proof(&proof).expect("Verification failed"));
     }

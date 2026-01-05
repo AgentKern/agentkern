@@ -245,7 +245,11 @@ impl SwiftGpiConnector {
     }
 
     /// Convert SWIFT API response to internal format.
-    fn convert_tracker_response(&self, uetr: &str, response: SwiftTrackerResponse) -> GpiTrackingStatus {
+    fn convert_tracker_response(
+        &self,
+        uetr: &str,
+        response: SwiftTrackerResponse,
+    ) -> GpiTrackingStatus {
         let settlements: Vec<Settlement> = response
             .payment_event
             .iter()
@@ -266,12 +270,17 @@ impl SwiftGpiConnector {
         GpiTrackingStatus {
             uetr: uetr.to_string(),
             transaction_status: TransactionStatus::from_swift_code(
-                response.payment_event.last()
+                response
+                    .payment_event
+                    .last()
                     .map(|e| e.transaction_status.as_str())
-                    .unwrap_or("PDNG")
+                    .unwrap_or("PDNG"),
             ),
             initiating_agent: response.initiation_time.clone().unwrap_or_default(),
-            last_update: response.last_update_time.clone().unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+            last_update: response
+                .last_update_time
+                .clone()
+                .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
             settlements,
             simulated: false,
         }
@@ -623,10 +632,22 @@ mod tests {
 
     #[test]
     fn test_transaction_status_conversion() {
-        assert_eq!(TransactionStatus::from_swift_code("ACSC"), TransactionStatus::Settled);
-        assert_eq!(TransactionStatus::from_swift_code("RJCT"), TransactionStatus::Rejected);
-        assert_eq!(TransactionStatus::from_swift_code("PDNG"), TransactionStatus::Pending);
-        assert_eq!(TransactionStatus::from_swift_code("UNKNOWN"), TransactionStatus::Pending);
+        assert_eq!(
+            TransactionStatus::from_swift_code("ACSC"),
+            TransactionStatus::Settled
+        );
+        assert_eq!(
+            TransactionStatus::from_swift_code("RJCT"),
+            TransactionStatus::Rejected
+        );
+        assert_eq!(
+            TransactionStatus::from_swift_code("PDNG"),
+            TransactionStatus::Pending
+        );
+        assert_eq!(
+            TransactionStatus::from_swift_code("UNKNOWN"),
+            TransactionStatus::Pending
+        );
     }
 
     #[tokio::test]

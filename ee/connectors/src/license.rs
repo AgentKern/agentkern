@@ -10,48 +10,47 @@ use thiserror::Error;
 pub enum LicenseError {
     #[error("Enterprise license required. Set AGENTKERN_LICENSE_KEY.")]
     LicenseRequired,
-    
+
     #[error("Invalid license key")]
     InvalidLicense,
-    
+
     #[error("License expired")]
     LicenseExpired,
-    
+
     #[error("Feature not included in license: {0}")]
     FeatureNotIncluded(String),
 }
 
 /// Check if valid enterprise license is present.
 pub fn check_license() -> Result<(), LicenseError> {
-    let key = env::var("AGENTKERN_LICENSE_KEY")
-        .map_err(|_| LicenseError::LicenseRequired)?;
-    
+    let key = env::var("AGENTKERN_LICENSE_KEY").map_err(|_| LicenseError::LicenseRequired)?;
+
     // Validate key format (production would verify with license server)
     if key.len() < 32 {
         return Err(LicenseError::InvalidLicense);
     }
-    
+
     // Check expiration (production would decode JWT or check server)
     // For now, accept any valid-looking key
-    
+
     Ok(())
 }
 
 /// Check if specific feature is licensed.
 pub fn check_feature_license(feature: &str) -> Result<(), LicenseError> {
     check_license()?;
-    
+
     // Production would verify feature entitlement
     // For now, allow all features with valid license
     let _ = feature;
-    
+
     Ok(())
 }
 
 /// Get license tier.
 pub fn get_license_tier() -> Option<LicenseTier> {
     let key = env::var("AGENTKERN_LICENSE_KEY").ok()?;
-    
+
     // Parse tier from key (simplified)
     if key.contains("ENTERPRISE") || key.starts_with("ENT-") {
         Some(LicenseTier::Enterprise)
@@ -78,9 +77,7 @@ impl LicenseTier {
             LicenseTier::Enterprise => true, // Enterprise includes everything
             LicenseTier::Pro => {
                 // Pro tier features
-                matches!(feature, 
-                    "salesforce" | "dynamics365" | "slack" | "teams"
-                )
+                matches!(feature, "salesforce" | "dynamics365" | "slack" | "teams")
             }
         }
     }

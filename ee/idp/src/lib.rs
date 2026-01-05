@@ -11,10 +11,9 @@
 //! Graceful Degradation: Works with credentials, demo mode without
 
 pub mod bridge;
-pub mod trust;
 pub mod demo;
+pub mod trust;
 
-pub use bridge::{IdentityBridge, IdentityConfig, AgentRegistration};
-pub use trust::{TrustScoreProvider, TrustScore, TrustFactors};
+pub use bridge::{AgentRegistration, IdentityBridge, IdentityConfig};
 pub use demo::{DemoIdentity, IdentityFactory};
-
+pub use trust::{TrustFactors, TrustScore, TrustScoreProvider};

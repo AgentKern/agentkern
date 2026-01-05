@@ -3,11 +3,11 @@
 //! Per LICENSING.md: Native Slack, Teams, PagerDuty integrations
 //! Per licensing_split.md: Pro/Enterprise tier
 
+pub mod pagerduty;
 pub mod slack;
 pub mod teams;
-pub mod pagerduty;
 
 // Re-exports
-pub use slack::{SlackIntegration, SlackConfig};
-pub use teams::{TeamsIntegration, TeamsConfig};
-pub use pagerduty::{PagerDutyIntegration, PagerDutyConfig};
+pub use pagerduty::{PagerDutyConfig, PagerDutyIntegration};
+pub use slack::{SlackConfig, SlackIntegration};
+pub use teams::{TeamsConfig, TeamsIntegration};

@@ -46,25 +46,25 @@ impl PagerDutyIntegration {
         agentkern_connectors_ee::license::check_feature_license("pagerduty")?;
         Ok(Self { config })
     }
-    
+
     /// Trigger incident.
     pub fn trigger(&self, event: &PagerDutyEvent) -> Result<PagerDutyResponse, PagerDutyError> {
         let payload = self.build_trigger_payload(event);
         self.send_event(&payload)
     }
-    
+
     /// Acknowledge incident.
     pub fn acknowledge(&self, dedup_key: &str) -> Result<PagerDutyResponse, PagerDutyError> {
         let payload = self.build_ack_payload(dedup_key);
         self.send_event(&payload)
     }
-    
+
     /// Resolve incident.
     pub fn resolve(&self, dedup_key: &str) -> Result<PagerDutyResponse, PagerDutyError> {
         let payload = self.build_resolve_payload(dedup_key);
         self.send_event(&payload)
     }
-    
+
     fn build_trigger_payload(&self, event: &PagerDutyEvent) -> serde_json::Value {
         serde_json::json!({
             "routing_key": self.config.routing_key,
@@ -84,7 +84,7 @@ impl PagerDutyIntegration {
             }).collect::<Vec<_>>()
         })
     }
-    
+
     fn build_ack_payload(&self, dedup_key: &str) -> serde_json::Value {
         serde_json::json!({
             "routing_key": self.config.routing_key,
@@ -92,7 +92,7 @@ impl PagerDutyIntegration {
             "dedup_key": dedup_key
         })
     }
-    
+
     fn build_resolve_payload(&self, dedup_key: &str) -> serde_json::Value {
         serde_json::json!({
             "routing_key": self.config.routing_key,
@@ -100,13 +100,14 @@ impl PagerDutyIntegration {
             "dedup_key": dedup_key
         })
     }
-    
+
     fn send_event(&self, payload: &serde_json::Value) -> Result<PagerDutyResponse, PagerDutyError> {
         // Would POST to https://events.pagerduty.com/v2/enqueue
         Ok(PagerDutyResponse {
             status: "success".into(),
             message: "Event processed".into(),
-            dedup_key: payload.get("dedup_key")
+            dedup_key: payload
+                .get("dedup_key")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string(),
@@ -150,13 +151,13 @@ pub struct PagerDutyResponse {
 pub enum PagerDutyError {
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Invalid routing key")]
     InvalidRoutingKey,
-    
+
     #[error("Rate limited")]
     RateLimited,
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }
@@ -184,7 +185,7 @@ mod tests {
             custom_details: serde_json::json!({"agent_id": "agent-1"}),
             links: vec![("Dashboard".into(), "https://dashboard.agentkern.com".into())],
         };
-        
+
         assert_eq!(event.severity, PagerDutySeverity::Critical);
     }
 }

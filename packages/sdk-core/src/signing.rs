@@ -3,12 +3,12 @@
 //! Ed25519 key generation, signing, and verification using the `ring` crate.
 //! ring is based on AWS libcrypto (BoringSSL) - production-grade and FIPS-ready.
 
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use ring::{
     rand::SystemRandom,
-    signature::{Ed25519KeyPair, KeyPair as RingKeyPair, UnparsedPublicKey, ED25519},
+    signature::{ED25519, Ed25519KeyPair, KeyPair as RingKeyPair, UnparsedPublicKey},
 };
 use serde::{Deserialize, Serialize};
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 use crate::error::{SdkError, SdkResult};
 
@@ -24,10 +24,10 @@ impl KeyPair {
         let rng = SystemRandom::new();
         let seed = Ed25519KeyPair::generate_pkcs8(&rng)
             .map_err(|e| SdkError::key_generation(format!("PKCS8 generation failed: {e}")))?;
-        
+
         let inner = Ed25519KeyPair::from_pkcs8(seed.as_ref())
             .map_err(|e| SdkError::key_generation(format!("KeyPair creation failed: {e}")))?;
-        
+
         Ok(Self {
             inner,
             seed: seed.as_ref().to_vec(),
@@ -38,7 +38,7 @@ impl KeyPair {
     pub fn from_seed(seed: &[u8]) -> SdkResult<Self> {
         let inner = Ed25519KeyPair::from_pkcs8(seed)
             .map_err(|e| SdkError::InvalidPrivateKey(format!("Invalid PKCS8: {e}")))?;
-        
+
         Ok(Self {
             inner,
             seed: seed.to_vec(),
@@ -178,7 +178,7 @@ mod tests {
     fn test_keypair_from_seed() {
         let kp1 = KeyPair::generate().unwrap();
         let seed = kp1.seed().to_vec();
-        
+
         let kp2 = KeyPair::from_seed(&seed).unwrap();
         assert_eq!(kp1.public_key(), kp2.public_key());
     }
@@ -187,10 +187,10 @@ mod tests {
     fn test_sign_verify() {
         let kp = KeyPair::generate().unwrap();
         let message = b"Hello, AgentKern!";
-        
+
         let signature = kp.sign(message);
         assert_eq!(signature.as_bytes().len(), 64);
-        
+
         let is_valid = kp.public_key().verify(message, &signature).unwrap();
         assert!(is_valid);
     }
@@ -199,8 +199,11 @@ mod tests {
     fn test_verify_wrong_message() {
         let kp = KeyPair::generate().unwrap();
         let signature = kp.sign(b"original message");
-        
-        let is_valid = kp.public_key().verify(b"different message", &signature).unwrap();
+
+        let is_valid = kp
+            .public_key()
+            .verify(b"different message", &signature)
+            .unwrap();
         assert!(!is_valid);
     }
 
@@ -208,7 +211,7 @@ mod tests {
     fn test_verify_wrong_key() {
         let kp1 = KeyPair::generate().unwrap();
         let kp2 = KeyPair::generate().unwrap();
-        
+
         let signature = kp1.sign(b"message");
         let is_valid = kp2.public_key().verify(b"message", &signature).unwrap();
         assert!(!is_valid);
@@ -218,7 +221,7 @@ mod tests {
     fn test_base64_roundtrip() {
         let kp = KeyPair::generate().unwrap();
         let pk_b64 = kp.public_key().to_base64();
-        
+
         let pk2 = PublicKey::from_base64(&pk_b64).unwrap();
         assert_eq!(kp.public_key(), pk2);
     }
@@ -228,7 +231,7 @@ mod tests {
         let kp = KeyPair::generate().unwrap();
         let sig = kp.sign(b"test");
         let sig_b64 = sig.to_base64();
-        
+
         let sig2 = Signature::from_base64(&sig_b64).unwrap();
         assert_eq!(sig, sig2);
     }

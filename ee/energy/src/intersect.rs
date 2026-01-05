@@ -29,9 +29,13 @@ impl IntersectClient {
         agentkern_connectors_ee::license::check_feature_license("intersect")?;
         Ok(Self { config })
     }
-    
+
     /// Get carbon footprint for project.
-    pub fn get_footprint(&self, start_date: &str, end_date: &str) -> Result<CarbonFootprint, IntersectError> {
+    pub fn get_footprint(
+        &self,
+        start_date: &str,
+        end_date: &str,
+    ) -> Result<CarbonFootprint, IntersectError> {
         // Would call Google Cloud Carbon Footprint API
         Ok(CarbonFootprint {
             project_id: self.config.project_id.clone(),
@@ -39,22 +43,40 @@ impl IntersectClient {
             end_date: end_date.to_string(),
             total_co2e_kg: 1234.56,
             by_service: vec![
-                ServiceBreakdown { service: "Compute Engine".into(), co2e_kg: 800.0 },
-                ServiceBreakdown { service: "Cloud Storage".into(), co2e_kg: 200.0 },
-                ServiceBreakdown { service: "BigQuery".into(), co2e_kg: 234.56 },
+                ServiceBreakdown {
+                    service: "Compute Engine".into(),
+                    co2e_kg: 800.0,
+                },
+                ServiceBreakdown {
+                    service: "Cloud Storage".into(),
+                    co2e_kg: 200.0,
+                },
+                ServiceBreakdown {
+                    service: "BigQuery".into(),
+                    co2e_kg: 234.56,
+                },
             ],
             by_region: vec![
-                RegionBreakdown { region: "us-central1".into(), co2e_kg: 900.0 },
-                RegionBreakdown { region: "europe-west1".into(), co2e_kg: 334.56 },
+                RegionBreakdown {
+                    region: "us-central1".into(),
+                    co2e_kg: 900.0,
+                },
+                RegionBreakdown {
+                    region: "europe-west1".into(),
+                    co2e_kg: 334.56,
+                },
             ],
         })
     }
-    
+
     /// Get best region for carbon-aware scheduling.
-    pub fn get_best_region(&self, candidate_regions: &[&str]) -> Result<RegionRecommendation, IntersectError> {
+    pub fn get_best_region(
+        &self,
+        candidate_regions: &[&str],
+    ) -> Result<RegionRecommendation, IntersectError> {
         // Would use Carbon Footprint API to find lowest carbon region
         let best = candidate_regions.first().unwrap_or(&"us-central1");
-        
+
         Ok(RegionRecommendation {
             recommended_region: best.to_string(),
             carbon_free_energy_percentage: 89.0,
@@ -62,9 +84,13 @@ impl IntersectClient {
             reason: "Highest Carbon Free Energy percentage".into(),
         })
     }
-    
+
     /// Get best time window for batch job.
-    pub fn get_best_time(&self, region: &str, window_hours: u32) -> Result<TimeRecommendation, IntersectError> {
+    pub fn get_best_time(
+        &self,
+        region: &str,
+        window_hours: u32,
+    ) -> Result<TimeRecommendation, IntersectError> {
         // Would analyze forecast to find lowest carbon window
         Ok(TimeRecommendation {
             region: region.to_string(),
@@ -74,7 +100,7 @@ impl IntersectClient {
             reason: "Lowest grid carbon intensity (night wind energy peak)".into(),
         })
     }
-    
+
     /// Report carbon savings.
     pub fn report_savings(&self, action: &str, saved_kg_co2e: f64) -> Result<(), IntersectError> {
         // Would log to Carbon Footprint dashboard
@@ -131,13 +157,13 @@ pub struct TimeRecommendation {
 pub enum IntersectError {
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Project not found")]
     ProjectNotFound,
-    
+
     #[error("Invalid credentials")]
     InvalidCredentials,
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }

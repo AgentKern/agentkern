@@ -3,28 +3,28 @@
 //! Generic trait for frontier AI models with cost controls
 //! Supports: Nova, Claude, GPT, Gemini, Llama, etc.
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use async_trait::async_trait;
 
 /// Frontier model trait - implement for each model family.
 #[async_trait]
 pub trait FrontierModel: Send + Sync {
     /// Model identifier.
     fn model_id(&self) -> &str;
-    
+
     /// Model family (nova, claude, gpt, gemini, llama).
     fn family(&self) -> ModelFamily;
-    
+
     /// Maximum context window (tokens).
     fn max_context(&self) -> usize;
-    
+
     /// Run inference.
     async fn infer(&self, request: &InferenceRequest) -> Result<ModelResponse, ModelError>;
-    
+
     /// Estimate cost before running.
     fn estimate_cost(&self, request: &InferenceRequest) -> CostEstimate;
-    
+
     /// Check if model supports feature.
     fn supports(&self, capability: ModelCapability) -> bool;
 }
@@ -236,22 +236,22 @@ pub struct CostEstimate {
 pub enum ModelError {
     #[error("Rate limited")]
     RateLimited,
-    
+
     #[error("Context too long: {0} tokens")]
     ContextTooLong(usize),
-    
+
     #[error("Content filtered")]
     ContentFiltered,
-    
+
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Cost limit exceeded")]
     CostLimitExceeded,
-    
+
     #[error("Capability not supported: {0:?}")]
     CapabilityNotSupported(ModelCapability),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }
@@ -291,7 +291,7 @@ mod tests {
             stop: vec![],
             response_format: None,
         };
-        
+
         assert!(request.system.is_some());
     }
 }

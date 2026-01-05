@@ -45,8 +45,7 @@ impl Agent {
     /// Generate a new Agent with a random Ed25519 keypair.
     #[napi(factory)]
     pub fn generate(name: String) -> Result<Agent> {
-        let inner = CoreAgent::generate(&name)
-            .map_err(|e| Error::from_reason(e.to_string()))?;
+        let inner = CoreAgent::generate(&name).map_err(|e| Error::from_reason(e.to_string()))?;
         Ok(Agent { inner })
     }
 
@@ -68,10 +67,11 @@ impl Agent {
     #[napi(factory)]
     pub fn from_seed(name: String, seed_base64: String) -> Result<Agent> {
         use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-        let seed = URL_SAFE_NO_PAD.decode(&seed_base64)
+        let seed = URL_SAFE_NO_PAD
+            .decode(&seed_base64)
             .map_err(|e| Error::from_reason(format!("Invalid base64: {}", e)))?;
-        let inner = CoreAgent::from_seed(&name, &seed)
-            .map_err(|e| Error::from_reason(e.to_string()))?;
+        let inner =
+            CoreAgent::from_seed(&name, &seed).map_err(|e| Error::from_reason(e.to_string()))?;
         Ok(Agent { inner })
     }
 
@@ -115,27 +115,35 @@ impl Agent {
     /// Create a Liability Proof for an action.
     #[napi]
     pub fn create_proof(&self, action: String) -> Result<LiabilityProof> {
-        let proof = self.inner.create_proof(&action)
+        let proof = self
+            .inner
+            .create_proof(&action)
             .map_err(|e| Error::from_reason(e.to_string()))?;
         Ok(LiabilityProof::from_core(proof))
     }
 
     /// Create a Liability Proof with custom expiry (seconds).
     #[napi]
-    pub fn create_proof_with_expiry(&self, action: String, expiry_seconds: i64) -> Result<LiabilityProof> {
-        let proof = self.inner.create_proof_with_options(
-            &action,
-            None,
-            Some(chrono::Duration::seconds(expiry_seconds)),
-        ).map_err(|e| Error::from_reason(e.to_string()))?;
+    pub fn create_proof_with_expiry(
+        &self,
+        action: String,
+        expiry_seconds: i64,
+    ) -> Result<LiabilityProof> {
+        let proof = self
+            .inner
+            .create_proof_with_options(
+                &action,
+                None,
+                Some(chrono::Duration::seconds(expiry_seconds)),
+            )
+            .map_err(|e| Error::from_reason(e.to_string()))?;
         Ok(LiabilityProof::from_core(proof))
     }
 
     /// Verify a Liability Proof (static method).
     #[napi]
     pub fn verify_proof(proof: LiabilityProof) -> Result<bool> {
-        CoreAgent::verify_proof(&proof.to_core())
-            .map_err(|e| Error::from_reason(e.to_string()))
+        CoreAgent::verify_proof(&proof.to_core()).map_err(|e| Error::from_reason(e.to_string()))
     }
 }
 
@@ -214,8 +222,8 @@ impl LiabilityProof {
 /// Parse a JWT string into a LiabilityProof.
 #[napi]
 pub fn parse_proof(jwt: String) -> Result<LiabilityProof> {
-    let proof = CoreLiabilityProof::from_jwt(&jwt)
-        .map_err(|e| Error::from_reason(e.to_string()))?;
+    let proof =
+        CoreLiabilityProof::from_jwt(&jwt).map_err(|e| Error::from_reason(e.to_string()))?;
     Ok(LiabilityProof::from_core(proof))
 }
 
@@ -265,7 +273,11 @@ pub fn create_a2a_request(from: String, to: String, payload: serde_json::Value) 
 
 /// Create an A2A notification message.
 #[napi]
-pub fn create_a2a_notification(from: String, to: String, payload: serde_json::Value) -> Result<String> {
+pub fn create_a2a_notification(
+    from: String,
+    to: String,
+    payload: serde_json::Value,
+) -> Result<String> {
     let msg = CoreA2AMessage::notification(&from, &to, payload);
     msg.to_json().map_err(|e| Error::from_reason(e.to_string()))
 }
@@ -273,7 +285,6 @@ pub fn create_a2a_notification(from: String, to: String, payload: serde_json::Va
 /// Parse an A2A message from JSON.
 #[napi]
 pub fn parse_a2a_message(json: String) -> Result<serde_json::Value> {
-    let msg = CoreA2AMessage::from_json(&json)
-        .map_err(|e| Error::from_reason(e.to_string()))?;
+    let msg = CoreA2AMessage::from_json(&json).map_err(|e| Error::from_reason(e.to_string()))?;
     serde_json::to_value(&msg).map_err(|e| Error::from_reason(e.to_string()))
 }

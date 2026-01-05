@@ -3,33 +3,33 @@
 //! Generic trait for microVM technologies
 //! Supports: Firecracker, gVisor, Kata Containers
 
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 /// MicroVM driver trait - implement for each VM technology.
 #[async_trait]
 pub trait MicroVmDriver: Send + Sync {
     /// Driver name.
     fn name(&self) -> &str;
-    
+
     /// VM technology type.
     fn vm_type(&self) -> VmType;
-    
+
     /// Create a new VM instance.
     async fn create(&self, config: &VmConfig) -> Result<VmInstance, VmError>;
-    
+
     /// Start a VM.
     async fn start(&self, instance_id: &str) -> Result<(), VmError>;
-    
+
     /// Stop a VM.
     async fn stop(&self, instance_id: &str) -> Result<(), VmError>;
-    
+
     /// Destroy a VM.
     async fn destroy(&self, instance_id: &str) -> Result<(), VmError>;
-    
+
     /// Get VM state.
     async fn state(&self, instance_id: &str) -> Result<VmState, VmError>;
-    
+
     /// Execute command in VM.
     async fn exec(&self, instance_id: &str, command: &[String]) -> Result<ExecResult, VmError>;
 }
@@ -136,22 +136,22 @@ pub struct ExecResult {
 pub enum VmError {
     #[error("VM not found: {0}")]
     NotFound(String),
-    
+
     #[error("Already exists: {0}")]
     AlreadyExists(String),
-    
+
     #[error("Invalid state: expected {expected:?}, got {actual:?}")]
     InvalidState { expected: VmState, actual: VmState },
-    
+
     #[error("Resource exhausted: {0}")]
     ResourceExhausted(String),
-    
+
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
-    
+
     #[error("Timeout")]
     Timeout,
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }

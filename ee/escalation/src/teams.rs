@@ -26,13 +26,13 @@ impl TeamsIntegration {
         agentkern_connectors_ee::license::check_feature_license("teams")?;
         Ok(Self { config })
     }
-    
+
     /// Send escalation via Adaptive Card.
     pub fn send_escalation(&self, alert: &TeamsAlert) -> Result<(), TeamsError> {
         let card = self.build_adaptive_card(alert);
         self.post_card(&card)
     }
-    
+
     /// Send simple message.
     pub fn send_message(&self, text: &str) -> Result<(), TeamsError> {
         let payload = serde_json::json!({
@@ -40,7 +40,7 @@ impl TeamsIntegration {
         });
         self.post_webhook(&payload)
     }
-    
+
     fn build_adaptive_card(&self, alert: &TeamsAlert) -> AdaptiveCard {
         AdaptiveCard {
             card_type: "AdaptiveCard".into(),
@@ -75,12 +75,15 @@ impl TeamsIntegration {
                 },
                 CardAction::ActionOpenUrl {
                     title: "View Details".into(),
-                    url: format!("https://dashboard.agentkern.com/escalations/{}", alert.request_id),
+                    url: format!(
+                        "https://dashboard.agentkern.com/escalations/{}",
+                        alert.request_id
+                    ),
                 },
             ],
         }
     }
-    
+
     fn post_card(&self, card: &AdaptiveCard) -> Result<(), TeamsError> {
         let payload = serde_json::json!({
             "type": "message",
@@ -91,7 +94,7 @@ impl TeamsIntegration {
         });
         self.post_webhook(&payload)
     }
-    
+
     fn post_webhook(&self, payload: &serde_json::Value) -> Result<(), TeamsError> {
         // Would use reqwest to POST to webhook_url
         Ok(())
@@ -121,15 +124,27 @@ pub struct AdaptiveCard {
 /// Card element.
 #[derive(Debug, Clone, Serialize)]
 pub enum CardElement {
-    TextBlock { text: String, size: String, weight: String },
-    FactSet { facts: Vec<(&'static str, String)> },
+    TextBlock {
+        text: String,
+        size: String,
+        weight: String,
+    },
+    FactSet {
+        facts: Vec<(&'static str, String)>,
+    },
 }
 
 /// Card action.
 #[derive(Debug, Clone, Serialize)]
 pub enum CardAction {
-    ActionSubmit { title: String, data: serde_json::Value },
-    ActionOpenUrl { title: String, url: String },
+    ActionSubmit {
+        title: String,
+        data: serde_json::Value,
+    },
+    ActionOpenUrl {
+        title: String,
+        url: String,
+    },
 }
 
 /// Teams errors.
@@ -137,10 +152,10 @@ pub enum CardAction {
 pub enum TeamsError {
     #[error("Webhook error: {0}")]
     WebhookError(String),
-    
+
     #[error("Card build error: {0}")]
     CardError(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }

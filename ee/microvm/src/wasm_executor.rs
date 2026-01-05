@@ -2,8 +2,8 @@
 //!
 //! Execute WASM modules inside microVMs for verified isolation
 
-use serde::{Deserialize, Serialize};
 use super::driver::{MicroVmDriver, VmConfig, VmError};
+use serde::{Deserialize, Serialize};
 
 /// WASM-in-VM executor.
 pub struct WasmInVm<D: MicroVmDriver> {
@@ -64,9 +64,9 @@ pub struct WasmModule {
 impl WasmModule {
     /// Create new module from bytes.
     pub fn new(bytes: Vec<u8>, entry_point: &str) -> Self {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let hash = hex::encode(Sha256::digest(&bytes));
-        
+
         Self {
             hash,
             bytes,
@@ -74,12 +74,12 @@ impl WasmModule {
             entry_point: entry_point.to_string(),
         }
     }
-    
+
     /// Sign module.
     pub fn sign(&mut self, signature: String) {
         self.signature = Some(signature);
     }
-    
+
     /// Verify signature.
     pub fn verify(&self, public_key: &[u8]) -> bool {
         // Would verify Ed25519 signature
@@ -110,35 +110,51 @@ impl<D: MicroVmDriver> WasmInVm<D> {
         agentkern_connectors_ee::license::check_feature_license("microvm")?;
         Ok(Self { driver, config })
     }
-    
+
     /// Execute WASM module in isolated VM.
-    pub async fn execute(&self, module: &WasmModule, args: &[String]) -> Result<ExecutionResult, WasmExecutionError> {
+    pub async fn execute(
+        &self,
+        module: &WasmModule,
+        args: &[String],
+    ) -> Result<ExecutionResult, WasmExecutionError> {
         // 1. Verify module if required
         if self.config.verify_modules && module.signature.is_none() {
             return Err(WasmExecutionError::ModuleNotSigned);
         }
-        
+
         // 2. Create VM
-        let vm = self.driver.create(&self.config.vm).await
+        let vm = self
+            .driver
+            .create(&self.config.vm)
+            .await
             .map_err(|e| WasmExecutionError::VmError(e))?;
-        
+
         // 3. Start VM
-        self.driver.start(&vm.id).await
+        self.driver
+            .start(&vm.id)
+            .await
             .map_err(|e| WasmExecutionError::VmError(e))?;
-        
+
         // 4. Execute WASM
         // In production: copy module to VM, run wasmtime
-        let exec_result = self.driver.exec(&vm.id, &[
-            "wasmtime".to_string(),
-            "run".to_string(),
-            "--invoke".to_string(),
-            module.entry_point.clone(),
-            "/tmp/module.wasm".to_string(),
-        ]).await.map_err(|e| WasmExecutionError::VmError(e))?;
-        
+        let exec_result = self
+            .driver
+            .exec(
+                &vm.id,
+                &[
+                    "wasmtime".to_string(),
+                    "run".to_string(),
+                    "--invoke".to_string(),
+                    module.entry_point.clone(),
+                    "/tmp/module.wasm".to_string(),
+                ],
+            )
+            .await
+            .map_err(|e| WasmExecutionError::VmError(e))?;
+
         // 5. Destroy VM (stateless)
         let _ = self.driver.destroy(&vm.id).await;
-        
+
         Ok(ExecutionResult {
             module_hash: module.hash.clone(),
             exit_code: exec_result.exit_code,
@@ -155,13 +171,13 @@ impl<D: MicroVmDriver> WasmInVm<D> {
 pub enum WasmExecutionError {
     #[error("Module not signed")]
     ModuleNotSigned,
-    
+
     #[error("Signature verification failed")]
     SignatureInvalid,
-    
+
     #[error("VM error: {0}")]
     VmError(VmError),
-    
+
     #[error("Execution timeout")]
     Timeout,
 }
@@ -178,7 +194,7 @@ mod tests {
     fn test_wasm_module_create() {
         let bytes = vec![0x00, 0x61, 0x73, 0x6d]; // WASM magic
         let module = WasmModule::new(bytes, "main");
-        
+
         assert!(!module.hash.is_empty());
         assert_eq!(module.entry_point, "main");
     }
@@ -187,7 +203,7 @@ mod tests {
     fn test_wasm_module_sign() {
         let mut module = WasmModule::new(vec![0x00], "main");
         assert!(module.signature.is_none());
-        
+
         module.sign("test_signature".into());
         assert!(module.signature.is_some());
     }

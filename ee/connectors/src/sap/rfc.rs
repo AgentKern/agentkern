@@ -21,13 +21,13 @@ impl RfcConnection {
             connection_id: uuid::Uuid::new_v4().to_string(),
         })
     }
-    
+
     /// Execute RFC function.
     pub fn execute(&self, function: &str, params: &[(&str, &str)]) -> Result<RfcResult, SapError> {
         if !self.connected {
             return Err(SapError::NotConnected);
         }
-        
+
         // Production would call SAP RFC SDK
         Ok(RfcResult {
             function: function.to_string(),
@@ -36,7 +36,7 @@ impl RfcConnection {
             tables: vec![],
         })
     }
-    
+
     /// Get function metadata.
     pub fn get_function_interface(&self, function: &str) -> Result<FunctionInterface, SapError> {
         // Production would call RFC_GET_FUNCTION_INTERFACE
@@ -47,12 +47,12 @@ impl RfcConnection {
             tables: vec![],
         })
     }
-    
+
     /// Check if connected.
     pub fn is_connected(&self) -> bool {
         self.connected
     }
-    
+
     /// Get connection ID.
     pub fn connection_id(&self) -> &str {
         &self.connection_id

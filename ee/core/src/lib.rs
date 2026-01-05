@@ -4,9 +4,4 @@
 
 pub mod connection;
 
-pub use connection::{
-    ConnectionMode, 
-    ConnectionStatus, 
-    GracefulService, 
-    GracefulResult
-};
+pub use connection::{ConnectionMode, ConnectionStatus, GracefulResult, GracefulService};

@@ -635,6 +635,10 @@ mod tests {
         let result = guard.analyze("This is a normal prompt that should be processed quickly");
 
         // Should complete in under 10ms (accounting for CI runner variance)
-        assert!(result.latency_us < 10_000, "Latency was {}us", result.latency_us);
+        assert!(
+            result.latency_us < 10_000,
+            "Latency was {}us",
+            result.latency_us
+        );
     }
 }

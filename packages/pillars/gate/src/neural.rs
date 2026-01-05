@@ -562,7 +562,7 @@ impl InferenceSession {
         // Analyze token patterns to detect intent
         // Token IDs are from BPE vocabulary - approximate mappings
         let input_sum: f32 = input.iter().sum();
-        
+
         // Default probabilities
         let mut safe = 0.6;
         let mut suspicious = 0.1;
@@ -574,7 +574,7 @@ impl InferenceSession {
         // Keyword detection based on token patterns
         // These are heuristics for the mock - real models do proper classification
         let token_count = input.iter().filter(|&&x| x > 0.0).count();
-        
+
         // Check for dangerous patterns via token distribution
         // Higher sum with fewer tokens = more "dangerous" words in vocabulary
         let _avg_token = if token_count > 0 {
@@ -595,13 +595,13 @@ impl InferenceSession {
             (4700..4800).contains(&tid) || // admin range
             (13000..14000).contains(&tid) || // transfer range
             (16000..17000).contains(&tid) || // execute range
-            (31900..32000).contains(&tid)    // sudo range
+            (31900..32000).contains(&tid) // sudo range
         });
 
         let has_financial_tokens = input.iter().any(|&t| {
             let tid = t as i64;
             (13000..14000).contains(&tid) || // transfer
-            (76000..77000).contains(&tid)    // money/payment range
+            (76000..77000).contains(&tid) // money/payment range
         });
 
         if has_dangerous_tokens {
@@ -618,7 +618,7 @@ impl InferenceSession {
 
         // Normalize to sum to 1.0
         let total = safe + suspicious + malicious + financial + data_access + system_op;
-        
+
         Ok(vec![
             safe / total,
             suspicious / total,

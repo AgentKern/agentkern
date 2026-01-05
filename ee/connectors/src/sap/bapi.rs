@@ -2,7 +2,7 @@
 //!
 //! Business Application Programming Interface for SAP
 
-use super::{RfcConnection, SapError, BapiResult, BapiReturn};
+use super::{BapiResult, BapiReturn, RfcConnection, SapError};
 use std::collections::HashMap;
 
 /// BAPI caller wrapping RFC connection.
@@ -15,13 +15,17 @@ impl<'a> BapiCaller<'a> {
     pub fn new(rfc: &'a RfcConnection) -> Self {
         Self { rfc }
     }
-    
+
     /// Call a BAPI function.
-    pub fn call(&self, bapi_name: &str, params: HashMap<String, serde_json::Value>) -> Result<BapiResult, SapError> {
+    pub fn call(
+        &self,
+        bapi_name: &str,
+        params: HashMap<String, serde_json::Value>,
+    ) -> Result<BapiResult, SapError> {
         if !self.rfc.is_connected() {
             return Err(SapError::NotConnected);
         }
-        
+
         // Production would call RFC with BAPI parameters
         Ok(BapiResult {
             success: true,
@@ -35,7 +39,7 @@ impl<'a> BapiCaller<'a> {
             tables: HashMap::new(),
         })
     }
-    
+
     /// Get BAPI list for object.
     pub fn get_bapi_list(&self, object_type: &str) -> Result<Vec<BapiInfo>, SapError> {
         // Would call BAPI_OBJECT_GET_BAPI_LIST
@@ -54,13 +58,13 @@ impl<'a> BapiCaller<'a> {
             },
         ])
     }
-    
+
     /// Commit BAPI transaction.
     pub fn commit(&self) -> Result<(), SapError> {
         // Would call BAPI_TRANSACTION_COMMIT
         Ok(())
     }
-    
+
     /// Rollback BAPI transaction.
     pub fn rollback(&self) -> Result<(), SapError> {
         // Would call BAPI_TRANSACTION_ROLLBACK

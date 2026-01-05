@@ -28,25 +28,43 @@ impl SlackIntegration {
         agentkern_connectors_ee::license::check_feature_license("slack")?;
         Ok(Self { config })
     }
-    
+
     /// Send escalation alert with Block Kit.
-    pub fn send_escalation(&self, escalation: &EscalationAlert) -> Result<SlackResponse, SlackError> {
+    pub fn send_escalation(
+        &self,
+        escalation: &EscalationAlert,
+    ) -> Result<SlackResponse, SlackError> {
         let blocks = self.build_escalation_blocks(escalation);
-        self.post_message(&escalation.channel.clone().unwrap_or(self.config.default_channel.clone()), &blocks)
+        self.post_message(
+            &escalation
+                .channel
+                .clone()
+                .unwrap_or(self.config.default_channel.clone()),
+            &blocks,
+        )
     }
-    
+
     /// Open approval modal.
-    pub fn open_approval_modal(&self, trigger_id: &str, request: &ApprovalRequest) -> Result<(), SlackError> {
+    pub fn open_approval_modal(
+        &self,
+        trigger_id: &str,
+        request: &ApprovalRequest,
+    ) -> Result<(), SlackError> {
         let view = self.build_approval_modal(request);
         self.open_view(trigger_id, &view)
     }
-    
+
     /// Update message with approval result.
-    pub fn update_approval(&self, channel: &str, ts: &str, result: &ApprovalResult) -> Result<(), SlackError> {
+    pub fn update_approval(
+        &self,
+        channel: &str,
+        ts: &str,
+        result: &ApprovalResult,
+    ) -> Result<(), SlackError> {
         let blocks = self.build_result_blocks(result);
         self.update_message(channel, ts, &blocks)
     }
-    
+
     fn build_escalation_blocks(&self, escalation: &EscalationAlert) -> Vec<SlackBlock> {
         vec![
             SlackBlock::Header {
@@ -81,7 +99,7 @@ impl SlackIntegration {
             },
         ]
     }
-    
+
     fn build_approval_modal(&self, request: &ApprovalRequest) -> SlackView {
         SlackView {
             view_type: "modal".into(),
@@ -91,20 +109,27 @@ impl SlackIntegration {
             blocks: vec![],
         }
     }
-    
+
     fn build_result_blocks(&self, result: &ApprovalResult) -> Vec<SlackBlock> {
-        vec![
-            SlackBlock::Section {
-                text: format!("Request {} by {}", 
-                    if result.approved { "approved" } else { "rejected" },
-                    result.approver
-                ),
-                fields: vec![],
-            },
-        ]
+        vec![SlackBlock::Section {
+            text: format!(
+                "Request {} by {}",
+                if result.approved {
+                    "approved"
+                } else {
+                    "rejected"
+                },
+                result.approver
+            ),
+            fields: vec![],
+        }]
     }
-    
-    fn post_message(&self, channel: &str, blocks: &[SlackBlock]) -> Result<SlackResponse, SlackError> {
+
+    fn post_message(
+        &self,
+        channel: &str,
+        blocks: &[SlackBlock],
+    ) -> Result<SlackResponse, SlackError> {
         // Would use Slack Web API
         Ok(SlackResponse {
             ok: true,
@@ -112,13 +137,18 @@ impl SlackIntegration {
             channel: channel.to_string(),
         })
     }
-    
+
     fn open_view(&self, trigger_id: &str, view: &SlackView) -> Result<(), SlackError> {
         // Would use views.open API
         Ok(())
     }
-    
-    fn update_message(&self, channel: &str, ts: &str, blocks: &[SlackBlock]) -> Result<(), SlackError> {
+
+    fn update_message(
+        &self,
+        channel: &str,
+        ts: &str,
+        blocks: &[SlackBlock],
+    ) -> Result<(), SlackError> {
         // Would use chat.update API
         Ok(())
     }
@@ -183,16 +213,27 @@ pub struct SlackResponse {
 /// Slack Block Kit block.
 #[derive(Debug, Clone, Serialize)]
 pub enum SlackBlock {
-    Header { text: String },
-    Section { text: String, fields: Vec<(&'static str, String)> },
-    Actions { elements: Vec<SlackElement> },
+    Header {
+        text: String,
+    },
+    Section {
+        text: String,
+        fields: Vec<(&'static str, String)>,
+    },
+    Actions {
+        elements: Vec<SlackElement>,
+    },
     Divider,
 }
 
 /// Slack Block Kit element.
 #[derive(Debug, Clone, Serialize)]
 pub enum SlackElement {
-    Button { text: String, action_id: String, style: Option<String> },
+    Button {
+        text: String,
+        action_id: String,
+        style: Option<String>,
+    },
 }
 
 /// Slack view (modal).
@@ -210,13 +251,13 @@ pub struct SlackView {
 pub enum SlackError {
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Invalid token")]
     InvalidToken,
-    
+
     #[error("Channel not found: {0}")]
     ChannelNotFound(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] agentkern_connectors_ee::license::LicenseError),
 }

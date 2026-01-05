@@ -78,8 +78,7 @@ impl LiabilityProof {
 
     /// Get expiration timestamp.
     pub fn expires_at(&self) -> chrono::DateTime<chrono::Utc> {
-        chrono::DateTime::from_timestamp(self.claims.exp, 0)
-            .unwrap_or_else(chrono::Utc::now)
+        chrono::DateTime::from_timestamp(self.claims.exp, 0).unwrap_or_else(chrono::Utc::now)
     }
 
     /// Get the unique proof ID.
@@ -139,7 +138,7 @@ impl ProofClaims {
         if self.action == action {
             return true;
         }
-        
+
         // Wildcard match (e.g., "payment:*" matches "payment:transfer")
         if self.action.ends_with(":*") {
             let prefix = &self.action[..self.action.len() - 1];
@@ -147,7 +146,7 @@ impl ProofClaims {
                 return true;
             }
         }
-        
+
         // Check scopes
         self.scope.iter().any(|s| s == action || s == "*")
     }
@@ -160,13 +159,13 @@ mod tests {
     #[test]
     fn test_proof_from_jwt() {
         use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-        
+
         let header = ProofHeader {
             alg: "EdDSA".to_string(),
             typ: "LIABILITY+jwt".to_string(),
             kid: "test-key".to_string(),
         };
-        
+
         let claims = ProofClaims {
             iss: "did:key:zTest".to_string(),
             sub: "did:key:zTest".to_string(),
@@ -177,14 +176,14 @@ mod tests {
             action: "test:action".to_string(),
             scope: vec![],
         };
-        
+
         let header_b64 = URL_SAFE_NO_PAD.encode(serde_json::to_string(&header).unwrap());
         let claims_b64 = URL_SAFE_NO_PAD.encode(serde_json::to_string(&claims).unwrap());
         let sig_b64 = URL_SAFE_NO_PAD.encode(vec![0u8; 64]);
-        
+
         let jwt = format!("{}.{}.{}", header_b64, claims_b64, sig_b64);
         let proof = LiabilityProof::from_jwt(&jwt).unwrap();
-        
+
         assert_eq!(proof.issuer(), "did:key:zTest");
         assert_eq!(proof.action(), "test:action");
     }
@@ -201,7 +200,7 @@ mod tests {
             action: "payment:transfer".into(),
             scope: vec![],
         };
-        
+
         assert!(claims.authorizes("payment:transfer"));
         assert!(!claims.authorizes("payment:withdraw"));
     }
@@ -218,7 +217,7 @@ mod tests {
             action: "payment:*".into(),
             scope: vec![],
         };
-        
+
         assert!(claims.authorizes("payment:transfer"));
         assert!(claims.authorizes("payment:withdraw"));
         assert!(!claims.authorizes("data:read"));
@@ -236,14 +235,14 @@ mod tests {
             action: "test".into(),
             scope: vec![],
         };
-        
+
         let proof = LiabilityProof {
             header: ProofHeader::default(),
             claims: claims.clone(),
             signature: String::new(),
             raw: String::new(),
         };
-        
+
         assert!(!proof.is_expired());
     }
 }

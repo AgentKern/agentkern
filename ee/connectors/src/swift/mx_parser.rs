@@ -12,12 +12,12 @@ impl MxParser {
     pub fn new() -> Self {
         Self
     }
-    
+
     /// Parse ISO 20022 XML message.
     pub fn parse(&self, xml: &str) -> Result<MxMessage, SwiftError> {
         // Production would use serde_xml or quick-xml
         let message_type = self.detect_message_type(xml)?;
-        
+
         Ok(MxMessage {
             message_type,
             document_id: uuid::Uuid::new_v4().to_string(),
@@ -25,7 +25,7 @@ impl MxParser {
             content: serde_json::json!({ "raw": xml.len() }),
         })
     }
-    
+
     /// Detect message type from XML.
     fn detect_message_type(&self, xml: &str) -> Result<String, SwiftError> {
         if xml.contains("pacs.008") || xml.contains("FIToFICstmrCdtTrf") {
@@ -40,10 +40,11 @@ impl MxParser {
             Err(SwiftError::ParseError("Unknown message type".into()))
         }
     }
-    
+
     /// Create pacs.008 FI to FI Customer Credit Transfer.
     pub fn create_pacs008(&self, payment: &PaymentInstruction) -> Result<String, SwiftError> {
-        let xml = format!(r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
     <FIToFICstmrCdtTrf>
         <GrpHdr>
@@ -96,16 +97,19 @@ impl MxParser {
             payment.creditor_name,
             payment.creditor_account
         );
-        
+
         Ok(xml)
     }
-    
+
     /// Create pain.001 Customer Credit Transfer Initiation.
     pub fn create_pain001(&self, payment: &PaymentInstruction) -> Result<String, SwiftError> {
         // Similar structure to pacs.008 but for customer-to-bank
-        Ok(format!("<?xml version=\"1.0\"?><pain.001>{}</pain.001>", payment.message_id))
+        Ok(format!(
+            "<?xml version=\"1.0\"?><pain.001>{}</pain.001>",
+            payment.message_id
+        ))
     }
-    
+
     /// Validate message against schema.
     pub fn validate(&self, xml: &str, schema: &str) -> Result<bool, SwiftError> {
         // Production would use XML schema validation
@@ -146,7 +150,7 @@ mod tests {
             currency: "EUR".into(),
             remittance_info: None,
         };
-        
+
         let xml = parser.create_pacs008(&payment).unwrap();
         assert!(xml.contains("FIToFICstmrCdtTrf"));
         assert!(xml.contains("1000.00"));

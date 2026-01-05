@@ -536,8 +536,9 @@ pub async fn nexus_route_task(task_json: String) -> String {
                             if let Some(obj) = value.as_object_mut() {
                                 obj.insert("matchScore".to_string(), serde_json::json!(0.95));
                             }
-                            serde_json::to_string(&value)
-                                .unwrap_or_else(|_| "{\"error\": \"serialization_failed\"}".to_string())
+                            serde_json::to_string(&value).unwrap_or_else(|_| {
+                                "{\"error\": \"serialization_failed\"}".to_string()
+                            })
                         }
                         Err(_) => "{\"error\": \"serialization_failed\"}".to_string(),
                     }

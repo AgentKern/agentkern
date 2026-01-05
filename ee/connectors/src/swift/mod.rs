@@ -3,16 +3,16 @@
 //! Full SWIFT integration: MX (ISO 20022), GPI Tracking, Sanctions
 //! Per LICENSING.md: Banking tier ($80K+ deals)
 
-mod mx_parser;
 mod gpi;
+mod mx_parser;
 mod sanctions;
 
+use super::license::{LicenseError, check_feature_license};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::license::{check_feature_license, LicenseError};
 
-pub use mx_parser::MxParser;
 pub use gpi::GpiTracker;
+pub use mx_parser::MxParser;
 pub use sanctions::SanctionsScreener;
 
 /// SWIFT connector configuration.
@@ -54,13 +54,13 @@ impl SwiftConnector {
     /// Create new SWIFT connector (requires license).
     pub fn new(config: SwiftConfig) -> Result<Self, LicenseError> {
         check_feature_license("swift")?;
-        
+
         let gpi_tracker = if config.gpi_enabled {
             Some(GpiTracker::new(&config)?)
         } else {
             None
         };
-        
+
         Ok(Self {
             sanctions: SanctionsScreener::new(&config.sanctions_sources),
             mx_parser: MxParser::new(),
@@ -68,40 +68,42 @@ impl SwiftConnector {
             config,
         })
     }
-    
+
     /// Parse MX (ISO 20022) message.
     pub fn parse_mx(&self, xml: &str) -> Result<MxMessage, SwiftError> {
         self.mx_parser.parse(xml)
     }
-    
+
     /// Create payment initiation (pacs.008).
     pub fn create_payment(&self, payment: PaymentInstruction) -> Result<String, SwiftError> {
         // Check sanctions first
         self.screen_payment(&payment)?;
-        
+
         // Create ISO 20022 pacs.008 message
         self.mx_parser.create_pacs008(&payment)
     }
-    
+
     /// Screen payment against sanctions lists.
-    pub fn screen_payment(&self, payment: &PaymentInstruction) -> Result<SanctionsResult, SwiftError> {
-        self.sanctions.screen(&payment.debtor_name, &payment.creditor_name)
+    pub fn screen_payment(
+        &self,
+        payment: &PaymentInstruction,
+    ) -> Result<SanctionsResult, SwiftError> {
+        self.sanctions
+            .screen(&payment.debtor_name, &payment.creditor_name)
     }
-    
+
     /// Track GPI payment.
     pub fn track_payment(&self, uetr: &str) -> Result<GpiStatus, SwiftError> {
-        let tracker = self.gpi_tracker.as_ref()
-            .ok_or(SwiftError::GpiNotEnabled)?;
+        let tracker = self.gpi_tracker.as_ref().ok_or(SwiftError::GpiNotEnabled)?;
         tracker.track(uetr)
     }
-    
+
     /// Get GPI confirmations.
     pub fn get_confirmations(&self, uetr: &str) -> Result<Vec<GpiConfirmation>, SwiftError> {
-        let tracker = self.gpi_tracker.as_ref()
-            .ok_or(SwiftError::GpiNotEnabled)?;
+        let tracker = self.gpi_tracker.as_ref().ok_or(SwiftError::GpiNotEnabled)?;
         tracker.get_confirmations(uetr)
     }
-    
+
     /// Health check.
     pub fn health_check(&self) -> SwiftHealth {
         SwiftHealth {
@@ -183,16 +185,16 @@ pub struct SwiftHealth {
 pub enum SwiftError {
     #[error("GPI tracking not enabled")]
     GpiNotEnabled,
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("Sanctions hit: {0}")]
     SanctionsHit(String),
-    
+
     #[error("Network error: {0}")]
     NetworkError(String),
-    
+
     #[error("License error: {0}")]
     LicenseError(#[from] LicenseError),
 }
@@ -227,7 +229,7 @@ mod tests {
             currency: "EUR".into(),
             remittance_info: Some("Invoice 123".into()),
         };
-        
+
         assert_eq!(payment.currency, "EUR");
     }
 }

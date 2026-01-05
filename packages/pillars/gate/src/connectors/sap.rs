@@ -219,7 +219,8 @@ impl SapRfcConnector {
 
         // Placeholder until SAP NW RFC SDK is linked
         Err(ConnectorError::NotSupported(
-            "SAP NW RFC SDK not linked. Set SAP_RFC_SDK_PATH and rebuild with 'sap-rfc' feature.".into()
+            "SAP NW RFC SDK not linked. Set SAP_RFC_SDK_PATH and rebuild with 'sap-rfc' feature."
+                .into(),
         ))
     }
 
@@ -247,39 +248,48 @@ impl SapRfcConnector {
 
         // Generate appropriate simulated response based on function name
         let (export_params, tables) = match function_name {
-            "RFC_PING" => {
-                (HashMap::new(), HashMap::new())
-            }
+            "RFC_PING" => (HashMap::new(), HashMap::new()),
             "BAPI_USER_GET_DETAIL" => {
                 let mut export = HashMap::new();
-                export.insert("ADDRESS".to_string(), serde_json::json!({
-                    "FIRSTNAME": "Test",
-                    "LASTNAME": "User",
-                    "E_MAIL": "test@example.com"
-                }));
+                export.insert(
+                    "ADDRESS".to_string(),
+                    serde_json::json!({
+                        "FIRSTNAME": "Test",
+                        "LASTNAME": "User",
+                        "E_MAIL": "test@example.com"
+                    }),
+                );
                 (export, HashMap::new())
             }
             "BAPI_TRANSACTION_COMMIT" => {
                 let mut export = HashMap::new();
-                export.insert("RETURN".to_string(), serde_json::json!({
-                    "TYPE": "S",
-                    "MESSAGE": "Transaction committed"
-                }));
+                export.insert(
+                    "RETURN".to_string(),
+                    serde_json::json!({
+                        "TYPE": "S",
+                        "MESSAGE": "Transaction committed"
+                    }),
+                );
                 (export, HashMap::new())
             }
             "BAPI_MATERIAL_GET_ALL" => {
                 let mut tables = HashMap::new();
-                tables.insert("MATERIALLIST".to_string(), serde_json::json!([
-                    {"MATERIAL": "MAT001", "DESCRIPTION": "Test Material 1"},
-                    {"MATERIAL": "MAT002", "DESCRIPTION": "Test Material 2"}
-                ]));
+                tables.insert(
+                    "MATERIALLIST".to_string(),
+                    serde_json::json!([
+                        {"MATERIAL": "MAT001", "DESCRIPTION": "Test Material 1"},
+                        {"MATERIAL": "MAT002", "DESCRIPTION": "Test Material 2"}
+                    ]),
+                );
                 (HashMap::new(), tables)
             }
             _ => {
                 let mut export = HashMap::new();
                 export.insert("RFC_RC".to_string(), serde_json::json!(0));
-                export.insert("RFC_MESSAGE".to_string(), 
-                    serde_json::json!(format!("Simulated response for {}", function_name)));
+                export.insert(
+                    "RFC_MESSAGE".to_string(),
+                    serde_json::json!(format!("Simulated response for {}", function_name)),
+                );
                 (export, HashMap::new())
             }
         };
@@ -343,7 +353,7 @@ impl SapRfcConnector {
         // 4. Return IDOC number
 
         Err(ConnectorError::NotSupported(
-            "SAP NW RFC SDK not linked for IDOC processing.".into()
+            "SAP NW RFC SDK not linked for IDOC processing.".into(),
         ))
     }
 
@@ -472,13 +482,13 @@ impl LegacyConnector for SapRfcConnector {
     }
 
     async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage> {
-        let import_params: HashMap<String, serde_json::Value> = 
+        let import_params: HashMap<String, serde_json::Value> =
             serde_json::from_slice(&msg.data).unwrap_or_default();
-        
+
         let result = self.call_rfc(&msg.message_type, import_params).await?;
 
-        let data = serde_json::to_vec(&result)
-            .map_err(|e| ConnectorError::Internal(e.to_string()))?;
+        let data =
+            serde_json::to_vec(&result).map_err(|e| ConnectorError::Internal(e.to_string()))?;
 
         Ok(LegacyMessage {
             data,
@@ -623,7 +633,9 @@ mod tests {
             "TEST_USER".to_string(),
         );
 
-        let result = connector.call_rfc("BAPI_USER_GET_DETAIL", HashMap::new()).await;
+        let result = connector
+            .call_rfc("BAPI_USER_GET_DETAIL", HashMap::new())
+            .await;
         assert!(result.is_ok());
 
         let response = result.unwrap();

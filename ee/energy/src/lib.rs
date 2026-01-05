@@ -5,12 +5,11 @@
 //!
 //! Graceful Degradation: Works with credentials, demo mode without
 
+pub mod demo;
 pub mod grid;
 pub mod intersect;
-pub mod demo;
 
 // Re-exports
-pub use grid::{GridApi, CarbonIntensityFeed, RegionData};
-pub use intersect::{IntersectClient, IntersectConfig};
 pub use demo::{DemoGridApi, GridFactory};
-
+pub use grid::{CarbonIntensityFeed, GridApi, RegionData};
+pub use intersect::{IntersectClient, IntersectConfig};

@@ -298,11 +298,7 @@ fn test_neural_fallback() {
 fn test_batch_classification() {
     let guard = NeuralGuard::new().expect("Failed to create NeuralGuard");
 
-    let batch = vec![
-        "read file contents",
-        "check balance",
-        "send notification",
-    ];
+    let batch = vec!["read file contents", "check balance", "send notification"];
 
     let results = guard
         .batch_classify(&batch)
