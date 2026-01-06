@@ -36,7 +36,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: cargo-audit.sarif
-        continue-on-error: true
 
   # =========================================================================
   # SAST with Semgrep
@@ -55,7 +54,6 @@ jobs:
             p/security-audit
             p/secrets
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-        continue-on-error: true
 
   # =========================================================================
   # Secret Scanning
@@ -74,7 +72,6 @@ jobs:
           path: ./
           # Scan commit range on PRs only, use max-depth for push events
           extra_args: --only-verified ${{ github.event_name == 'pull_request' && format('--since-commit={0}', github.event.pull_request.base.sha) || '--max-depth=50' }}
-        continue-on-error: true
 
   # =========================================================================
   # Rust Tests with Coverage
@@ -129,8 +126,6 @@ jobs:
         
       - name: Run audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true
         
       - name: Run ESLint security
         run: pnpm lint
-        continue-on-error: true

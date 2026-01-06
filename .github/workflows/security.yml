@@ -198,7 +198,6 @@ jobs:
       
       - name: Audit Rust workspace dependencies
         run: cargo audit --ignore RUSTSEC-2026-0001
-        continue-on-error: true
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -216,7 +215,6 @@ jobs:
       - name: Audit npm dependencies
         working-directory: apps/identity
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
   # ============================================
   # SAST - Semgrep Static Analysis
@@ -283,11 +281,9 @@ jobs:
       
       - name: Install cargo-deny
         run: cargo install cargo-deny
-        continue-on-error: true
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
-        continue-on-error: true
 
   # ============================================
   # Code Quality Analysis (SonarQube)
@@ -317,8 +313,7 @@ jobs:
       
       - name: Run TypeScript tests with coverage
         working-directory: apps/identity
-        run: pnpm test:cov || true
-        continue-on-error: true
+        run: pnpm test:cov
       
       - name: SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v3
@@ -332,7 +327,6 @@ jobs:
             -Dsonar.sources=apps/identity/src
             -Dsonar.typescript.lcov.reportPaths=apps/identity/coverage/lcov.info
             -Dsonar.qualitygate.wait=true
-        continue-on-error: true
       
       - name: Quality Gate Status
         run: |

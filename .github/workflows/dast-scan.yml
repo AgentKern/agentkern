@@ -123,7 +123,6 @@ jobs:
         with:
           sarif_file: 'zap-report.sarif'
           category: 'dast-zap'
-        continue-on-error: true
 
       # ==========================================================================
       # Archive All Reports
@@ -167,4 +166,3 @@ jobs:
         with:
           sarif_file: 'zap-report.sarif'
           category: 'dast-scheduled'
-        continue-on-error: true

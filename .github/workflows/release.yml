@@ -143,7 +143,6 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/identity:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        continue-on-error: true
 
   # ============================================
   # Generate Changelog & Release Notes

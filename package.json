@@ -13,7 +13,10 @@
   },
   "devDependencies": {
     "turbo": "latest",
-    "prettier": "latest"
+    "prettier": "latest",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.2.5",
+    "@types/jest": "^30.0.0"
   },
   "workspaces": [
     "apps/*",
