@@ -94,10 +94,10 @@ git clone https://github.com/AgentKern/agentkern.git
 cd agentkern
 
 # Run tests
-cd packages/pillars/gate && cargo test      # 127 tests
-cd ../synapse && cargo test         # 67 tests
-cd ../arbiter && cargo test         # 86 tests
-cd ../nexus && cargo test           # 54 tests
+cd packages/pillars/gate && cargo test      # 158 tests
+cd ../synapse && cargo test         # 107 tests
+cd ../arbiter && cargo test         # 82 tests
+cd ../nexus && cargo test           # 67 tests
 ```
 
 ---
@@ -238,11 +238,12 @@ AgentKern is built for regulated industries:
 ## Testing
 
 ```bash
-# Run all tests (357+ total)
-cd packages/pillars/gate && cargo test      # 124 tests
-cd ../synapse && cargo test         # 87 tests
-cd ../arbiter && cargo test         # 95 tests
-cd ../nexus && cargo test           # 54 tests
+# Run all tests (450+ total)
+cd packages/pillars/gate && cargo test      # 158 tests
+cd ../synapse && cargo test         # 107 tests
+cd ../arbiter && cargo test         # 82 tests
+cd ../nexus && cargo test           # 67 tests
+cd ../treasury && cargo test        # 32 tests
 ```
 
 ---
