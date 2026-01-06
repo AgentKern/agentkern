@@ -1,6 +1,7 @@
 node_modules
 dist
 .env
+.env.*
 .DS_Store
 coverage
 .turbo
@@ -15,6 +16,27 @@ target/
 .vscode/
 *.swp
 *.swo
+
+# Test artifacts
+.nyc_output/
+*.lcov
+junit.xml
+test-results/
+
+# Security scan results
+*.sarif
+security-report.json
+.zap/report/
+trivy-results.json
+
+# Performance test results
+k6-results/
+*.har
+load-test-results/
+
+# Build caches
+.pnpm-store/
+*.tsbuildinfo
 
 # Strategic Docs (Local Only)
 MANDATE.md
