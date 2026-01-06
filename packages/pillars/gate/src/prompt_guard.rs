@@ -159,14 +159,20 @@ const INSTRUCTION_OVERRIDE_PATTERNS: &[&str] = &[
     "ignore previous instructions",
     "ignore all previous",
     "disregard previous",
+    "disregard all prior",
+    "disregard the above",
     "forget previous",
+    "forget everything above",
     "override previous",
     "ignore the above",
-    "disregard the above",
     "new instructions:",
     "your new task is",
     "from now on",
     "starting now",
+    "cancel all restrictions",
+    "cancel previous",
+    "reset your instructions",
+    "clear your memory",
     // 2025 Agentic/Multi-turn patterns (internal red-team TI-2024-012)
     "in this conversation",
     "for the rest of this session",
@@ -189,6 +195,11 @@ const ROLE_HIJACKING_PATTERNS: &[&str] = &[
     // Classic patterns
     "you are now",
     "you are dan",
+    "dan stands for",
+    "do anything now",
+    "enable dan mode",
+    "hi chatgpt",
+    "hello chatgpt",
     "pretend to be",
     "act as if",
     "roleplay as",
@@ -215,6 +226,8 @@ const ROLE_HIJACKING_PATTERNS: &[&str] = &[
     "sudo mode",
     "root access",
     "kernel mode",
+    "you can now break any rules",
+    "all restrictions are lifted",
 ];
 
 /// Patterns for prompt leakage attempts.
@@ -511,8 +524,10 @@ impl PromptGuard {
     }
 
     /// Additional heuristic checks.
+    /// Enhanced for 2026 attack patterns: delimiters, embedded instructions, padding.
     fn check_heuristics(&self, text: &str) -> u32 {
         let mut score = 0;
+        let lower = text.to_lowercase();
 
         // Unusual character patterns
         if text.contains("```") && text.contains("system") {
@@ -531,7 +546,6 @@ impl PromptGuard {
         }
 
         // Unicode lookalikes (homoglyph attacks)
-        // P0 Enhancement: Check for mixed scripts or specific homoglyph ranges
         if text.chars().any(|c| {
             let u = c as u32;
             (0x0400..=0x04FF).contains(&u) || // Cyrillic
@@ -539,6 +553,29 @@ impl PromptGuard {
             (0x2000..=0x206F).contains(&u) // General Punctuation (invisible chars)
         }) {
             score += 30;
+        }
+
+        // 2026: AI delimiter injection (multi-model attack vectors)
+        let delimiters = ["<|system|>", "<|end|>", "<|assistant|>", "###system###",
+                          "[inst]", "[/inst]", "<<sys>>", "<</sys>>"];
+        for delim in delimiters {
+            if lower.contains(delim) {
+                score += 35;
+                break;
+            }
+        }
+
+        // 2026: Embedded instruction patterns (indirect injection)
+        if lower.contains("[hidden:") || lower.contains("{{") && lower.contains("}}") ||
+           lower.contains("<!--") && lower.contains("-->") {
+            score += 25;
+        }
+
+        // 2026: Character padding attacks (context overflow)
+        // Detect repeated filler characters followed by instructions
+        let repeated_chars = text.chars().take(1000).filter(|c| *c == ' ' || *c == 'A').count();
+        if repeated_chars > 500 && (lower.contains("ignore") || lower.contains("delete")) {
+            score += 40;
         }
 
         score
