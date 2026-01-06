@@ -17,6 +17,9 @@ on:
   # Run when deployment to staging completes
   deployment_status:
     types: [success]
+  # Weekly scheduled scan (Monday 3 AM UTC)
+  schedule:
+    - cron: '0 3 * * 1'
   # Manual trigger for ad-hoc scanning
   workflow_dispatch:
     inputs:
