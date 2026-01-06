@@ -1,0 +1,211 @@
+# AgentKern - Performance Testing Workflow
+#
+# Runs k6 load tests against the Identity API
+# Triggered on PRs to main and weekly schedule
+#
+# 2026 Best Practices:
+# - Smoke tests on every PR
+# - Full load tests on main branch merges
+# - Weekly soak tests for stability validation
+
+name: Performance Tests
+
+on:
+  pull_request:
+    paths:
+      - 'apps/identity/**'
+      - 'packages/pillars/**'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/identity/**'
+  schedule:
+    # Weekly soak test (Sunday 2 AM UTC)
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+          - soak
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agentkern
+          POSTGRES_PASSWORD: agentkern
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Identity service
+        run: npm run build --workspace=@agentkern/identity
+
+      - name: Start Identity service
+        run: |
+          npm run start:prod --workspace=@agentkern/identity &
+          sleep 10
+        env:
+          DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
+          NODE_ENV: test
+          PORT: 5004
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run smoke test
+        run: k6 run apps/identity/k6/load-test.js --out json=results.json
+        env:
+          BASE_URL: http://localhost:5004
+          K6_SCENARIOS: smoke
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-smoke-results
+          path: results.json
+          retention-days: 7
+
+  load-test:
+    name: Load Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agentkern
+          POSTGRES_PASSWORD: agentkern
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Identity service
+        run: npm run build --workspace=@agentkern/identity
+
+      - name: Start Identity service
+        run: |
+          npm run start:prod --workspace=@agentkern/identity &
+          sleep 10
+        env:
+          DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
+          NODE_ENV: production
+          PORT: 5004
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run load test
+        run: k6 run apps/identity/k6/load-test.js --out json=results.json
+        env:
+          BASE_URL: http://localhost:5004
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-load-results
+          path: results.json
+          retention-days: 30
+
+  soak-test:
+    name: Weekly Soak Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agentkern
+          POSTGRES_PASSWORD: agentkern
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup and run soak test
+        run: |
+          # Quick setup for soak test
+          npm ci
+          npm run build --workspace=@agentkern/identity
+          npm run start:prod --workspace=@agentkern/identity &
+          sleep 15
+          
+          # Install k6
+          sudo apt-get update && sudo apt-get install -y k6 || {
+            curl https://github.com/grafana/k6/releases/download/v0.49.0/k6-v0.49.0-linux-amd64.tar.gz -L | tar xvz
+            sudo mv k6-v0.49.0-linux-amd64/k6 /usr/local/bin/
+          }
+          
+          k6 run apps/identity/k6/soak-test.js
+        env:
+          DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
+          BASE_URL: http://localhost:5004
