@@ -74,16 +74,16 @@ export class CsrfMiddleware implements NestMiddleware {
     }
 
     // Rotate token after successful validation
-    this.setTokenCookie(req, res);
+    this.setTokenCookie(req, res, true);
     
     next();
   }
 
   /**
-   * Set CSRF token cookie if not present.
+   * Set CSRF token cookie if not present or forced.
    */
-  private setTokenCookie(req: Request, res: Response): void {
-    if (!req.cookies?.[CSRF_COOKIE_NAME]) {
+  private setTokenCookie(req: Request, res: Response, force = false): void {
+    if (force || !req.cookies?.[CSRF_COOKIE_NAME]) {
       const token = randomBytes(TOKEN_LENGTH).toString('hex');
       res.cookie(CSRF_COOKIE_NAME, token, {
         httpOnly: false, // Must be readable by JavaScript

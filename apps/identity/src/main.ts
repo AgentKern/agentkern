@@ -19,6 +19,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { PinoLoggerService } from './logging/pino-logger.service';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
@@ -36,6 +37,9 @@ async function bootstrap() {
   app.use(
     new CorrelationIdMiddleware().use.bind(new CorrelationIdMiddleware()),
   );
+
+  // Parse cookies (REQUIRED for CSRF protection)
+  app.use(cookieParser());
 
   // Security Headers (Helmet) with CSP Reporting
   app.use(
