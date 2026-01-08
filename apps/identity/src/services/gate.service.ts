@@ -81,9 +81,9 @@ export class GateService implements OnModuleInit {
     await Promise.resolve(); // Ensure async lifecycle hook
 
     const isProduction = process.env.NODE_ENV === 'production';
-    const bridgePath = this.resolveBridgePath();
-
     try {
+      const bridgePath = this.resolveBridgePath();
+
       // Verify bridge file exists before attempting to load
       if (!fs.existsSync(bridgePath)) {
         throw new Error(

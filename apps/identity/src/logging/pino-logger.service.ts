@@ -29,21 +29,9 @@ const baseLogger = pino({
   useOnlyCustomLevels: true,
   formatters: {
     level: (label) => ({ level: label }),
-    bindings: () => ({}), // Remove pid/hostname from logs
+    bindings: () => ({}),
   },
   timestamp: pino.stdTimeFunctions.isoTime,
-  // Pretty print in development
-  transport:
-    process.env.NODE_ENV !== 'production'
-      ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
-          },
-        }
-      : undefined,
 });
 
 /**
@@ -100,7 +88,7 @@ export class PinoLoggerService implements LoggerService {
   }
 
   log(message: any, ...optionalParams: any[]) {
-    this.logger.info(this.formatMessage(message, optionalParams));
+    (this.logger as any).log(this.formatMessage(message, optionalParams));
   }
 
   error(message: any, ...optionalParams: any[]) {
@@ -125,11 +113,11 @@ export class PinoLoggerService implements LoggerService {
   }
 
   verbose(message: any, ...optionalParams: any[]) {
-    this.logger.trace(this.formatMessage(message, optionalParams));
+    (this.logger as any).verbose(this.formatMessage(message, optionalParams));
   }
 
   fatal(message: any, ...optionalParams: any[]) {
-    this.logger.fatal(this.formatMessage(message, optionalParams));
+    (this.logger as any).fatal(this.formatMessage(message, optionalParams));
   }
 }
 

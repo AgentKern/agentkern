@@ -64,9 +64,9 @@ export class ArbiterService implements OnModuleInit {
     await Promise.resolve();
 
     const isProduction = process.env.NODE_ENV === 'production';
-    const bridgePath = this.resolveBridgePath();
-
     try {
+      const bridgePath = this.resolveBridgePath();
+
       // Verify bridge file exists
       if (!fs.existsSync(bridgePath)) {
         throw new Error(
