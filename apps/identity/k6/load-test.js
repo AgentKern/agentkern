@@ -79,7 +79,7 @@ export default function (data) {
   // Health endpoint - should be very fast
   group('Health Check', () => {
     const start = Date.now();
-    const res = http.get(`${baseUrl}/health`);
+    const res = http.get(`${baseUrl}/`);
     healthLatency.add(Date.now() - start);
     
     const success = check(res, {
@@ -87,7 +87,7 @@ export default function (data) {
       'health response has status ok': (r) => {
         try {
           const body = JSON.parse(r.body);
-          return body.status === 'ok';
+          return body.name === 'AgentKernIdentity API';
         } catch {
           return false;
         }
@@ -105,7 +105,7 @@ export default function (data) {
     };
 
     const start = Date.now();
-    const res = http.post(`${baseUrl}/api/gate/analyze`, payload, params);
+    const res = http.post(`${baseUrl}/api/v1/gate/guard-prompt`, payload, params);
     gateAnalyzeLatency.add(Date.now() - start);
 
     const success = check(res, {
@@ -113,7 +113,7 @@ export default function (data) {
       'gate returns analysis': (r) => {
         try {
           const body = JSON.parse(r.body);
-          return body.threatLevel !== undefined;
+          return body.allowed !== undefined || body.blocked !== undefined;
         } catch {
           return false;
         }
@@ -125,7 +125,7 @@ export default function (data) {
   // Nexus agent list - database query
   group('Nexus Agent List', () => {
     const start = Date.now();
-    const res = http.get(`${baseUrl}/api/nexus/agents`);
+    const res = http.get(`${baseUrl}/api/v1/nexus/agents`);
     nexusListLatency.add(Date.now() - start);
 
     const success = check(res, {
