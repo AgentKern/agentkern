@@ -128,8 +128,9 @@ deunicode = "1.6"
 [dev-dependencies]
 tokio-test = "0.4"
 criterion = "0.5"
-rust_decimal = "1.36"
-rust_decimal_macros = "1.36"
+# Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
+rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
+rust_decimal_macros = "1.39"
 wat = "1.0"  # For WASM integration tests
 
 [[bench]]

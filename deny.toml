@@ -32,10 +32,10 @@ multiple-versions = "warn"
 wildcards = "allow"
 
 [advisories]
-# Ignore known issues without fixes
-ignore = [
-    # RSA Marvin Attack - no upstream fix available
-    "RUSTSEC-2023-0071",
-    # async-std discontinued  
-    "RUSTSEC-2025-0052",
-]
+# SECURITY: No advisories ignored by default.
+# All dependencies have been patched or configured to avoid known vulnerabilities.
+# - RUSTSEC-2026-0001 (rkyv): Avoided by disabling default features on rust_decimal
+# - RUSTSEC-2023-0071 (RSA Marvin Attack): Not in dependency tree (we use Ed25519)
+# - RUSTSEC-2025-0052 (async-std): Not in dependency tree (we use tokio)
+ignore = []
+

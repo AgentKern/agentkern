@@ -34,7 +34,8 @@ hex = "0.4"
 uuid = { version = "1.11", features = ["v4"] }
 
 # Decimal for carbon calculations
-rust_decimal = "1.39"
+# Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
+rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }

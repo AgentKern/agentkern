@@ -72,13 +72,24 @@ async function bootstrap() {
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
-  // Enable CORS for cross-origin requests
+  // CORS Configuration (Security Hardening)
+  // SECURITY: Require explicit CORS_ORIGINS in production to prevent wildcard exposure
+  const corsOrigins = process.env.CORS_ORIGINS?.split(',').map((o) => o.trim());
+  if (process.env.NODE_ENV === 'production' && !corsOrigins) {
+    throw new Error(
+      'SECURITY: CORS_ORIGINS must be set in production. ' +
+        'Set to comma-separated list of allowed origins (e.g., "https://app.example.com,https://admin.example.com")',
+    );
+  }
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || '*', // Restrict CORS origins to authorized domains from env
+    origin: corsOrigins || (process.env.NODE_ENV === 'production' ? false : '*'),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-AgentKernIdentity'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-AgentKernIdentity', 'X-XSRF-TOKEN'],
     exposedHeaders: ['X-AgentKernIdentity'],
+    credentials: true,
   });
+
 
   // Swagger documentation
   const config = new DocumentBuilder()

@@ -54,8 +54,9 @@ chrono = { version = "0.4.39", features = ["serde"] }
 parking_lot = "0.12.3"
 
 # Decimal for financial calculations
-rust_decimal = { version = "1.36", features = ["serde"] }
-rust_decimal_macros = "1.36"
+# Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
+rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
+rust_decimal_macros = "1.39"
 
 # ============================================================
 # DISTRIBUTED LOCKING (feature-gated for multi-node deployment)

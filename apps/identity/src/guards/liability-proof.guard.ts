@@ -174,6 +174,7 @@ export class LiabilityProofGuard implements CanActivate {
       action: payload.action,
       scope: payload.scope,
       raw: token,
+      verified: true, // Signature verified successfully
     };
   }
 
@@ -299,6 +300,12 @@ export interface LiabilityProofPayload {
   scope?: string[];
   /** Raw token for forwarding */
   raw: string;
+  /**
+   * Whether the signature was cryptographically verified.
+   * SECURITY: Downstream handlers MUST check this flag before trusting claims.
+   * If false, claims are parsed but NOT verified - treat as untrusted.
+   */
+  verified: boolean;
 }
 
 /**
