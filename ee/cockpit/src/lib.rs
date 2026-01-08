@@ -311,43 +311,33 @@ mod tests {
 
     #[test]
     fn test_cockpit_requires_license() {
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
-        let result = CockpitService::new("org-123");
-        assert!(result.is_err());
+        // Use temp_env for thread-safe env var handling
+        temp_env::with_var_unset("AGENTKERN_LICENSE_KEY", || {
+            let result = CockpitService::new("org-123");
+            assert!(result.is_err());
+        });
     }
 
     #[test]
     fn test_cockpit_with_license() {
-        unsafe {
-            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
-        }
-        let result = CockpitService::new("org-123");
-        assert!(result.is_ok());
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let result = CockpitService::new("org-123");
+            assert!(result.is_ok());
 
-        let service = result.unwrap();
-        let stats = service.get_stats();
-        assert!(stats.active_agents > 0);
-
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
+            let service = result.unwrap();
+            let stats = service.get_stats();
+            assert!(stats.active_agents > 0);
+        });
     }
 
     #[test]
     fn test_compliance_status() {
-        unsafe {
-            std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
-        }
-        let service = CockpitService::new("org-123").unwrap();
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let service = CockpitService::new("org-123").unwrap();
 
-        let status = service.get_compliance_status();
-        assert!(!status.is_empty());
-        assert!(status.iter().any(|s| s.framework == "HIPAA"));
-
-        unsafe {
-            std::env::remove_var("AGENTKERN_LICENSE_KEY");
-        }
+            let status = service.get_compliance_status();
+            assert!(!status.is_empty());
+            assert!(status.iter().any(|s| s.framework == "HIPAA"));
+        });
     }
 }
