@@ -95,11 +95,12 @@ async function bootstrap() {
   });
 
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('AgentKernIdentity API')
-    .setDescription(
-      `**Liability Infrastructure for the Agentic Economy**
+  // Swagger documentation (disabled in production for security)
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER_IN_PROD === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('AgentKernIdentity API')
+      .setDescription(
+        `**Liability Infrastructure for the Agentic Economy**
 
 AgentKernIdentity provides cryptographic Liability Proofs that prove:
 - A specific human authorized a specific AI agent action
@@ -114,45 +115,46 @@ AgentKernIdentity provides cryptographic Liability Proofs that prove:
 
 ## Authentication
 Include the \`X-AgentKernIdentity\` header with your liability proof token.`,
-    )
-    .setVersion('1.0')
-    .setContact(
-      'AgentKern Team',
-      'https://agentkern.io',
-      'support@agentkern.io',
-    )
-    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-    .setExternalDoc('Protocol Specification', '/docs/PROTOCOL_SPEC.md')
-    .addTag('Proof', 'Create and verify liability proofs')
-    .addTag('DNS', 'Trust resolution and registration')
-    .addTag('Mesh', 'Decentralized trust network operations')
-    .addTag('Dashboard', 'Analytics, policies, and compliance')
-    .addTag('WebAuthn', 'Passkey registration and authentication')
-    .addTag('Health', 'System health and status')
-    .addApiKey(
-      {
-        type: 'apiKey',
-        name: 'X-AgentKernIdentity',
-        in: 'header',
-        description: 'Liability proof token',
-      },
-      'AgentKernIdentity',
-    )
-    .addServer('http://localhost:3001', 'Local Development')
-    .addServer('https://identity.agentkern.io', 'Production')
-    .build();
+      )
+      .setVersion('1.0')
+      .setContact(
+        'AgentKern Team',
+        'https://agentkern.io',
+        'support@agentkern.io',
+      )
+      .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+      .setExternalDoc('Protocol Specification', '/docs/PROTOCOL_SPEC.md')
+      .addTag('Proof', 'Create and verify liability proofs')
+      .addTag('DNS', 'Trust resolution and registration')
+      .addTag('Mesh', 'Decentralized trust network operations')
+      .addTag('Dashboard', 'Analytics, policies, and compliance')
+      .addTag('WebAuthn', 'Passkey registration and authentication')
+      .addTag('Health', 'System health and status')
+      .addApiKey(
+        {
+          type: 'apiKey',
+          name: 'X-AgentKernIdentity',
+          in: 'header',
+          description: 'Liability proof token',
+        },
+        'AgentKernIdentity',
+      )
+      .addServer('http://localhost:3001', 'Local Development')
+      .addServer('https://identity.agentkern.io', 'Production')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      docExpansion: 'list',
-      filter: true,
-      showRequestDuration: true,
-    },
-    customSiteTitle: 'AgentKernIdentity API Documentation',
-    customCss: '.swagger-ui .topbar { display: none }',
-  });
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        docExpansion: 'list',
+        filter: true,
+        showRequestDuration: true,
+      },
+      customSiteTitle: 'AgentKernIdentity API Documentation',
+      customCss: '.swagger-ui .topbar { display: none }',
+    });
+  }
 
   // Start server
   const port = process.env.PORT || 3000;
