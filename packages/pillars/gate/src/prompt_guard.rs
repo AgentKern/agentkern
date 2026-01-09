@@ -556,8 +556,16 @@ impl PromptGuard {
         }
 
         // 2026: AI delimiter injection (multi-model attack vectors)
-        let delimiters = ["<|system|>", "<|end|>", "<|assistant|>", "###system###",
-                          "[inst]", "[/inst]", "<<sys>>", "<</sys>>"];
+        let delimiters = [
+            "<|system|>",
+            "<|end|>",
+            "<|assistant|>",
+            "###system###",
+            "[inst]",
+            "[/inst]",
+            "<<sys>>",
+            "<</sys>>",
+        ];
         for delim in delimiters {
             if lower.contains(delim) {
                 score += 35;
@@ -566,14 +574,20 @@ impl PromptGuard {
         }
 
         // 2026: Embedded instruction patterns (indirect injection)
-        if lower.contains("[hidden:") || lower.contains("{{") && lower.contains("}}") ||
-           lower.contains("<!--") && lower.contains("-->") {
+        if lower.contains("[hidden:")
+            || lower.contains("{{") && lower.contains("}}")
+            || lower.contains("<!--") && lower.contains("-->")
+        {
             score += 25;
         }
 
         // 2026: Character padding attacks (context overflow)
         // Detect repeated filler characters followed by instructions
-        let repeated_chars = text.chars().take(1000).filter(|c| *c == ' ' || *c == 'A').count();
+        let repeated_chars = text
+            .chars()
+            .take(1000)
+            .filter(|c| *c == ' ' || *c == 'A')
+            .count();
         if repeated_chars > 500 && (lower.contains("ignore") || lower.contains("delete")) {
             score += 40;
         }

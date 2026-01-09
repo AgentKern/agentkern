@@ -45,7 +45,7 @@ export default function () {
   
   const start = Date.now();
   const gateRes = http.post(
-    `${BASE_URL}/api/gate/analyze`,
+    `${BASE_URL}/api/v1/gate/guard`,
     JSON.stringify({ prompt }),
     { headers: { 'Content-Type': 'application/json' } }
   );

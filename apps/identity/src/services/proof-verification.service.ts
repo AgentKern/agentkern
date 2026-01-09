@@ -39,6 +39,8 @@ export interface PublicKeyInfo {
 @Injectable()
 export class ProofVerificationService implements OnModuleInit {
   private readonly logger = new Logger(ProofVerificationService.name);
+  private bridge: any;
+  private bridgeLoaded = false;
 
   constructor(
     @InjectRepository(VerificationKeyEntity)
@@ -50,6 +52,25 @@ export class ProofVerificationService implements OnModuleInit {
     this.logger.log(
       `🔑 Proof verification initialized with ${count} active keys`,
     );
+
+    try {
+      // Dynamic import of the N-API bridge
+      const bridgePath =
+        process.env.BRIDGE_PATH ||
+        '../../../../packages/foundation/bridge/index.node';
+      
+      // Use require for runtime loading
+      const fs = require('fs');
+      if (fs.existsSync(bridgePath)) {
+          this.bridge = require(bridgePath);
+          this.bridgeLoaded = true;
+          this.logger.log('Native bridge loaded for PQC verification');
+      } else {
+        this.logger.warn(`Native bridge not found. PQC verification unavailable.`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to load native bridge: ${error.message}`);
+    }
   }
 
   /**
@@ -176,7 +197,7 @@ export class ProofVerificationService implements OnModuleInit {
   }
 
   /**
-   * Verify the cryptographic signature using ES256 (ECDSA P-256)
+   * Verify the cryptographic signature using ES256 (ECDSA P-256) or Hybrid-PQC
    */
   private async verifySignature(proof: LiabilityProof): Promise<boolean> {
     try {
@@ -215,27 +236,52 @@ export class ProofVerificationService implements OnModuleInit {
       // Reconstruct the signed payload
       const payloadJson = JSON.stringify(proof.payload);
 
-      // Verify the signature
-      const isValid = await jose
+      // Check if signature is Hybrid (contains ~)
+      let classicSig = proof.signature;
+      let pqcSig: string | null = null;
+      if (proof.signature.includes('~')) {
+          const parts = proof.signature.split('~');
+          classicSig = parts[0];
+          pqcSig = parts[1];
+      }
+
+      // Verify the Classical signature (ES256)
+      const isClassicValid = await jose
         .compactVerify(
-          `eyJhbGciOiJFUzI1NiJ9.${Buffer.from(payloadJson).toString('base64url')}.${proof.signature}`,
+          `eyJhbGciOiJFUzI1NiJ9.${Buffer.from(payloadJson).toString('base64url')}.${classicSig}`,
           publicKey,
         )
         .then(() => true)
         .catch(() => false);
 
-      if (isValid) {
-        // Update usage statistics
-        await this.keyRepository.update(
-          { id: keyEntity.id },
-          {
-            lastUsedAt: new Date(),
-            usageCount: () => 'usageCount + 1',
-          },
-        );
+      if (!isClassicValid) {
+          this.logger.warn(`Classic signature verification failed for ${principal.id}`);
+          return false;
       }
 
-      return isValid;
+      // Verify the PQC signature if it exists
+      if (pqcSig) {
+          if (!this.bridgeLoaded) {
+              this.logger.error('Bridge not loaded, cannot verify Hybrid-PQC signature');
+              return false;
+          }
+          const isPqcValid = this.bridge.cryptoVerifyHybrid(payloadJson, pqcSig, keyEntity.publicKey);
+          if (!isPqcValid) {
+               this.logger.warn(`PQC signature verification failed for ${principal.id}`);
+               return false;
+          }
+      }
+
+      // Update usage statistics
+      await this.keyRepository.update(
+        { id: keyEntity.id },
+        {
+          lastUsedAt: new Date(),
+          usageCount: () => 'usageCount + 1',
+        },
+      );
+
+      return true;
     } catch (error) {
       this.logger.error(`Signature verification failed: ${error}`);
       return false;

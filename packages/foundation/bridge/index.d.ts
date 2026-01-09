@@ -8,8 +8,57 @@ export declare function attest(nonce: string): string
 export declare function guardPrompt(prompt: string): string
 /** RAG Context Guard (Hot Path: 0ms) */
 export declare function guardContext(chunks: Array<string>): string
-/**
- * Gate Engine Verification (Hot Path: 0ms)
- * Executes full policy verification using the embedded engine.
- */
+/** Gate Engine Verification (Hot Path: 0ms) */
 export declare function verify(agentId: string, action: string, contextJson?: string | undefined | null): Promise<string>
+/** Register a policy dynamically (Hot Path) */
+export declare function registerPolicy(policyYaml: string): Promise<string>
+/** Get agent balance */
+export declare function treasuryGetBalance(agentId: string): string
+/** Deposit to agent balance */
+export declare function treasuryDeposit(agentId: string, amount: number): string
+/** Transfer between agents */
+export declare function treasuryTransfer(fromAgent: string, toAgent: string, amount: number, reference?: string | undefined | null): Promise<string>
+/** Get agent budget remaining */
+export declare function treasuryGetBudget(agentId: string): string
+/** Get carbon footprint */
+export declare function treasuryGetCarbon(agentId: string): string
+/** Purchase carbon offset */
+export declare function treasuryPurchaseOffset(agentId: string, tons: number): string
+/** Get agent state */
+export declare function synapseGetState(agentId: string): Promise<string>
+/** Update agent state */
+export declare function synapseUpdateState(agentId: string, stateJson: string): Promise<string>
+/** Store memory (embed + vector store) (Hot Path) */
+export declare function synapseStoreMemory(agentId: string, text: string): Promise<string>
+/** Query memory (embed + vector search) (Hot Path) */
+export declare function synapseQueryMemory(text: string, limit: number): Promise<string>
+/** Activate kill switch (terminate agent) */
+export declare function arbiterKillSwitchActivate(reason: string, agentId?: string | undefined | null): Promise<string>
+/** Get kill switch status */
+export declare function arbiterKillSwitchStatus(): Promise<string>
+/** Deactivate kill switch */
+export declare function arbiterKillSwitchDeactivate(): Promise<string>
+/** Query audit statistics */
+export declare function arbiterQueryAudit(): Promise<string>
+/** Get chaos statistics */
+export declare function arbiterChaosStats(): string
+/** Receive and translate message (e.g. A2A JSON to Native) */
+export declare function nexusReceive(rawPayload: string): Promise<string>
+/** Send and translate message (Native to Protocol) */
+export declare function nexusSend(msgJson: string, targetProtocol: string): Promise<string>
+/** Register agent with Nexus */
+export declare function nexusRegisterAgent(cardJson: string): Promise<string>
+/** Create A2A Task (Helper) */
+export declare function nexusCreateA2ATask(id: string, description: string): string
+/** List all agents */
+export declare function nexusListAgents(): Promise<string>
+/** Get agent by ID */
+export declare function nexusGetAgent(id: string): Promise<string>
+/** Unregister agent */
+export declare function nexusUnregisterAgent(id: string): Promise<boolean>
+/** Discover agent from URL */
+export declare function nexusDiscoverAgent(url: string): Promise<string>
+/** Route task to best agent */
+export declare function nexusRouteTask(taskJson: string): Promise<string>
+/** Get Nexus stats */
+export declare function nexusGetStats(): Promise<string>

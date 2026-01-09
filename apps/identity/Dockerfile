@@ -1,7 +1,9 @@
 # ========================
 # Rust Build Stage (for N-API Bridge)
 # ========================
-FROM rust:1.75-alpine AS rust-builder
+# Rust Build Stage (for N-API Bridge)
+# ========================
+FROM rust:1.92-alpine AS rust-builder
 
 WORKDIR /app
 
@@ -18,7 +20,7 @@ COPY packages/foundation/bridge/src ./packages/foundation/bridge/src/
 WORKDIR /app/packages/foundation/bridge
 # Reduce memory usage to prevent OOM (exit code 101)
 ENV CARGO_BUILD_JOBS=1
-ENV RUSTFLAGS="-C codegen-units=1"
+ENV RUSTFLAGS="-C codegen-units=1 -C strip=symbols"
 RUN cargo build --release
 
 # ========================

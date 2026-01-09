@@ -561,3 +561,30 @@ pub async fn nexus_get_stats() -> String {
         count
     )
 }
+
+// ============================================================================
+// Identity Pillar Exports (Crypto Agility)
+// ============================================================================
+
+/// Sign a payload using Hybrid PQC (ECDSA + Mock-Dilithium)
+/// In a real implementation, this would use pqcrypto-dilithium or similar.
+#[napi]
+pub fn crypto_sign_hybrid(payload: String, _private_key_pem: String) -> String {
+    // SIMULATION: Create a "hybrid" signature that consists of a mock PQC part
+    // The caller (TS) should handle the ECDSA part or we could do it here if we had the keys.
+    // For this architecture, we assume the TS service handles the classical part via 'jose'
+    // and this bridge provides the PQC part.
+
+    // In a real PQC implementation, we would sign with the PQC private key.
+    // Here we generate a deterministic mock signature based on the payload.
+    let mock_sig = format!("dilithium_mock_{}", payload.len());
+    mock_sig
+}
+
+/// Verify a Hybrid PQC signature
+#[napi]
+pub fn crypto_verify_hybrid(payload: String, signature: String, _public_key_pem: String) -> bool {
+    // SIMULATION: Verify the mock PQC signature
+    let expected = format!("dilithium_mock_{}", payload.len());
+    signature == expected
+}

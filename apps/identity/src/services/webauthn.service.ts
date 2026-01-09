@@ -177,24 +177,24 @@ export class WebAuthnService implements OnModuleInit {
     credentialId?: string;
     error?: string;
   }> {
-    // Retrieve and validate challenge
-    const challengeEntity = await this.challengeRepository.findOne({
-      where: { principalId, flowType: 'registration', consumed: false },
-    });
-
-    if (!challengeEntity) {
-      return { verified: false, error: 'No active challenge found' };
-    }
-
-    if (new Date() > challengeEntity.expiresAt) {
-      await this.challengeRepository.delete({
-        principalId,
-        flowType: 'registration',
-      });
-      return { verified: false, error: 'Challenge expired' };
-    }
-
     try {
+      // Retrieve and validate challenge
+      const challengeEntity = await this.challengeRepository.findOne({
+        where: { principalId, flowType: 'registration', consumed: false },
+      });
+
+      if (!challengeEntity) {
+        return { verified: false, error: 'No active challenge found' };
+      }
+
+      if (new Date() > challengeEntity.expiresAt) {
+        await this.challengeRepository.delete({
+          principalId,
+          flowType: 'registration',
+        });
+        return { verified: false, error: 'Challenge expired' };
+      }
+
       const opts: VerifyRegistrationResponseOpts = {
         response,
         expectedChallenge: challengeEntity.challenge,
@@ -297,34 +297,34 @@ export class WebAuthnService implements OnModuleInit {
     credentialId?: string;
     error?: string;
   }> {
-    // Retrieve and validate challenge
-    const challengeEntity = await this.challengeRepository.findOne({
-      where: { principalId, flowType: 'authentication', consumed: false },
-    });
-
-    if (!challengeEntity) {
-      return { verified: false, error: 'No active challenge found' };
-    }
-
-    if (new Date() > challengeEntity.expiresAt) {
-      await this.challengeRepository.delete({
-        principalId,
-        flowType: 'authentication',
-      });
-      return { verified: false, error: 'Challenge expired' };
-    }
-
-    // Find the credential being used
-    const credentialId = response.id;
-    const credential = await this.credentialRepository.findOne({
-      where: { id: credentialId, principalId, isActive: true },
-    });
-
-    if (!credential) {
-      return { verified: false, error: 'Credential not found or revoked' };
-    }
-
     try {
+      // Retrieve and validate challenge
+      const challengeEntity = await this.challengeRepository.findOne({
+        where: { principalId, flowType: 'authentication', consumed: false },
+      });
+
+      if (!challengeEntity) {
+        return { verified: false, error: 'No active challenge found' };
+      }
+
+      if (new Date() > challengeEntity.expiresAt) {
+        await this.challengeRepository.delete({
+          principalId,
+          flowType: 'authentication',
+        });
+        return { verified: false, error: 'Challenge expired' };
+      }
+
+      // Find the credential being used
+      const credentialId = response.id;
+      const credential = await this.credentialRepository.findOne({
+        where: { id: credentialId, principalId, isActive: true },
+      });
+
+      if (!credential) {
+        return { verified: false, error: 'Credential not found or revoked' };
+      }
+
       const opts: VerifyAuthenticationResponseOpts = {
         response,
         expectedChallenge: challengeEntity.challenge,

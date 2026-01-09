@@ -6,7 +6,7 @@
  * This service is for testing and demonstration purposes.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as jose from 'jose';
 import {
   LiabilityProof,
@@ -28,8 +28,31 @@ export interface CreateProofRequest {
 }
 
 @Injectable()
-export class ProofSigningService {
+export class ProofSigningService implements OnModuleInit {
   private readonly logger = new Logger(ProofSigningService.name);
+  private bridge: any;
+  private bridgeLoaded = false;
+
+  async onModuleInit() {
+    try {
+      // Dynamic import of the N-API bridge
+      const bridgePath =
+        process.env.BRIDGE_PATH ||
+        '../../../../packages/foundation/bridge/index.node';
+      
+      // Check if file exists roughly
+      const fs = require('fs');
+      if (fs.existsSync(bridgePath)) {
+          this.bridge = require(bridgePath);
+          this.bridgeLoaded = true;
+          this.logger.log('Native bridge loaded for PQC signing');
+      } else {
+        this.logger.warn(`Native bridge not found at ${bridgePath}. PQC signing unavailable.`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to load native bridge: ${error.message}`);
+    }
+  }
 
   /**
    * Create and sign a Liability Proof
@@ -38,7 +61,7 @@ export class ProofSigningService {
    * This method is for server-side testing and development only.
    */
   async createSignedProof(
-    request: CreateProofRequest,
+    request: CreateProofRequest & { algorithm?: 'ES256' | 'Hybrid-PQC' },
   ): Promise<LiabilityProof> {
     // Create the unsigned payload
     const payload = createProofPayload(
@@ -52,11 +75,11 @@ export class ProofSigningService {
     );
 
     this.logger.log(
-      `Creating proof: ${payload.proofId} for principal: ${request.principal.id}`,
+      `Creating proof: ${payload.proofId} for principal: ${request.principal.id} [${request.algorithm || 'ES256'}]`,
     );
 
     // Sign the payload
-    const signature = await this.signPayload(payload, request.privateKey);
+    const signature = await this.signPayload(payload, request.privateKey, request.algorithm);
 
     return {
       version: 'v1',
@@ -66,11 +89,12 @@ export class ProofSigningService {
   }
 
   /**
-   * Sign a payload using ES256 (ECDSA with P-256 curve)
+   * Sign a payload using ES256 or Hybrid-PQC
    */
   private async signPayload(
     payload: LiabilityProofPayload,
     privateKeyPem: string,
+    algorithm: 'ES256' | 'Hybrid-PQC' = 'ES256',
   ): Promise<string> {
     try {
       // Import the private key
@@ -79,7 +103,7 @@ export class ProofSigningService {
       // Convert payload to bytes
       const payloadJson = JSON.stringify(payload);
 
-      // Create a compact JWS
+      // Create a compact JWS (Classical Part)
       const jws = await new jose.CompactSign(
         new TextEncoder().encode(payloadJson),
       )
@@ -88,10 +112,22 @@ export class ProofSigningService {
 
       // Extract just the signature part
       const parts = jws.split('.');
-      return parts[2]; // Return only the signature
+      let signature = parts[2];
+
+      // If Hybrid, append PQC signature
+      if (algorithm === 'Hybrid-PQC') {
+         if (!this.bridgeLoaded) {
+             throw new Error('Bridge not loaded, cannot sign Hybrid-PQC');
+         }
+         const pqcSig = this.bridge.cryptoSignHybrid(payloadJson, privateKeyPem);
+         // Format: <ec_sig>~<pqc_sig> (using ~ as separator for simplicity in tests)
+         signature = `${signature}~${pqcSig}`;
+      }
+
+      return signature;
     } catch (error) {
       this.logger.error(`Signing failed: ${error}`);
-      throw new Error('Failed to sign proof');
+      throw new Error(`Failed to sign proof: ${error.message}`);
     }
   }
 

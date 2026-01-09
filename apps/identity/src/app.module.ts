@@ -37,17 +37,17 @@ import {
       {
         name: 'short',
         ttl: 1000, // 1 second
-        limit: 10, // 10 requests per second
+        limit: 1000, // 1000 requests per second
       },
       {
         name: 'medium',
         ttl: 10000, // 10 seconds
-        limit: 50, // 50 requests per 10 seconds
+        limit: 10000, // 1000 req/s (10000/10s)
       },
       {
         name: 'long',
         ttl: 60000, // 1 minute
-        limit: 200, // 200 requests per minute
+        limit: 60000, // 1000 req/s (60000/60s)
       },
     ]),
 

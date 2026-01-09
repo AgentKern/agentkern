@@ -110,6 +110,25 @@ describe('WebAuthnService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('onModuleInit', () => {
+    it('should initialize and cleanup expired challenges', async () => {
+      // Mock log
+      const logSpy = jest.spyOn((service as any).logger, 'log').mockImplementation();
+      const debugSpy = jest.spyOn((service as any).logger, 'debug').mockImplementation();
+      
+      // Setup cleanup mock
+      challengeRepository.delete.mockResolvedValue({ affected: 5 } as any);
+
+      await service.onModuleInit();
+
+      expect(challengeRepository.delete).toHaveBeenCalledWith({
+        expiresAt: expect.any(Object), // LessThan matcher is hard to check exactly
+      });
+      expect(debugSpy).toHaveBeenCalledWith('Cleaned up 5 expired challenges');
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('WebAuthn initialized for RP'));
+    });
+  });
+
   describe('generateRegistrationOptions', () => {
     it('should generate registration options for a new principal', async () => {
       credentialRepository.find.mockResolvedValue([]);
@@ -142,6 +161,102 @@ describe('WebAuthnService', () => {
     });
   });
 
+  describe('verifyRegistration', () => {
+    const mockResponse = {
+      id: 'start-id',
+      rawId: 'start-raw-id',
+      response: {
+        attestationObject: 'attestation',
+        clientDataJSON: 'client-data',
+        publicKey: 'public-key-base64',
+        transports: ['internal'],
+      },
+      clientExtensionResults: {},
+      type: 'public-key',
+    } as any;
+
+    it('should verify registration and save credential', async () => {
+      const mockChallenge = {
+        principalId: 'principal-123',
+        challenge: 'test-challenge',
+        flowType: 'registration',
+        expiresAt: new Date(Date.now() + 60000),
+        consumed: false,
+      } as WebAuthnChallengeEntity;
+
+      challengeRepository.findOne.mockResolvedValue(mockChallenge);
+      
+      // Mock verifyRegistrationResponse import
+      const { verifyRegistrationResponse } = require('@simplewebauthn/server');
+      verifyRegistrationResponse.mockResolvedValue({
+        verified: true,
+        registrationInfo: {
+          credential: {
+            id: 'new-cred-id',
+            publicKey: Buffer.from('new-public-key'),
+            counter: 0,
+          },
+          credentialDeviceType: 'singleDevice',
+          credentialBackedUp: false,
+        },
+      });
+
+      credentialRepository.create.mockReturnValue({
+        id: 'new-cred-id-base64',
+      } as WebAuthnCredentialEntity);
+      credentialRepository.save.mockResolvedValue({} as WebAuthnCredentialEntity);
+
+      const result = await service.verifyRegistration('principal-123', mockResponse);
+
+      expect(result.verified).toBe(true);
+      expect(credentialRepository.save).toHaveBeenCalled();
+      expect(challengeRepository.delete).toHaveBeenCalledWith({
+        principalId: 'principal-123',
+        flowType: 'registration',
+      });
+    });
+
+    it('should fail if no active challenge found', async () => {
+      challengeRepository.findOne.mockResolvedValue(null);
+      const result = await service.verifyRegistration('principal-123', mockResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('No active challenge found');
+    });
+
+    it('should fail if challenge expired', async () => {
+      challengeRepository.findOne.mockResolvedValue({
+        expiresAt: new Date(Date.now() - 1000),
+      } as WebAuthnChallengeEntity);
+
+      const result = await service.verifyRegistration('principal-123', mockResponse);
+      
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('Challenge expired');
+      expect(challengeRepository.delete).toHaveBeenCalled(); // Should cleanup
+    });
+
+    it('should fail if verification returns false', async () => {
+      challengeRepository.findOne.mockResolvedValue({
+        expiresAt: new Date(Date.now() + 60000),
+        challenge: 'test',
+      } as WebAuthnChallengeEntity);
+
+      const { verifyRegistrationResponse } = require('@simplewebauthn/server');
+      verifyRegistrationResponse.mockResolvedValue({ verified: false });
+
+      const result = await service.verifyRegistration('principal-123', mockResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('Verification failed');
+    });
+
+    it('should fail gracefully on error', async () => {
+      challengeRepository.findOne.mockReturnValue(Promise.reject(new Error('DB Error')));
+      const result = await service.verifyRegistration('principal-123', mockResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('DB Error');
+    });
+  });
+
   describe('generateAuthenticationOptions', () => {
     it('should generate authentication options for existing credentials', async () => {
       credentialRepository.find.mockResolvedValue([mockCredential] as WebAuthnCredentialEntity[]);
@@ -158,6 +273,117 @@ describe('WebAuthnService', () => {
       const result = await service.generateAuthenticationOptions('principal-123');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('verifyAuthentication', () => {
+    const mockAuthResponse = {
+      id: 'cred-123',
+      rawId: 'cred-123-raw',
+      response: {
+        authenticatorData: 'auth-data',
+        clientDataJSON: 'client-data',
+        signature: 'signature',
+        userHandle: 'user-handle',
+      },
+      clientExtensionResults: {},
+      type: 'public-key',
+    } as any;
+
+    it('should verify authentication and update counter', async () => {
+      const mockChallenge = {
+        principalId: 'principal-123',
+        challenge: 'test-challenge',
+        flowType: 'authentication',
+        expiresAt: new Date(Date.now() + 60000),
+        consumed: false,
+      } as WebAuthnChallengeEntity;
+
+      challengeRepository.findOne.mockResolvedValue(mockChallenge);
+      credentialRepository.findOne.mockResolvedValue({ ...mockCredential, counter: 5 } as any);
+
+      const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
+      verifyAuthenticationResponse.mockResolvedValue({
+        verified: true,
+        authenticationInfo: { newCounter: 6 },
+      });
+
+      credentialRepository.save.mockResolvedValue({} as WebAuthnCredentialEntity);
+
+      const result = await service.verifyAuthentication('principal-123', mockAuthResponse);
+
+      expect(result.verified).toBe(true);
+      expect(credentialRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+        counter: 6,
+      }));
+      expect(challengeRepository.delete).toHaveBeenCalledWith({
+        principalId: 'principal-123',
+        flowType: 'authentication',
+      });
+    });
+
+    it('should detect replay attack if counter does not increase', async () => {
+       const mockChallenge = {
+        principalId: 'principal-123',
+        flowType: 'authentication',
+        expiresAt: new Date(Date.now() + 60000),
+      } as WebAuthnChallengeEntity;
+
+      challengeRepository.findOne.mockResolvedValue(mockChallenge);
+      credentialRepository.findOne.mockResolvedValue({ ...mockCredential, counter: 10 } as any);
+
+      const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
+      verifyAuthenticationResponse.mockResolvedValue({
+        verified: true,
+        authenticationInfo: { newCounter: 10 }, // Same counter!
+      });
+
+      const warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
+
+      await service.verifyAuthentication('principal-123', mockAuthResponse);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Possible cloning attack'));
+    });
+
+    it('should fail if no active challenge', async () => {
+      challengeRepository.findOne.mockResolvedValue(null);
+      const result = await service.verifyAuthentication('principal-123', mockAuthResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('No active challenge found');
+    });
+
+    it('should fail if challenge expired', async () => {
+      challengeRepository.findOne.mockResolvedValue({
+        expiresAt: new Date(Date.now() - 1000),
+      } as WebAuthnChallengeEntity);
+      const result = await service.verifyAuthentication('principal-123', mockAuthResponse);
+      expect(result.verified).toBe(false); 
+      expect(result.error).toBe('Challenge expired');
+    });
+
+    it('should fail if credential not found', async () => {
+      challengeRepository.findOne.mockResolvedValue({
+        expiresAt: new Date(Date.now() + 60000),
+      } as WebAuthnChallengeEntity);
+      credentialRepository.findOne.mockResolvedValue(null);
+      
+      const result = await service.verifyAuthentication('principal-123', mockAuthResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('Credential not found or revoked');
+    });
+
+    it('should fail if validation fails', async () => {
+      challengeRepository.findOne.mockResolvedValue({
+         expiresAt: new Date(Date.now() + 60000),
+      } as WebAuthnChallengeEntity);
+      credentialRepository.findOne.mockResolvedValue(mockCredential as any);
+      
+      const { verifyAuthenticationResponse } = require('@simplewebauthn/server');
+      verifyAuthenticationResponse.mockResolvedValue({ verified: false });
+
+      const result = await service.verifyAuthentication('principal-123', mockAuthResponse);
+      expect(result.verified).toBe(false);
+      expect(result.error).toBe('Verification failed');
     });
   });
 

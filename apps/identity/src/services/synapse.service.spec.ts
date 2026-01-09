@@ -17,8 +17,49 @@ describe('SynapseService', () => {
     service = module.get<SynapseService>(SynapseService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('initialization', () => {
+    it('should stay in degraded mode if bridge files missing', async () => {
+       (require('fs').existsSync as jest.Mock).mockReturnValue(false);
+       const logSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
+       const errorSpy = jest.spyOn((service as any).logger, 'error').mockImplementation();
+       
+       // Force init
+       await service.onModuleInit();
+
+       expect((service as any).bridgeLoaded).toBe(false);
+       // Should verify it logged warning or error
+       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('degraded mode'));
+    });
+
+    it('should verify bridge is operational if loaded', async () => {
+       const mockBridge = { synapseGetState: jest.fn() };
+       (service as any).bridge = mockBridge;
+       
+       mockBridge.synapseGetState.mockResolvedValue(JSON.stringify({ version: 1 }));
+       
+       // Call private method
+       await (service as any).verifyBridge();
+       
+       expect(mockBridge.synapseGetState).toHaveBeenCalledWith('test-verify');
+    });
+
+    it('should throw if bridge verification fails', async () => {
+       const mockBridge = { synapseGetState: jest.fn() };
+       (service as any).bridge = mockBridge;
+       
+       mockBridge.synapseGetState.mockResolvedValue(null);
+       
+       await expect((service as any).verifyBridge()).rejects.toThrow('Bridge verification failed');
+    });
+
+    it('should throw if bridge verification returns invalid json', async () => {
+       const mockBridge = { synapseGetState: jest.fn() };
+       (service as any).bridge = mockBridge;
+       
+       mockBridge.synapseGetState.mockResolvedValue('invalid-json');
+       
+       await expect((service as any).verifyBridge()).rejects.toThrow();
+    });
   });
 
   describe('isOperational', () => {
@@ -29,8 +70,14 @@ describe('SynapseService', () => {
 
   describe('getState (degraded mode)', () => {
     it('should return null when bridge is not loaded', async () => {
+      // Ensure bridge not loaded
+      (service as any).bridgeLoaded = false;
+      const logSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
+      
       const result = await service.getState('agent-123');
+      
       expect(result).toBeNull();
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('degraded mode'));
     });
   });
 
