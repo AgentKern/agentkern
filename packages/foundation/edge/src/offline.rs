@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "embedded")]
-use alloc::{string::String, vec::Vec};
+use alloc::{format, string::String, vec::Vec};
 
 /// Offline agent state.
 pub struct OfflineAgent {

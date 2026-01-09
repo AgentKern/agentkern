@@ -46,7 +46,7 @@ pub mod uring {
     }
 
     /// Spawn a future on the current tokio-uring runtime.
-    pub fn spawn<F>(future: F) -> tokio_uring::task::JoinHandle<F::Output>
+    pub fn spawn<F>(future: F) -> tokio::task::JoinHandle<F::Output>
     where
         F: Future + 'static,
         F::Output: 'static,

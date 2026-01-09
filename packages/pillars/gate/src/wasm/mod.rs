@@ -3,7 +3,7 @@
 //! Per ARCHITECTURE.md: "Nano-Isolation"
 //! - Microsecond startup vs milliseconds for containers
 //! - Capability-based security model
-//! WASM Components for AgentKern Gate
+//!   WASM Components for AgentKern Gate
 //!
 //! Hot-swappable policy modules and capability routing.
 
@@ -30,6 +30,7 @@ pub struct WasmPolicyResult {
 #[cfg(feature = "wasm")]
 pub struct WasmPolicy {
     module: Module,
+    #[allow(dead_code)]
     name: String,
 }
 
@@ -64,7 +65,7 @@ impl WasmPolicyEngine {
         linker.func_wrap(
             "env",
             "log",
-            |caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
+            | _caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
                 // Log function for policies
                 tracing::debug!("WASM policy log: ptr={}, len={}", ptr, len);
             },
@@ -159,9 +160,8 @@ impl WasmPolicyEngine {
             .await?;
 
         // Call the evaluate function
-        if let Some(evaluate) = instance
+        if let Ok(evaluate) = instance
             .get_typed_func::<(), ()>(&mut store, "evaluate")
-            .ok()
         {
             evaluate.call_async(&mut store, ()).await?;
         }

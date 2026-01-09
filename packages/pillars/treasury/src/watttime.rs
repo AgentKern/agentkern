@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::sync::Mutex;
 
 /// WattTime API errors.
 #[derive(Debug, Error)]
@@ -66,6 +67,13 @@ impl Default for WattTimeConfig {
     }
 }
 
+/// Internal client state protected by Mutex.
+#[derive(Debug, Default)]
+struct ClientState {
+    token: Option<String>,
+    token_expiry: Option<std::time::Instant>,
+}
+
 /// WattTime API client for dynamic carbon intensity.
 ///
 /// # Example
@@ -77,10 +85,8 @@ impl Default for WattTimeConfig {
 #[derive(Debug)]
 pub struct WattTimeClient {
     config: WattTimeConfig,
-    /// Cached auth token
-    token: Option<String>,
-    /// Token expiry (30 min from login)
-    token_expiry: Option<std::time::Instant>,
+    /// Thread-safe internal state
+    state: Mutex<ClientState>,
 }
 
 impl WattTimeClient {
@@ -88,8 +94,7 @@ impl WattTimeClient {
     pub fn new(config: WattTimeConfig) -> Self {
         Self {
             config,
-            token: None,
-            token_expiry: None,
+            state: Mutex::new(ClientState::default()),
         }
     }
 
@@ -110,21 +115,23 @@ impl WattTimeClient {
     /// Get current carbon intensity for a location.
     /// Returns gCO2/kWh (converted from lbs/MWh).
     #[cfg(feature = "http")]
-    pub async fn get_intensity(&mut self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
+    pub async fn get_intensity(&self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
         // Authenticate if needed
-        if self.needs_auth() {
+        if self.needs_auth().await {
             self.authenticate().await?;
         }
 
         let client = reqwest::Client::new();
         let url = format!("{}/v3/signal-index", self.config.base_url);
 
+        let token = {
+            let state = self.state.lock().await;
+            state.token.clone().unwrap_or_default()
+        };
+
         let response = client
             .get(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
-            )
+            .header("Authorization", format!("Bearer {}", token))
             .query(&[
                 ("latitude", lat.to_string()),
                 ("longitude", lon.to_string()),
@@ -174,7 +181,7 @@ impl WattTimeClient {
 
     /// Authenticate with WattTime v3 API.
     #[cfg(feature = "http")]
-    async fn authenticate(&mut self) -> Result<(), WattTimeError> {
+    async fn authenticate(&self) -> Result<(), WattTimeError> {
         if !self.has_credentials() {
             return Err(WattTimeError::AuthFailed("No credentials configured".into()));
         }
@@ -206,9 +213,11 @@ impl WattTimeClient {
             .and_then(|t| t.as_str())
             .ok_or_else(|| WattTimeError::AuthFailed("No token in response".into()))?;
 
-        self.token = Some(token.to_string());
+        let mut state = self.state.lock().await;
+        state.token = Some(token.to_string());
         // Token expires in 30 minutes
-        self.token_expiry = Some(std::time::Instant::now() + std::time::Duration::from_secs(1800));
+        state.token_expiry =
+            Some(std::time::Instant::now() + std::time::Duration::from_secs(1800));
 
         tracing::info!("WattTime: Authenticated successfully");
         Ok(())
@@ -216,20 +225,22 @@ impl WattTimeClient {
 
     /// Get intensity forecast for a region.
     #[cfg(feature = "http")]
-    pub async fn get_forecast(&mut self, ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
-        if self.needs_auth() {
+    pub async fn get_forecast(&self, ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
+        if self.needs_auth().await {
             self.authenticate().await?;
         }
 
         let client = reqwest::Client::new();
         let url = format!("{}/v3/forecast", self.config.base_url);
 
+        let token = {
+            let state = self.state.lock().await;
+            state.token.clone().unwrap_or_default()
+        };
+
         let response = client
             .get(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
-            )
+            .header("Authorization", format!("Bearer {}", token))
             .query(&[("ba", ba)])
             .send()
             .await
@@ -257,7 +268,7 @@ impl WattTimeClient {
                     })
                     .collect()
             })
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
 
         Ok(forecast)
     }
@@ -291,20 +302,22 @@ impl WattTimeClient {
 
     /// Get the balancing authority (grid region) for a location.
     #[cfg(feature = "http")]
-    pub async fn get_region(&mut self, lat: f64, lon: f64) -> Result<String, WattTimeError> {
-        if self.needs_auth() {
+    pub async fn get_region(&self, lat: f64, lon: f64) -> Result<String, WattTimeError> {
+        if self.needs_auth().await {
             self.authenticate().await?;
         }
 
         let client = reqwest::Client::new();
         let url = format!("{}/v3/region-from-loc", self.config.base_url);
 
+        let token = {
+            let state = self.state.lock().await;
+            state.token.clone().unwrap_or_default()
+        };
+
         let response = client
             .get(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
-            )
+            .header("Authorization", format!("Bearer {}", token))
             .query(&[
                 ("latitude", lat.to_string()),
                 ("longitude", lon.to_string()),
@@ -370,8 +383,9 @@ impl WattTimeClient {
     }
 
     /// Check if token needs refresh.
-    pub fn needs_auth(&self) -> bool {
-        match self.token_expiry {
+    pub async fn needs_auth(&self) -> bool {
+        let state = self.state.lock().await;
+        match state.token_expiry {
             Some(expiry) => std::time::Instant::now() > expiry,
             None => true,
         }
@@ -388,8 +402,12 @@ impl WattTimeClient {
     }
 
     /// Check if currently authenticated (has valid token).
-    pub fn is_authenticated(&self) -> bool {
-        self.token.is_some() && !self.needs_auth()
+    pub async fn is_authenticated(&self) -> bool {
+        let state = self.state.lock().await;
+        state.token.is_some() && match state.token_expiry {
+            Some(expiry) => std::time::Instant::now() <= expiry,
+            None => false,
+        }
     }
 }
 
@@ -416,8 +434,8 @@ mod tests {
         let intensity = client.estimate_from_location(31.2304, 121.4737);
         assert_eq!(intensity, 550); // Shanghai is coal-heavy
     }
-
     #[tokio::test]
+    #[ignore] // Requires WATTTIME_USERNAME/PASSWORD
     async fn test_get_region() {
         let client = WattTimeClient::new(WattTimeConfig::default());
         let region = client.get_region(37.7749, -122.4194).await.unwrap();
@@ -425,6 +443,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires WATTTIME_USERNAME/PASSWORD
     async fn test_get_forecast() {
         let client = WattTimeClient::new(WattTimeConfig::default());
         let forecast = client.get_forecast("CAISO_NORTH").await.unwrap();

@@ -27,6 +27,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 use unicode_normalization::UnicodeNormalization;
+use ort::{session::{Session, builder::GraphOptimizationLevel}, value::Value};
+use std::sync::Mutex;
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -436,7 +438,7 @@ pub struct InferenceSession {
     #[allow(dead_code)]
     config: ModelConfig,
     #[cfg(feature = "neural")]
-    session: Option<ort::Session>,
+    session: Option<Mutex<Session>>,
     /// Tracks load state in mock mode (used in feature-gated code).
     #[cfg(not(feature = "neural"))]
     #[allow(dead_code)]
@@ -449,7 +451,15 @@ impl InferenceSession {
     pub fn new(config: ModelConfig) -> Result<Self, NeuralError> {
         use std::path::Path;
 
-        let model_path = Path::new(&config.model_path);
+        let model_path = if let Some(p) = &config.model_path {
+            Path::new(p)
+        } else {
+            return Ok(Self {
+                config,
+                session: None,
+            });
+        };
+
         if !model_path.exists() {
             // Return session without model loaded - will use mock inference
             return Ok(Self {
@@ -458,26 +468,26 @@ impl InferenceSession {
             });
         }
 
-        let session = ort::Session::builder()
-            .map_err(|e| NeuralError::ModelLoadFailed {
+        let session = Session::builder()
+            .map_err(|e: ort::Error| NeuralError::ModelLoadFailed {
                 reason: e.to_string(),
             })?
-            .with_optimization_level(ort::GraphOptimizationLevel::Level3)
-            .map_err(|e| NeuralError::ModelLoadFailed {
+            .with_optimization_level(GraphOptimizationLevel::Level3)
+            .map_err(|e: ort::Error| NeuralError::ModelLoadFailed {
                 reason: e.to_string(),
             })?
             .with_intra_threads(config.num_threads as usize)
-            .map_err(|e| NeuralError::ModelLoadFailed {
+            .map_err(|e: ort::Error| NeuralError::ModelLoadFailed {
                 reason: e.to_string(),
             })?
             .commit_from_file(model_path)
-            .map_err(|e| NeuralError::ModelLoadFailed {
+            .map_err(|e: ort::Error| NeuralError::ModelLoadFailed {
                 reason: e.to_string(),
             })?;
 
         Ok(Self {
             config,
-            session: Some(session),
+            session: Some(Mutex::new(session)),
         })
     }
 
@@ -493,33 +503,38 @@ impl InferenceSession {
     /// Run inference on input tensor.
     #[cfg(feature = "neural")]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        if let Some(ref session) = self.session {
+        if let Some(ref session_mutex) = self.session {
             use ort::inputs;
 
+            let mut session = session_mutex.lock().map_err(|_| NeuralError::InferenceFailed {
+                reason: "Mutex poisoned".to_string(),
+            })?;
+
             let input_array = ndarray::Array1::from_vec(input.to_vec())
-                .into_shape((1, input.len()))
-                .map_err(|e| NeuralError::InferenceFailed {
+                .into_shape_with_order((1, input.len()))
+                .map_err(|e: ndarray::ShapeError| NeuralError::InferenceFailed {
+                    reason: e.to_string(),
+                })?
+                .into_dyn();
+
+            let input_value = Value::from_array(input_array)
+                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
                     reason: e.to_string(),
                 })?;
 
             let outputs = session
-                .run(
-                    inputs![input_array].map_err(|e| NeuralError::InferenceFailed {
-                        reason: e.to_string(),
-                    })?,
-                )
-                .map_err(|e| NeuralError::InferenceFailed {
+                .run(inputs![input_value])
+                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
                     reason: e.to_string(),
                 })?;
 
-            let output_tensor =
-                outputs[0]
-                    .extract_tensor::<f32>()
-                    .map_err(|e| NeuralError::InferenceFailed {
-                        reason: e.to_string(),
-                    })?;
+            let output_tuple = outputs[0]
+                .try_extract_tensor::<f32>()
+                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
+                    reason: e.to_string(),
+                })?;
 
-            Ok(output_tensor.view().iter().cloned().collect())
+            Ok(output_tuple.1.to_vec())
         } else {
             // Fallback to mock inference
             self.mock_run(input)

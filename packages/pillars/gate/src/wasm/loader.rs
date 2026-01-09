@@ -112,7 +112,6 @@ pub struct PromptCheckResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn test_policy_paths() {

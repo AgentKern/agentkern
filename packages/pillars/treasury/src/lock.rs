@@ -175,12 +175,12 @@ impl LockManager {
             .as_ref()
             .ok_or_else(|| LockError::RedisError("REDIS_URL not set".into()))?;
 
-        let rl = rslock::RedLock::new(vec![redis_url.as_str()]);
+        let rl = rslock::LockManager::new(vec![redis_url.as_str()]);
 
         let lock = rl
             .lock(
                 resource.as_bytes(),
-                self.config.default_ttl.as_millis() as usize,
+                self.config.default_ttl,
             )
             .await
             .map_err(|e| LockError::RedisError(format!("{:?}", e)))?;
@@ -207,7 +207,7 @@ pub struct LockGuard {
     resource: String,
     local_locks: Option<Arc<RwLock<HashSet<String>>>>,
     #[cfg(feature = "distributed")]
-    redis_lock: Option<(rslock::RedLock, rslock::Lock)>,
+    redis_lock: Option<(rslock::LockManager, rslock::Lock)>,
 }
 
 impl Drop for LockGuard {
@@ -219,7 +219,7 @@ impl Drop for LockGuard {
         }
 
         #[cfg(feature = "distributed")]
-        if let Some((ref rl, ref lock)) = self.redis_lock {
+        if let Some((ref _rl, ref _lock)) = self.redis_lock {
             // Redis lock auto-expires by TTL, but we can unlock early
             // Note: rslock unlock is sync, run in blocking context if needed
             tracing::debug!(resource = %self.resource, "Redis lock released");

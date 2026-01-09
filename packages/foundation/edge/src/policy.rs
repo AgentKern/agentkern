@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "embedded")]
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 
 /// Edge policy.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -529,10 +529,10 @@ impl LegacyConnector for SwiftGpiConnector {
                         Ok(ConnectorHealth::healthy())
                     }
                     Ok(response) => {
-                        Ok(ConnectorHealth::degraded(&format!("SWIFT API returned {}", response.status())))
+                        Ok(ConnectorHealth::degraded(format!("SWIFT API returned {}", response.status())))
                     }
                     Err(e) => {
-                        Ok(ConnectorHealth::unhealthy(&format!("SWIFT API unreachable: {}", e)))
+                        Ok(ConnectorHealth::unhealthy(format!("SWIFT API unreachable: {}", e)))
                     }
                 }
             }

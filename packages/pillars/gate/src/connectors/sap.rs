@@ -200,7 +200,7 @@ impl SapRfcConnector {
     async fn call_rfc_production(
         &self,
         function_name: &str,
-        import_params: HashMap<String, serde_json::Value>,
+        _import_params: HashMap<String, serde_json::Value>,
     ) -> ConnectorResult<RfcResponse> {
         // This would use rsrfc or similar bindings
         // For now, we document the expected interface

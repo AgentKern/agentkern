@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+#[cfg(feature = "otel")]
+use opentelemetry::trace::TracerProvider;
 
 /// Metrics collected by the observability plane.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -541,14 +543,15 @@ pub fn init_otel_tracer(
     use opentelemetry_sdk::Resource;
 
     // Build OTLP exporter
-    let exporter = opentelemetry_otlp::new_exporter()
-        .http()
-        .with_endpoint(&config.endpoint);
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_http()
+        .with_endpoint(&config.endpoint)
+        .build()?;
 
     // Create TracerProvider with batch exporter
     let tracer_provider = TracerProvider::builder()
         .with_batch_exporter(
-            exporter.build_span_exporter()?,
+            exporter,
             opentelemetry_sdk::runtime::Tokio,
         )
         .with_resource(Resource::new(vec![
@@ -557,6 +560,9 @@ pub fn init_otel_tracer(
         ]))
         .build();
 
+    // Get a tracer from the provider (concrete type)
+    let tracer = tracer_provider.tracer("agentkern");
+
     // Set global tracer provider
     opentelemetry::global::set_tracer_provider(tracer_provider);
 
@@ -564,8 +570,7 @@ pub fn init_otel_tracer(
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    let telemetry =
-        tracing_opentelemetry::layer().with_tracer(opentelemetry::global::tracer("agentkern"));
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     tracing_subscriber::registry()
         .with(telemetry)

@@ -477,7 +477,7 @@ mod tests {
         assert_eq!(auction.bids.len(), 3);
 
         // Evaluate
-        let winner = auction.evaluate().unwrap();
+        let _winner = auction.evaluate().unwrap();
 
         assert_eq!(auction.status, AuctionStatus::Awarded);
         assert!(auction.winning_bid.is_some());

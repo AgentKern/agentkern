@@ -135,7 +135,7 @@ impl PriorityQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::LockType;
+    // use crate::types::LockType;
 
     fn make_request(agent: &str, resource: &str, priority: i32) -> CoordinationRequest {
         CoordinationRequest::new(agent, resource).with_priority(priority)

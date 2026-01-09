@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 #[cfg(feature = "wasm")]
-use wasmtime::{Engine, Instance, Linker, Module, Store};
+use wasmtime::{Engine, Linker, Module, Store};
 
 /// Capability declaration for a WASM module.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,7 +128,7 @@ impl WasmRegistry {
         let name = name.into();
         let version = version.into();
 
-        let module = Module::new(&*self.engine, wasm_bytes)
+        let module = Module::new(&self.engine, wasm_bytes)
             .map_err(|e| RegistryError::CompilationFailed(e.to_string()))?;
 
         let meta = WasmActorMeta {
@@ -164,7 +164,7 @@ impl WasmRegistry {
             for cap in &capabilities {
                 index
                     .entry(cap.name.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(name.clone());
             }
         }
@@ -204,20 +204,19 @@ impl WasmRegistry {
         let start = std::time::Instant::now();
 
         // Create store with input data
-        let mut store = Store::new(&*actor.engine, input.to_vec());
+        let mut store = Store::new(&actor.engine, input.to_vec());
         store.set_fuel(100_000).ok();
 
         // Create linker and instantiate
-        let linker = Linker::<Vec<u8>>::new(&*actor.engine);
+        let linker = Linker::<Vec<u8>>::new(&actor.engine);
         let instance = linker
             .instantiate_async(&mut store, &actor.module)
             .await
             .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
 
         // Call evaluate function
-        if let Some(evaluate) = instance
+        if let Ok(evaluate) = instance
             .get_typed_func::<(), ()>(&mut store, "evaluate")
-            .ok()
         {
             evaluate
                 .call_async(&mut store, ())

@@ -9,9 +9,7 @@
 
 #[cfg(feature = "actors")]
 use actix::prelude::*;
-use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Message to evaluate a policy.
 #[cfg(feature = "actors")]
@@ -29,6 +27,19 @@ pub struct PolicyResult {
     pub allowed: bool,
     pub risk_score: u8,
     pub latency_us: u64,
+}
+
+#[cfg(feature = "actors")]
+impl<A, M> dev::MessageResponse<A, M> for PolicyResult
+where
+    A: Actor,
+    M: Message<Result = PolicyResult>,
+{
+    fn handle(self, _ctx: &mut A::Context, tx: Option<dev::OneshotSender<M::Result>>) {
+        if let Some(tx) = tx {
+            let _ = tx.send(self);
+        }
+    }
 }
 
 /// Message to hot-swap a WASM policy.
@@ -52,6 +63,19 @@ pub struct SupervisorStatus {
     pub active_policies: usize,
     pub total_evaluations: u64,
     pub uptime_secs: u64,
+}
+
+#[cfg(feature = "actors")]
+impl<A, M> dev::MessageResponse<A, M> for SupervisorStatus
+where
+    A: Actor,
+    M: Message<Result = SupervisorStatus>,
+{
+    fn handle(self, _ctx: &mut A::Context, tx: Option<dev::OneshotSender<M::Result>>) {
+        if let Some(tx) = tx {
+            let _ = tx.send(self);
+        }
+    }
 }
 
 /// Policy Cell - a supervised unit of policy logic.
@@ -127,6 +151,14 @@ impl GateSupervisor {
             total_evaluations: 0,
         }
     }
+
+    pub fn status(&self) -> SupervisorStatus {
+        SupervisorStatus {
+            active_policies: self.cells.len(),
+            total_evaluations: self.total_evaluations,
+            uptime_secs: self.start_time.elapsed().as_secs(),
+        }
+    }
 }
 
 #[cfg(feature = "actors")]
@@ -160,7 +192,7 @@ impl Supervised for GateSupervisor {
 impl Handler<EvaluatePolicy> for GateSupervisor {
     type Result = PolicyResult;
 
-    fn handle(&mut self, msg: EvaluatePolicy, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _msg: EvaluatePolicy, _ctx: &mut Self::Context) -> Self::Result {
         self.total_evaluations += 1;
 
         // For now, return default result
@@ -177,7 +209,7 @@ impl Handler<EvaluatePolicy> for GateSupervisor {
 impl Handler<HotSwapPolicy> for GateSupervisor {
     type Result = Result<(), String>;
 
-    fn handle(&mut self, msg: HotSwapPolicy, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: HotSwapPolicy, _ctx: &mut Self::Context) -> Self::Result {
         tracing::info!(
             policy = %msg.policy_name,
             bytes = msg.wasm_bytes.len(),
