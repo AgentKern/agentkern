@@ -131,7 +131,7 @@ criterion = "0.5"
 # Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
 rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
 rust_decimal_macros = "1.39"
-wat = "1.0"  # For WASM integration tests
+wat = "1.244"  # For WASM integration tests
 
 [[bench]]
 name = "policy_eval"
