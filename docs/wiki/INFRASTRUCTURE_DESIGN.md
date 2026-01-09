@@ -63,6 +63,7 @@ High-performance bridge connecting Node.js (Identity Pillar) to Rust (Gate Pilla
     - `guard_prompt(str) -> str`: <1ms prompt injection check.
     - `attest(nonce) -> str`: Hardware TEE attestation generation.
     - `verify(agent, action) -> str`: Policy engine decision.
+    - `gate_wasm_*(...)`: WASM actor management (list, get, register).
 
 ---
 
@@ -94,4 +95,4 @@ Minimal kernel for constrained IoT environments (drones, robots).
 
 ---
 
-*Last updated: 2025-12-31*
+*Last updated: 2026-01-09*
