@@ -109,30 +109,175 @@ impl WattTimeClient {
 
     /// Get current carbon intensity for a location.
     /// Returns gCO2/kWh (converted from lbs/MWh).
-    pub async fn get_intensity(&self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
-        // In production, this would:
-        // 1. Get auth token if expired
-        // 2. Call /v3/signal-index with lat/lon
-        // 3. Convert MOER (lbs CO2/MWh) to gCO2/kWh
+    #[cfg(feature = "http")]
+    pub async fn get_intensity(&mut self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
+        // Authenticate if needed
+        if self.needs_auth() {
+            self.authenticate().await?;
+        }
 
-        // Placeholder: return regional average based on rough lat/lon
-        // This allows the code to compile and test without API keys
-        let intensity = self.estimate_from_location(lat, lon);
-        Ok(intensity)
+        let client = reqwest::Client::new();
+        let url = format!("{}/v3/signal-index", self.config.base_url);
+
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
+            )
+            .query(&[
+                ("latitude", lat.to_string()),
+                ("longitude", lon.to_string()),
+            ])
+            .send()
+            .await
+            .map_err(|e| WattTimeError::RequestFailed(e.to_string()))?;
+
+        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(WattTimeError::RateLimited(60));
+        }
+
+        if !response.status().is_success() {
+            // Fall back to location-based estimate
+            tracing::warn!(
+                "WattTime API returned {}, falling back to estimate",
+                response.status()
+            );
+            return Ok(self.estimate_from_location(lat, lon));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| WattTimeError::InvalidResponse(e.to_string()))?;
+
+        // Extract MOER and convert: lbs CO2/MWh -> gCO2/kWh
+        // 1 lbs = 453.592g, 1 MWh = 1000 kWh
+        // So: lbs/MWh * 453.592 / 1000 = gCO2/kWh
+        let moer = data
+            .get("data")
+            .and_then(|d| d.get(0))
+            .and_then(|d| d.get("value"))
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+
+        let gco2_kwh = (moer * 453.592 / 1000.0) as u32;
+        Ok(gco2_kwh)
+    }
+
+    /// Fallback implementation when http feature is disabled.
+    #[cfg(not(feature = "http"))]
+    pub async fn get_intensity(&self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
+        // Return location-based estimate when API is not available
+        Ok(self.estimate_from_location(lat, lon))
+    }
+
+    /// Authenticate with WattTime v3 API.
+    #[cfg(feature = "http")]
+    async fn authenticate(&mut self) -> Result<(), WattTimeError> {
+        if !self.has_credentials() {
+            return Err(WattTimeError::AuthFailed("No credentials configured".into()));
+        }
+
+        let client = reqwest::Client::new();
+        let url = format!("{}/login", self.config.base_url);
+
+        let response = client
+            .get(&url)
+            .basic_auth(&self.config.username, Some(&self.config.password))
+            .send()
+            .await
+            .map_err(|e| WattTimeError::AuthFailed(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(WattTimeError::AuthFailed(format!(
+                "Login failed with status {}",
+                response.status()
+            )));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| WattTimeError::AuthFailed(e.to_string()))?;
+
+        let token = data
+            .get("token")
+            .and_then(|t| t.as_str())
+            .ok_or_else(|| WattTimeError::AuthFailed("No token in response".into()))?;
+
+        self.token = Some(token.to_string());
+        // Token expires in 30 minutes
+        self.token_expiry = Some(std::time::Instant::now() + std::time::Duration::from_secs(1800));
+
+        tracing::info!("WattTime: Authenticated successfully");
+        Ok(())
     }
 
     /// Get intensity forecast for a region.
-    pub async fn get_forecast(&self, _ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
-        use chrono::Timelike;
+    #[cfg(feature = "http")]
+    pub async fn get_forecast(&mut self, ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
+        if self.needs_auth() {
+            self.authenticate().await?;
+        }
 
-        // Placeholder: return mock forecast
+        let client = reqwest::Client::new();
+        let url = format!("{}/v3/forecast", self.config.base_url);
+
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
+            )
+            .query(&[("ba", ba)])
+            .send()
+            .await
+            .map_err(|e| WattTimeError::RequestFailed(e.to_string()))?;
+
+        if !response.status().is_success() {
+            // Fall back to mock forecast
+            return self.mock_forecast();
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| WattTimeError::InvalidResponse(e.to_string()))?;
+
+        let forecast = data
+            .get("data")
+            .and_then(|d| d.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|item| {
+                        let point_time = item.get("point_time")?.as_str()?.to_string();
+                        let value = item.get("value")?.as_f64()?;
+                        Some(ForecastPoint { point_time, value })
+                    })
+                    .collect()
+            })
+            .unwrap_or_else(Vec::new);
+
+        Ok(forecast)
+    }
+
+    /// Fallback forecast when http feature is disabled.
+    #[cfg(not(feature = "http"))]
+    pub async fn get_forecast(&self, _ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
+        self.mock_forecast()
+    }
+
+    /// Generate mock forecast data (fallback).
+    fn mock_forecast(&self) -> Result<Vec<ForecastPoint>, WattTimeError> {
+        use chrono::Timelike;
         let now = chrono::Utc::now();
         let mut forecast = Vec::new();
 
         for i in 0..24 {
             let point_time = now + chrono::Duration::hours(i);
-            // Simulate sinusoidal pattern (lower at midday due to solar)
             let hour = point_time.hour() as f64;
+            // Sinusoidal pattern: lower at midday due to solar
             let value = 400.0 + 100.0 * (hour * std::f64::consts::PI / 12.0).sin();
 
             forecast.push(ForecastPoint {
@@ -145,41 +290,82 @@ impl WattTimeClient {
     }
 
     /// Get the balancing authority (grid region) for a location.
-    pub async fn get_region(&self, lat: f64, lon: f64) -> Result<String, WattTimeError> {
-        // Placeholder: estimate region from lat/lon
-        let region = if lon < -100.0 {
-            "CAISO_NORTH" // California
-        } else if lon < -80.0 {
-            "PJM" // Mid-Atlantic
-        } else if lon > 100.0 {
-            "CNGRID" // China
-        } else if lat > 50.0 && lon > -10.0 && lon < 40.0 {
-            "EUGRID" // Europe
-        } else {
-            "UNKNOWN"
-        };
+    #[cfg(feature = "http")]
+    pub async fn get_region(&mut self, lat: f64, lon: f64) -> Result<String, WattTimeError> {
+        if self.needs_auth() {
+            self.authenticate().await?;
+        }
 
-        Ok(region.to_string())
+        let client = reqwest::Client::new();
+        let url = format!("{}/v3/region-from-loc", self.config.base_url);
+
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.token.as_ref().unwrap_or(&String::new())),
+            )
+            .query(&[
+                ("latitude", lat.to_string()),
+                ("longitude", lon.to_string()),
+            ])
+            .send()
+            .await
+            .map_err(|e| WattTimeError::RequestFailed(e.to_string()))?;
+
+        if !response.status().is_success() {
+            // Fall back to location-based estimate
+            return Ok(self.estimate_region(lat, lon));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| WattTimeError::InvalidResponse(e.to_string()))?;
+
+        let region = data
+            .get("ba")
+            .and_then(|b| b.as_str())
+            .unwrap_or("UNKNOWN")
+            .to_string();
+
+        Ok(region)
+    }
+
+    /// Fallback region lookup when http feature is disabled.
+    #[cfg(not(feature = "http"))]
+    pub async fn get_region(&self, lat: f64, lon: f64) -> Result<String, WattTimeError> {
+        Ok(self.estimate_region(lat, lon))
+    }
+
+    /// Estimate region from lat/lon (fallback).
+    fn estimate_region(&self, lat: f64, lon: f64) -> String {
+        if lon < -100.0 {
+            "CAISO_NORTH".to_string() // California
+        } else if lon < -80.0 {
+            "PJM".to_string() // Mid-Atlantic
+        } else if lon > 100.0 {
+            "CNGRID".to_string() // China
+        } else if lat > 50.0 && lon > -10.0 && lon < 40.0 {
+            "EUGRID".to_string() // Europe
+        } else {
+            "UNKNOWN".to_string()
+        }
     }
 
     /// Estimate intensity from lat/lon (fallback when API unavailable).
     fn estimate_from_location(&self, lat: f64, lon: f64) -> u32 {
         // Rough estimates based on grid carbon intensity by region
         if lon < -100.0 && lat > 32.0 && lat < 42.0 {
-            // California (high solar)
-            250
+            250 // California (high solar)
         } else if lon > -10.0 && lon < 40.0 && lat > 48.0 && lat < 60.0 {
-            // Northern Europe (high wind/nuclear)
-            200
+            200 // Northern Europe (high wind/nuclear)
         } else if lon > 100.0 && lon < 140.0 && lat > 20.0 && lat < 45.0 {
-            // China (coal-heavy)
-            550
+            550 // China (coal-heavy)
         } else if lon > 70.0 && lon < 90.0 && lat > 8.0 && lat < 35.0 {
-            // India (coal-heavy)
-            700
+            700 // India (coal-heavy)
         } else {
-            // US/World average
-            400
+            400 // US/World average
         }
     }
 

@@ -599,6 +599,7 @@ dependencies = [
  "chrono",
  "parking_lot",
  "redis",
+ "reqwest",
  "rslock",
  "rust_decimal",
  "rust_decimal_macros",

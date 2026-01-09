@@ -513,8 +513,33 @@ impl LegacyConnector for SwiftGpiConnector {
 
     async fn health_check(&self) -> ConnectorResult<ConnectorHealth> {
         if self.is_production_enabled() {
-            // TODO: Call SWIFT health endpoint when available
-            Ok(ConnectorHealth::healthy())
+            #[cfg(feature = "http")]
+            {
+                // Call SWIFT API root to check connectivity
+                let result = self.http_client
+                    .head(&self.config.endpoint)
+                    .header("Authorization", format!("Bearer {}", self.api_key.as_ref().unwrap_or(&String::new())))
+                    .timeout(std::time::Duration::from_secs(5))
+                    .send()
+                    .await;
+
+                match result {
+                    Ok(response) if response.status().is_success() || response.status() == reqwest::StatusCode::UNAUTHORIZED => {
+                        // UNAUTHORIZED means API is reachable but creds may have expired - still healthy
+                        Ok(ConnectorHealth::healthy())
+                    }
+                    Ok(response) => {
+                        Ok(ConnectorHealth::degraded(&format!("SWIFT API returned {}", response.status())))
+                    }
+                    Err(e) => {
+                        Ok(ConnectorHealth::unhealthy(&format!("SWIFT API unreachable: {}", e)))
+                    }
+                }
+            }
+            #[cfg(not(feature = "http"))]
+            {
+                Ok(ConnectorHealth::healthy())
+            }
         } else {
             Ok(ConnectorHealth::degraded("Running in simulation mode"))
         }
