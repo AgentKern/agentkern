@@ -136,6 +136,7 @@ dependencies = [
  "agentkern-nexus",
  "agentkern-synapse",
  "agentkern-treasury",
+ "base64",
  "chrono",
  "napi 2.16.17",
  "napi-derive 2.16.13",

@@ -67,6 +67,17 @@ interface NativeBridge {
     contextJson?: string,
   ): Promise<string>;
   registerPolicy(policyYaml: string): Promise<string>;
+  // WASM Actor Management
+  gateWasmListActors(): string;
+  gateWasmGetActor(name: string): string;
+  gateWasmRegisterActor(
+    name: string,
+    version: string,
+    wasmBase64: string,
+    capabilitiesJson: string,
+  ): string;
+  gateWasmUnregisterActor(name: string): boolean;
+  gateWasmStats(): string;
 }
 
 @Injectable()
@@ -582,7 +593,7 @@ export class GateService implements OnModuleInit {
   }
 
   /**
-   * List WASM actors (stub)
+   * List WASM actors - uses native Rust registry via N-API bridge
    */
   async listWasmActors(): Promise<
     Array<{
@@ -599,30 +610,22 @@ export class GateService implements OnModuleInit {
       avgLatencyUs: number;
     }>
   > {
-    await Promise.resolve(); // Ensure async execution
-    return [
-      {
-        name: 'prompt-guard',
-        version: '1.0.0',
-        capabilities: [
-          {
-            name: 'prompt_guard',
-            inputSchema: {
-              type: 'object',
-              properties: { prompt: { type: 'string' } },
-            },
-          },
-        ],
-        sizeBytes: 245760,
-        loadedAt: new Date().toISOString(),
-        invocations: 0,
-        avgLatencyUs: 50,
-      },
-    ];
+    if (!this.bridgeLoaded) {
+      this.logger.warn('WASM: Bridge not loaded, returning empty list');
+      return [];
+    }
+
+    try {
+      const result = this.bridge.gateWasmListActors();
+      return JSON.parse(result);
+    } catch (error) {
+      this.logger.error(`WASM listActors failed: ${error}`);
+      return [];
+    }
   }
 
   /**
-   * Get WASM actor by name (stub)
+   * Get WASM actor by name - uses native Rust registry
    */
   async getWasmActor(name: string): Promise<{
     name: string;
@@ -637,16 +640,25 @@ export class GateService implements OnModuleInit {
     invocations: number;
     avgLatencyUs: number;
   }> {
-    const actors = await this.listWasmActors();
-    const actor = actors.find((a) => a.name === name);
-    if (!actor) {
+    if (!this.bridgeLoaded) {
+      throw new Error('WASM bridge not loaded');
+    }
+
+    try {
+      const result = this.bridge.gateWasmGetActor(name);
+      const parsed = JSON.parse(result);
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+      return parsed;
+    } catch (error) {
+      this.logger.error(`WASM getActor failed: ${error}`);
       throw new Error(`WASM actor ${name} not found`);
     }
-    return actor;
   }
 
   /**
-   * Register WASM actor (stub)
+   * Register WASM actor - uses native Rust wasmtime registry
    */
   async registerWasmActor(dto: {
     name: string;
@@ -670,17 +682,51 @@ export class GateService implements OnModuleInit {
     invocations: number;
     avgLatencyUs: number;
   }> {
-    await Promise.resolve(); // Ensure async execution
+    if (!this.bridgeLoaded) {
+      throw new Error('WASM bridge not loaded');
+    }
+
     this.logger.log(`Registering WASM actor: ${dto.name} v${dto.version}`);
 
-    return {
-      name: dto.name,
-      version: dto.version,
-      capabilities: dto.capabilities,
-      sizeBytes: Buffer.from(dto.wasmBase64, 'base64').length,
-      loadedAt: new Date().toISOString(),
-      invocations: 0,
-      avgLatencyUs: 0,
-    };
+    try {
+      const result = this.bridge.gateWasmRegisterActor(
+        dto.name,
+        dto.version,
+        dto.wasmBase64,
+        JSON.stringify(dto.capabilities),
+      );
+      const parsed = JSON.parse(result);
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+      return {
+        ...parsed,
+        capabilities: dto.capabilities,
+      };
+    } catch (error) {
+      this.logger.error(`WASM registerActor failed: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get WASM registry statistics
+   */
+  async getWasmStats(): Promise<{
+    actorCount: number;
+    totalSizeBytes: number;
+    totalInvocations: number;
+    enabled: boolean;
+  }> {
+    if (!this.bridgeLoaded) {
+      return { actorCount: 0, totalSizeBytes: 0, totalInvocations: 0, enabled: false };
+    }
+
+    try {
+      const result = this.bridge.gateWasmStats();
+      return { ...JSON.parse(result), enabled: true };
+    } catch {
+      return { actorCount: 0, totalSizeBytes: 0, totalInvocations: 0, enabled: false };
+    }
   }
 }

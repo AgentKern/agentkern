@@ -88,6 +88,48 @@ const mockBridge = {
   attest: jest.fn().mockReturnValue(JSON.stringify(mockAttestation)),
   verify: jest.fn().mockResolvedValue(JSON.stringify(mockVerificationResult)),
   registerPolicy: jest.fn().mockResolvedValue(JSON.stringify({ success: true })),
+  // WASM Actor Management
+  gateWasmListActors: jest.fn().mockReturnValue(JSON.stringify([
+    {
+      name: 'prompt-guard',
+      version: '1.0.0',
+      capabilities: [{ name: 'prompt_guard', inputSchema: { type: 'object' } }],
+      sizeBytes: 245760,
+      loadedAt: new Date().toISOString(),
+      invocations: 0,
+      avgLatencyUs: 50,
+    },
+  ])),
+  gateWasmGetActor: jest.fn().mockImplementation((name: string) => {
+    if (name === 'prompt-guard') {
+      return JSON.stringify({
+        name: 'prompt-guard',
+        version: '1.0.0',
+        capabilities: [{ name: 'prompt_guard' }],
+        sizeBytes: 245760,
+        loadedAt: new Date().toISOString(),
+        invocations: 0,
+        avgLatencyUs: 50,
+      });
+    }
+    return JSON.stringify({ error: `Actor not found: ${name}` });
+  }),
+  gateWasmRegisterActor: jest.fn().mockImplementation((name: string, version: string, _wasmBase64: string, _caps: string) => {
+    return JSON.stringify({
+      name,
+      version,
+      sizeBytes: 4,
+      loadedAt: new Date().toISOString(),
+      invocations: 0,
+      avgLatencyUs: 0,
+    });
+  }),
+  gateWasmUnregisterActor: jest.fn().mockReturnValue(true),
+  gateWasmStats: jest.fn().mockReturnValue(JSON.stringify({
+    actorCount: 1,
+    totalSizeBytes: 245760,
+    totalInvocations: 0,
+  })),
 };
 
 // ============================================================================
