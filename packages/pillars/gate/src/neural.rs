@@ -23,12 +23,17 @@
 
 use crate::types::VerificationContext;
 use deunicode::deunicode;
+#[cfg(feature = "neural")]
+use ort::{
+    session::{builder::GraphOptimizationLevel, Session},
+    value::Value,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+#[cfg(feature = "neural")]
+use std::sync::Mutex;
 use thiserror::Error;
 use unicode_normalization::UnicodeNormalization;
-use ort::{session::{Session, builder::GraphOptimizationLevel}, value::Value};
-use std::sync::Mutex;
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -506,9 +511,11 @@ impl InferenceSession {
         if let Some(ref session_mutex) = self.session {
             use ort::inputs;
 
-            let mut session = session_mutex.lock().map_err(|_| NeuralError::InferenceFailed {
-                reason: "Mutex poisoned".to_string(),
-            })?;
+            let mut session = session_mutex
+                .lock()
+                .map_err(|_| NeuralError::InferenceFailed {
+                    reason: "Mutex poisoned".to_string(),
+                })?;
 
             let input_array = ndarray::Array1::from_vec(input.to_vec())
                 .into_shape_with_order((1, input.len()))
@@ -517,22 +524,24 @@ impl InferenceSession {
                 })?
                 .into_dyn();
 
-            let input_value = Value::from_array(input_array)
-                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
+            let input_value = Value::from_array(input_array).map_err(|e: ort::Error| {
+                NeuralError::InferenceFailed {
                     reason: e.to_string(),
-                })?;
+                }
+            })?;
 
-            let outputs = session
-                .run(inputs![input_value])
-                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
+            let outputs = session.run(inputs![input_value]).map_err(|e: ort::Error| {
+                NeuralError::InferenceFailed {
                     reason: e.to_string(),
-                })?;
+                }
+            })?;
 
-            let output_tuple = outputs[0]
-                .try_extract_tensor::<f32>()
-                .map_err(|e: ort::Error| NeuralError::InferenceFailed {
-                    reason: e.to_string(),
-                })?;
+            let output_tuple =
+                outputs[0]
+                    .try_extract_tensor::<f32>()
+                    .map_err(|e: ort::Error| NeuralError::InferenceFailed {
+                        reason: e.to_string(),
+                    })?;
 
             Ok(output_tuple.1.to_vec())
         } else {

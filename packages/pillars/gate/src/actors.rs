@@ -11,6 +11,11 @@
 use actix::prelude::*;
 use std::collections::HashMap;
 
+#[cfg(not(feature = "actors"))]
+use parking_lot::RwLock;
+#[cfg(not(feature = "actors"))]
+use std::sync::Arc;
+
 /// Message to evaluate a policy.
 #[cfg(feature = "actors")]
 #[derive(Message)]
