@@ -8,7 +8,7 @@ FROM rust:1.92-alpine AS rust-builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache musl-dev pkgconfig
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev g++ make
 
 # Copy Rust workspace files
 COPY Cargo.toml Cargo.lock ./
