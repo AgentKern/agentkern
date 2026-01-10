@@ -604,35 +604,38 @@ mod wasm_bridge {
     pub fn get_wasm_registry() -> &'static WasmRegistry {
         WASM_REGISTRY.get_or_init(|| WasmRegistry::new().expect("Failed to create WASM registry"))
     }
-    
+
     pub fn list_actors() -> String {
         let registry = get_wasm_registry();
         let actors = registry.list_actors();
-        
-        let result: Vec<serde_json::Value> = actors.into_iter().map(|a| {
-            serde_json::json!({
-                "name": a.name,
-                "version": a.version,
-                "capabilities": a.capabilities.iter().map(|c| {
-                    serde_json::json!({
-                        "name": c.name,
-                        "inputSchema": c.input_schema,
-                        "outputSchema": c.output_schema
-                    })
-                }).collect::<Vec<_>>(),
-                "sizeBytes": a.size_bytes,
-                "loadedAt": a.loaded_at.to_rfc3339(),
-                "invocations": a.invocations,
-                "avgLatencyUs": a.avg_latency_us
+
+        let result: Vec<serde_json::Value> = actors
+            .into_iter()
+            .map(|a| {
+                serde_json::json!({
+                    "name": a.name,
+                    "version": a.version,
+                    "capabilities": a.capabilities.iter().map(|c| {
+                        serde_json::json!({
+                            "name": c.name,
+                            "inputSchema": c.input_schema,
+                            "outputSchema": c.output_schema
+                        })
+                    }).collect::<Vec<_>>(),
+                    "sizeBytes": a.size_bytes,
+                    "loadedAt": a.loaded_at.to_rfc3339(),
+                    "invocations": a.invocations,
+                    "avgLatencyUs": a.avg_latency_us
+                })
             })
-        }).collect();
-        
+            .collect();
+
         serde_json::to_string(&result).unwrap_or_else(|_| "[]".to_string())
     }
 
     pub fn get_actor(name: &str) -> String {
         let registry = get_wasm_registry();
-        
+
         match registry.get_actor(name) {
             Some(a) => serde_json::json!({
                 "name": a.name,
@@ -648,8 +651,9 @@ mod wasm_bridge {
                 "loadedAt": a.loaded_at.to_rfc3339(),
                 "invocations": a.invocations,
                 "avgLatencyUs": a.avg_latency_us
-            }).to_string(),
-            None => format!("{{\"error\": \"Actor not found: {}\"}}", name)
+            })
+            .to_string(),
+            None => format!("{{\"error\": \"Actor not found: {}\"}}", name),
         }
     }
 
@@ -657,21 +661,21 @@ mod wasm_bridge {
         name: &str,
         version: &str,
         wasm_base64: &str,
-        capabilities_json: &str
+        capabilities_json: &str,
     ) -> String {
         use base64::Engine;
         let registry = get_wasm_registry();
-        
+
         let wasm_bytes = match base64::engine::general_purpose::STANDARD.decode(wasm_base64) {
             Ok(bytes) => bytes,
-            Err(e) => return format!("{{\"error\": \"Invalid base64: {}\"}}", e)
+            Err(e) => return format!("{{\"error\": \"Invalid base64: {}\"}}", e),
         };
-        
+
         let caps: Vec<Capability> = match serde_json::from_str(capabilities_json) {
             Ok(caps) => caps,
-            Err(e) => return format!("{{\"error\": \"Invalid capabilities JSON: {}\"}}", e)
+            Err(e) => return format!("{{\"error\": \"Invalid capabilities JSON: {}\"}}", e),
         };
-        
+
         match registry.register(name, version, &wasm_bytes, caps) {
             Ok(meta) => serde_json::json!({
                 "name": meta.name,
@@ -680,8 +684,9 @@ mod wasm_bridge {
                 "loadedAt": meta.loaded_at.to_rfc3339(),
                 "invocations": 0,
                 "avgLatencyUs": 0
-            }).to_string(),
-            Err(e) => format!("{{\"error\": \"{}\"}}", e)
+            })
+            .to_string(),
+            Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     }
 
@@ -697,7 +702,8 @@ mod wasm_bridge {
             "actorCount": stats.actor_count,
             "totalSizeBytes": stats.total_size_bytes,
             "totalInvocations": stats.total_invocations
-        }).to_string()
+        })
+        .to_string()
     }
 }
 
@@ -705,20 +711,31 @@ mod wasm_bridge {
 #[napi]
 pub fn gate_wasm_list_actors() -> String {
     #[cfg(feature = "wasm")]
-    { wasm_bridge::list_actors() }
-    
+    {
+        wasm_bridge::list_actors()
+    }
+
     #[cfg(not(feature = "wasm"))]
-    { "[]".to_string() }
+    {
+        "[]".to_string()
+    }
 }
 
 /// Get a specific WASM actor by name
 #[napi]
 pub fn gate_wasm_get_actor(name: String) -> String {
     #[cfg(feature = "wasm")]
-    { wasm_bridge::get_actor(&name) }
-    
+    {
+        wasm_bridge::get_actor(&name)
+    }
+
     #[cfg(not(feature = "wasm"))]
-    { format!("{{\"error\": \"WASM feature not enabled\", \"name\": \"{}\"}}", name) }
+    {
+        format!(
+            "{{\"error\": \"WASM feature not enabled\", \"name\": \"{}\"}}",
+            name
+        )
+    }
 }
 
 /// Register a WASM actor (hot-swap supported)
@@ -727,15 +744,17 @@ pub fn gate_wasm_register_actor(
     name: String,
     version: String,
     wasm_base64: String,
-    capabilities_json: String
+    capabilities_json: String,
 ) -> String {
     #[cfg(feature = "wasm")]
-    { wasm_bridge::register_actor(&name, &version, &wasm_base64, &capabilities_json) }
-    
+    {
+        wasm_bridge::register_actor(&name, &version, &wasm_base64, &capabilities_json)
+    }
+
     #[cfg(not(feature = "wasm"))]
-    { 
+    {
         let _ = (&name, &version, &wasm_base64, &capabilities_json);
-        "{\"error\": \"WASM feature not enabled. Compile bridge with --features wasm\"}".to_string() 
+        "{\"error\": \"WASM feature not enabled. Compile bridge with --features wasm\"}".to_string()
     }
 }
 
@@ -743,18 +762,28 @@ pub fn gate_wasm_register_actor(
 #[napi]
 pub fn gate_wasm_unregister_actor(name: String) -> bool {
     #[cfg(feature = "wasm")]
-    { wasm_bridge::unregister_actor(&name) }
-    
+    {
+        wasm_bridge::unregister_actor(&name)
+    }
+
     #[cfg(not(feature = "wasm"))]
-    { let _ = name; false }
+    {
+        let _ = name;
+        false
+    }
 }
 
 /// Get WASM registry statistics
 #[napi]
 pub fn gate_wasm_stats() -> String {
     #[cfg(feature = "wasm")]
-    { wasm_bridge::stats() }
-    
+    {
+        wasm_bridge::stats()
+    }
+
     #[cfg(not(feature = "wasm"))]
-    { "{\"actorCount\": 0, \"totalSizeBytes\": 0, \"totalInvocations\": 0, \"enabled\": false}".to_string() }
+    {
+        "{\"actorCount\": 0, \"totalSizeBytes\": 0, \"totalInvocations\": 0, \"enabled\": false}"
+            .to_string()
+    }
 }

@@ -178,10 +178,7 @@ impl LockManager {
         let rl = rslock::LockManager::new(vec![redis_url.as_str()]);
 
         let lock = rl
-            .lock(
-                resource.as_bytes(),
-                self.config.default_ttl,
-            )
+            .lock(resource.as_bytes(), self.config.default_ttl)
             .await
             .map_err(|e| LockError::RedisError(format!("{:?}", e)))?;
 

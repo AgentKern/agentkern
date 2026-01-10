@@ -62,3 +62,20 @@ export declare function nexusDiscoverAgent(url: string): Promise<string>
 export declare function nexusRouteTask(taskJson: string): Promise<string>
 /** Get Nexus stats */
 export declare function nexusGetStats(): Promise<string>
+/**
+ * Sign a payload using Hybrid PQC (ECDSA + Mock-Dilithium)
+ * In a real implementation, this would use pqcrypto-dilithium or similar.
+ */
+export declare function cryptoSignHybrid(payload: string, privateKeyPem: string): string
+/** Verify a Hybrid PQC signature */
+export declare function cryptoVerifyHybrid(payload: string, signature: string, publicKeyPem: string): boolean
+/** List all registered WASM actors */
+export declare function gateWasmListActors(): string
+/** Get a specific WASM actor by name */
+export declare function gateWasmGetActor(name: string): string
+/** Register a WASM actor (hot-swap supported) */
+export declare function gateWasmRegisterActor(name: string, version: string, wasmBase64: string, capabilitiesJson: string): string
+/** Unregister a WASM actor */
+export declare function gateWasmUnregisterActor(name: string): boolean
+/** Get WASM registry statistics */
+export declare function gateWasmStats(): string

@@ -65,7 +65,7 @@ impl WasmPolicyEngine {
         linker.func_wrap(
             "env",
             "log",
-            | _caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
+            |_caller: Caller<'_, PolicyState>, ptr: i32, len: i32| {
                 // Log function for policies
                 tracing::debug!("WASM policy log: ptr={}, len={}", ptr, len);
             },
@@ -160,9 +160,7 @@ impl WasmPolicyEngine {
             .await?;
 
         // Call the evaluate function
-        if let Ok(evaluate) = instance
-            .get_typed_func::<(), ()>(&mut store, "evaluate")
-        {
+        if let Ok(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate") {
             evaluate.call_async(&mut store, ()).await?;
         }
 

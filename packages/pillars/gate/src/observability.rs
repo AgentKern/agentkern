@@ -7,12 +7,12 @@
 //!
 //! This module provides eBPF-compatible telemetry integration.
 
+#[cfg(feature = "otel")]
+use opentelemetry::trace::TracerProvider;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-#[cfg(feature = "otel")]
-use opentelemetry::trace::TracerProvider;
 
 /// Metrics collected by the observability plane.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -550,10 +550,7 @@ pub fn init_otel_tracer(
 
     // Create TracerProvider with batch exporter
     let tracer_provider = TracerProvider::builder()
-        .with_batch_exporter(
-            exporter,
-            opentelemetry_sdk::runtime::Tokio,
-        )
+        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
         .with_resource(Resource::new(vec![
             KeyValue::new("service.name", config.service_name.clone()),
             KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),

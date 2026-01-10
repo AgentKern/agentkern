@@ -215,9 +215,7 @@ impl WasmRegistry {
             .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
 
         // Call evaluate function
-        if let Ok(evaluate) = instance
-            .get_typed_func::<(), ()>(&mut store, "evaluate")
-        {
+        if let Ok(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate") {
             evaluate
                 .call_async(&mut store, ())
                 .await

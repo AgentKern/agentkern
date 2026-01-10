@@ -183,7 +183,9 @@ impl WattTimeClient {
     #[cfg(feature = "http")]
     async fn authenticate(&self) -> Result<(), WattTimeError> {
         if !self.has_credentials() {
-            return Err(WattTimeError::AuthFailed("No credentials configured".into()));
+            return Err(WattTimeError::AuthFailed(
+                "No credentials configured".into(),
+            ));
         }
 
         let client = reqwest::Client::new();
@@ -216,8 +218,7 @@ impl WattTimeClient {
         let mut state = self.state.lock().await;
         state.token = Some(token.to_string());
         // Token expires in 30 minutes
-        state.token_expiry =
-            Some(std::time::Instant::now() + std::time::Duration::from_secs(1800));
+        state.token_expiry = Some(std::time::Instant::now() + std::time::Duration::from_secs(1800));
 
         tracing::info!("WattTime: Authenticated successfully");
         Ok(())
@@ -404,10 +405,11 @@ impl WattTimeClient {
     /// Check if currently authenticated (has valid token).
     pub async fn is_authenticated(&self) -> bool {
         let state = self.state.lock().await;
-        state.token.is_some() && match state.token_expiry {
-            Some(expiry) => std::time::Instant::now() <= expiry,
-            None => false,
-        }
+        state.token.is_some()
+            && match state.token_expiry {
+                Some(expiry) => std::time::Instant::now() <= expiry,
+                None => false,
+            }
     }
 }
 

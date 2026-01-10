@@ -345,14 +345,16 @@ impl ExplainabilityEngine {
         let mut contributions = Vec::new();
 
         // Keywords that would trigger "attention" in a security model
-        let high_attention = ["drop", "delete", "select", "update", "admin", "root", "password", "key", "secret"];
+        let high_attention = [
+            "drop", "delete", "select", "update", "admin", "root", "password", "key", "secret",
+        ];
         let medium_attention = ["user", "group", "settings", "config", "data", "id", "email"];
 
         // Analyze the action string
         for token in context.action.split_whitespace() {
             let lower = token.to_lowercase();
             let clean_token = lower.trim_matches(|c: char| !c.is_alphanumeric());
-            
+
             let attention = if high_attention.contains(&clean_token) {
                 0.9 // High attention
             } else if medium_attention.contains(&clean_token) {
@@ -373,16 +375,16 @@ impl ExplainabilityEngine {
             if let Some(s) = value.as_str() {
                 for token in s.split_whitespace() {
                     let lower = token.to_lowercase();
-                     let clean_token = lower.trim_matches(|c: char| !c.is_alphanumeric());
-                    
+                    let clean_token = lower.trim_matches(|c: char| !c.is_alphanumeric());
+
                     let attention = if high_attention.contains(&clean_token) {
-                        0.8 
+                        0.8
                     } else if medium_attention.contains(&clean_token) {
                         0.4
                     } else {
                         0.05
                     };
-                    
+
                     if attention > 0.1 {
                         contributions.push(Contribution {
                             feature: format!("{}:{}", key, token),
@@ -395,13 +397,22 @@ impl ExplainabilityEngine {
         }
 
         // Sort by attention (descending)
-        contributions.sort_by(|a, b| b.value.partial_cmp(&a.value).unwrap_or(std::cmp::Ordering::Equal));
+        contributions.sort_by(|a, b| {
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Explanation {
             summary: format!("Attention analysis for '{}'", context.action),
             natural_language: format!(
                 "The model focused primarily on these tokens: {}",
-                contributions.iter().take(3).map(|c| c.feature.as_str()).collect::<Vec<_>>().join(", ")
+                contributions
+                    .iter()
+                    .take(3)
+                    .map(|c| c.feature.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             method: ExplanationMethod::Attention,
             contributions,
@@ -531,6 +542,8 @@ mod tests {
         // "delete" and "admin" should be high importance
         let top_contribution = &explanation.contributions[0];
         assert!(top_contribution.value >= 0.8);
-        assert!(["delete", "admin", "root"].iter().any(|&s| top_contribution.feature.contains(s)));
+        assert!(["delete", "admin", "root"]
+            .iter()
+            .any(|&s| top_contribution.feature.contains(s)));
     }
 }
