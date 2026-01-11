@@ -8,7 +8,6 @@
 //! This module provides eBPF-compatible telemetry integration.
 
 #[cfg(feature = "otel")]
-use opentelemetry::trace::TracerProvider;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -539,7 +538,7 @@ pub fn init_otel_tracer(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use opentelemetry::KeyValue;
     use opentelemetry_otlp::WithExportConfig;
-    use opentelemetry_sdk::trace::TracerProvider;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
 
     // Build OTLP exporter
@@ -549,15 +548,18 @@ pub fn init_otel_tracer(
         .build()?;
 
     // Create TracerProvider with batch exporter
-    let tracer_provider = TracerProvider::builder()
-        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-        .with_resource(Resource::new(vec![
-            KeyValue::new("service.name", config.service_name.clone()),
-            KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
-        ]))
+    let tracer_provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .with_resource(Resource::builder()
+            .with_attributes(vec![
+                KeyValue::new("service.name", config.service_name.clone()),
+                KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
+            ])
+            .build())
         .build();
 
     // Get a tracer from the provider (concrete type)
+    use opentelemetry::trace::TracerProvider;
     let tracer = tracer_provider.tracer("agentkern");
 
     // Set global tracer provider
@@ -588,7 +590,7 @@ pub fn init_otel_tracer(
 /// Call this before application exit to flush pending traces.
 #[cfg(feature = "otel")]
 pub fn shutdown_otel_tracer() {
-    opentelemetry::global::shutdown_tracer_provider();
+    // opentelemetry::global::shutdown_tracer_provider(); // Removed in 0.31
     tracing::info!("OpenTelemetry tracer shutdown complete");
 }
 
