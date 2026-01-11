@@ -19,6 +19,7 @@ allow = [
     "CDLA-Permissive-2.0",
     # AgentKern Enterprise License (internal packages)
     "LicenseRef-AgentKern-Enterprise",
+    "MPL-2.0",
 ]
 
 # Confidence threshold for detecting license text

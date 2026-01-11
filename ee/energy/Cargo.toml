@@ -2,7 +2,7 @@
 name = "agentkern-energy-ee"
 version = "0.1.0"
 edition = "2024"
-license = "Commercial"
+license = "LicenseRef-AgentKern-Enterprise"
 publish = false
 
 [dependencies]

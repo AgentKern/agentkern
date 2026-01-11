@@ -36,7 +36,6 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
@@ -49,9 +48,6 @@ jobs:
       
       - name: Run tests
         run: cargo test --workspace --all-features -- --test-threads=1
-      
-      - name: Build release
-        run: cargo build --release --workspace
 
   # ============================================
   # Identity Tests (Matrix: Node 20 & 22)
@@ -91,7 +87,6 @@ jobs:
           path: |
             ~/.cargo/bin/
             ~/.cargo/registry/
-            target/
           key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
 
       - name: Install napi-cli
@@ -177,7 +172,6 @@ jobs:
           path: |
             ~/.cargo/bin/
             ~/.cargo/registry/
-            target/
           key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
 
       - name: Install napi-cli
@@ -289,7 +283,6 @@ jobs:
           path: |
             ~/.cargo/bin/
             ~/.cargo/registry/
-            target/
           key: ${{ runner.os }}-cargo-tarpaulin-${{ hashFiles('Cargo.lock') }}
       
       - name: Install cargo-tarpaulin

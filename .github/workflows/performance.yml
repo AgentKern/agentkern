@@ -64,21 +64,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build Identity service
-        run: npm run build --workspace=@agentkern/identity
+        run: pnpm run build --filter identity
 
       - name: Start Identity service
         run: |
-          npm run start:prod --workspace=@agentkern/identity &
+          pnpm run start:prod --filter identity &
           sleep 10
         env:
           DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
@@ -130,21 +135,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build Identity service
-        run: npm run build --workspace=@agentkern/identity
+        run: pnpm run build --filter identity
 
       - name: Start Identity service
         run: |
-          npm run start:prod --workspace=@agentkern/identity &
+          pnpm run start:prod --filter identity &
           sleep 10
         env:
           DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
@@ -191,12 +201,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
       - name: Setup and run soak test
         run: |
           # Quick setup for soak test
-          npm ci
-          npm run build --workspace=@agentkern/identity
-          npm run start:prod --workspace=@agentkern/identity &
+          pnpm install --frozen-lockfile
+          pnpm run build --filter identity
+          pnpm run start:prod --filter identity &
           sleep 15
           
           # Install k6
@@ -209,3 +230,29 @@ jobs:
         env:
           DATABASE_URL: postgresql://agentkern:agentkern@localhost:5432/agentkern_test
           BASE_URL: http://localhost:5004
+
+  micro-latency-regression:
+    name: Micro-Latency (Rust)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('Cargo.lock') }}
+      
+      - name: Run Gate Benchmarks
+        run: cargo bench --package agentkern-gate --bench policy_eval
+      
+      - name: Run Arbiter Benchmarks
+        run: cargo bench --package agentkern-arbiter --bench coordination
+

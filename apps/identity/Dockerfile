@@ -12,9 +12,9 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev g++ make
 
 # Copy Rust workspace files
 COPY Cargo.toml Cargo.lock ./
-COPY packages/foundation/bridge/Cargo.toml ./packages/foundation/bridge/
+COPY packages/foundation ./packages/foundation/
 COPY packages/pillars ./packages/pillars/
-COPY packages/foundation/bridge/src ./packages/foundation/bridge/src/
+COPY ee ./ee/
 
 # Build N-API bridge
 WORKDIR /app/packages/foundation/bridge
