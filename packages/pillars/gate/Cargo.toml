@@ -69,7 +69,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 # OpenTelemetry (Dec 2025 - distributed tracing)
 # Feature-gated for optional OTLP export to Jaeger/Tempo
 opentelemetry = { version = "0.27", optional = true }
-opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"], optional = true }
+opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"], optional = true }
 opentelemetry-otlp = { version = "0.27", features = ["http-proto"], optional = true }
 tracing-opentelemetry = { version = "0.28", optional = true }
 
