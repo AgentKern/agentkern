@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # NAPI-RS for Node.js binding (Dec 19, 2025 - napi 3.7.1)
-napi = { version = "3.7", features = ["async", "serde-json"] }
+napi = { version = "3.8", features = ["async", "serde-json"] }
 napi-derive = "3.0"
 
 # AgentKern core packages

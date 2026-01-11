@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # N-API bindings
-napi = { version = "2.16", default-features = false, features = ["napi9", "async", "serde-json"] }
+napi = { version = "3.8", default-features = false, features = ["napi9", "async", "serde-json"] }
 napi-derive = "2.16"
 
 # SDK Core
