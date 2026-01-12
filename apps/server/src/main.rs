@@ -40,9 +40,19 @@ async fn main() {
 
     tracing::info!("🚀 Starting AgentKern Unified Server");
 
-    // JWT configuration
-    let jwt_config = JwtConfig::default();
-    tracing::info!("🔐 JWT authentication enabled (expiry: {}h)", jwt_config.expiration_hours);
+    // JWT configuration - FAILS in production if misconfigured
+    let jwt_config = match auth::JwtConfig::from_env() {
+        Ok(config) => {
+            let env_name = if config.is_production() { "PRODUCTION" } else { "development" };
+            tracing::info!("🔐 JWT authentication enabled (env: {}, expiry: {}h)", env_name, config.expiration_hours);
+            config
+        }
+        Err(e) => {
+            tracing::error!("❌ JWT configuration error: {}", e);
+            tracing::error!("Set JWT_SECRET environment variable (minimum 32 bytes)");
+            std::process::exit(1);
+        }
+    };
 
     // Connect to database (optional - server can run without DB for testing)
     let database_url = std::env::var("DATABASE_URL").ok();
