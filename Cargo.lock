@@ -169,24 +169,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-bridge"
-version = "0.1.0"
-dependencies = [
- "agentkern-arbiter",
- "agentkern-gate",
- "agentkern-nexus",
- "agentkern-synapse",
- "agentkern-treasury",
- "base64 0.22.1",
- "chrono",
- "napi",
- "napi-derive",
- "serde_json",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "agentkern-cloud"
 version = "0.1.0"
 dependencies = [
