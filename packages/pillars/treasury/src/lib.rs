@@ -62,6 +62,7 @@ pub mod transfer;
 pub mod types; // Per Code Quality Audit: Distributed locking
 pub mod takaful;
 pub mod verification;
+pub mod api;
 pub mod watttime; // 2026 Roadmap: Dynamic carbon intensity
 
 // Re-exports

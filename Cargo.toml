@@ -66,7 +66,7 @@ members = [
     # ===========================================================================
     # EXTERNAL SDKs
     # ===========================================================================
-    "sdks/python", "packages/pillars/identity",
+    "sdks/python", "packages/pillars/identity", "apps/server",
 ]
 
 

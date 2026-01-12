@@ -56,6 +56,7 @@ pub mod protocols;
 pub mod registry;
 pub mod router;
 pub mod types;
+pub mod api;
 
 // Re-exports
 pub use agent_card::AgentCard;

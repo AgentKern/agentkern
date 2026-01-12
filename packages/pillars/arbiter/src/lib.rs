@@ -45,6 +45,7 @@ pub mod coordinator;
 pub mod locks;
 pub mod queue;
 pub mod types;
+pub mod api;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod raft; // Raft Consensus for Atomic Business Locks

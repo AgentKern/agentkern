@@ -14,25 +14,37 @@ pub enum WebAuthnError {
 }
 
 pub struct WebAuthnService {
-    // webauthn: Arc<Webauthn>, // Needs initialization with RP ID/Origin
+    webauthn: Arc<Webauthn>,
 }
 
 impl WebAuthnService {
     pub fn new(rp_id: &str, rp_origin: &str) -> Self {
-        // In real implementation:
-        // let builder = WebauthnBuilder::new(rp_id, &Url::parse(rp_origin).unwrap()).unwrap();
-        // let webauthn = Arc::new(builder.build().unwrap());
-        Self {}
+        let rp_origin_url = Url::parse(rp_origin).expect("Invalid RP Origin URL");
+        let builder = WebauthnBuilder::new(rp_id, &rp_origin_url)
+            .expect("Invalid RP Protocol");
+        let webauthn = Arc::new(builder.build().expect("Failed to build WebAuthn instance"));
+        Self { webauthn }
     }
 
-    pub async fn start_registration(&self, _username: &str) -> Result<(CreationChallengeResponse, PasskeyRegistration), WebAuthnError> {
-        // Placeholder for `webauthn.start_passkey_registration(...)`
-        // We return dummy data for scaffold to confirm type checking
-        todo!("Implement WebAuthn registration")
+    pub async fn start_registration(&self, username: &str) -> Result<(CreationChallengeResponse, PasskeyRegistration), WebAuthnError> {
+        let user_id = Uuid::new_v4();
+        let (challenge, state) = self.webauthn
+            .start_passkey_registration(
+                user_id,
+                username,
+                username, // display_name
+                None, // exclude_credentials
+            )
+            .map_err(WebAuthnError::Core)?;
+
+        Ok((challenge, state))
     }
 
-    pub async fn finish_registration(&self, _reg: &RegisterPublicKeyCredential, _state: &PasskeyRegistration) -> Result<Passkey, WebAuthnError> {
-        // Placeholder for `webauthn.finish_passkey_registration(...)`
-        todo!("Implement WebAuthn finish registration")
+    pub async fn finish_registration(&self, reg: &RegisterPublicKeyCredential, state: &PasskeyRegistration) -> Result<Passkey, WebAuthnError> {
+        let passkey = self.webauthn
+            .finish_passkey_registration(reg, state)
+            .map_err(WebAuthnError::Core)?;
+        
+        Ok(passkey)
     }
 }

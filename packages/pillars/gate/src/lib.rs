@@ -22,6 +22,7 @@ pub mod engine;
 pub mod neural;
 pub mod policy;
 pub mod types;
+pub mod api;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod metrics; // Production Prometheus metrics

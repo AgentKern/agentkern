@@ -1,0 +1,40 @@
+[package]
+name = "agentkern-server"
+version = "0.1.0"
+edition = "2021"
+description = "Unified AgentKern OS Server - Gateway to all pillars"
+
+[[bin]]
+name = "agentkern-server"
+path = "src/main.rs"
+
+[dependencies]
+# Async Runtime
+tokio = { version = "1.36", features = ["full"] }
+
+# Web Framework
+axum = { version = "0.8.1", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+dotenvy = "0.15"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
+
+# Pillars
+agentkern-identity = { path = "../../packages/pillars/identity" }
+agentkern-gate = { path = "../../packages/pillars/gate" }
+agentkern-arbiter = { path = "../../packages/pillars/arbiter" }
+agentkern-nexus = { path = "../../packages/pillars/nexus" }
+agentkern-synapse = { path = "../../packages/pillars/synapse" }
+agentkern-treasury = { path = "../../packages/pillars/treasury" }
