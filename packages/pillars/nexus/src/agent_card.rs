@@ -7,7 +7,7 @@
 //! - OpenAPI-style capability descriptions
 //! - AgentKern extensions
 
-use crate::types::{Capability, Modality, Skill};
+use crate::types::{Capability, DeploymentInfo, Modality, Skill};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -36,6 +36,10 @@ pub struct AgentCard {
     /// Provider/owner
     #[serde(default)]
     pub provider: Option<Provider>,
+
+    /// Deployment metadata (Cloud, Region)
+    #[serde(default)]
+    pub deployment: Option<DeploymentInfo>,
 
     /// Capabilities this agent supports
     #[serde(default)]
@@ -75,6 +79,7 @@ impl Default for AgentCard {
             url: String::new(),
             version: "1.0.0".into(),
             provider: None,
+            deployment: None,
             capabilities: vec![],
             skills: vec![],
             default_input_modes: vec![Modality::Text],

@@ -209,6 +209,7 @@ export class AgentSandboxService implements OnModuleInit {
       id: agentId,
       name,
       version,
+      namespace: 'default', // Default namespace for backward compatibility
       status: AgentStatus.ACTIVE,
       budget: { ...this.defaultBudget, ...customBudget },
       usage: {

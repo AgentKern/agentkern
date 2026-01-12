@@ -40,6 +40,7 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
+pub mod consensus;
 pub mod coordinator;
 pub mod locks;
 pub mod queue;
@@ -82,6 +83,7 @@ pub use antifragile::{
 pub use audit::{AuditLedger, AuditOutcome, AuditRecord, AuditStatistics};
 pub use carbon::{CarbonIntensity, CarbonRegion, CarbonScheduler};
 pub use chaos::{ChaosConfig, ChaosError, ChaosMonkey, ChaosResult, ChaosStats};
+pub use consensus::{ConsensusEngine, ProposalStatus, ProposalType, Vote, Vote as ConsensusVote};
 pub use coordinator::Coordinator;
 pub use cost::{AlertLevel, CostAlert, CostCategory, CostEvent, CostTracker, GlobalCostSummary};
 pub use escalation::{

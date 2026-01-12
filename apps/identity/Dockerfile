@@ -12,9 +12,9 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev g++ make
 
 # Copy Rust workspace files
 COPY Cargo.toml Cargo.lock ./
-COPY packages/foundation ./packages/foundation/
-COPY packages/pillars ./packages/pillars/
+COPY packages/ ./packages/
 COPY ee ./ee/
+COPY sdks ./sdks/
 
 # Build N-API bridge
 WORKDIR /app/packages/foundation/bridge
@@ -26,12 +26,13 @@ RUN cargo build --release
 # ========================
 # Node.js Build Stage
 # ========================
-FROM node:20-alpine AS builder
+# Node.js Build Stage
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
 # Install all dependencies for build
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY package*.json pnpm-lock.yaml ./
 
@@ -56,7 +57,8 @@ RUN pnpm prune --prod
 # ========================
 # Production Stage
 # ========================
-FROM node:20-alpine AS production
+# Production Stage
+FROM node:24-alpine AS production
 
 WORKDIR /app
 

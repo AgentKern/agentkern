@@ -13,6 +13,8 @@ pub struct VerificationRequest {
     pub request_id: Uuid,
     /// Agent requesting the action
     pub agent_id: String,
+    /// Namespace for cryptographic isolation
+    pub namespace: String,
     /// Action being requested (e.g., "send_email", "transfer_funds")
     pub action: String,
     /// Context for policy evaluation

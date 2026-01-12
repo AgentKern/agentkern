@@ -76,7 +76,45 @@ impl Amount {
             decimals: self.decimals,
         })
     }
+    /// Create a zero amount with default precision (2 decimals).
+    pub fn zero() -> Self {
+        Self { value: 0, decimals: 2 }
+    }
+
+    /// Create a zero amount with specific precision.
+    pub fn zero_with_decimals(decimals: u8) -> Self {
+        Self { value: 0, decimals }
+    }
 }
+
+impl std::ops::Add for Amount {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        if self.decimals != other.decimals {
+            panic!("Cannot add amounts with different decimals");
+        }
+        Self {
+            value: self.value + other.value,
+            decimals: self.decimals,
+        }
+    }
+}
+
+impl std::ops::Sub for Amount {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        if self.decimals != other.decimals {
+            panic!("Cannot subtract amounts with different decimals");
+        }
+        Self {
+            value: self.value - other.value,
+            decimals: self.decimals,
+        }
+    }
+}
+
 
 impl std::fmt::Display for Amount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

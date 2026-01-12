@@ -20,4 +20,4 @@ pub use export::{ExportFormat, ExportOptions, PassportExporter};
 pub use gdpr::{DataCategory, GdprExport, ProcessingEvent};
 pub use import::{ImportOptions, ImportResult, PassportImporter};
 pub use layers::{EpisodicMemory, MemoryLayers, PreferenceMemory, SemanticMemory, SkillMemory};
-pub use schema::{MemoryPassport, PassportError, PassportVersion};
+pub use schema::{AgentIdentity, MemoryPassport, PassportError, PassportVersion, ProvenanceChain};

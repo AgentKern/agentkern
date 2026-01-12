@@ -63,7 +63,10 @@ pub use drift::DriftDetector;
 pub use embeddings::{EmbeddingConfig, EmbeddingProvider, PolyglotEmbedder, SynapseRegion};
 pub use graph::{EdgeType, GraphEdge, GraphNode, GraphVectorDB, NodeType};
 pub use intent::{IntentPath, IntentStep};
-pub use mesh::{DataRegion, GeoFence, GlobalMesh, MeshCell, MeshSync};
+pub use mesh::{
+    DataRegion, GeoFence, GlobalMesh, MeshCell, MeshOrchestrator, MeshSync, MigrationManager,
+    MigrationReason, MigrationTicket,
+};
 pub use polyglot::{Language, PolyglotMemory};
 pub use state::StateStore;
 pub use types::{AgentState, StateQuery, StateUpdate};

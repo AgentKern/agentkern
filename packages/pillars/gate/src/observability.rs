@@ -7,7 +7,6 @@
 //!
 //! This module provides eBPF-compatible telemetry integration.
 
-#[cfg(feature = "otel")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -550,12 +549,14 @@ pub fn init_otel_tracer(
     // Create TracerProvider with batch exporter
     let tracer_provider = SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
-        .with_resource(Resource::builder()
-            .with_attributes(vec![
-                KeyValue::new("service.name", config.service_name.clone()),
-                KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
-            ])
-            .build())
+        .with_resource(
+            Resource::builder()
+                .with_attributes(vec![
+                    KeyValue::new("service.name", config.service_name.clone()),
+                    KeyValue::new("service.version", env!("CARGO_PKG_VERSION").to_string()),
+                ])
+                .build(),
+        )
         .build();
 
     // Get a tracer from the provider (concrete type)

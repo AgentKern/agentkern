@@ -64,6 +64,7 @@ interface NativeBridge {
   verify(
     agentId: string,
     action: string,
+    namespace?: string,
     contextJson?: string,
   ): Promise<string>;
   registerPolicy(policyYaml: string): Promise<string>;
@@ -287,6 +288,7 @@ export class GateService implements OnModuleInit {
   async verify(
     agentId: string,
     action: string,
+    namespace: string = 'default',
     context?: Record<string, unknown>,
   ): Promise<VerificationResult | null> {
     if (!this.bridgeLoaded) {
@@ -296,7 +298,7 @@ export class GateService implements OnModuleInit {
 
     try {
       const contextJson = context ? JSON.stringify(context) : undefined;
-      const result = await this.bridge.verify(agentId, action, contextJson);
+      const result = await this.bridge.verify(agentId, action, namespace, contextJson);
       return JSON.parse(result) as VerificationResult;
     } catch (error) {
       this.logger.error(`Policy verification failed: ${error}`);

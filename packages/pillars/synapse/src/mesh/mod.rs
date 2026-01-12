@@ -4,6 +4,8 @@
 //! Per GLOBAL_GAPS.md: "Geo-Fenced Cells"
 
 pub mod geo_fence;
+pub mod migration;
+pub mod orchestrator;
 pub mod sync;
 
 use serde::{Deserialize, Serialize};
@@ -12,6 +14,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub use geo_fence::{GeoFence, ResidencyRule, TransferPolicy};
+pub use migration::{MigrationManager, MigrationTicket};
+pub use orchestrator::{MeshOrchestrator, MigrationReason};
 pub use sync::{ConflictResolution, MeshSync, SyncEvent};
 
 /// A mesh cell representing a regional node.

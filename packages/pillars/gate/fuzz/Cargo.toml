@@ -1,0 +1,19 @@
+[package]
+name = "agentkern-gate-fuzz"
+version = "0.1.0"
+authors = ["AgentKern Team"]
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+agentkern-gate = { path = ".." }
+
+[[bin]]
+name = "tokenizer"
+path = "fuzz_targets/tokenizer.rs"
+test = false
+doc = false

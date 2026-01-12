@@ -4,6 +4,7 @@ import {
   PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import {
   AgentStatus,
@@ -19,6 +20,10 @@ export class AgentRecordEntity {
 
   @Column()
   name: string;
+
+  @Column({ default: 'default' })
+  @Index('idx_agent_records_namespace')
+  namespace: string;
 
   @Column()
   version: string;

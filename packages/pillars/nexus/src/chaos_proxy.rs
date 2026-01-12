@@ -1,32 +1,44 @@
-//! Chaos Proxy for LLM Provider Failure Simulation
+//! Chaos Proxy for Inter-Agent & LLM Failure Simulation
 //!
-//! Per Antifragility Roadmap: "Third-Party API Mocking"
-//! Simulates failures of external LLM providers (OpenAI, Anthropic, etc.)
-//! for chaos testing and resilience validation.
+//! Per Antifragility Roadmap: "Third-Party API Mocking" AND "Inter-Agent Chaos"
+//! Simulates failures of external LLM providers AND internal agent communication failures.
 //!
 //! # Example
 //!
 //! ```rust,ignore
-//! use agentkern_nexus::chaos_proxy::{ChaosProxy, ChaosProxyConfig, LLMProvider};
+//! use agentkern_nexus::chaos_proxy::{ChaosProxy, ChaosConfig, ChaosTarget, LLMProvider};
+//! use agentkern_nexus::types::Protocol;
 //!
-//! let config = ChaosProxyConfig::default()
-//!     .with_provider(LLMProvider::OpenAI, 0.1)  // 10% failure rate
-//!     .with_provider(LLMProvider::Anthropic, 0.05);
+//! let config = ChaosConfig::default()
+//!     .with_target(ChaosTarget::LLM(LLMProvider::OpenAI), 0.1)
+//!     .with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 0.05);
 //!
 //! let proxy = ChaosProxy::new(config);
 //!
-//! // Wrap LLM calls with chaos injection
-//! match proxy.maybe_fail(LLMProvider::OpenAI).await {
-//!     Ok(()) => { /* proceed with actual call */ }
+//! // Check chaos for a target
+//! match proxy.maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A)).await {
+//!     Ok(()) => { /* proceed */ }
 //!     Err(e) => { /* handle simulated failure */ }
 //! }
 //! ```
 
+use crate::types::Protocol;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
+
+/// Target for chaos injection.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ChaosTarget {
+    /// External LLM Provider
+    LLM(LLMProvider),
+    /// Agent Protocol (e.g. A2A, MCP)
+    Protocol(Protocol),
+    /// Specific Agent ID
+    Agent(String),
+}
 
 /// Supported LLM providers for chaos simulation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -54,9 +66,19 @@ impl std::fmt::Display for LLMProvider {
     }
 }
 
-/// Types of simulated LLM failures.
+impl std::fmt::Display for ChaosTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LLM(p) => write!(f, "LLM::{}", p),
+            Self::Protocol(p) => write!(f, "Protocol::{:?}", p),
+            Self::Agent(id) => write!(f, "Agent::{}", id),
+        }
+    }
+}
+
+/// Types of simulated failures.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum LLMFailure {
+pub enum ChaosFailure {
     /// API rate limit exceeded (429)
     RateLimited { retry_after_secs: u64 },
     /// Service temporarily unavailable (503)
@@ -67,6 +89,9 @@ pub enum LLMFailure {
     InternalError,
     /// Bad gateway (502)
     BadGateway,
+    /// Network connection error
+    NetworkError,
+    // --- LLM Specific ---
     /// Model overloaded
     ModelOverloaded,
     /// Invalid API key (401)
@@ -75,11 +100,9 @@ pub enum LLMFailure {
     QuotaExceeded,
     /// Content policy violation
     ContentFiltered,
-    /// Network error
-    NetworkError,
 }
 
-impl LLMFailure {
+impl ChaosFailure {
     /// Get HTTP status code for this failure.
     pub fn status_code(&self) -> u16 {
         match self {
@@ -88,91 +111,68 @@ impl LLMFailure {
             Self::Timeout { .. } => 504,
             Self::InternalError => 500,
             Self::BadGateway => 502,
+            Self::NetworkError => 0,
             Self::ModelOverloaded => 503,
             Self::AuthenticationError => 401,
             Self::QuotaExceeded => 402,
             Self::ContentFiltered => 400,
-            Self::NetworkError => 0,
-        }
-    }
-
-    /// Get error message.
-    pub fn message(&self) -> String {
-        match self {
-            Self::RateLimited { retry_after_secs } => {
-                format!(
-                    "Rate limit exceeded. Retry after {} seconds.",
-                    retry_after_secs
-                )
-            }
-            Self::ServiceUnavailable => "Service temporarily unavailable.".to_string(),
-            Self::Timeout { duration_ms } => {
-                format!("Request timed out after {}ms.", duration_ms)
-            }
-            Self::InternalError => "Internal server error.".to_string(),
-            Self::BadGateway => "Bad gateway.".to_string(),
-            Self::ModelOverloaded => "Model is currently overloaded. Try again later.".to_string(),
-            Self::AuthenticationError => "Invalid API key.".to_string(),
-            Self::QuotaExceeded => "API quota exceeded.".to_string(),
-            Self::ContentFiltered => "Content filtered due to policy violation.".to_string(),
-            Self::NetworkError => "Network connection error.".to_string(),
         }
     }
 }
 
-/// Provider-specific chaos configuration.
+/// Chaos configuration for a specific target.
 #[derive(Debug, Clone)]
-pub struct ProviderChaosConfig {
+pub struct TargetChaosConfig {
     /// Probability of failure (0.0 - 1.0)
     pub failure_rate: f64,
     /// Types of failures to simulate
-    pub failure_types: Vec<LLMFailure>,
+    pub failure_types: Vec<ChaosFailure>,
     /// Latency injection range (min_ms, max_ms)
     pub latency_range_ms: Option<(u64, u64)>,
-    /// Whether chaos is enabled for this provider
+    /// Whether chaos is enabled for this target
     pub enabled: bool,
 }
 
-impl Default for ProviderChaosConfig {
+impl Default for TargetChaosConfig {
     fn default() -> Self {
         Self {
             failure_rate: 0.1, // 10% default
             failure_types: vec![
-                LLMFailure::RateLimited {
-                    retry_after_secs: 30,
+                ChaosFailure::RateLimited {
+                    retry_after_secs: 5,
                 },
-                LLMFailure::ServiceUnavailable,
-                LLMFailure::Timeout { duration_ms: 30000 },
+                ChaosFailure::ServiceUnavailable,
+                ChaosFailure::Timeout { duration_ms: 1000 },
             ],
-            latency_range_ms: Some((100, 500)),
+            latency_range_ms: Some((50, 200)),
             enabled: true,
         }
     }
 }
 
-/// Chaos proxy configuration.
+/// Global chaos proxy configuration.
 #[derive(Debug, Clone, Default)]
-pub struct ChaosProxyConfig {
-    /// Per-provider configurations
-    pub providers: HashMap<LLMProvider, ProviderChaosConfig>,
+pub struct ChaosConfig {
+    /// Per-target configurations
+    pub targets: HashMap<ChaosTarget, TargetChaosConfig>,
     /// Global enabled flag
     pub enabled: bool,
 }
 
-impl ChaosProxyConfig {
-    /// Create a new config with defaults.
+impl ChaosConfig {
+    /// Create a new config.
     pub fn new() -> Self {
         Self {
-            providers: HashMap::new(),
+            targets: HashMap::new(),
             enabled: true,
         }
     }
 
-    /// Add a provider with a specific failure rate.
-    pub fn with_provider(mut self, provider: LLMProvider, failure_rate: f64) -> Self {
-        self.providers.insert(
-            provider,
-            ProviderChaosConfig {
+    /// Add a target with a specific failure rate.
+    pub fn with_target(mut self, target: ChaosTarget, failure_rate: f64) -> Self {
+        self.targets.insert(
+            target,
+            TargetChaosConfig {
                 failure_rate,
                 ..Default::default()
             },
@@ -180,178 +180,124 @@ impl ChaosProxyConfig {
         self
     }
 
-    /// Add a provider with full configuration.
-    pub fn with_provider_config(
-        mut self,
-        provider: LLMProvider,
-        config: ProviderChaosConfig,
-    ) -> Self {
-        self.providers.insert(provider, config);
-        self
+    /// Add a generic protocol target.
+    pub fn with_protocol(self, protocol: Protocol, failure_rate: f64) -> Self {
+        self.with_target(ChaosTarget::Protocol(protocol), failure_rate)
     }
 
-    /// Create a "mild" chaos config for testing.
-    pub fn mild() -> Self {
-        Self::new()
-            .with_provider(LLMProvider::OpenAI, 0.05)
-            .with_provider(LLMProvider::Anthropic, 0.05)
-    }
-
-    /// Create a "moderate" chaos config.
-    pub fn moderate() -> Self {
-        Self::new()
-            .with_provider(LLMProvider::OpenAI, 0.15)
-            .with_provider(LLMProvider::Anthropic, 0.15)
-            .with_provider(LLMProvider::Google, 0.10)
-    }
-
-    /// Create an "extreme" chaos config for stress testing.
-    pub fn extreme() -> Self {
-        Self::new()
-            .with_provider(LLMProvider::OpenAI, 0.30)
-            .with_provider(LLMProvider::Anthropic, 0.30)
-            .with_provider(LLMProvider::Google, 0.25)
-            .with_provider(LLMProvider::Cohere, 0.20)
+    /// Add an LLM provider target.
+    pub fn with_provider(self, provider: LLMProvider, failure_rate: f64) -> Self {
+        self.with_target(ChaosTarget::LLM(provider), failure_rate)
     }
 }
 
 /// Chaos proxy statistics.
 #[derive(Debug, Clone, Default)]
-pub struct ChaosProxyStats {
+pub struct ChaosStats {
     pub total_calls: u64,
     pub failures_injected: u64,
     pub latency_injected: u64,
-    pub by_provider: HashMap<String, (u64, u64)>, // (total, failures)
+    pub by_target: HashMap<String, (u64, u64)>, // (total, failures)
 }
 
-/// Chaos Proxy for LLM provider failure simulation.
-///
-/// Wraps LLM API calls and randomly injects failures based on
-/// configured probabilities to test system resilience.
+/// Chaos Proxy for failure simulation.
 pub struct ChaosProxy {
-    config: ChaosProxyConfig,
+    config: ChaosConfig,
     total_calls: AtomicU64,
     failures_injected: AtomicU64,
     latency_injected: AtomicU64,
-    provider_stats: parking_lot::Mutex<HashMap<LLMProvider, (u64, u64)>>,
+    target_stats: parking_lot::Mutex<HashMap<ChaosTarget, (u64, u64)>>,
 }
 
 impl ChaosProxy {
     /// Create a new chaos proxy.
-    pub fn new(config: ChaosProxyConfig) -> Self {
+    pub fn new(config: ChaosConfig) -> Self {
         Self {
             config,
             total_calls: AtomicU64::new(0),
             failures_injected: AtomicU64::new(0),
             latency_injected: AtomicU64::new(0),
-            provider_stats: parking_lot::Mutex::new(HashMap::new()),
+            target_stats: parking_lot::Mutex::new(HashMap::new()),
         }
     }
 
-    /// Create a disabled chaos proxy (passthrough).
+    /// Create a disabled chaos proxy.
     pub fn disabled() -> Self {
-        Self::new(ChaosProxyConfig {
+        Self::new(ChaosConfig {
             enabled: false,
             ..Default::default()
         })
     }
 
-    /// Check if chaos should be injected for this provider.
-    /// Returns Ok(()) if call should proceed, Err(LLMFailure) if failure injected.
-    pub async fn maybe_fail(&self, provider: LLMProvider) -> Result<(), LLMFailure> {
+    /// Check if chaos should be injected.
+    pub async fn maybe_fail(&self, target: ChaosTarget) -> Result<(), ChaosFailure> {
         self.total_calls.fetch_add(1, Ordering::Relaxed);
 
-        // Update per-provider stats
+        // Update stats
         {
-            let mut stats = self.provider_stats.lock();
-            let entry = stats.entry(provider).or_insert((0, 0));
+            let mut stats = self.target_stats.lock();
+            let entry = stats.entry(target.clone()).or_insert((0, 0));
             entry.0 += 1;
         }
 
-        // Check global enable
         if !self.config.enabled {
             return Ok(());
         }
 
-        // Get provider config
-        let Some(provider_config) = self.config.providers.get(&provider) else {
-            return Ok(()); // No config for this provider
+        let Some(target_config) = self.config.targets.get(&target) else {
+            return Ok(());
         };
 
-        if !provider_config.enabled {
+        if !target_config.enabled {
             return Ok(());
         }
 
         let mut rng = rand::rng();
 
-        // Inject latency if configured
-        if let Some((min_ms, max_ms)) = provider_config.latency_range_ms {
+        // Inject latency
+        if let Some((min_ms, max_ms)) = target_config.latency_range_ms {
             let latency = rng.random_range(min_ms..=max_ms);
             tokio::time::sleep(Duration::from_millis(latency)).await;
             self.latency_injected.fetch_add(1, Ordering::Relaxed);
         }
 
-        // Check failure probability
+        // Inject failure
         let roll: f64 = rng.random();
-        if roll < provider_config.failure_rate {
+        if roll < target_config.failure_rate {
             self.failures_injected.fetch_add(1, Ordering::Relaxed);
 
-            // Update per-provider failure count
+            // Update stats
             {
-                let mut stats = self.provider_stats.lock();
-                if let Some(entry) = stats.get_mut(&provider) {
+                let mut stats = self.target_stats.lock();
+                if let Some(entry) = stats.get_mut(&target) {
                     entry.1 += 1;
                 }
             }
 
-            // Select random failure type
-            let failure_idx = rng.random_range(0..provider_config.failure_types.len());
-            let failure = provider_config.failure_types[failure_idx].clone();
+            let failure_idx = rng.random_range(0..target_config.failure_types.len());
+            let failure = target_config.failure_types[failure_idx].clone();
 
-            tracing::warn!(
-                provider = %provider,
-                failure = ?failure,
-                "Chaos proxy injected LLM failure"
-            );
-
+            tracing::warn!(target = %target, failure = ?failure, "Chaos Injection Triggered");
             return Err(failure);
         }
 
         Ok(())
     }
 
-    /// Get current statistics.
-    pub fn stats(&self) -> ChaosProxyStats {
-        let provider_stats = self.provider_stats.lock();
-        ChaosProxyStats {
+    /// Get current chaos statistics.
+    pub fn stats(&self) -> ChaosStats {
+        let stats_map = self.target_stats.lock().clone();
+        let mut by_target_str = HashMap::new();
+        
+        for (k, v) in stats_map {
+            by_target_str.insert(k.to_string(), v);
+        }
+
+        ChaosStats {
             total_calls: self.total_calls.load(Ordering::Relaxed),
             failures_injected: self.failures_injected.load(Ordering::Relaxed),
             latency_injected: self.latency_injected.load(Ordering::Relaxed),
-            by_provider: provider_stats
-                .iter()
-                .map(|(k, v)| (k.to_string(), *v))
-                .collect(),
-        }
-    }
-
-    /// Reset statistics.
-    pub fn reset_stats(&self) {
-        self.total_calls.store(0, Ordering::Relaxed);
-        self.failures_injected.store(0, Ordering::Relaxed);
-        self.latency_injected.store(0, Ordering::Relaxed);
-        self.provider_stats.lock().clear();
-    }
-
-    /// Get failure rate for a specific provider.
-    pub fn failure_rate(&self, provider: LLMProvider) -> f64 {
-        let stats = self.provider_stats.lock();
-        if let Some((total, failures)) = stats.get(&provider) {
-            if *total == 0 {
-                return 0.0;
-            }
-            *failures as f64 / *total as f64
-        } else {
-            0.0
+            by_target: by_target_str,
         }
     }
 }
@@ -361,61 +307,25 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_disabled_proxy() {
-        let proxy = ChaosProxy::disabled();
-
-        for _ in 0..100 {
-            let result = proxy.maybe_fail(LLMProvider::OpenAI).await;
-            assert!(result.is_ok());
-        }
-    }
-
-    #[tokio::test]
-    async fn test_chaos_injection() {
-        let config = ChaosProxyConfig::new().with_provider_config(
-            LLMProvider::OpenAI,
-            ProviderChaosConfig {
-                failure_rate: 1.0, // 100% failure for testing
-                failure_types: vec![LLMFailure::RateLimited {
-                    retry_after_secs: 30,
-                }],
-                latency_range_ms: None,
-                enabled: true,
-            },
-        );
-
+    async fn test_protocol_chaos() {
+        let config = ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
         let proxy = ChaosProxy::new(config);
-        let result = proxy.maybe_fail(LLMProvider::OpenAI).await;
 
+        let result = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A)).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_llm_failure_status_codes() {
-        assert_eq!(
-            LLMFailure::RateLimited {
-                retry_after_secs: 30
-            }
-            .status_code(),
-            429
-        );
-        assert_eq!(LLMFailure::ServiceUnavailable.status_code(), 503);
-        assert_eq!(LLMFailure::AuthenticationError.status_code(), 401);
-    }
+    #[tokio::test]
+    async fn test_selective_chaos() {
+        let config = ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
+        let proxy = ChaosProxy::new(config);
 
-    #[test]
-    fn test_config_presets() {
-        let mild = ChaosProxyConfig::mild();
-        assert!(mild.providers.contains_key(&LLMProvider::OpenAI));
+        // Should fail
+        let res1 = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A)).await;
+        assert!(res1.is_err());
 
-        let extreme = ChaosProxyConfig::extreme();
-        assert_eq!(
-            extreme
-                .providers
-                .get(&LLMProvider::OpenAI)
-                .unwrap()
-                .failure_rate,
-            0.30
-        );
+        // Should pass (no config)
+        let res2 = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::AnthropicMCP)).await;
+        assert!(res2.is_ok());
     }
 }

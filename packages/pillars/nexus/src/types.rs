@@ -282,6 +282,43 @@ pub enum SkillCategory {
     Custom(String),
 }
 
+/// Cloud providers for multi-cloud discovery.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CloudProvider {
+    Aws,
+    Gcp,
+    Azure,
+    Ovh,
+    OnPrem,
+    Custom,
+}
+
+/// Geographic and sovereign regions.
+/// Aligned with Synapse DataRegion for cross-pillar normalization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DataRegion {
+    UsEast,
+    UsWest,
+    EuFrankfurt,
+    EuIreland,
+    AsiaSingapore,
+    AsiaJapan,
+    MenaRiyadh,
+    MenaDubai,
+    IndiaMumbai,
+    Global,
+}
+
+/// Deployment metadata for agent cards.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeploymentInfo {
+    pub provider: CloudProvider,
+    pub region: DataRegion,
+    pub instance_id: Option<String>,
+    pub carbon_reported: bool,
+}
+
 impl SkillCategory {
     /// Get human-readable name.
     pub fn name(&self) -> &str {

@@ -12,8 +12,8 @@ default = []
 wasm = ["agentkern-gate/wasm"]
 
 [dependencies]
-napi = { version = "3.8.1", features = ["napi4", "async"] }
-napi-derive = "2.12.2"
+napi = { version = "3.8", features = ["napi4", "async"] }
+napi-derive = "3.5"
 serde_json = "1.0"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }

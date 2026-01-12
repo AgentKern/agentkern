@@ -94,14 +94,20 @@ impl GeoFence {
         self.rules.push(rule);
     }
 
-    /// Check if data can be transferred to target region.
+    /// Check if data can be transferred to target region, with strict Auto-Lining.
     pub fn can_transfer(&self, target: DataRegion, data_id: &str) -> bool {
         // Same region is always allowed
         if target == self.local_region {
             return true;
         }
 
-        // Check rules in order
+        // 1. Strict Auto-Lining (Regulatory Guardrails)
+        // These rules are non-negotiable and override everything.
+        if !self.enforce_auto_lining(target, data_id) {
+            return false;
+        }
+
+        // 2. Standard residency rules (Can be overridden by custom rules/consent)
         for rule in &self.rules {
             if self.matches_pattern(&rule.pattern, data_id) {
                 return match rule.policy {
@@ -115,6 +121,28 @@ impl GeoFence {
 
         // Use default policy
         self.default_policy != TransferPolicy::Block
+    }
+
+    /// Enforce strict regulatory auto-lining that cannot be bypassed.
+    fn enforce_auto_lining(&self, target: DataRegion, data_id: &str) -> bool {
+        // SWIFT Payments must remain in jurisdiction
+        if data_id.starts_with("swift:") || data_id.starts_with("iso20022:") {
+            if self.local_region.requires_localization() && target != self.local_region {
+                return false;
+            }
+        }
+
+        // PHI (Health Data) in high-regulation zones (e.g. Mena region)
+        if data_id.starts_with("phi:") || data_id.contains(":health:") {
+            match self.local_region {
+                DataRegion::MenaRiyadh | DataRegion::MenaDubai => {
+                    return target == self.local_region;
+                }
+                _ => (),
+            }
+        }
+
+        true
     }
 
     /// Get the transfer policy for data.
@@ -206,5 +234,23 @@ mod tests {
 
         assert!(!fence.can_transfer(DataRegion::EuFrankfurt, "health:record:123"));
         assert!(fence.can_transfer(DataRegion::UsWest, "health:record:123"));
+    }
+
+    #[test]
+    fn test_auto_lining_swift() {
+        // EU Frankfurt requires localization
+        let fence = GeoFence::new(DataRegion::EuFrankfurt);
+
+        // SWIFT should be blocked from leaving EU regardless of anything else
+        assert!(!fence.can_transfer(DataRegion::UsEast, "swift:msg:123"));
+    }
+
+    #[test]
+    fn test_auto_lining_phi_mena() {
+        // MENA region is strictly geofenced for PHI
+        let fence = GeoFence::new(DataRegion::MenaRiyadh);
+
+        assert!(!fence.can_transfer(DataRegion::UsEast, "phi:patient:99"));
+        assert!(!fence.can_transfer(DataRegion::EuFrankfurt, "phi:patient:99"));
     }
 }

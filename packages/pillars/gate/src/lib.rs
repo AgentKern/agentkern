@@ -58,7 +58,9 @@ pub mod explain; // Explainability Engine
 pub mod feature_flags; // Privacy-first feature toggles
 
 // Phase 2: Legacy Bridge Connectors
+// Phase 2: Legacy Bridge Connectors
 pub mod connectors; // Legacy system connectors (SAP, SWIFT, SQL)
+pub mod provenance; // Neural Integrity (Phase 10)
 
 #[cfg(feature = "wasm")]
 pub mod wasm; // WASM Component Model
@@ -80,10 +82,13 @@ pub use global_privacy::{
 };
 pub use hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
 pub use mtls::{CertificateInfo, CertificateValidator, MtlsConfig};
-pub use observability::{GateMetrics, ObservabilityPlane};
+pub use neural::{
+    IntentClass, IntentResult, ModelConfig, NeuralError, NeuralGuard, NeuroSymbolicValidator,
+};
 pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use runtime::{HyperRuntime, TokioRuntime};
+pub use provenance::{ModelProvenance, ProvenanceError};
 pub use shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 };

@@ -69,6 +69,7 @@ export class GateController {
     dto: {
       agentId: string;
       action: string;
+      namespace?: string;
       context?: Record<string, unknown>;
     },
   ): Promise<Record<string, unknown>> {
@@ -76,6 +77,7 @@ export class GateController {
     const result = await this.gateService.verify(
       dto.agentId,
       dto.action,
+      dto.namespace,
       dto.context,
     );
     if (!result) {

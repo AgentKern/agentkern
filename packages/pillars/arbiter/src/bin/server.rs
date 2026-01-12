@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -19,11 +19,7 @@ struct AppState {
     coordinator: Coordinator,
 }
 
-#[derive(Debug, Serialize)]
-struct HealthResponse {
-    status: &'static str,
-    version: &'static str,
-}
+// State for the arbiter server
 
 #[derive(Debug, Deserialize)]
 struct CoordinateRequest {
@@ -79,11 +75,10 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: "healthy",
-        version: "0.1.0",
-    })
+use agentkern_pulse::{Pulse, SemanticHealthReport};
+
+async fn health(State(state): State<Arc<AppState>>) -> Json<SemanticHealthReport> {
+    Json(state.coordinator.get_health().await)
 }
 
 async fn coordinate(

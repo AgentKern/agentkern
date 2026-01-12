@@ -30,4 +30,9 @@ pub use mcp::MCPAdapter;
 #[cfg(feature = "nlip")]
 pub use nlip::{NLIPAdapter, NLIPContent, NLIPEnvelope};
 
+#[cfg(feature = "anp")]
+mod anp;
+#[cfg(feature = "anp")]
+pub use anp::ANPAdapter;
+
 pub use agentkern::AgentKernAdapter;

@@ -38,6 +38,12 @@ pub struct GateEngine {
     jurisdiction: DataRegion,
     /// Carbon policy veto (optional)
     carbon_veto: Option<Arc<CarbonVeto>>,
+    /// Prompt Injection Guard (Phase 12)
+    prompt_guard: crate::prompt_guard::PromptGuard,
+    /// Agent Budgets (Phase 12)
+    budgets: Arc<RwLock<HashMap<String, crate::budget::AgentBudget>>>,
+    /// Explainability Engine (Phase 12)
+    explainability: crate::explain::ExplainabilityEngine,
 }
 
 impl Default for GateEngine {
@@ -48,33 +54,24 @@ impl Default for GateEngine {
 
 impl GateEngine {
     /// Create a new Gate Engine.
-    ///
-    /// # Default Configuration
-    ///
-    /// - `neural_threshold = 50`: Triggers neural path when symbolic risk ≥ 50.
-    ///
-    /// ## Threshold Rationale (EPISTEMIC WARRANT)
-    ///
-    /// The value 50 was chosen based on the following analysis:
-    /// - **< 30**: Too aggressive — neural path triggers on safe actions, adding latency
-    /// - **30-50**: Balanced — catches medium-risk actions without false positives
-    /// - **> 70**: Too lenient — misses suspicious actions that need neural review
-    ///
-    /// Calibration source: Internal red-team analysis (2024-Q4), validating that 50
-    /// catches 94% of true positives while maintaining < 5% false positive rate.
-    ///
-    /// **To adjust for your workload**: Use `.with_neural_threshold(value)` and
-    /// monitor `symbolic_risk` distributions in production logs.
     pub fn new() -> Self {
         Self {
             policies: Arc::new(RwLock::new(HashMap::new())),
             neural_scorer: NeuralScorer::new(),
             // Threshold 50: Medium-risk actions trigger neural evaluation
-            // @see Threshold Rationale above
             neural_threshold: 50,
             jurisdiction: DataRegion::Global,
             carbon_veto: None,
+            prompt_guard: crate::prompt_guard::PromptGuard::new(),
+            budgets: Arc::new(RwLock::new(HashMap::new())),
+            explainability: crate::explain::ExplainabilityEngine::new(),
         }
+    }
+
+    /// Set a budget for an agent.
+    pub async fn set_budget(&self, agent_id: impl Into<String>, budget: crate::budget::AgentBudget) {
+        let mut budgets = self.budgets.write().await;
+        budgets.insert(agent_id.into(), budget);
     }
 
     /// Set the jurisdiction for policy filtering.
@@ -114,9 +111,112 @@ impl GateEngine {
         policies.values().cloned().collect()
     }
 
+    /// Explain a verification decision.
+    pub fn explain(
+        &self,
+        request: &VerificationRequest,
+        result: &VerificationResult,
+    ) -> crate::explain::Explanation {
+        let context = crate::explain::ExplainContext {
+            agent_id: request.agent_id.clone(),
+            action: request.action.clone(),
+            outcome: if result.allowed {
+                "allowed".to_string()
+            } else {
+                "blocked".to_string()
+            },
+            allowed: result.allowed,
+            features: request.context.data.clone(),
+            applied_rules: result.blocking_policies.clone(),
+        };
+
+        self.explainability.explain(&context)
+    }
+
     /// Verify an action against all applicable policies.
     pub async fn verify(&self, request: VerificationRequest) -> VerificationResult {
         let start = Instant::now();
+
+        // === PROMPT GUARD (Fast Security Check) ===
+        // Phase 12: AI-Native Defense
+        // Check for prompt injection attacks explicitly
+        let prompt_start = Instant::now();
+        let prompt_analysis = self.prompt_guard.analyze(&request.action);
+        let prompt_us = prompt_start.elapsed().as_micros() as u64;
+
+        if prompt_analysis.threat_level >= crate::prompt_guard::ThreatLevel::High {
+            tracing::warn!(
+                request_id = %request.request_id,
+                agent_id = %request.agent_id,
+                action = %request.action,
+                attacks = ?prompt_analysis.attacks,
+                "Prompt Injection Detected"
+            );
+            
+            return VerificationResult {
+                request_id: request.request_id,
+                allowed: false,
+                evaluated_policies: vec![],
+                blocking_policies: vec!["prompt-guard".to_string()],
+                symbolic_risk_score: 100,
+                neural_risk_score: Some(100),
+                final_risk_score: 100,
+                reasoning: format!("Blocked by Prompt Guard: {:?}", prompt_analysis.attacks),
+                latency: LatencyBreakdown {
+                    total_us: start.elapsed().as_micros() as u64,
+                    symbolic_us: prompt_us, // Count guard as symbolic/fast
+                    neural_us: None,
+                },
+            };
+        }
+
+        // === AGENT BUDGET (Resource Limit Check) ===
+        // Phase 12: AI-Native Defense
+        // Enforce token/API limits
+        {
+            let mut budgets = self.budgets.write().await;
+            if let Some(budget) = budgets.get_mut(&request.agent_id) {
+                // Consume 1 API call for the verification itself
+                if let Err(e) = budget.consume_api_call() {
+                    return VerificationResult {
+                        request_id: request.request_id,
+                        allowed: false,
+                        evaluated_policies: vec![],
+                        blocking_policies: vec!["budget-limit".to_string()],
+                        symbolic_risk_score: 100,
+                        neural_risk_score: None,
+                        final_risk_score: 100,
+                        reasoning: format!("Blocked by Budget: {}", e),
+                        latency: LatencyBreakdown {
+                            total_us: start.elapsed().as_micros() as u64,
+                            symbolic_us: prompt_us,
+                            neural_us: None,
+                        },
+                    };
+                }
+                
+                // If context has "tokens", consume them
+                if let Some(tokens) = request.context.data.get("tokens").and_then(|t| t.as_u64()) {
+                     if let Err(e) = budget.consume_tokens(tokens) {
+                        return VerificationResult {
+                            request_id: request.request_id,
+                            allowed: false,
+                            evaluated_policies: vec![],
+                            blocking_policies: vec!["budget-limit".to_string()],
+                            symbolic_risk_score: 100,
+                            neural_risk_score: None,
+                            final_risk_score: 100,
+                            reasoning: format!("Blocked by Budget: {}", e),
+                            latency: LatencyBreakdown {
+                                total_us: start.elapsed().as_micros() as u64,
+                                symbolic_us: prompt_us,
+                                neural_us: None,
+                            },
+                        };
+                     }
+                }
+            }
+        }
 
         // === SYMBOLIC PATH (Fast) ===
         let symbolic_start = Instant::now();
@@ -178,22 +278,6 @@ impl GateEngine {
         let carbon_allowed = carbon_result.as_ref().map(|r| r.allowed).unwrap_or(true);
 
         // BLOCKING THRESHOLD: 80
-        //
-        // ## Threshold Rationale (EPISTEMIC WARRANT)
-        //
-        // Risk score 80 was chosen as the blocking threshold based on:
-        // - **< 60**: Allow with monitoring (low-to-medium risk)
-        // - **60-79**: Allow with enhanced logging and potential rate limiting
-        // - **≥ 80**: Block automatically — high confidence of malicious/unauthorized action
-        //
-        // This aligns with industry practices (OWASP risk scoring) where 80+ indicates
-        // "High" severity requiring immediate intervention.
-        //
-        // Calibration: 2024-Q4 production data showed 80 catches 98% of true positives
-        // while blocking only 0.3% of legitimate transactions (false positives).
-        //
-        // **For stricter environments** (finance, healthcare): Lower to 60-70.
-        // **For permissive environments** (development, testing): Raise to 90.
         const BLOCKING_THRESHOLD: u8 = 80;
         let allowed = blocking.is_empty() && final_risk < BLOCKING_THRESHOLD && carbon_allowed;
 
@@ -263,7 +347,11 @@ impl GateEngine {
         // Sort policies by priority (higher first)
         let mut sorted_policies: Vec<_> = policies
             .values()
-            .filter(|p| p.enabled && p.applies_to_jurisdiction(self.jurisdiction))
+            .filter(|p| {
+                p.enabled
+                    && p.applies_to_jurisdiction(self.jurisdiction)
+                    && p.applies_to_namespace(&request.namespace)
+            })
             .collect();
         sorted_policies.sort_by(|a, b| b.priority.cmp(&a.priority));
 
@@ -305,6 +393,7 @@ impl GateEngine {
 pub struct VerificationRequestBuilder {
     agent_id: String,
     action: String,
+    namespace: String,
     context: HashMap<String, serde_json::Value>,
 }
 
@@ -313,8 +402,14 @@ impl VerificationRequestBuilder {
         Self {
             agent_id: agent_id.into(),
             action: action.into(),
+            namespace: "default".to_string(),
             context: HashMap::new(),
         }
+    }
+
+    pub fn namespace(mut self, namespace: impl Into<String>) -> Self {
+        self.namespace = namespace.into();
+        self
     }
 
     pub fn context(mut self, key: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
@@ -327,6 +422,7 @@ impl VerificationRequestBuilder {
             request_id: Uuid::new_v4(),
             agent_id: self.agent_id,
             action: self.action,
+            namespace: self.namespace,
             context: VerificationContext { data: self.context },
             timestamp: Utc::now(),
         }
@@ -363,6 +459,7 @@ mod tests {
             priority: 100,
             enabled: true,
             jurisdictions: vec![],
+            namespace: "global".to_string(),
             rules: vec![PolicyRule {
                 id: "block-transfer".to_string(),
                 condition: "action == 'transfer_funds'".to_string(),
@@ -424,5 +521,64 @@ mod tests {
 
         assert!(!result.allowed);
         assert!(result.reasoning.contains("Carbon budget exceeded"));
+    }
+
+    #[tokio::test]
+    async fn test_namespace_isolation() {
+        let engine = GateEngine::new();
+
+        // Policy in "namespace-A"
+        let policy_a = Policy {
+            id: "policy-a".to_string(),
+            name: "Policy A".to_string(),
+            description: String::new(),
+            priority: 100,
+            enabled: true,
+            jurisdictions: vec![],
+            namespace: "namespace-A".to_string(),
+            rules: vec![PolicyRule {
+                id: "rule-a".to_string(),
+                condition: "action == 'test'".to_string(),
+                action: PolicyAction::Deny,
+                message: Some("Blocked A".to_string()),
+                risk_score: Some(100),
+            }],
+        };
+        engine.register_policy(policy_a).await;
+
+        // Policy in "namespace-B"
+        let policy_b = Policy {
+            id: "policy-b".to_string(),
+            name: "Policy B".to_string(),
+            description: String::new(),
+            priority: 100,
+            enabled: true,
+            jurisdictions: vec![],
+            namespace: "namespace-B".to_string(),
+            rules: vec![PolicyRule {
+                id: "rule-b".to_string(),
+                condition: "action == 'test'".to_string(),
+                action: PolicyAction::Deny,
+                message: Some("Blocked B".to_string()),
+                risk_score: Some(100),
+            }],
+        };
+        engine.register_policy(policy_b).await;
+
+        // Request in namespace-A should be blocked by policy-a, but NOT policy-b
+        let req_a = VerificationRequestBuilder::new("agent-1", "test")
+            .namespace("namespace-A")
+            .build();
+        let res_a = engine.verify(req_a).await;
+        assert!(!res_a.allowed);
+        assert!(res_a.blocking_policies.contains(&"policy-a".to_string()));
+        assert!(!res_a.blocking_policies.contains(&"policy-b".to_string()));
+
+        // Request in namespace-C should NOT be blocked by either (no global policy)
+        let req_c = VerificationRequestBuilder::new("agent-1", "test")
+            .namespace("namespace-C")
+            .build();
+        let res_c = engine.verify(req_c).await;
+        assert!(res_c.allowed);
     }
 }

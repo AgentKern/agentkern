@@ -263,6 +263,122 @@ pub struct CybersecurityMeasures {
     pub encryption: String,
 }
 
+impl TechnicalDocumentation {
+    /// Create a sample documentation for testing and export demos.
+    pub fn sample() -> Self {
+        Self {
+            description: SystemDescription {
+                name: "AgentKern Agent".into(),
+                purpose: "AI agent orchestration and verification".into(),
+                version: "1.0.0".into(),
+                provider: ProviderInfo {
+                    name: "AgentKern Inc".into(),
+                    address: "123 AI Street".into(),
+                    contact_email: "compliance@agentkern.com".into(),
+                    eu_representative: Some("EU Rep Ltd".into()),
+                },
+                deployment_date: Some("2025-01-01".into()),
+                risk_level: RiskLevel::HighRisk,
+                high_risk_categories: vec![HighRiskCategory::CriticalInfrastructure],
+                techniques: vec!["LLM".into(), "RAG".into()],
+            },
+            design: DesignSpecifications {
+                architecture: "Microservices with Rust core".into(),
+                algorithms: vec!["Transformer".into(), "Vector similarity".into()],
+                io_specs: IoSpecifications {
+                    inputs: vec![DataSpecification {
+                        name: "prompt".into(),
+                        data_type: "string".into(),
+                        description: "User query".into(),
+                    }],
+                    outputs: vec![DataSpecification {
+                        name: "response".into(),
+                        data_type: "string".into(),
+                        description: "Agent response".into(),
+                    }],
+                },
+                resources: ResourceRequirements {
+                    compute: "8 vCPU".into(),
+                    memory: "32GB RAM".into(),
+                    storage: "100GB SSD".into(),
+                },
+                dependencies: vec!["OpenAI API".into()],
+            },
+            risk_management: RiskManagement {
+                methodology: "ISO 31000".into(),
+                risks: vec![IdentifiedRisk {
+                    id: "R001".into(),
+                    description: "Prompt injection".into(),
+                    likelihood: "Medium".into(),
+                    impact: "High".into(),
+                    affected_rights: vec!["Privacy".into()],
+                }],
+                mitigations: vec![MitigationMeasure {
+                    risk_id: "R001".into(),
+                    measure: "PromptGuard module".into(),
+                    effectiveness: "High".into(),
+                }],
+                residual_risks: vec!["Novel attack vectors".into()],
+                testing: TestingProcedures {
+                    unit_tests: 320,
+                    integration_tests: 50,
+                    adversarial_tests: 20,
+                    test_datasets: vec!["OWASP LLM Top 10".into()],
+                    coverage_percentage: 85.0,
+                },
+            },
+            data: DataGovernance {
+                training_data: DatasetInfo {
+                    description: "Not applicable (using pre-trained models)".into(),
+                    size: "N/A".into(),
+                    sources: vec![],
+                    collection_period: None,
+                },
+                validation_data: DatasetInfo {
+                    description: "Internal test suite".into(),
+                    size: "1000 samples".into(),
+                    sources: vec!["Internal".into()],
+                    collection_period: None,
+                },
+                test_data: DatasetInfo {
+                    description: "Adversarial test set".into(),
+                    size: "500 samples".into(),
+                    sources: vec!["OWASP".into()],
+                    collection_period: None,
+                },
+                quality_measures: vec!["Manual review".into(), "Automated validation".into()],
+                bias_mitigation: BiasMitigation {
+                    detection_methods: vec!["Fairness metrics".into()],
+                    mitigation_actions: vec!["Balanced sampling".into()],
+                    monitoring: "Quarterly review".into(),
+                },
+            },
+            human_oversight: HumanOversight {
+                capability: "Full override via Arbiter kill switch".into(),
+                interface: "Web dashboard (Cockpit)".into(),
+                stop_mechanism: "Emergency kill switch with <1s response".into(),
+                operator_training: "Required certification program".into(),
+                monitoring_frequency: "Real-time with alerting".into(),
+            },
+            performance: PerformanceMetrics {
+                accuracy: [("precision".into(), 0.95), ("recall".into(), 0.92)]
+                    .into_iter()
+                    .collect(),
+                robustness: vec!["Adversarial testing".into(), "Chaos engineering".into()],
+                consistency: "99.9% consistent responses".into(),
+                limitations: vec!["May hallucinate on rare topics".into()],
+            },
+            cybersecurity: CybersecurityMeasures {
+                certifications: vec!["SOC2".into(), "ISO 27001".into()],
+                vulnerability_management: "Weekly scans, 24h critical patch".into(),
+                incident_response: "24/7 SOC with <15min response".into(),
+                access_control: "RBAC with MFA".into(),
+                encryption: "TLS 1.3, AES-256-GCM at rest".into(),
+            },
+        }
+    }
+}
+
 /// EU AI Act compliance exporter.
 pub struct EuAiActExporter;
 
@@ -709,119 +825,6 @@ impl Default for LiveBiasDetector {
 mod tests {
     use super::*;
 
-    fn sample_documentation() -> TechnicalDocumentation {
-        TechnicalDocumentation {
-            description: SystemDescription {
-                name: "AgentKern Agent".into(),
-                purpose: "AI agent orchestration and verification".into(),
-                version: "1.0.0".into(),
-                provider: ProviderInfo {
-                    name: "AgentKern Inc".into(),
-                    address: "123 AI Street".into(),
-                    contact_email: "compliance@agentkern.com".into(),
-                    eu_representative: Some("EU Rep Ltd".into()),
-                },
-                deployment_date: Some("2025-01-01".into()),
-                risk_level: RiskLevel::HighRisk,
-                high_risk_categories: vec![HighRiskCategory::CriticalInfrastructure],
-                techniques: vec!["LLM".into(), "RAG".into()],
-            },
-            design: DesignSpecifications {
-                architecture: "Microservices with Rust core".into(),
-                algorithms: vec!["Transformer".into(), "Vector similarity".into()],
-                io_specs: IoSpecifications {
-                    inputs: vec![DataSpecification {
-                        name: "prompt".into(),
-                        data_type: "string".into(),
-                        description: "User query".into(),
-                    }],
-                    outputs: vec![DataSpecification {
-                        name: "response".into(),
-                        data_type: "string".into(),
-                        description: "Agent response".into(),
-                    }],
-                },
-                resources: ResourceRequirements {
-                    compute: "8 vCPU".into(),
-                    memory: "32GB RAM".into(),
-                    storage: "100GB SSD".into(),
-                },
-                dependencies: vec!["OpenAI API".into()],
-            },
-            risk_management: RiskManagement {
-                methodology: "ISO 31000".into(),
-                risks: vec![IdentifiedRisk {
-                    id: "R001".into(),
-                    description: "Prompt injection".into(),
-                    likelihood: "Medium".into(),
-                    impact: "High".into(),
-                    affected_rights: vec!["Privacy".into()],
-                }],
-                mitigations: vec![MitigationMeasure {
-                    risk_id: "R001".into(),
-                    measure: "PromptGuard module".into(),
-                    effectiveness: "High".into(),
-                }],
-                residual_risks: vec!["Novel attack vectors".into()],
-                testing: TestingProcedures {
-                    unit_tests: 320,
-                    integration_tests: 50,
-                    adversarial_tests: 20,
-                    test_datasets: vec!["OWASP LLM Top 10".into()],
-                    coverage_percentage: 85.0,
-                },
-            },
-            data: DataGovernance {
-                training_data: DatasetInfo {
-                    description: "Not applicable (using pre-trained models)".into(),
-                    size: "N/A".into(),
-                    sources: vec![],
-                    collection_period: None,
-                },
-                validation_data: DatasetInfo {
-                    description: "Internal test suite".into(),
-                    size: "1000 samples".into(),
-                    sources: vec!["Internal".into()],
-                    collection_period: None,
-                },
-                test_data: DatasetInfo {
-                    description: "Adversarial test set".into(),
-                    size: "500 samples".into(),
-                    sources: vec!["OWASP".into()],
-                    collection_period: None,
-                },
-                quality_measures: vec!["Manual review".into(), "Automated validation".into()],
-                bias_mitigation: BiasMitigation {
-                    detection_methods: vec!["Fairness metrics".into()],
-                    mitigation_actions: vec!["Balanced sampling".into()],
-                    monitoring: "Quarterly review".into(),
-                },
-            },
-            human_oversight: HumanOversight {
-                capability: "Full override via Arbiter kill switch".into(),
-                interface: "Web dashboard (Cockpit)".into(),
-                stop_mechanism: "Emergency kill switch with <1s response".into(),
-                operator_training: "Required certification program".into(),
-                monitoring_frequency: "Real-time with alerting".into(),
-            },
-            performance: PerformanceMetrics {
-                accuracy: [("precision".into(), 0.95), ("recall".into(), 0.92)]
-                    .into_iter()
-                    .collect(),
-                robustness: vec!["Adversarial testing".into(), "Chaos engineering".into()],
-                consistency: "99.9% consistent responses".into(),
-                limitations: vec!["May hallucinate on rare topics".into()],
-            },
-            cybersecurity: CybersecurityMeasures {
-                certifications: vec!["SOC2".into(), "ISO 27001".into()],
-                vulnerability_management: "Weekly scans, 24h critical patch".into(),
-                incident_response: "24/7 SOC with <15min response".into(),
-                access_control: "RBAC with MFA".into(),
-                encryption: "TLS 1.3, AES-256-GCM at rest".into(),
-            },
-        }
-    }
-
     #[test]
     fn test_risk_level_requirements() {
         assert!(!RiskLevel::Minimal.requires_fria());
@@ -833,7 +836,7 @@ mod tests {
     #[test]
     fn test_generate_report() {
         let exporter = EuAiActExporter::new();
-        let doc = sample_documentation();
+        let doc = TechnicalDocumentation::sample();
 
         let report = exporter.generate_report(&doc);
 
@@ -845,7 +848,7 @@ mod tests {
     #[test]
     fn test_compliance_score() {
         let exporter = EuAiActExporter::new();
-        let doc = sample_documentation();
+        let doc = TechnicalDocumentation::sample();
 
         let report = exporter.generate_report(&doc);
 
@@ -856,7 +859,7 @@ mod tests {
     #[test]
     fn test_export_json() {
         let exporter = EuAiActExporter::new();
-        let doc = sample_documentation();
+        let doc = TechnicalDocumentation::sample();
 
         let json = exporter.export_json(&doc).unwrap();
 
@@ -867,7 +870,7 @@ mod tests {
     #[test]
     fn test_export_text() {
         let exporter = EuAiActExporter::new();
-        let doc = sample_documentation();
+        let doc = TechnicalDocumentation::sample();
 
         let text = exporter.export_text(&doc);
 
@@ -878,7 +881,7 @@ mod tests {
     #[test]
     fn test_incomplete_documentation() {
         let exporter = EuAiActExporter::new();
-        let mut doc = sample_documentation();
+        let mut doc = TechnicalDocumentation::sample();
         doc.risk_management.risks.clear();
         doc.human_oversight.stop_mechanism.clear();
 

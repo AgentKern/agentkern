@@ -65,6 +65,7 @@ pub async fn verify_action(request: VerifyRequest) -> Result<VerifyResult> {
         request_id: uuid::Uuid::new_v4(),
         agent_id: request.agent_id.clone(),
         action: request.action.clone(),
+        namespace: "default".to_string(),
         context: agentkern_gate::types::VerificationContext { data: context_data },
         timestamp: chrono::Utc::now(),
     };

@@ -19,10 +19,6 @@
     "ts-jest": "^29.2.5",
     "@types/jest": "^30.0.0"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "pnpm": {
     "overrides": {
       "qs": ">=6.14.1"

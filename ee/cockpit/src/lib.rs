@@ -213,15 +213,19 @@ impl CockpitService {
 
     /// Get dashboard statistics.
     pub fn get_stats(&self) -> DashboardStats {
-        // In production, this would aggregate from real data
+        // Fetch real-time metrics from Pulse
+        let tx_count = agentkern_pulse::TX_COUNTER.get();
+        let carbon_intensity = agentkern_pulse::CARBON_INTENSITY.get();
+
+        // Derived metrics (mocked/simulated mixed with real data)
         DashboardStats {
-            active_agents: 12847,
-            active_cells: 24,
-            avg_risk_score: 32,
-            requests_per_second: 45678.9,
-            blocked_requests_hour: 142,
-            compliance_score: 94,
-            carbon_savings_g: 48500.0,
+            active_agents: 128,                      // TODO: Get from Nexus registry
+            active_cells: 5,                         // TODO: Get from Synapse
+            avg_risk_score: 12,                      // TODO: Aggregate from Gate
+            requests_per_second: tx_count / 86400.0, // Avg over 24h
+            blocked_requests_hour: 0,
+            compliance_score: 100,
+            carbon_savings_g: carbon_intensity * 0.4, // Simulated savings factor
         }
     }
 
@@ -338,6 +342,23 @@ mod tests {
             let status = service.get_compliance_status();
             assert!(!status.is_empty());
             assert!(status.iter().any(|s| s.framework == "HIPAA"));
+        });
+    }
+
+    #[test]
+    fn test_pulse_metrics_integration() {
+        temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
+            let service = CockpitService::new("org-123").unwrap();
+
+            // Set some values in Pulse
+            agentkern_pulse::CARBON_INTENSITY.set(500.0);
+            agentkern_pulse::TX_COUNTER.inc_by(100.0); // Simulate 100 transactions
+
+            let stats = service.get_stats();
+
+            // Verify stats reflect Pulse values
+            assert_eq!(stats.carbon_savings_g, 500.0 * 0.4); // 200.0
+            assert!(stats.requests_per_second > 0.0);
         });
     }
 }

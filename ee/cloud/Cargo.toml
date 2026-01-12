@@ -27,7 +27,7 @@ reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
 # JWT for license token validation (offline)
 # - HMAC-SHA256 signed license tokens
 # - Offline validation with public key
-jsonwebtoken = "10.2"
+jsonwebtoken = "9.3"
 
 # HMAC for license key derivation
 hmac = "0.12"

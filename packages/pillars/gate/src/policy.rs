@@ -50,8 +50,15 @@ pub struct Policy {
     /// Jurisdictions where this policy applies
     #[serde(default)]
     pub jurisdictions: Vec<DataRegion>,
+    /// Namespace where this policy applies (e.g., "prod", "staging", "global")
+    #[serde(default = "default_namespace")]
+    pub namespace: String,
     /// Policy rules
     pub rules: Vec<PolicyRule>,
+}
+
+fn default_namespace() -> String {
+    "global".to_string()
 }
 
 fn default_priority() -> i32 {
@@ -110,6 +117,11 @@ impl Policy {
         }
         self.jurisdictions.contains(&region) || self.jurisdictions.contains(&DataRegion::Global)
     }
+
+    /// Check if this policy applies to a given namespace.
+    pub fn applies_to_namespace(&self, namespace: &str) -> bool {
+        self.namespace == "global" || self.namespace == namespace
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +163,7 @@ rules:
             priority: 0,
             enabled: true,
             jurisdictions: vec![DataRegion::Eu, DataRegion::Us],
+            namespace: "global".to_string(),
             rules: vec![],
         };
 

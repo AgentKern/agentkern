@@ -59,6 +59,7 @@ parking_lot = "0.12.3"
 # Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
 rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
 rust_decimal_macros = "1.39"
+agentkern-governance = { path = "../../foundation/governance" }
 
 # ============================================================
 # DISTRIBUTED LOCKING (feature-gated for multi-node deployment)

@@ -33,6 +33,7 @@ fn create_request(agent_id: &str, action: &str, resource: &str) -> VerificationR
         request_id: Uuid::new_v4(),
         agent_id: agent_id.to_string(),
         action: action.to_string(),
+        namespace: "default".to_string(),
         context: VerificationContext { data: context_data },
         timestamp: Utc::now(),
     }
@@ -47,6 +48,7 @@ fn create_policy(name: &str, action: &str, policy_action: PolicyAction) -> Polic
         priority: 100,
         enabled: true,
         jurisdictions: vec![],
+        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-1".to_string(),
             condition: format!("action == \"{}\"", action),
@@ -119,6 +121,7 @@ async fn golden_priority_ordering() {
         priority: 50, // Lower priority
         enabled: true,
         jurisdictions: vec![],
+        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-allow".to_string(),
             condition: "action == \"write\"".to_string(),
@@ -135,6 +138,7 @@ async fn golden_priority_ordering() {
         priority: 100, // Higher priority wins
         enabled: true,
         jurisdictions: vec![],
+        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-deny".to_string(),
             condition: "action == \"write\"".to_string(),

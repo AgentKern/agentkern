@@ -276,6 +276,13 @@ impl CarbonScheduler {
             .map(|r| r.intensity == CarbonIntensity::High || r.intensity == CarbonIntensity::Medium)
             .unwrap_or(false)
     }
+
+    /// Get real-time carbon intensity for a region.
+    pub async fn get_current_intensity(&self, region_id: &str) -> Option<f32> {
+        self.regions
+            .get(region_id)
+            .map(|r| r.current_grams_per_kwh as f32)
+    }
 }
 
 /// Carbon metrics for reporting.

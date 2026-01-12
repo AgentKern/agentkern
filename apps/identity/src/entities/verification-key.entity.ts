@@ -16,8 +16,9 @@ import {
 } from 'typeorm';
 
 @Entity('verification_keys')
-@Unique(['principalId', 'credentialId'])
+@Unique(['principalId', 'credentialId', 'namespace'])
 @Index('idx_verification_keys_principalid', ['principalId'])
+@Index('idx_verification_keys_namespace', ['namespace'])
 export class VerificationKeyEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,6 +26,9 @@ export class VerificationKeyEntity {
   @Column()
   @Index('idx_verification_keys_principalid_col')
   principalId: string;
+
+  @Column({ default: 'default' })
+  namespace: string;
 
   @Column()
   credentialId: string;

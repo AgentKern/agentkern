@@ -284,79 +284,54 @@ impl EncryptionEngine {
     // Internal Methods
     // =========================================================================
 
-    /// AES-256-GCM encryption (simplified implementation).
+    /// AES-256-GCM encryption (Production Implementation).
     fn aes_gcm_encrypt(
         &self,
         key: &[u8; 32],
         nonce: &[u8; 12],
         plaintext: &[u8],
     ) -> Result<Vec<u8>, EncryptionError> {
-        // NOTE: In production, use aes-gcm crate
-        // This is a simplified implementation using HMAC for development
-        use sha2::Sha256;
+        use aes_gcm::{
+            aead::{Aead, KeyInit, Payload},
+            Aes256Gcm, Key, Nonce,
+        };
 
-        let mut hasher = Sha256::new();
-        hasher.update(key);
-        hasher.update(nonce);
-        let keystream_seed = hasher.finalize();
+        let key = Key::<Aes256Gcm>::from_slice(key);
+        let nonce = Nonce::from_slice(nonce);
+        let cipher = Aes256Gcm::new(key);
 
-        // XOR-based stream cipher (simplified - use real AES-GCM in production)
-        let mut ciphertext = Vec::with_capacity(plaintext.len() + 16);
-        for (i, byte) in plaintext.iter().enumerate() {
-            let keystream_byte = keystream_seed[i % 32];
-            ciphertext.push(byte ^ keystream_byte);
-        }
-
-        // Append authentication tag (HMAC-SHA256 truncated to 16 bytes)
-        let mut mac_hasher = Sha256::new();
-        mac_hasher.update(key);
-        mac_hasher.update(nonce);
-        mac_hasher.update(&ciphertext);
-        let tag = mac_hasher.finalize();
-        ciphertext.extend_from_slice(&tag[..16]);
+        let ciphertext = cipher
+            .encrypt(nonce, plaintext)
+            .map_err(|e| EncryptionError::EncryptionFailed(e.to_string()))?;
 
         Ok(ciphertext)
     }
 
-    /// AES-256-GCM decryption (simplified implementation).
+    /// AES-256-GCM decryption (Production Implementation).
     fn aes_gcm_decrypt(
         &self,
         key: &[u8; 32],
         nonce: &[u8],
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, EncryptionError> {
-        if ciphertext.len() < 16 {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm, Key, Nonce,
+        };
+
+        if nonce.len() != 12 {
             return Err(EncryptionError::DecryptionFailed(
-                "Ciphertext too short".into(),
+                "Invalid nonce length".into(),
             ));
         }
 
-        let (encrypted_data, tag) = ciphertext.split_at(ciphertext.len() - 16);
+        let key = Key::<Aes256Gcm>::from_slice(key);
+        let nonce = Nonce::from_slice(nonce);
+        let cipher = Aes256Gcm::new(key);
 
-        // Verify authentication tag
-        let mut mac_hasher = Sha256::new();
-        mac_hasher.update(key);
-        mac_hasher.update(nonce);
-        mac_hasher.update(encrypted_data);
-        let computed_tag = mac_hasher.finalize();
-
-        if &computed_tag[..16] != tag {
-            return Err(EncryptionError::DecryptionFailed(
-                "Authentication failed".into(),
-            ));
-        }
-
-        // Decrypt
-        let mut hasher = Sha256::new();
-        hasher.update(key);
-        hasher.update(nonce);
-        let keystream_seed = hasher.finalize();
-
-        let mut plaintext = Vec::with_capacity(encrypted_data.len());
-        for (i, byte) in encrypted_data.iter().enumerate() {
-            let keystream_byte = keystream_seed[i % 32];
-            plaintext.push(byte ^ keystream_byte);
-        }
+        let plaintext = cipher
+            .decrypt(nonce, ciphertext)
+            .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))?;
 
         Ok(plaintext)
     }

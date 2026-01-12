@@ -10,6 +10,7 @@
 //! - Billing export for enterprise
 
 use parking_lot::RwLock;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -49,7 +50,7 @@ pub struct CostEvent {
     /// Cost category
     pub category: CostCategory,
     /// Amount in USD
-    pub amount_usd: f64,
+    pub amount_usd: Decimal,
     /// Resource description
     pub resource: String,
     /// Usage quantity
@@ -68,9 +69,9 @@ pub struct AgentCostSummary {
     /// Agent ID
     pub agent_id: String,
     /// Total cost in USD
-    pub total_usd: f64,
+    pub total_usd: Decimal,
     /// Cost by category
-    pub by_category: HashMap<String, f64>,
+    pub by_category: HashMap<String, Decimal>,
     /// Number of events
     pub event_count: u64,
     /// First event timestamp
@@ -87,7 +88,7 @@ pub struct CostThreshold {
     /// Agent ID (or "*" for all)
     pub agent_id: String,
     /// Amount in USD
-    pub amount_usd: f64,
+    pub amount_usd: Decimal,
     /// Time window (seconds, 0 = total)
     pub window_secs: u64,
     /// Alert level
@@ -121,9 +122,9 @@ pub struct CostAlert {
     /// Agent ID
     pub agent_id: String,
     /// Current amount
-    pub current_usd: f64,
+    pub current_usd: Decimal,
     /// Threshold amount
-    pub threshold_usd: f64,
+    pub threshold_usd: Decimal,
     /// Alert level
     pub level: AlertLevel,
     /// Timestamp
@@ -166,7 +167,7 @@ impl CostTracker {
             agent_id: agent_id.to_string(),
             category,
             resource: String::new(),
-            amount_usd: 0.0,
+            amount_usd: Decimal::ZERO,
             quantity: 0.0,
             unit: String::new(),
             task_id: None,
@@ -175,7 +176,7 @@ impl CostTracker {
     }
 
     /// Get total cost for an agent.
-    pub fn get_agent_total(&self, agent_id: &str) -> f64 {
+    pub fn get_agent_total(&self, agent_id: &str) -> Decimal {
         self.events
             .read()
             .iter()
@@ -189,10 +190,10 @@ impl CostTracker {
         let events = self.events.read();
         let agent_events: Vec<_> = events.iter().filter(|e| e.agent_id == agent_id).collect();
 
-        let mut by_category: HashMap<String, f64> = HashMap::new();
+        let mut by_category: HashMap<String, Decimal> = HashMap::new();
         for event in &agent_events {
             let key = format!("{:?}", event.category);
-            *by_category.entry(key).or_insert(0.0) += event.amount_usd;
+            *by_category.entry(key).or_insert(Decimal::ZERO) += event.amount_usd;
         }
 
         AgentCostSummary {
@@ -219,13 +220,15 @@ impl CostTracker {
     pub fn get_global_summary(&self) -> GlobalCostSummary {
         let events = self.events.read();
 
-        let mut by_agent: HashMap<String, f64> = HashMap::new();
-        let mut by_category: HashMap<String, f64> = HashMap::new();
+        let mut by_agent: HashMap<String, Decimal> = HashMap::new();
+        let mut by_category: HashMap<String, Decimal> = HashMap::new();
 
         for event in events.iter() {
-            *by_agent.entry(event.agent_id.clone()).or_insert(0.0) += event.amount_usd;
+            *by_agent
+                .entry(event.agent_id.clone())
+                .or_insert(Decimal::ZERO) += event.amount_usd;
             let cat_key = format!("{:?}", event.category);
-            *by_category.entry(cat_key).or_insert(0.0) += event.amount_usd;
+            *by_category.entry(cat_key).or_insert(Decimal::ZERO) += event.amount_usd;
         }
 
         GlobalCostSummary {
@@ -243,7 +246,7 @@ impl CostTracker {
     }
 
     /// Check thresholds for an agent.
-    fn check_thresholds(&self, agent_id: &str, _new_amount: f64) -> Option<CostAlert> {
+    fn check_thresholds(&self, agent_id: &str, _new_amount: Decimal) -> Option<CostAlert> {
         let thresholds = self.thresholds.read();
         let current_total = self.get_agent_total(agent_id);
 
@@ -319,8 +322,8 @@ pub struct CostEventBuilder {
     agent_id: String,
     category: CostCategory,
     resource: String,
-    amount_usd: f64,
-    quantity: f64,
+    amount_usd: Decimal,
+    quantity: f64, // quantity can remain f64 (tokens etc)
     unit: String,
     task_id: Option<String>,
     metadata: HashMap<String, serde_json::Value>,
@@ -332,7 +335,7 @@ impl CostEventBuilder {
         self
     }
 
-    pub fn amount(mut self, usd: f64) -> Self {
+    pub fn amount(mut self, usd: Decimal) -> Self {
         self.amount_usd = usd;
         self
     }
@@ -372,9 +375,9 @@ impl CostEventBuilder {
 /// Global cost summary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalCostSummary {
-    pub total_usd: f64,
-    pub by_agent: HashMap<String, f64>,
-    pub by_category: HashMap<String, f64>,
+    pub total_usd: Decimal,
+    pub by_agent: HashMap<String, Decimal>,
+    pub by_category: HashMap<String, Decimal>,
     pub event_count: u64,
     pub alert_count: u64,
 }
@@ -400,7 +403,7 @@ mod tests {
         let event = tracker
             .event("agent-1", CostCategory::LlmInference)
             .resource("gpt-4")
-            .amount(0.003)
+            .amount(Decimal::new(3, 3)) // 0.003
             .quantity(1000.0, "tokens")
             .build();
 
@@ -416,13 +419,13 @@ mod tests {
         for _i in 0..5 {
             let event = tracker
                 .event("agent-1", CostCategory::LlmInference)
-                .amount(0.01)
+                .amount(Decimal::new(1, 2)) // 0.01
                 .build();
             tracker.record(event);
         }
 
         let total = tracker.get_agent_total("agent-1");
-        assert!((total - 0.05).abs() < 0.001);
+        assert_eq!(total, Decimal::new(5, 2)); // 0.05
     }
 
     #[test]
@@ -432,19 +435,19 @@ mod tests {
         tracker.record(
             tracker
                 .event("agent-1", CostCategory::LlmInference)
-                .amount(0.01)
+                .amount(Decimal::new(1, 2))
                 .build(),
         );
         tracker.record(
             tracker
                 .event("agent-1", CostCategory::VectorSearch)
-                .amount(0.002)
+                .amount(Decimal::new(2, 3))
                 .build(),
         );
 
         let summary = tracker.get_agent_summary("agent-1");
 
-        assert!((summary.total_usd - 0.012).abs() < 0.001);
+        assert_eq!(summary.total_usd, Decimal::new(12, 3)); // 0.012
         assert_eq!(summary.event_count, 2);
     }
 
@@ -455,7 +458,7 @@ mod tests {
         tracker.add_threshold(CostThreshold {
             id: "t1".into(),
             agent_id: "agent-1".into(),
-            amount_usd: 0.05,
+            amount_usd: Decimal::new(5, 2), // 0.05
             window_secs: 0,
             level: AlertLevel::Warning,
             enabled: true,
@@ -465,7 +468,7 @@ mod tests {
         for _ in 0..10 {
             let event = tracker
                 .event("agent-1", CostCategory::LlmInference)
-                .amount(0.01)
+                .amount(Decimal::new(1, 2)) // 0.01
                 .build();
             tracker.record(event);
         }
@@ -481,19 +484,19 @@ mod tests {
         tracker.record(
             tracker
                 .event("agent-1", CostCategory::LlmInference)
-                .amount(0.01)
+                .amount(Decimal::new(1, 2))
                 .build(),
         );
         tracker.record(
             tracker
                 .event("agent-2", CostCategory::Storage)
-                .amount(0.005)
+                .amount(Decimal::new(5, 3))
                 .build(),
         );
 
         let summary = tracker.get_global_summary();
 
-        assert!((summary.total_usd - 0.015).abs() < 0.001);
+        assert_eq!(summary.total_usd, Decimal::new(15, 3)); // 0.015
         assert_eq!(summary.by_agent.len(), 2);
     }
 
@@ -505,7 +508,7 @@ mod tests {
             tracker
                 .event("agent-1", CostCategory::LlmInference)
                 .resource("gpt-4")
-                .amount(0.003)
+                .amount(Decimal::new(3, 3))
                 .quantity(1000.0, "tokens")
                 .build(),
         );

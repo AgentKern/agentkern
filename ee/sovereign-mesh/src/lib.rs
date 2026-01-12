@@ -156,9 +156,14 @@ impl SovereignMesh {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Mutex to serialize tests modifying environment variables
+    static SERIAL_TEST: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_requires_license() {
+        let _guard = SERIAL_TEST.lock().unwrap();
         unsafe {
             std::env::remove_var("AGENTKERN_LICENSE_KEY");
         }
@@ -168,6 +173,7 @@ mod tests {
 
     #[test]
     fn test_sync_blocking() {
+        let _guard = SERIAL_TEST.lock().unwrap();
         unsafe {
             std::env::set_var("AGENTKERN_LICENSE_KEY", "test-license");
         }

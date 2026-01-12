@@ -60,6 +60,8 @@ pub struct CoordinationRequest {
     pub expected_duration_ms: u64,
     /// Priority level (higher = more important)
     pub priority: i32,
+    /// Semantic intent of the request
+    pub intent: Option<String>,
     /// Request timestamp
     pub requested_at: DateTime<Utc>,
 }
@@ -72,8 +74,14 @@ impl CoordinationRequest {
             operation: LockType::Write,
             expected_duration_ms: 30000, // 30 seconds default
             priority: 0,
+            intent: None,
             requested_at: Utc::now(),
         }
+    }
+
+    pub fn with_intent(mut self, intent: impl Into<String>) -> Self {
+        self.intent = Some(intent.into());
+        self
     }
 
     pub fn with_operation(mut self, op: LockType) -> Self {

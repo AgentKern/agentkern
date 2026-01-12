@@ -364,7 +364,7 @@ describe('GateService', () => {
 
   describe('verify', () => {
     it('should verify agent actions against policies', async () => {
-      const result = await service.verify('agent-123', 'read_data', {
+      const result = await service.verify('agent-123', 'read_data', 'default', {
         resource: 'database',
       });
 

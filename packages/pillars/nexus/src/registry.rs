@@ -86,6 +86,41 @@ impl AgentRegistry {
             .collect()
     }
 
+    /// Find agents in a specific geographic region.
+    pub async fn find_by_region(&self, region: crate::types::DataRegion) -> Vec<AgentCard> {
+        let agents = self.agents.read().await;
+        agents
+            .values()
+            .filter(|a| {
+                a.deployment
+                    .as_ref()
+                    .map(|d| d.region == region)
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Find agents by skill AND region (Cross-Cloud Discovery).
+    pub async fn find_by_skill_and_region(
+        &self,
+        skill_id: &str,
+        region: crate::types::DataRegion,
+    ) -> Vec<AgentCard> {
+        let agents = self.agents.read().await;
+        agents
+            .values()
+            .filter(|a| a.has_skill(skill_id) || a.has_skill_tag(skill_id))
+            .filter(|a| {
+                a.deployment
+                    .as_ref()
+                    .map(|d| d.region == region)
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect()
+    }
+
     /// Count registered agents.
     pub async fn count(&self) -> usize {
         let agents = self.agents.read().await;
@@ -158,5 +193,38 @@ mod tests {
         let nlp_agents = registry.find_by_skill("nlp").await;
         assert_eq!(nlp_agents.len(), 1);
         assert_eq!(nlp_agents[0].id, "agent-1");
+    }
+
+    #[tokio::test]
+    async fn test_cross_cloud_discovery() {
+        use crate::types::{CloudProvider, DataRegion, DeploymentInfo};
+        let registry = AgentRegistry::new();
+
+        let mut card = test_card("aws-agent");
+        card.deployment = Some(DeploymentInfo {
+            provider: CloudProvider::Aws,
+            region: DataRegion::EuFrankfurt,
+            instance_id: None,
+            carbon_reported: false,
+        });
+        registry.register(card).await.unwrap();
+
+        let mut card2 = test_card("gcp-agent");
+        card2.deployment = Some(DeploymentInfo {
+            provider: CloudProvider::Gcp,
+            region: DataRegion::UsEast,
+            instance_id: None,
+            carbon_reported: false,
+        });
+        registry.register(card2).await.unwrap();
+
+        // Find by region
+        let eu_agents = registry.find_by_region(DataRegion::EuFrankfurt).await;
+        assert_eq!(eu_agents.len(), 1);
+        assert_eq!(eu_agents[0].id, "aws-agent");
+
+        // Find by non-existent region
+        let asia_agents = registry.find_by_region(DataRegion::AsiaSingapore).await;
+        assert_eq!(asia_agents.len(), 0);
     }
 }

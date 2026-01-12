@@ -143,10 +143,19 @@ pub fn guard_context(chunks: Vec<String>) -> String {
 
 /// Gate Engine Verification (Hot Path: 0ms)
 #[napi]
-pub async fn verify(agent_id: String, action: String, context_json: Option<String>) -> String {
+pub async fn verify(
+    agent_id: String,
+    action: String,
+    namespace: Option<String>,
+    context_json: Option<String>,
+) -> String {
     let engine = get_gate_engine();
 
     let mut builder = VerificationRequestBuilder::new(agent_id, action);
+
+    if let Some(ns) = namespace {
+        builder = builder.namespace(ns);
+    }
 
     if let Some(ctx_str) = context_json {
         if let Ok(ctx_map) =

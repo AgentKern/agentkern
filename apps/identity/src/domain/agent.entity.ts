@@ -35,6 +35,7 @@ export class AgentReputation {
 export class AgentRecord {
   id: string;
   name: string;
+  namespace: string;
   version: string;
   status: AgentStatus;
   budget: AgentBudget;

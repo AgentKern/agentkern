@@ -32,7 +32,7 @@ reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
 
 
 # JWT validation for OIDC (jsonwebtoken 9.3 - Dec 2025)
-jsonwebtoken = "10.2"
+jsonwebtoken = "9.3"
 
 # Base64/URL encoding for SAML
 base64 = "0.22"
