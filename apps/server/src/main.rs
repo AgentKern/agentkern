@@ -6,10 +6,7 @@
 use axum::{
     Router,
     middleware,
-    extract::State,
-    http::{Request, StatusCode, header},
-    response::Response,
-    body::Body,
+    routing::{get, post},
 };
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -18,10 +15,15 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod auth;
+
+use auth::JwtConfig;
+
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: sqlx::PgPool,
+    pub pool: Option<sqlx::PgPool>,
+    pub jwt_config: JwtConfig,
 }
 
 #[tokio::main]
@@ -38,29 +40,45 @@ async fn main() {
 
     tracing::info!("🚀 Starting AgentKern Unified Server");
 
-    // Connect to database
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| {
-            tracing::warn!("DATABASE_URL not set, using default");
-            "postgres://agentkern:agentkern@localhost:5432/agentkern".to_string()
-        });
+    // JWT configuration
+    let jwt_config = JwtConfig::default();
+    tracing::info!("🔐 JWT authentication enabled (expiry: {}h)", jwt_config.expiration_hours);
 
-    tracing::info!("🗄️  Connecting to database...");
-    let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to database");
-
-    tracing::info!("✅ Database connected");
-
-    // Run migrations
-    tracing::info!("📦 Running migrations...");
-    run_migrations(&pool).await;
-    tracing::info!("✅ Migrations complete");
+    // Connect to database (optional - server can run without DB for testing)
+    let database_url = std::env::var("DATABASE_URL").ok();
+    
+    let pool = if let Some(ref url) = database_url {
+        tracing::info!("🗄️  Connecting to database...");
+        match PgPoolOptions::new()
+            .max_connections(10)
+            .connect(url)
+            .await
+        {
+            Ok(pool) => {
+                tracing::info!("✅ Database connected");
+                
+                // Run migrations
+                tracing::info!("📦 Running migrations...");
+                run_migrations(&pool).await;
+                tracing::info!("✅ Migrations complete");
+                
+                Some(pool)
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Database connection failed: {}. Running in stateless mode.", e);
+                None
+            }
+        }
+    } else {
+        tracing::warn!("⚠️  DATABASE_URL not set. Running in stateless mode.");
+        None
+    };
 
     // Build application state
-    let state = Arc::new(AppState { pool: pool.clone() });
+    let state = Arc::new(AppState { 
+        pool,
+        jwt_config,
+    });
 
     // Build the unified router
     let app = build_router(state).await;
@@ -97,11 +115,25 @@ async fn build_router(state: Arc<AppState>) -> Router {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    // Get the Identity pillar router (passing pool)
-    let identity_router = agentkern_identity::api::server::app_with_pool(state.pool.clone()).await;
+    // Get the Identity pillar router (passing pool if available)
+    let identity_router = if let Some(ref pool) = state.pool {
+        agentkern_identity::api::server::app_with_pool(pool.clone()).await
+    } else {
+        agentkern_identity::api::server::app().await
+    };
+
+    // Auth routes (public)
+    let auth_routes = Router::new()
+        .route("/login", post(auth::login))
+        .route("/token", post(auth::login)) // Alias
+        .route("/refresh", post(auth::refresh_token))
+        .route("/me", get(auth::me))
+        .with_state(state.clone());
 
     // Build unified router with all pillars
     Router::new()
+        // Auth routes (public)
+        .nest("/api/v1/auth", auth_routes)
         // Identity Pillar (verification, agents, keys, webauthn)
         .nest("/api/v1/identity", identity_router)
         // Gate Pillar (verification policies)
@@ -116,66 +148,12 @@ async fn build_router(state: Arc<AppState>) -> Router {
         .nest("/api/v1/treasury", agentkern_treasury::api::router())
         // Root health check
         .route("/health", axum::routing::get(root_health))
+        // Authentication middleware for protected routes
+        .layer(middleware::from_fn_with_state(state.clone(), auth::auth_middleware))
         // Tracing
         .layer(TraceLayer::new_for_http())
         // CORS
         .layer(cors)
-}
-
-/// Authentication middleware
-/// Validates Bearer tokens or allows unauthenticated access to public routes
-async fn auth_middleware(
-    State(_state): State<Arc<AppState>>,
-    request: Request<Body>,
-    next: middleware::Next,
-) -> Result<Response, StatusCode> {
-    let path = request.uri().path();
-    
-    // Public routes that don't require authentication
-    let public_routes = [
-        "/health",
-        "/api/v1/identity/health",
-        "/api/v1/gate/health",
-        "/api/v1/arbiter/health",
-        "/api/v1/nexus/health",
-        "/api/v1/synapse/health",
-        "/api/v1/treasury/health",
-        "/api/v1/identity/verify", // Verification is public
-    ];
-    
-    if public_routes.iter().any(|r| path.starts_with(r)) {
-        return Ok(next.run(request).await);
-    }
-
-    // Check for Authorization header
-    let auth_header = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|h| h.to_str().ok());
-
-    match auth_header {
-        Some(auth) if auth.starts_with("Bearer ") => {
-            let token = &auth[7..];
-            
-            // TODO: Validate token against database or JWT verification
-            // For now, accept any non-empty token (development mode)
-            if !token.is_empty() {
-                tracing::debug!("Authenticated request to {}", path);
-                Ok(next.run(request).await)
-            } else {
-                tracing::warn!("Empty token for {}", path);
-                Err(StatusCode::UNAUTHORIZED)
-            }
-        }
-        Some(_) => {
-            tracing::warn!("Invalid auth scheme for {}", path);
-            Err(StatusCode::UNAUTHORIZED)
-        }
-        None => {
-            tracing::warn!("Missing Authorization header for {}", path);
-            Err(StatusCode::UNAUTHORIZED)
-        }
-    }
 }
 
 async fn root_health() -> axum::Json<serde_json::Value> {
@@ -183,7 +161,7 @@ async fn root_health() -> axum::Json<serde_json::Value> {
         "status": "ok",
         "service": "agentkern-server",
         "version": env!("CARGO_PKG_VERSION"),
-        "database": "connected",
+        "auth": "jwt",
         "pillars": {
             "identity": "active",
             "gate": "active",
