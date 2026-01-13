@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-dev
+          sudo apt-get install -y libpython3-dev pkg-config
 
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin

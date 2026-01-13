@@ -103,10 +103,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-dev
+          sudo apt-get install -y python3-dev libpython3-dev pkg-config
         
       - name: Install cargo-llvm-cov
         run: cargo install cargo-llvm-cov
+        
+      - name: Run migrations
+        run: |
+          DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
+          cargo run --bin migrate
         
       - name: Run tests with coverage
         run: |

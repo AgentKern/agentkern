@@ -37,7 +37,7 @@ pub enum MigrationDecision {
 
 /// Orchestrator for the autonomous mesh.
 pub struct MeshOrchestrator {
-    mesh: Arc<GlobalMesh>,
+    _mesh: Arc<GlobalMesh>,
     migration: Arc<MigrationManager>,
     /// Track health reports per region
     region_health: Arc<RwLock<HashMap<DataRegion, SemanticHealthReport>>>,

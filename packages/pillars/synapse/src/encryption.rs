@@ -292,7 +292,7 @@ impl EncryptionEngine {
         plaintext: &[u8],
     ) -> Result<Vec<u8>, EncryptionError> {
         use aes_gcm::{
-            aead::{Aead, KeyInit, Payload},
+            aead::{Aead, KeyInit},
             Aes256Gcm, Key, Nonce,
         };
 
