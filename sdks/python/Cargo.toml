@@ -38,6 +38,9 @@ base64 = "0.22"
 # Time
 chrono = { workspace = true }
 
+# Fix for manylinux builds (openssl-sys requirement)
+openssl = { version = "0.10", features = ["vendored"] }
+
 [features]
 extension-module = ["pyo3/extension-module"]
 default = []

@@ -49,7 +49,7 @@ async fn test_lock_persists_across_restart() {
     let pool = setup_pool().await;
     cleanup(&pool).await;
 
-    let resource = "test:lock_persistence";
+    let resource = "test:lock_persistence_1";
     let agent_id = "agent-persistence-test";
 
     // === Phase 1: Acquire lock with first coordinator ===
@@ -102,7 +102,7 @@ async fn test_queue_persists_across_restart() {
     let pool = setup_pool().await;
     cleanup(&pool).await;
 
-    let resource = "test:queue_persistence";
+    let resource = "test:queue_persistence_2";
 
     // === Phase 1: Create lock and enqueue waiters ===
     {
@@ -159,7 +159,7 @@ async fn test_lock_manager_direct() {
     cleanup(&pool).await;
 
     let lock_manager = PgLockManager::new(pool.clone());
-    let resource = "test:lock_manager";
+    let resource = "test:lock_manager_3";
 
     // Acquire
     let lock = lock_manager
@@ -192,7 +192,7 @@ async fn test_queue_direct() {
     cleanup(&pool).await;
 
     let queue = PgQueue::new(pool.clone());
-    let resource = "test:queue_direct";
+    let resource = "test:queue_direct_4";
 
     // Enqueue requests
     let req1 = CoordinationRequest::new("agent-1", resource).with_priority(3);
@@ -225,7 +225,7 @@ async fn test_priority_preemption() {
     cleanup(&pool).await;
 
     let lock_manager = PgLockManager::new(pool.clone());
-    let resource = "test:preemption";
+    let resource = "test:preemption_5";
 
     // Low priority acquires
     lock_manager

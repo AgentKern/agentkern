@@ -84,8 +84,7 @@ impl ModelProvenance {
             &sig_bytes
                 .try_into()
                 .map_err(|_| ProvenanceError::InvalidSignature)?,
-        )
-        .into(); // Convert from dalek Signature to internal if needed, usually direct
+        );
 
         // 3. Verify signature of the HASH
         self.trusted_key
