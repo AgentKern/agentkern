@@ -128,8 +128,11 @@ jobs:
       # Removed redundant migration step as server handles it on startup.
         
       - name: Start Server & Health Check
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          DATABASE_URL=postgres://postgres:root@localhost:5432/agentkern_test ./target/release/agentkern-server > server.log 2>&1 &
+          ./target/release/agentkern-server > server.log 2>&1 &
           
           echo "Waiting for server to be healthy... (target http://localhost:3000/health)"
           for i in {1..30}; do

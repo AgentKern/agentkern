@@ -9,6 +9,7 @@ use serde_json::json;
 ///
 /// Implements the draft W3C ANP 1.0 specification for agent negotiation.
 /// Supports the basic negotiation cycle: Propose -> Counter -> Accept/Reject.
+#[derive(Default)]
 pub struct ANPAdapter;
 
 #[derive(Debug, Serialize, Deserialize)]

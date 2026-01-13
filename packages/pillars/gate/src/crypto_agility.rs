@@ -440,6 +440,7 @@ impl CryptoProvider {
     /// Generate post-quantum signature component.
     /// When `pqc` feature enabled, uses real ML-DSA (FIPS 204).
     /// Otherwise, uses deterministic hash-based fallback.
+    #[allow(dead_code)]
     fn generate_pq_signature(&self, message: &[u8]) -> String {
         #[cfg(feature = "pqc")]
         {
