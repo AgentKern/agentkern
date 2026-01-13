@@ -1,8 +1,6 @@
 [workspace]
 resolver = "2"
 
-[workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
 
 members = [
     # ===========================================================================
@@ -84,6 +82,8 @@ authors = ["AgentKern Team"]
 # Async Runtime
 tokio = { version = "1.48", features = ["full"] }
 async-trait = "0.1.83"
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
