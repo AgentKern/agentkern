@@ -90,6 +90,13 @@ jobs:
         working-directory: packages/sdk-node
         run: pnpm add -D @napi-rs/cli
         
+      - name: Install cross-linker (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu' && matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          
       - name: Build
         working-directory: packages/sdk-node
         run: pnpm build -- --target ${{ matrix.target }}
@@ -121,6 +128,12 @@ jobs:
           command: build
           args: --release --manifest-path sdks/python/Cargo.toml -o dist --features extension-module
           manylinux: auto
+          before-script-linux: |
+            if [ -f /usr/bin/yum ]; then
+              yum install -y perl-IPC-Cmd
+            elif [ -f /usr/bin/apt-get ]; then
+              apt-get update && apt-get install -y perl-modules
+            fi
           
       - name: Upload wheels
         uses: actions/upload-artifact@v4

@@ -94,7 +94,7 @@ impl RateLimiter {
     /// Check if the key exceeds the rate limit.
     /// Returns (allowed, remaining, connection_error).
     /// If Redis is down/disabled, it fails OPEN (allowed=true).
-    pub async fn check(&self, key: &str) -> (bool, u64, bool) {
+    pub async fn check(&self, _key: &str) -> (bool, u64, bool) {
         #[cfg(feature = "redis")]
         {
             if let Some(pool) = &self.cache.pool {
@@ -106,7 +106,7 @@ impl RateLimiter {
                     }
                 };
 
-                let redis_key = format!("rl:{}", key);
+                let redis_key = format!("rl:{}", _key);
                 // Pipeline: INCR then EXPIRE if new
                 // For simplicity here, we do:
                 // 1. INCR
