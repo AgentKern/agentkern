@@ -9,7 +9,7 @@ license = "Apache-2.0"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 chrono = { workspace = true }
-prometheus = "0.13"
+prometheus = "0.14"
 lazy_static = "1.5"
 tracing = { workspace = true }
 async-trait = { workspace = true }

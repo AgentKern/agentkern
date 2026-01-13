@@ -14,7 +14,7 @@ tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 agentkern-pulse = { path = "../../packages/foundation/pulse" }
-prometheus = "0.13"
+prometheus = "0.14"
 
 [dev-dependencies]
 temp-env = { workspace = true }
