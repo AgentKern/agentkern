@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@agentkern/bridge": "file:../../packages/foundation/bridge",
+    "@agentkern/bridge": "file:../../packages/foundation/native-binding",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
