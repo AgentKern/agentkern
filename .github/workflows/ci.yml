@@ -132,11 +132,11 @@ jobs:
         
       - name: Start Server & Health Check
         run: |
-          DATABASE_URL=postgres://postgres:root@localhost:5432/agentkern_test ./target/debug/agentkern-server > server.log 2>&1 &
+          DATABASE_URL=postgres://postgres:root@localhost:5432/agentkern_test ./target/release/agentkern-server > server.log 2>&1 &
           
           echo "Waiting for server to be healthy... (target http://localhost:3000/health)"
           for i in {1..30}; do
-            if curl -s http://localhost:3000/health | grep -q "healthy"; then
+            if curl -s http://localhost:3000/health | grep -q "ok"; then
               echo "Server is healthy!"
               break
             fi
@@ -144,7 +144,7 @@ jobs:
             sleep 2
           done
           
-          if ! curl -s http://localhost:3000/health | grep -q "healthy"; then
+          if ! curl -s http://localhost:3000/health | grep -q "ok"; then
             echo "Server failed to become healthy. Logs:"
             cat server.log
             exit 1
