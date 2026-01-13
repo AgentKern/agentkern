@@ -45,6 +45,12 @@ impl Amount {
         Decimal::new(self.value, self.decimals as u32)
     }
 
+    /// Convert to micros (smallest unit)
+    /// Assumes standard 6 decimal places for internal storage if needed
+    pub fn as_micros(&self) -> i64 {
+        self.value
+    }
+
     /// Check if amount is zero.
     pub fn is_zero(&self) -> bool {
         self.value == 0

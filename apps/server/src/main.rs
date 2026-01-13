@@ -155,7 +155,7 @@ async fn build_router(state: Arc<AppState>) -> Router {
         // Synapse Pillar (reliability)
         .nest("/api/v1/synapse", agentkern_synapse::api::router())
         // Treasury Pillar (finance, ESG)
-        .nest("/api/v1/treasury", agentkern_treasury::api::router())
+        .nest("/api/v1/treasury", agentkern_treasury::api::router(state.pool.clone()))
         // Root health check
         .route("/health", axum::routing::get(root_health))
         // Authentication middleware for protected routes
