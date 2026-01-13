@@ -3,6 +3,9 @@ FROM rust:1.92-bookworm AS builder
 
 WORKDIR /app
 
+# Install build dependencies (protoc for OTLP, libssl-dev/openssl for reqwest)
+RUN apt-get update && apt-get install -y protobuf-compiler libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
+
 # Copy workspace files first for better caching
 COPY Cargo.toml Cargo.lock ./
 COPY packages ./packages
