@@ -1,5 +1,5 @@
 use agentkern_arbiter::coordinator::Coordinator;
-use agentkern_arbiter::types::{CoordinationRequest};
+use agentkern_arbiter::types::CoordinationRequest;
 use madsim::{task::*, time::*};
 use std::sync::Arc;
 use std::time::Duration;

@@ -3,11 +3,7 @@
 //! Single binary gateway to all AgentKern pillars.
 //! Replaces the Node.js `apps/identity` service.
 
-use axum::{
-    middleware,
-    routing::{post},
-    Router,
-};
+use axum::{middleware, routing::post, Router};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -116,7 +112,8 @@ async fn main() {
 async fn run_migrations(pool: &sqlx::PgPool) {
     // Identity pillar migrations
     let mut migrator = sqlx::migrate!("../../packages/pillars/identity/migrations");
-    migrator.set_ignore_missing(true)
+    migrator
+        .set_ignore_missing(true)
         .run(pool)
         .await
         .expect("Failed to run Identity migrations");

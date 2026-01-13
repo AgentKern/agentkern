@@ -159,7 +159,7 @@ mod tests {
     use crate::models::{
         AgentInfo, Intent, IntentTarget, Liability, LiabilityProofPayload, Principal,
     };
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 
     fn create_dummy_payload() -> LiabilityProofPayload {
         LiabilityProofPayload {
@@ -243,7 +243,7 @@ mod tests {
         let result = service.verify(&proof, &key);
 
         match result {
-            Err(VerificationError::Expired(_)) => {},
+            Err(VerificationError::Expired(_)) => {}
             _ => panic!("Should have failed with Expired"),
         }
     }
