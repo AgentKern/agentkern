@@ -29,7 +29,7 @@ async fn test_chaos_infused_golden_flow() {
     let mut failures = 0;
     let mut total_retries = 0;
 
-    for i in 0..iterations {
+    for _i in 0..iterations {
         // Retry Loop (Robust Agent Pattern)
         let mut attempts = 0;
         let max_retries = 3;

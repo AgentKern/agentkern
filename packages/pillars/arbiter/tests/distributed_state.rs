@@ -12,7 +12,7 @@ use agentkern_arbiter::{
     types::{CoordinationRequest, LockType},
 };
 use sqlx::postgres::PgPoolOptions;
-use std::sync::Arc;
+// use std::sync::Arc;
 
 /// Get database URL from environment (use TEST_DATABASE_URL for isolated testing)
 fn get_database_url() -> String {
@@ -200,7 +200,7 @@ async fn test_queue_direct() {
     assert_eq!(pos1, 1);
 
     let req2 = CoordinationRequest::new("agent-2", resource).with_priority(5);
-    let pos2 = queue.enqueue(req2).await.expect("Enqueue should succeed");
+    let _pos2 = queue.enqueue(req2).await.expect("Failed to enqueue 2");
     // Agent-2 has higher priority, so position depends on ordering logic
 
     // Pop should return higher priority first

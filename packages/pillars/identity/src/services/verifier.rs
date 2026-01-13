@@ -31,11 +31,19 @@ pub struct VerificationService {
 
 impl VerificationService {
     pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for VerificationService {
+    fn default() -> Self {
         Self {
             crypto_hybrid: CryptoProvider::new(CryptoMode::Hybrid),
         }
     }
+}
 
+impl VerificationService {
     /// Parse the generic "header" string format: version.payloadBase64.signature
     pub fn parse_header(&self, header: &str) -> Result<LiabilityProof, VerificationError> {
         let parts: Vec<&str> = header.split('.').collect();
@@ -151,7 +159,7 @@ mod tests {
     use crate::models::{
         AgentInfo, Intent, IntentTarget, Liability, LiabilityProofPayload, Principal,
     };
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
 
     fn create_dummy_payload() -> LiabilityProofPayload {
         LiabilityProofPayload {
@@ -235,7 +243,7 @@ mod tests {
         let result = service.verify(&proof, &key);
 
         match result {
-            Err(VerificationError::Expired(_)) => assert!(true),
+            Err(VerificationError::Expired(_)) => {},
             _ => panic!("Should have failed with Expired"),
         }
     }

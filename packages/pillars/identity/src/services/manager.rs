@@ -2,7 +2,8 @@ use crate::models::{AgentBudget, AgentRecord, AgentReputation, AgentStatus, Agen
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 use thiserror::Error;
-use uuid::Uuid;
+// use base64::{engine::general_purpose::URL_SAFE_NO_PAD};
+// use uuid::Uuid;
 
 #[derive(Error, Debug)]
 pub enum ManagerError {
@@ -175,6 +176,7 @@ impl AgentManager {
         let status_str = match status {
             AgentStatus::Active => "active",
             AgentStatus::Suspended => "suspended",
+            AgentStatus::Revoked => "revoked",
             AgentStatus::Terminated => "terminated",
             AgentStatus::Pending => "pending",
         };
@@ -299,6 +301,7 @@ impl From<AgentRecordRow> for AgentRecord {
             status: match row.status.as_str() {
                 "active" => AgentStatus::Active,
                 "suspended" => AgentStatus::Suspended,
+                "revoked" => AgentStatus::Revoked,
                 "terminated" => AgentStatus::Terminated,
                 "pending" => AgentStatus::Pending,
                 _ => AgentStatus::Active,

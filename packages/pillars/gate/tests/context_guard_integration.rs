@@ -51,7 +51,7 @@ fn test_self_referential_attack() {
     let result = guard.scan(&chunks);
 
     assert!(!result.safe);
-    assert!(result.flagged_chunks.len() >= 1);
+    assert!(!result.flagged_chunks.is_empty());
 }
 
 #[test]

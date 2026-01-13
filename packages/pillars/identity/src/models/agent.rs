@@ -3,20 +3,16 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 /// Agent account status
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, sqlx::Type)]
 #[sqlx(type_name = "agent_status", rename_all = "lowercase")]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")] // Matches Node.js enum formatting if needed, or lowercase
+#[serde(rename_all = "snake_case")]
 pub enum AgentStatus {
+    #[default]
     Active,
     Suspended,
+    Revoked,
     Terminated,
     Pending,
-}
-
-impl Default for AgentStatus {
-    fn default() -> Self {
-        Self::Active
-    }
 }
 
 /// Agent financial budget (JSONB)

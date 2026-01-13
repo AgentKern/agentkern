@@ -51,6 +51,7 @@ pub fn init_telemetry() -> Result<(), Box<dyn std::error::Error + Send + Sync + 
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn shutdown_telemetry() {
     global::shutdown_tracer_provider();
 }

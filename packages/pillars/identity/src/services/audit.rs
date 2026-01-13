@@ -37,6 +37,7 @@ impl AuditService {
     }
 
     /// Log a security or compliance event with cryptographic signature
+    #[allow(clippy::too_many_arguments)]
     pub async fn log(
         &self,
         event_type: &str,

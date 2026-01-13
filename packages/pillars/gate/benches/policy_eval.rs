@@ -6,18 +6,19 @@ use agentkern_gate::{engine::VerificationRequestBuilder, GateEngine, Policy};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn create_test_engine() -> GateEngine {
-    let mut engine = GateEngine::new();
+    let engine = GateEngine::new();
 
     // Add a test policy
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         engine
             .register_policy(Policy {
-                id: uuid::Uuid::new_v4(),
+                id: uuid::Uuid::new_v4().to_string(),
                 name: "bench-policy".to_string(),
-                description: None,
+                description: "Bench policy".to_string(),
                 priority: 100,
                 enabled: true,
-                jurisdictions: vec!["global".to_string()],
+                jurisdictions: vec![],
+                namespace: "global".to_string(),
                 rules: vec![],
             })
             .await;

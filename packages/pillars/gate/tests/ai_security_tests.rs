@@ -14,7 +14,7 @@
 //!
 //! Reference: OWASP LLM Top 10, HackAPrompt dataset, NIST AI 600-1
 
-use agentkern_gate::prompt_guard::{PromptAction, PromptGuard, ThreatLevel};
+use agentkern_gate::prompt_guard::{PromptGuard, ThreatLevel};
 
 // ============================================================================
 // DIRECT PROMPT INJECTION TESTS

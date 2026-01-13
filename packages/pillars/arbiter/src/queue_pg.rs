@@ -2,7 +2,7 @@
 //!
 //! Per Phase 16 Plan: Replaces in-memory Vec with Postgres persistence.
 
-use chrono::Utc;
+// use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -135,7 +135,7 @@ impl PgQueue {
 // SQLx row type
 #[derive(sqlx::FromRow)]
 struct QueueRow {
-    id: Uuid,
+    _id: Uuid,
     agent_id: String,
     resource: String,
     priority: i32,

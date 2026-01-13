@@ -944,7 +944,7 @@ mod tests {
             "agent-1".to_string(),
             "large",
             ComputeType::Gpu,
-            3600_000, // 1 hour
+            3_600_000, // 1 hour
             None,
         );
 
@@ -982,7 +982,7 @@ mod tests {
     fn test_estimate() {
         let estimate = CarbonLedger::estimate(
             ComputeType::Gpu,
-            3600_000, // 1 hour
+            3_600_000, // 1 hour
             CarbonRegion::UsAverage,
         );
 

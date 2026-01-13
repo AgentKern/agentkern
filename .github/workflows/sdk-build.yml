@@ -130,7 +130,7 @@ jobs:
           manylinux: auto
           before-script-linux: |
             if [ -f /usr/bin/yum ]; then
-              yum install -y perl-IPC-Cmd
+              yum install -y perl-IPC-Cmd perl-Time-Piece
             elif [ -f /usr/bin/apt-get ]; then
               apt-get update && apt-get install -y perl-modules
             fi

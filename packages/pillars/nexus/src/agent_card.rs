@@ -264,7 +264,7 @@ mod tests {
 
         // 2 out of 3 = 66.67%, truncated to u8 = 66
         // Range assertion accounts for floating-point rounding
-        assert!(score >= 66 && score <= 67);
+        assert!((66..=67).contains(&score));
     }
 
     #[test]

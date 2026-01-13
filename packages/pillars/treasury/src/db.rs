@@ -257,7 +257,7 @@ impl PgTransferEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
     // Tests require a database - run with:
     // DATABASE_URL=postgres://... cargo test -p agentkern-treasury

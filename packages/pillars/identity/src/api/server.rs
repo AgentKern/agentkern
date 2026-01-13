@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use crate::models::{AgentStatus, VerificationKey};
+use crate::models::{VerificationKey};
 use crate::services::{AgentManager, AuditService, VerificationService};
 
 /// Application state with database pool and services
@@ -141,6 +141,7 @@ struct CreateAgentRequest {
 }
 
 #[derive(Serialize)]
+#[allow(dead_code)]
 struct AgentResponse {
     id: String,
     name: String,

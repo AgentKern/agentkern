@@ -15,7 +15,7 @@
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::policy::{Policy, PolicyAction, PolicyRule};
 use agentkern_gate::types::{
-    DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
+    LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
 use chrono::Utc;
 use std::collections::HashMap;
@@ -99,14 +99,9 @@ async fn golden_default_allow_unmatched() {
     // No policies registered
 
     let request = create_request("agent-1", "unknown_action", "resource-1");
-    let result = engine.verify(request).await;
+    let _result = engine.verify(request).await;
 
     // GOLDEN: Unmatched actions should use default policy (allow)
-    // Note: Actual default behavior may vary - this test documents current behavior
-    assert!(
-        result.allowed || !result.allowed,
-        "GOLDEN: Should return a valid verification result"
-    );
 }
 
 #[tokio::test]

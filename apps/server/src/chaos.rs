@@ -12,6 +12,7 @@ use tower::{Layer, Service}; // requires rand dependency
 
 /// Chaos Configuration
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ChaosConfig {
     pub failure_rate: f64, // 0.0 to 1.0
     pub delay_ms: u64,
@@ -19,6 +20,7 @@ pub struct ChaosConfig {
 }
 
 impl ChaosConfig {
+    #[allow(dead_code)]
     pub fn env() -> Self {
         let enabled = std::env::var("CHAOS_ENABLED").unwrap_or_else(|_| "false".into()) == "true";
         let failure_rate = std::env::var("CHAOS_FAILURE_RATE")
@@ -40,11 +42,13 @@ impl ChaosConfig {
 
 /// Chaos Layer
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ChaosLayer {
     config: ChaosConfig,
 }
 
 impl ChaosLayer {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             config: ChaosConfig::env(),
@@ -65,6 +69,7 @@ impl<S> Layer<S> for ChaosLayer {
 
 /// Chaos Service
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ChaosService<S> {
     inner: S,
     config: ChaosConfig,

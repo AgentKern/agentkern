@@ -22,18 +22,13 @@ pub enum CryptoError {
 }
 
 /// Cryptographic mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum CryptoMode {
     Classical,
     PostQuantum,
+    #[default]
     Hybrid,
-}
-
-impl Default for CryptoMode {
-    fn default() -> Self {
-        Self::Hybrid
-    }
 }
 
 /// Cryptographic algorithm per NIST FIPS standards.

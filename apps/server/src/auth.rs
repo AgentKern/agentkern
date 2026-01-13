@@ -28,6 +28,7 @@ const MIN_SECRET_LENGTH: usize = 32;
 
 /// JWT Claims payload
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct Claims {
     /// Subject (agent ID or user ID)
     pub sub: String,
@@ -47,6 +48,7 @@ pub struct Claims {
 
 /// JWT configuration
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct JwtConfig {
     /// Secret key for signing tokens
     pub secret: String,
@@ -434,6 +436,7 @@ pub async fn refresh_token(
 }
 
 /// Get current user info from token
+#[allow(dead_code)]
 pub async fn me(claims: Option<axum::Extension<Claims>>) -> Result<Json<Claims>, StatusCode> {
     claims.map(|c| Json(c.0)).ok_or(StatusCode::UNAUTHORIZED)
 }

@@ -1,5 +1,5 @@
 use agentkern_arbiter::coordinator::Coordinator;
-use agentkern_arbiter::types::{CoordinationRequest, LockType};
+use agentkern_arbiter::types::{CoordinationRequest};
 use madsim::{task::*, time::*};
 use std::sync::Arc;
 use std::time::Duration;
@@ -20,7 +20,7 @@ async fn test_arbiter_deterministic_chaos() {
             let mut successes = 0;
             while successes < 5 {
                 let mut req = CoordinationRequest::new(&agent_id, resource);
-                req.priority = (i % 10) as i32; // Mixed priorities
+                req.priority = i % 10; // Mixed priorities
 
                 let result = coord.request(req).await;
                 if result.granted {

@@ -5,7 +5,7 @@
 
 use axum::{
     middleware,
-    routing::{get, post},
+    routing::{post},
     Router,
 };
 use sqlx::postgres::PgPoolOptions;
@@ -13,7 +13,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+// use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod auth;
 mod chaos;
@@ -115,7 +115,8 @@ async fn main() {
 /// Run SQLx migrations from all pillars
 async fn run_migrations(pool: &sqlx::PgPool) {
     // Identity pillar migrations
-    sqlx::migrate!("../../packages/pillars/identity/migrations")
+    let mut migrator = sqlx::migrate!("../../packages/pillars/identity/migrations");
+    migrator.set_ignore_missing(true)
         .run(pool)
         .await
         .expect("Failed to run Identity migrations");

@@ -194,7 +194,7 @@ mod tests {
             deletes: Some(vec!["key1".to_string()]),
         };
         let state3 = store.update_state(update3).await;
-        assert!(state3.state.get("key1").is_none());
+        assert!(!state3.state.contains_key("key1"));
         assert_eq!(state3.state.get("key2").unwrap(), "value2");
     }
 

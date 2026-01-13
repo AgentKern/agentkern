@@ -4,33 +4,22 @@ use sqlx::FromRow;
 use uuid::Uuid;
 
 /// Algorithm types
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Algorithm {
+    #[default]
     ES256,
     EdDSA,
     // Add Hybrid-PQC if needed, e.g. "Dilithium3"
     HybridPQC,
     Other(String),
 }
-
-impl Default for Algorithm {
-    fn default() -> Self {
-        Self::ES256
-    }
-}
-
 /// Key Format
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
 #[sqlx(type_name = "key_format", rename_all = "lowercase")]
 pub enum KeyFormat {
+    #[default]
     Pem,
     Jwk,
-}
-
-impl Default for KeyFormat {
-    fn default() -> Self {
-        Self::Pem
-    }
 }
 
 /// Verification Key for Liability Proofs

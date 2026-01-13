@@ -69,7 +69,7 @@ async fn schedule_task(
 
     let mut request = CoordinationRequest::new(agent_id, resource);
 
-    if let Some(op) = payload["operation"].as_str() {
+    if let Some(_op) = payload["operation"].as_str() {
         request.operation = crate::types::LockType::Write; // Simplify for now
     }
 

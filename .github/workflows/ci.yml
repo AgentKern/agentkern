@@ -125,10 +125,7 @@ jobs:
       - name: Build agentkern-server
         run: cargo build -p agentkern-server --release
 
-      - name: Run migrations
-        run: |
-          DATABASE_URL="postgres://postgres:root@localhost:5432/agentkern_test" \
-          cargo run --bin migrate
+      # Removed redundant migration step as server handles it on startup.
         
       - name: Start Server & Health Check
         run: |

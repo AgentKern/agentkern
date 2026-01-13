@@ -87,7 +87,7 @@ pub use antifragile::{
 pub use audit::{AuditLedger, AuditOutcome, AuditRecord, AuditStatistics};
 pub use carbon::{CarbonIntensity, CarbonRegion, CarbonScheduler};
 pub use chaos::{ChaosConfig, ChaosError, ChaosMonkey, ChaosResult, ChaosStats};
-pub use consensus::{ConsensusEngine, ProposalStatus, ProposalType, Vote, Vote as ConsensusVote};
+pub use consensus::{ConsensusEngine, ProposalStatus, ProposalType, Vote as ConsensusVote};
 pub use coordinator::Coordinator;
 pub use coordinator_pg::PgCoordinator;
 pub use cost::{AlertLevel, CostAlert, CostCategory, CostEvent, CostTracker, GlobalCostSummary};

@@ -24,7 +24,7 @@ fn test_step_overrun_drift() {
 
     // Execute 4 steps (2x expected)
     for i in 0..4 {
-        path.record_step(&format!("step_{}", i), None);
+        path.record_step(format!("step_{}", i), None);
     }
 
     let detector = DriftDetector::new()
@@ -153,7 +153,7 @@ fn test_performance() {
 
     let mut path = IntentPath::new("agent-perf", "Performance test", 100);
     for i in 0..50 {
-        path.record_step(&format!("step_{}", i), None);
+        path.record_step(format!("step_{}", i), None);
     }
 
     let start = std::time::Instant::now();
