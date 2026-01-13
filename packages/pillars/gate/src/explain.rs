@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_contribution_sorting() {
-        let mut contributions = vec![
+        let mut contributions = [
             Contribution {
                 feature: "low".into(),
                 value: 0.1,
