@@ -31,7 +31,6 @@ jobs:
         
       - name: Run audit
         run: |
-          cargo install cargo-audit
           cargo audit --deny warnings --ignore RUSTSEC-2026-0001 -f sarif -o cargo-audit.sarif
         
       - name: Upload SARIF
