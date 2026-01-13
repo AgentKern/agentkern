@@ -25,15 +25,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Identity Pillar
     tracing::info!("Running Identity migrations...");
-    sqlx::migrate!("../../packages/pillars/identity/migrations")
-        .run(&pool)
-        .await?;
+    let migrator = sqlx::migrate!("../../packages/pillars/identity/migrations");
+    // Ignore missing versions because other pillars might have applied migrations
+    // that are not in this pillar's migration source.
+    migrator.set_ignore_missing(true).run(&pool).await?;
 
     // Arbiter Pillar
     tracing::info!("Running Arbiter migrations...");
-    sqlx::migrate!("../../packages/pillars/arbiter/migrations")
-        .run(&pool)
-        .await?;
+    let arbiter_migrator = sqlx::migrate!("../../packages/pillars/arbiter/migrations");
+    arbiter_migrator.set_ignore_missing(true).run(&pool).await?;
 
     // Treasury Pillar (Schema created by code mostly but if we add sql files later)
     // sqlx::migrate!("../../packages/pillars/treasury/migrations").run(&pool).await?;

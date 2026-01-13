@@ -119,7 +119,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --manifest-path sdks/python/Cargo.toml -o dist
+          args: --release --manifest-path sdks/python/Cargo.toml -o dist --features extension-module
           manylinux: auto
           
       - name: Upload wheels
