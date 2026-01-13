@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y protobuf-compiler libssl-dev pkg-config
 # Copy workspace files first for better caching
 COPY Cargo.toml Cargo.lock ./
 COPY packages ./packages
+COPY ee ./ee
+COPY sdks ./sdks
 COPY apps/server ./apps/server
 
 # Build release binary
