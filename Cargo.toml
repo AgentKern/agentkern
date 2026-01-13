@@ -137,8 +137,8 @@ aws-sdk-kms = "1.60"
 
 
 [profile.release]
-lto = true
-codegen-units = 1
+lto = "thin"
+# codegen-units = 1 (Disabled to prevent CI OOM)
 panic = "abort"
 strip = true
 
