@@ -496,7 +496,7 @@ impl CryptoProvider {
         #[cfg(feature = "pqc")]
         let verify_pqc = |pub_b64: &str, sig_b64: &str| -> Result<(), CryptoError> {
             use pqcrypto_dilithium::dilithium5;
-            use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SignedMessage};
+            use pqcrypto_traits::sign::{DetachedSignature, PublicKey};
 
             let pub_bytes = base64::engine::general_purpose::STANDARD
                 .decode(pub_b64)
@@ -508,7 +508,7 @@ impl CryptoProvider {
                 .decode(sig_b64)
                 .map_err(|_| CryptoError::VerificationFailed)?;
             let sig = dilithium5::DetachedSignature::from_bytes(sig_bytes.as_slice())
-                .map_err(|e| CryptoError::VerificationFailed)?;
+                .map_err(|_| CryptoError::VerificationFailed)?;
 
             dilithium5::verify_detached_signature(&sig, message, &pk)
                 .map_err(|_| CryptoError::VerificationFailed)?;
