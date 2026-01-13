@@ -8,14 +8,22 @@ description = "Unified AgentKern OS Server - Gateway to all pillars"
 name = "agentkern-server"
 path = "src/main.rs"
 
+[[bin]]
+name = "migrate"
+path = "src/bin/migrate.rs"
+
 [dependencies]
 # Async Runtime
 tokio = { version = "1.36", features = ["full"] }
 
 # Web Framework
 axum = { version = "0.8.1", features = ["macros"] }
-tower = "0.5"
+tower = { version = "0.5", features = ["util", "timeout", "limit", "load-shed", "steer", "filter"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Circuit Breaker
+failsafe = "1.0"
+backoff = "0.4"
 
 # Logging
 tracing = "0.1"
@@ -40,6 +48,7 @@ opentelemetry = "0.22"
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.15"
 tracing-opentelemetry = "0.23"
+rand = "0.8"
 
 # Pillars
 agentkern-identity = { path = "../../packages/pillars/identity" }
