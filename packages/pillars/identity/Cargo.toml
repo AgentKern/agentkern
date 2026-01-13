@@ -29,4 +29,5 @@ hex = "0.4"
 
 # Internal
 agentkern-crypto = { path = "../../foundation/crypto" }
+agentkern-gate = { path = "../gate" }
 agentkern-nexus = { path = "../nexus" } # Reusing AgentCard/Protocol types if needed

@@ -3,24 +3,34 @@ use serde_json::Value;
 use thiserror::Error;
 use uuid::Uuid;
 use chrono::Utc;
+use agentkern_gate::crypto_agility::{CryptoProvider, CryptoMode, KeyPair};
 
 #[derive(Error, Debug)]
 pub enum AuditError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Crypto error: {0}")]
+    Crypto(String),
 }
 
-/// Service for logging compliance and security events
+/// Service for logging compliance and security events with PQC signatures
 pub struct AuditService {
     pool: PgPool,
+    crypto: CryptoProvider,
+    keypair: KeyPair,
 }
 
 impl AuditService {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        let crypto = CryptoProvider::new(CryptoMode::Hybrid);
+        let keypair = crypto.generate_keypair().expect("Failed to generate audit signing keypair");
+        
+        tracing::info!(key_id = %keypair.key_id, "AuditService initialized with PQC signing");
+        
+        Self { pool, crypto, keypair }
     }
 
-    /// Log a security or compliance event
+    /// Log a security or compliance event with cryptographic signature
     pub async fn log(
         &self,
         event_type: &str,
@@ -35,9 +45,22 @@ impl AuditService {
     ) -> Result<Uuid, AuditError> {
         let id = Uuid::new_v4();
         
-        // TODO: Sign with server's private key
-        // For now, using a placeholder signature
-        let signature = format!("sig_{}", id);
+        // Create canonical message for signing
+        let canonical = format!(
+            "{}:{}:{}:{}:{}:{}:{}:{}",
+            id,
+            event_type,
+            actor_id.unwrap_or(""),
+            target_id.unwrap_or(""),
+            action,
+            outcome,
+            details.as_ref().map(|d| d.to_string()).unwrap_or_default(),
+            Utc::now().to_rfc3339()
+        );
+        
+        // Sign with PQC (Hybrid Ed25519 + ML-DSA)
+        let signature = self.crypto.sign(canonical.as_bytes(), &self.keypair)
+            .map_err(|e| AuditError::Crypto(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -56,7 +79,7 @@ impl AuditService {
         .bind(outcome)
         .bind(details)
         .bind(ip_address)
-        .bind(signature)
+        .bind(&signature.value)
         .bind(Utc::now())
         .execute(&self.pool)
         .await?;
