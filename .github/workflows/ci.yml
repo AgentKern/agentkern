@@ -44,10 +44,10 @@ jobs:
         run: cargo fmt --all --check
       
       - name: Clippy
-        run: cargo clippy --workspace --exclude agentkern-python --exclude agentkern-native --all-features -- -D warnings
+        run: cargo clippy --workspace --all-features -- -D warnings
       
       - name: Run tests
-        run: cargo test --workspace --exclude agentkern-python --exclude agentkern-native --all-features -- --test-threads=1
+        run: cargo test --workspace --all-features -- --test-threads=1
 
   # ============================================
   # Identity Pillar Tests (Rust - agentkern-server)
@@ -130,12 +130,26 @@ jobs:
           DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
           cargo run --bin migrate
         
-      - name: Start Server
+      - name: Start Server & Health Check
         run: |
           DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
           ./target/release/agentkern-server > server.log 2>&1 &
-          sleep 15
-          cat server.log
+          
+          echo "Waiting for server to be healthy..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/health | grep -q "healthy"; then
+              echo "Server is healthy!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+          
+          if ! curl -s http://localhost:3000/health | grep -q "healthy"; then
+            echo "Server failed to become healthy. Logs:"
+            cat server.log
+            exit 1
+          fi
 
       - name: Run API Tests
         run: |

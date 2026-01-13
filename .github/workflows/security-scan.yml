@@ -30,7 +30,9 @@ jobs:
         run: cargo install cargo-audit
         
       - name: Run audit
-        run: cargo audit --deny warnings --ignore RUSTSEC-2026-0001 -f sarif -o cargo-audit.sarif
+        run: |
+          cargo install cargo-audit
+          cargo audit --deny warnings --ignore RUSTSEC-2026-0001 -f sarif -o cargo-audit.sarif
         
       - name: Upload SARIF
         if: always()
@@ -116,7 +118,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
-          cargo llvm-cov test --workspace --exclude agentkern-python --exclude agentkern-native \
+          cargo llvm-cov test --workspace \
             --lcov --output-path lcov.info \
             --ignore-filename-regex 'target|tests?/'
             
@@ -151,4 +153,4 @@ jobs:
         run: pnpm audit --audit-level=high
         
       - name: Run ESLint security
-        run: pnpm lint
+        run: pnpm exec eslint .
