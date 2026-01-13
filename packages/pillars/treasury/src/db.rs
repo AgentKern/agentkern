@@ -3,7 +3,7 @@
 //! Production-grade implementation that replaces in-memory state
 //! with database transactions for high availability.
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 

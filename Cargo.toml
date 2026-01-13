@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
 
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 members = [
     # ===========================================================================
     # CORE PILLARS (6 Pillars of AgentKern)
