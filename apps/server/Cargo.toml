@@ -3,6 +3,7 @@ name = "agentkern-server"
 version = "0.1.0"
 edition = "2021"
 description = "Unified AgentKern OS Server - Gateway to all pillars"
+license.workspace = true
 
 [[bin]]
 name = "agentkern-server"

@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_VERSION: 'stable'
   PNPM_VERSION: '9'
+  PYO3_PYTHON: python3
 
 jobs:
   # ============================================
@@ -128,7 +129,7 @@ jobs:
         run: |
           DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
           ./target/release/agentkern-server &
-          sleep 5
+          sleep 15
 
       - name: Run API Tests
         run: |

@@ -12,6 +12,9 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  PYO3_PYTHON: python3
+
 jobs:
   # =========================================================================
   # Rust Dependency Audit
@@ -79,7 +82,21 @@ jobs:
   test-rust:
     name: Rust Tests
     runs-on: ubuntu-latest
-    steps:
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: agentkern
+          POSTGRES_PASSWORD: agentkern_secret
+          POSTGRES_DB: agentkern_identity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       - uses: actions/checkout@v6
       
       - name: Install dependencies
@@ -92,6 +109,7 @@ jobs:
         
       - name: Run tests with coverage
         run: |
+          DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
           cargo llvm-cov test --workspace \
             --lcov --output-path lcov.info \
             --ignore-filename-regex 'target|tests?/'
