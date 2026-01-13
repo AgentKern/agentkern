@@ -47,7 +47,7 @@ impl MeshOrchestrator {
     /// Create a new orchestrator.
     pub fn new(mesh: Arc<GlobalMesh>, migration: Arc<MigrationManager>) -> Self {
         Self {
-            mesh,
+            _mesh: mesh,
             migration,
             region_health: Arc::new(RwLock::new(HashMap::new())),
         }
