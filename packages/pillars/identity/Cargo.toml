@@ -24,6 +24,8 @@ base64 = "0.22"
 webauthn-rs = "0.5"
 thiserror = "2.0.11"
 tracing = "0.1"
+sha2 = "0.10"
+hex = "0.4"
 
 # Internal
 agentkern-crypto = { path = "../../foundation/crypto" }

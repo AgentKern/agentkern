@@ -16,6 +16,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod auth;
+mod telemetry;
 
 use auth::JwtConfig;
 
@@ -28,12 +29,10 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| "agentkern_server=debug,tower_http=debug,sqlx=warn".into()))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    // Initialize Telemetry (OpenTelemetry + Tracing)
+    if let Err(e) = telemetry::init_telemetry() {
+        eprintln!("Failed to initialize telemetry: {}", e);
+    }
 
     // Load environment variables
     dotenvy::dotenv().ok();

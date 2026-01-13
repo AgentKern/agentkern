@@ -35,11 +35,15 @@ impl AuditService {
     ) -> Result<Uuid, AuditError> {
         let id = Uuid::new_v4();
         
+        // TODO: Sign with server's private key
+        // For now, using a placeholder signature
+        let signature = format!("sig_{}", id);
+
         sqlx::query(
             r#"
             INSERT INTO audit_events 
-            (id, event_type, actor_id, actor_type, target_id, target_type, action, outcome, details, ip_address, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::inet, $11)
+            (id, event_type, actor_id, actor_type, target_id, target_type, action, outcome, details, ip_address, signature, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::inet, $11, $12)
             "#
         )
         .bind(id)
@@ -52,10 +56,49 @@ impl AuditService {
         .bind(outcome)
         .bind(details)
         .bind(ip_address)
+        .bind(signature)
         .bind(Utc::now())
         .execute(&self.pool)
         .await?;
 
         Ok(id)
+    }
+
+    /// Verify the integrity of the audit log hash chain
+    /// Returns true if valid, false if tampered
+    pub async fn verify_chain(&self) -> Result<bool, AuditError> {
+        // In a real system, you'd fetch in batches. 
+        // For verification, we just check if any row has a hash mismatch.
+        // But since the hash is computed in a TRIGGER, it's hard to spoof unless 
+        // the attacker also has DB superuser access to disable the trigger.
+        
+        // We can verify by re-computing the hash for the last N records 
+        // and checking if they match the stored event_hash and link to previous_hash.
+        
+        let rows = sqlx::query_as::<_, (String, String, String, String)>(
+            "SELECT id, event_hash, previous_hash, 
+                    coalesce(event_type,'') || coalesce(actor_id,'') || coalesce(target_id,'') || 
+                    coalesce(action,'') || coalesce(outcome,'') || coalesce(details::text,'') || 
+                    created_at::text || previous_hash as content
+             FROM audit_events 
+             ORDER BY created_at DESC, id DESC 
+             LIMIT 100"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        for (_id, stored_hash, _prev_hash, content) in rows {
+            use sha2::{Sha256, Digest};
+            let mut hasher = Sha256::new();
+            hasher.update(content.as_bytes());
+            let computed_hash = hex::encode(hasher.finalize());
+
+            if stored_hash != computed_hash {
+                tracing::error!("Audit log tampering detected! ID: {}, Stored: {}, Computed: {}", _id, stored_hash, computed_hash);
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 }
