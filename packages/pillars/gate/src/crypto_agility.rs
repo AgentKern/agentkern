@@ -18,7 +18,6 @@
 //! provider.verify(b"message", &signature)?;
 //! ```
 
-use base64::Engine;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -380,7 +379,7 @@ impl CryptoProvider {
         #[cfg(feature = "pqc")]
         let sign_pqc = |priv_b64: &str| -> Result<String, CryptoError> {
             use pqcrypto_dilithium::dilithium5;
-            use pqcrypto_traits::sign::{DetachedSignature, SecretKey, SignedMessage};
+            use pqcrypto_traits::sign::{DetachedSignature, SecretKey};
 
             let private_bytes = base64::engine::general_purpose::STANDARD
                 .decode(priv_b64)

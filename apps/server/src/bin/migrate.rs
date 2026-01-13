@@ -29,6 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run(&pool)
         .await?;
 
+    // Arbiter Pillar
+    tracing::info!("Running Arbiter migrations...");
+    sqlx::migrate!("../../packages/pillars/arbiter/migrations")
+        .run(&pool)
+        .await?;
+
     // Treasury Pillar (Schema created by code mostly but if we add sql files later)
     // sqlx::migrate!("../../packages/pillars/treasury/migrations").run(&pool).await?;
 

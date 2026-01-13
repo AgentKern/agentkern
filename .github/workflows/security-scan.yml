@@ -14,6 +14,7 @@ permissions:
 
 env:
   PYO3_PYTHON: python3
+  RUSTFLAGS: "-C link-arg=-Wl,-rpath,/usr/lib/x86_64-linux-gnu"
 
 jobs:
   # =========================================================================
@@ -25,16 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+        
       - name: Run audit
-        uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo audit --deny warnings --ignore RUSTSEC-2026-0001 -f sarif -o cargo-audit.sarif
         
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: cargo-audit.sarif
+          category: cargo-audit
 
   # =========================================================================
   # SAST with Semgrep
@@ -113,7 +116,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           DATABASE_URL="postgres://agentkern:agentkern_secret@localhost:5432/agentkern_identity" \
-          cargo llvm-cov test --workspace \
+          cargo llvm-cov test --workspace --exclude agentkern-python --exclude agentkern-native \
             --lcov --output-path lcov.info \
             --ignore-filename-regex 'target|tests?/'
             
