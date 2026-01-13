@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # PyO3 for Python bindings (>=0.24.1 required for RUSTSEC-2025-0020 fix)
+# Validated for CI
 pyo3 = { version = "0.24" }
 
 # SDK Core
