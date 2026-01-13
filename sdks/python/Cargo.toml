@@ -15,6 +15,9 @@ crate-type = ["cdylib"]
 # Validated for CI
 pyo3 = { version = "0.24" }
 
+# Build and Test SDKs
+# Trigger build
+
 # SDK Core
 # SDK Core
 agentkern-sdk-core = { path = "../../packages/sdk-core" }
