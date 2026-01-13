@@ -5,6 +5,9 @@ edition = "2021"
 description = "AgentKern-Treasury: Agent Payment Infrastructure"
 license = "MIT"
 
+[lints]
+workspace = true
+
 [lib]
 name = "agentkern_treasury"
 path = "src/lib.rs"

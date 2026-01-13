@@ -5,6 +5,9 @@ edition = "2021"
 description = "AgentKern-Gate: Neuro-Symbolic Verification Engine"
 license = "MIT"
 
+[lints]
+workspace = true
+
 [lib]
 name = "agentkern_gate"
 path = "src/lib.rs"
