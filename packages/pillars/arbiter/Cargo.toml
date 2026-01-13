@@ -60,6 +60,9 @@ parking_lot = "0.12"
 # System calls for thread affinity (Thread-per-Core)
 libc = "0.2"
 
+# Distributed State (Phase 16)
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+
 # Financial precision
 rust_decimal = { version = "1.36", features = ["serde", "std"] }
 rust_decimal_macros = "1.36"

@@ -42,8 +42,11 @@
 
 pub mod consensus;
 pub mod coordinator;
+pub mod coordinator_pg; // Phase 16: Postgres-backed coordinator
 pub mod locks;
+pub mod locks_pg; // Phase 16: Postgres-backed locks
 pub mod queue;
+pub mod queue_pg; // Phase 16: Postgres-backed queue
 pub mod types;
 pub mod api;
 
@@ -86,6 +89,7 @@ pub use carbon::{CarbonIntensity, CarbonRegion, CarbonScheduler};
 pub use chaos::{ChaosConfig, ChaosError, ChaosMonkey, ChaosResult, ChaosStats};
 pub use consensus::{ConsensusEngine, ProposalStatus, ProposalType, Vote, Vote as ConsensusVote};
 pub use coordinator::Coordinator;
+pub use coordinator_pg::PgCoordinator;
 pub use cost::{AlertLevel, CostAlert, CostCategory, CostEvent, CostTracker, GlobalCostSummary};
 pub use escalation::{
     ApprovalRequest, ApprovalStatus, ApprovalWorkflow, EscalationLevel, EscalationTrigger,
@@ -100,6 +104,7 @@ pub use iso42001::{
 };
 pub use killswitch::{KillReason, KillRecord, KillSwitch, TerminationType};
 pub use locks::LockManager;
+pub use locks_pg::{PgLockManager, LockError as PgLockError};
 pub use loop_prevention::{
     LoopPreventer, LoopPreventionConfig, LoopPreventionError, TrackedMessage,
 };
