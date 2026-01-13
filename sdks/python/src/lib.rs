@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 // Pillars
 use agentkern_gate::engine::{GateEngine, VerificationRequestBuilder};
-use agentkern_gate::prompt_guard::{PromptGuard, PromptAction, ThreatLevel};
+use agentkern_gate::prompt_guard::{PromptAction, PromptGuard, ThreatLevel};
 
 // ============================================================================
 // PROMPT GUARD
@@ -113,7 +113,7 @@ impl PyGateEngine {
             .enable_all()
             .build()
             .unwrap();
-        
+
         Self {
             inner: Arc::new(GateEngine::new()),
             rt,
@@ -121,19 +121,24 @@ impl PyGateEngine {
     }
 
     /// Verify an action (blocking call for Python).
-    fn verify(&self, agent_id: String, action: String, context: Option<&Bound<'_, PyDict>>) -> PyResult<bool> {
+    fn verify(
+        &self,
+        agent_id: String,
+        action: String,
+        context: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<bool> {
         let builder = VerificationRequestBuilder::new(agent_id, action);
-        
+
         if let Some(_ctx) = context {
-             // Basic context conversion (string keys/values for now)
-             // In a real SDK we'd do full recursive dict -> serde_json conversion
+            // Basic context conversion (string keys/values for now)
+            // In a real SDK we'd do full recursive dict -> serde_json conversion
         }
 
         let request = builder.build();
-        
+
         // Block on async Rust
         let result = self.rt.block_on(self.inner.verify(request));
-        
+
         Ok(result.allowed)
     }
 }

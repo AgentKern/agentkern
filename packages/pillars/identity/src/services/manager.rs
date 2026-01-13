@@ -1,6 +1,6 @@
-use crate::models::{AgentRecord, AgentStatus, AgentBudget, AgentUsage, AgentReputation};
+use crate::models::{AgentBudget, AgentRecord, AgentReputation, AgentStatus, AgentUsage};
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, FromRow};
+use sqlx::{FromRow, PgPool};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -28,10 +28,10 @@ pub struct AgentConfig {
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            max_tokens: 1_000_000,   // 1M tokens per day
-            max_api_calls: 10_000,   // 10k API calls per day
-            max_cost_usd: 100.0,     // $100 per day
-            period_seconds: 86400,   // 24 hours
+            max_tokens: 1_000_000, // 1M tokens per day
+            max_api_calls: 10_000, // 10k API calls per day
+            max_cost_usd: 100.0,   // $100 per day
+            period_seconds: 86400, // 24 hours
         }
     }
 }
@@ -69,12 +69,11 @@ impl AgentManager {
         let now = Utc::now();
 
         // Check if exists
-        let existing = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM agent_records WHERE id = $1"
-        )
-        .bind(agent_id)
-        .fetch_one(&self.pool)
-        .await?;
+        let existing =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM agent_records WHERE id = $1")
+                .bind(agent_id)
+                .fetch_one(&self.pool)
+                .await?;
 
         if existing > 0 {
             return Err(ManagerError::AlreadyExists(agent_id.to_string()));
@@ -136,13 +135,11 @@ impl AgentManager {
 
     /// Get an agent by ID
     pub async fn get(&self, agent_id: &str) -> Result<AgentRecord, ManagerError> {
-        let row = sqlx::query_as::<_, AgentRecordRow>(
-            "SELECT * FROM agent_records WHERE id = $1"
-        )
-        .bind(agent_id)
-        .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| ManagerError::NotFound(agent_id.to_string()))?;
+        let row = sqlx::query_as::<_, AgentRecordRow>("SELECT * FROM agent_records WHERE id = $1")
+            .bind(agent_id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or_else(|| ManagerError::NotFound(agent_id.to_string()))?;
 
         Ok(row.into())
     }
@@ -151,14 +148,14 @@ impl AgentManager {
     pub async fn list(&self, namespace: Option<&str>) -> Result<Vec<AgentRecord>, ManagerError> {
         let rows = if let Some(ns) = namespace {
             sqlx::query_as::<_, AgentRecordRow>(
-                "SELECT * FROM agent_records WHERE namespace = $1 ORDER BY created_at DESC"
+                "SELECT * FROM agent_records WHERE namespace = $1 ORDER BY created_at DESC",
             )
             .bind(ns)
             .fetch_all(&self.pool)
             .await?
         } else {
             sqlx::query_as::<_, AgentRecordRow>(
-                "SELECT * FROM agent_records ORDER BY created_at DESC"
+                "SELECT * FROM agent_records ORDER BY created_at DESC",
             )
             .fetch_all(&self.pool)
             .await?
@@ -188,7 +185,7 @@ impl AgentManager {
                 UPDATE agent_records 
                 SET status = $1, terminated_at = $2, termination_reason = $3, last_active_at = $4
                 WHERE id = $5
-                "#
+                "#,
             )
             .bind(status_str)
             .bind(now)
@@ -198,14 +195,12 @@ impl AgentManager {
             .execute(&self.pool)
             .await?
         } else {
-            sqlx::query(
-                "UPDATE agent_records SET status = $1, last_active_at = $2 WHERE id = $3"
-            )
-            .bind(status_str)
-            .bind(now)
-            .bind(agent_id)
-            .execute(&self.pool)
-            .await?
+            sqlx::query("UPDATE agent_records SET status = $1, last_active_at = $2 WHERE id = $3")
+                .bind(status_str)
+                .bind(now)
+                .bind(agent_id)
+                .execute(&self.pool)
+                .await?
         };
 
         if result.rows_affected() == 0 {
@@ -230,7 +225,11 @@ impl AgentManager {
     }
 
     /// Record a successful action (updates usage and reputation)
-    pub async fn record_success(&self, agent_id: &str, tokens_used: u64) -> Result<(), ManagerError> {
+    pub async fn record_success(
+        &self,
+        agent_id: &str,
+        tokens_used: u64,
+    ) -> Result<(), ManagerError> {
         sqlx::query(
             r#"
             UPDATE agent_records 

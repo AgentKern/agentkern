@@ -12,12 +12,12 @@
 //! provenance.verify_file("models/sentiment.onnx", "signature_base64")?;
 //! ```
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{Read, BufReader};
+use std::io::{BufReader, Read};
 use std::path::Path;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProvenanceError {
@@ -47,8 +47,8 @@ impl ModelProvenance {
             .try_into()
             .map_err(|_| ProvenanceError::InvalidPublicKey)?;
 
-        let trusted_key = VerifyingKey::from_bytes(&array)
-            .map_err(|_| ProvenanceError::InvalidPublicKey)?;
+        let trusted_key =
+            VerifyingKey::from_bytes(&array).map_err(|_| ProvenanceError::InvalidPublicKey)?;
 
         Ok(Self { trusted_key })
     }
@@ -60,7 +60,7 @@ impl ModelProvenance {
         signature_b64: &str,
     ) -> Result<(), ProvenanceError> {
         // 1. Calculate SHA-256 hash of the model file
-        let mut file = File::open(model_path)?;
+        let file = File::open(model_path)?;
         let mut reader = BufReader::new(file);
         let mut hasher = Sha256::new();
         let mut buffer = [0; 8192];
@@ -80,8 +80,12 @@ impl ModelProvenance {
             .decode(signature_b64)
             .map_err(|e| ProvenanceError::Decoding(e.to_string()))?;
 
-        let signature = Signature::from_bytes(&sig_bytes.try_into().map_err(|_| ProvenanceError::InvalidSignature)?)
-            .into(); // Convert from dalek Signature to internal if needed, usually direct
+        let signature = Signature::from_bytes(
+            &sig_bytes
+                .try_into()
+                .map_err(|_| ProvenanceError::InvalidSignature)?,
+        )
+        .into(); // Convert from dalek Signature to internal if needed, usually direct
 
         // 3. Verify signature of the HASH
         self.trusted_key
@@ -97,14 +101,15 @@ impl ModelProvenance {
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer, SigningKey};
-    use rand::rngs::OsRng;
     use std::io::Write;
 
     #[test]
     fn test_provenance_flow() {
         // 1. Generate Keypair
-        let mut csprng = OsRng;
-        let signing_key = SigningKey::generate(&mut csprng);
+        use rand::RngCore;
+        let mut secret_bytes = [0u8; 32];
+        rand::rng().fill_bytes(&mut secret_bytes);
+        let signing_key = SigningKey::from_bytes(&secret_bytes);
         let verifying_key = signing_key.verifying_key();
 
         let pubkey_b64 = BASE64.encode(verifying_key.to_bytes());
@@ -134,8 +139,10 @@ mod tests {
     #[test]
     fn test_tampered_model() {
         // 1. Generate Keypair
-        let mut csprng = OsRng;
-        let signing_key = SigningKey::generate(&mut csprng);
+        use rand::RngCore;
+        let mut secret_bytes = [0u8; 32];
+        rand::rng().fill_bytes(&mut secret_bytes);
+        let signing_key = SigningKey::from_bytes(&secret_bytes);
         let verifying_key = signing_key.verifying_key();
         let pubkey_b64 = BASE64.encode(verifying_key.to_bytes());
 

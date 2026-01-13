@@ -93,14 +93,14 @@ pub enum ConfigError {
 
 impl JwtConfig {
     /// Create JWT config from environment variables.
-    /// 
+    ///
     /// FAILS if:
     /// - JWT_SECRET not set in production
     /// - JWT_SECRET is too short
     /// - JWT_SECRET has low entropy (simple patterns)
     pub fn from_env() -> Result<Self, ConfigError> {
         let environment = Environment::from_env();
-        
+
         let secret = match std::env::var("JWT_SECRET") {
             Ok(s) => s,
             Err(_) => {
@@ -153,22 +153,21 @@ impl JwtConfig {
 fn is_low_entropy(secret: &str) -> bool {
     // Check for common weak patterns
     let weak_patterns = [
-        "password", "secret", "12345", "qwerty", "admin",
-        "changeme", "default", "test", "demo",
+        "password", "secret", "12345", "qwerty", "admin", "changeme", "default", "test", "demo",
     ];
-    
+
     let lower = secret.to_lowercase();
     for pattern in weak_patterns {
         if lower.contains(pattern) {
             return true;
         }
     }
-    
+
     // Check for all same character
     if secret.chars().all(|c| c == secret.chars().next().unwrap()) {
         return true;
     }
-    
+
     false
 }
 
@@ -322,7 +321,7 @@ pub async fn login(
     if let Some(ref pool) = state.pool {
         // Check if agent exists and secret matches
         let agent = sqlx::query_as::<_, (String, Option<String>)>(
-            "SELECT id, secret_hash FROM agent_records WHERE id = $1"
+            "SELECT id, secret_hash FROM agent_records WHERE id = $1",
         )
         .bind(&payload.agent_id)
         .fetch_optional(pool)
@@ -355,7 +354,10 @@ pub async fn login(
                         Json(serde_json::json!({ "error": "Agent credentials not configured" })),
                     ));
                 }
-                tracing::warn!("Agent {} has no secret configured (dev mode)", payload.agent_id);
+                tracing::warn!(
+                    "Agent {} has no secret configured (dev mode)",
+                    payload.agent_id
+                );
             }
             None => {
                 return Err((
@@ -432,12 +434,8 @@ pub async fn refresh_token(
 }
 
 /// Get current user info from token
-pub async fn me(
-    claims: Option<axum::Extension<Claims>>,
-) -> Result<Json<Claims>, StatusCode> {
-    claims
-        .map(|c| Json(c.0))
-        .ok_or(StatusCode::UNAUTHORIZED)
+pub async fn me(claims: Option<axum::Extension<Claims>>) -> Result<Json<Claims>, StatusCode> {
+    claims.map(|c| Json(c.0)).ok_or(StatusCode::UNAUTHORIZED)
 }
 
 #[cfg(test)]
@@ -457,7 +455,7 @@ mod tests {
     fn test_secret_length_validation() {
         let short = "short";
         assert!(short.len() < MIN_SECRET_LENGTH);
-        
+
         let valid = "a".repeat(MIN_SECRET_LENGTH);
         assert!(valid.len() >= MIN_SECRET_LENGTH);
     }

@@ -9,7 +9,7 @@ pub enum Algorithm {
     ES256,
     EdDSA,
     // Add Hybrid-PQC if needed, e.g. "Dilithium3"
-    HybridPQC, 
+    HybridPQC,
     Other(String),
 }
 

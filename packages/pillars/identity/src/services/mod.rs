@@ -1,9 +1,9 @@
+pub mod audit;
+pub mod manager;
 pub mod verifier;
 pub mod webauthn;
-pub mod manager;
-pub mod audit;
 
-pub use verifier::{VerificationService, VerificationError};
+pub use audit::{AuditError, AuditService};
+pub use manager::{AgentConfig, AgentManager, ManagerError};
+pub use verifier::{VerificationError, VerificationService};
 pub use webauthn::WebAuthnService;
-pub use manager::{AgentManager, AgentConfig, ManagerError};
-pub use audit::{AuditService, AuditError};

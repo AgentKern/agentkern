@@ -17,12 +17,12 @@
 //! - `hipaa`: HIPAA healthcare compliance
 //! - `pci`: PCI-DSS payment compliance
 
+pub mod api;
 pub mod dsl;
 pub mod engine;
 pub mod neural;
 pub mod policy;
 pub mod types;
-pub mod api;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod metrics; // Production Prometheus metrics
@@ -60,8 +60,9 @@ pub mod feature_flags; // Privacy-first feature toggles
 
 // Phase 2: Legacy Bridge Connectors
 // Phase 2: Legacy Bridge Connectors
+pub mod cache;
 pub mod connectors; // Legacy system connectors (SAP, SWIFT, SQL)
-pub mod provenance; // Neural Integrity (Phase 10)
+pub mod provenance; // Neural Integrity (Phase 10) // Distributed Cache (Phase 20)
 
 #[cfg(feature = "wasm")]
 pub mod wasm; // WASM Component Model
@@ -69,6 +70,7 @@ pub mod wasm; // WASM Component Model
 // Re-exports
 pub use actors::{GateSupervisor, PolicyResult, SupervisorStatus};
 pub use budget::{AgentBudget, BudgetConfig, BudgetError};
+pub use cache::{CacheLayer, RateLimiter};
 pub use carbon::{CarbonCheckResult, CarbonVeto};
 pub use connectors::{
     ConnectorConfig, ConnectorHealth, ConnectorProtocol, ConnectorRegistry, LegacyConnector,
@@ -88,8 +90,8 @@ pub use neural::{
 };
 pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
-pub use runtime::{HyperRuntime, TokioRuntime};
 pub use provenance::{ModelProvenance, ProvenanceError};
+pub use runtime::{HyperRuntime, TokioRuntime};
 pub use shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 };

@@ -84,7 +84,10 @@ impl Amount {
     }
     /// Create a zero amount with default precision (2 decimals).
     pub fn zero() -> Self {
-        Self { value: 0, decimals: 2 }
+        Self {
+            value: 0,
+            decimals: 2,
+        }
     }
 
     /// Create a zero amount with specific precision.
@@ -120,7 +123,6 @@ impl std::ops::Sub for Amount {
         }
     }
 }
-
 
 impl std::fmt::Display for Amount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sqlx::migrate!("../../packages/pillars/identity/migrations")
         .run(&pool)
         .await?;
-        
+
     // Treasury Pillar (Schema created by code mostly but if we add sql files later)
     // sqlx::migrate!("../../packages/pillars/treasury/migrations").run(&pool).await?;
 

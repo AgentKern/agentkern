@@ -1,9 +1,9 @@
 use crate::models::{LiabilityProof, LiabilityProofPayload, VerificationKey};
-use agentkern_crypto::{CryptoProvider, CryptoMode}; // Signature removed if unused
-use chrono::{DateTime, Utc, Timelike};
+use agentkern_crypto::{CryptoMode, CryptoProvider}; // Signature removed if unused
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use chrono::{DateTime, Timelike, Utc};
 use serde_json;
 use thiserror::Error;
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 #[derive(Error, Debug)]
 pub enum VerificationError {
@@ -40,14 +40,19 @@ impl VerificationService {
     pub fn parse_header(&self, header: &str) -> Result<LiabilityProof, VerificationError> {
         let parts: Vec<&str> = header.split('.').collect();
         if parts.len() != 3 {
-            return Err(VerificationError::Internal(format!("Invalid parts count: {}, header: {}", parts.len(), header)));
+            return Err(VerificationError::Internal(format!(
+                "Invalid parts count: {}, header: {}",
+                parts.len(),
+                header
+            )));
         }
 
         let version = parts[0].to_string();
         let payload_b64 = parts[1];
         let signature = parts[2].to_string();
 
-        let payload_bytes = URL_SAFE_NO_PAD.decode(payload_b64)
+        let payload_bytes = URL_SAFE_NO_PAD
+            .decode(payload_b64)
             .map_err(|e| VerificationError::Internal(format!("Base64 decode failed: {}", e)))?;
 
         // Fix: Use generic FromReader or verify structure
@@ -62,7 +67,11 @@ impl VerificationService {
     }
 
     /// Verify a proof against a known public key
-    pub fn verify(&self, proof: &LiabilityProof, key: &VerificationKey) -> Result<bool, VerificationError> {
+    pub fn verify(
+        &self,
+        proof: &LiabilityProof,
+        key: &VerificationKey,
+    ) -> Result<bool, VerificationError> {
         let now = Utc::now();
 
         // 1. Check Expiration
@@ -80,7 +89,9 @@ impl VerificationService {
             .with_timezone(&Utc);
 
         if issued_at > now {
-            return Err(VerificationError::FutureIssue(proof.payload.issued_at.clone()));
+            return Err(VerificationError::FutureIssue(
+                proof.payload.issued_at.clone(),
+            ));
         }
 
         // 3. Verify Constraints (Time of Day)
@@ -88,9 +99,10 @@ impl VerificationService {
             if let Some(valid_hours) = &constraints.valid_hours {
                 let current_hour = now.hour() as u8;
                 if current_hour < valid_hours.start || current_hour > valid_hours.end {
-                    return Err(VerificationError::ConstraintViolation(
-                        format!("Current hour {} outside allowed {}-{}", current_hour, valid_hours.start, valid_hours.end)
-                    ));
+                    return Err(VerificationError::ConstraintViolation(format!(
+                        "Current hour {} outside allowed {}-{}",
+                        current_hour, valid_hours.start, valid_hours.end
+                    )));
                 }
             }
         }
@@ -99,7 +111,11 @@ impl VerificationService {
         self.verify_signature(proof, key)
     }
 
-    fn verify_signature(&self, proof: &LiabilityProof, key: &VerificationKey) -> Result<bool, VerificationError> {
+    fn verify_signature(
+        &self,
+        proof: &LiabilityProof,
+        key: &VerificationKey,
+    ) -> Result<bool, VerificationError> {
         let payload_json = serde_json::to_string(&proof.payload)
             .map_err(|e| VerificationError::Internal(e.to_string()))?;
         let data_bytes = payload_json.as_bytes();
@@ -123,7 +139,8 @@ impl VerificationService {
         };
 
         // Verify using the crypto provider
-        self.crypto_hybrid.verify(data_bytes, &signature_obj, &key.public_key)
+        self.crypto_hybrid
+            .verify(data_bytes, &signature_obj, &key.public_key)
             .map_err(|_| VerificationError::InvalidSignature)
     }
 }
@@ -131,8 +148,10 @@ impl VerificationService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{LiabilityProofPayload, Principal, AgentInfo, Intent, IntentTarget, Liability};
-    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+    use crate::models::{
+        AgentInfo, Intent, IntentTarget, Liability, LiabilityProofPayload, Principal,
+    };
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
     fn create_dummy_payload() -> LiabilityProofPayload {
         LiabilityProofPayload {
@@ -188,7 +207,7 @@ mod tests {
         let mut payload = create_dummy_payload();
         // Set expiration in the past
         payload.expires_at = (Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
-        
+
         let proof = LiabilityProof {
             version: "1.0".to_string(),
             payload,
@@ -214,7 +233,7 @@ mod tests {
         let service = VerificationService::new();
         // verify should fail on expiration BEFORE signature check
         let result = service.verify(&proof, &key);
-        
+
         match result {
             Err(VerificationError::Expired(_)) => assert!(true),
             _ => panic!("Should have failed with Expired"),

@@ -53,17 +53,17 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
+pub mod api;
 pub mod balance;
 pub mod budget;
 pub mod carbon; // Innovation #8: Carbon Footprint Ledger
+pub mod db; // PostgreSQL-backed distributed state
 pub mod lock;
 pub mod micropayments;
+pub mod takaful;
 pub mod transfer;
 pub mod types; // Per Code Quality Audit: Distributed locking
-pub mod takaful;
 pub mod verification;
-pub mod api;
-pub mod db; // PostgreSQL-backed distributed state
 pub mod watttime; // 2026 Roadmap: Dynamic carbon intensity
 
 // Re-exports

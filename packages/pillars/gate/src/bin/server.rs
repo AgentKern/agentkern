@@ -21,6 +21,7 @@ use agentkern_gate::{GateEngine, Policy, VerificationResult};
 /// Application state
 struct AppState {
     engine: GateEngine,
+    rate_limiter: Arc<agentkern_gate::RateLimiter>,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,10 +45,42 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // Initialize Cache & Rate Limiter (Phase 20)
+    let redis_url = std::env::var("REDIS_URL").ok();
+    if redis_url.is_some() {
+        tracing::info!("🔌 Connecting to Redis at {:?}", redis_url);
+    } else {
+        tracing::warn!(
+            "⚠️ No REDIS_URL found. Distributed rate limiting disabled (fallback to local)."
+        );
+    }
+
+    let cache = agentkern_gate::CacheLayer::new(redis_url)
+        .await
+        .expect("Failed to initialize cache layer");
+
+    // Default distributed limit: 1000 requests per minute per key
+    let dist_limit = std::env::var("DIST_RATE_LIMIT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1000);
+
+    let rate_limiter = Arc::new(agentkern_gate::RateLimiter::new(
+        cache,
+        dist_limit,
+        std::time::Duration::from_secs(60),
+    ));
+
     // Create engine
     let state = Arc::new(AppState {
         engine: GateEngine::new(),
+        rate_limiter: rate_limiter.clone(),
     });
+
+    let rate_limit = std::env::var("RATE_LIMIT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
 
     // Build router
     let app = Router::new()
@@ -67,16 +100,30 @@ async fn main() -> anyhow::Result<()> {
                     )
                 }))
                 .layer(BufferLayer::new(1024))
-                .layer(RateLimitLayer::new(100, std::time::Duration::from_secs(60))),
+                .layer(RateLimitLayer::new(
+                    rate_limit,
+                    std::time::Duration::from_secs(60),
+                )),
         )
         // P2: Authentication Middleware (simple implementation)
+        // P2: Authentication Middleware (simple implementation)
         .layer(axum::middleware::from_fn(auth_middleware))
+        // P2: Distributed Rate Limiting (Redis)
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            dist_rate_limit_middleware,
+        ))
         .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3001".to_string());
+
     let addr = format!("0.0.0.0:{}", port);
 
-    tracing::info!("🚀 AgentKern-Gate server running on http://{}", addr);
+    tracing::info!(
+        "🚀 AgentKern-Gate server running on http://{} (Rate Limit: {}/min)",
+        addr,
+        rate_limit
+    );
 
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
@@ -156,4 +203,48 @@ async fn register_policy(
 ) -> Result<Json<Policy>, StatusCode> {
     state.engine.register_policy(policy.clone()).await;
     Ok(Json(policy))
+}
+
+/// P2: Distributed Rate Limiting Middleware
+/// Uses Redis to enforce limits across all instances.
+async fn dist_rate_limit_middleware(
+    State(state): State<Arc<AppState>>,
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Result<axum::response::Response, StatusCode> {
+    // Skip for health check
+    if req.uri().path() == "/health" {
+        return Ok(next.run(req).await);
+    }
+
+    // Identify client: Try "X-Forwarded-For", then "Authorization" token hash, fallback to "unknown"
+    let key = if let Some(auth) = req
+        .headers()
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+    {
+        format!("auth:{}", auth)
+    } else {
+        "anon".to_string()
+    };
+
+    let (allowed, remaining, error) = state.rate_limiter.check(&key).await;
+
+    if error {
+        tracing::warn!("Rate limiter error for key {}", key);
+        // Fail open is default in RateLimiter logic
+    }
+
+    if !allowed {
+        tracing::warn!("Rate limit exceeded for client: {}", key);
+        return Err(StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    let mut response = next.run(req).await;
+    response.headers_mut().insert(
+        "X-RateLimit-Remaining",
+        remaining.to_string().parse().unwrap(),
+    );
+
+    Ok(response)
 }

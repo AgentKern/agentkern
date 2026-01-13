@@ -1,7 +1,7 @@
 pub mod agent;
 pub mod key;
 
-pub use agent::{AgentRecord, AgentStatus, AgentBudget, AgentUsage, AgentReputation};
-pub use key::{VerificationKey, Algorithm, KeyFormat};
+pub use agent::{AgentBudget, AgentRecord, AgentReputation, AgentStatus, AgentUsage};
+pub use key::{Algorithm, KeyFormat, VerificationKey};
 pub mod proof;
 pub use proof::*;

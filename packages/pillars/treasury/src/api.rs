@@ -1,9 +1,8 @@
 use axum::{
-    Router,
-    routing::{get, post},
-    Json,
     extract::State,
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -30,7 +29,11 @@ pub fn router(pool: Option<PgPool>) -> Router {
 }
 
 async fn health_check(State(state): State<TreasuryState>) -> Json<Value> {
-    let db_status = if state.engine.is_some() { "connected" } else { "disconnected" };
+    let db_status = if state.engine.is_some() {
+        "connected"
+    } else {
+        "disconnected"
+    };
     Json(json!({
         "status": "ok",
         "pillar": "treasury",
@@ -45,10 +48,12 @@ async fn transfer(
 ) -> (StatusCode, Json<Value>) {
     let engine = match &state.engine {
         Some(e) => e,
-        None => return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({ "error": "Database not connected" }))
-        ),
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": "Database not connected" })),
+            )
+        }
     };
 
     // Parse payload into TransferRequest
@@ -71,19 +76,25 @@ async fn transfer(
     };
 
     let result = engine.transfer(request).await;
-    
+
     if result.status == crate::db::TransferStatus::Completed {
-        (StatusCode::OK, Json(json!({
-            "transaction_id": result.transaction_id,
-            "status": "completed",
-            "timestamp": result.timestamp
-        })))
+        (
+            StatusCode::OK,
+            Json(json!({
+                "transaction_id": result.transaction_id,
+                "status": "completed",
+                "timestamp": result.timestamp
+            })),
+        )
     } else {
-        (StatusCode::BAD_REQUEST, Json(json!({
-            "transaction_id": result.transaction_id,
-            "status": "failed",
-            "error": result.error
-        })))
+        (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "transaction_id": result.transaction_id,
+                "status": "failed",
+                "error": result.error
+            })),
+        )
     }
 }
 
@@ -93,24 +104,29 @@ async fn get_balance(
 ) -> (StatusCode, Json<Value>) {
     let engine = match &state.engine {
         Some(e) => e,
-        None => return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({ "error": "Database not connected" }))
-        ),
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": "Database not connected" })),
+            )
+        }
     };
 
     match engine.get_balance(&id).await {
         Ok(balance_micros) => {
             let amount = Amount::new(balance_micros, 6);
-            (StatusCode::OK, Json(json!({
-                "agent_id": id,
-                "balance": amount.to_float(),
-                "currency": "VMC"
-            })))
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "agent_id": id,
+                    "balance": amount.to_float(),
+                    "currency": "VMC"
+                })),
+            )
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() }))
-        )
+            Json(json!({ "error": e.to_string() })),
+        ),
     }
 }

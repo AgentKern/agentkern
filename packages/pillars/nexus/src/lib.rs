@@ -48,6 +48,7 @@
 //! ```
 
 pub mod agent_card;
+pub mod api;
 pub mod chaos_proxy; // LLM provider chaos simulation
 pub mod discovery;
 pub mod error;
@@ -56,7 +57,6 @@ pub mod protocols;
 pub mod registry;
 pub mod router;
 pub mod types;
-pub mod api;
 
 // Re-exports
 pub use agent_card::AgentCard;

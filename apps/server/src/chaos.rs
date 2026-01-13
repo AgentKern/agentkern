@@ -4,11 +4,11 @@ use axum::{
     response::Response,
     BoxError,
 };
-use std::task::{Context, Poll};
+use rand::Rng;
 use std::future::Future;
 use std::pin::Pin;
-use tower::{Layer, Service};
-use rand::Rng; // requires rand dependency
+use std::task::{Context, Poll};
+use tower::{Layer, Service}; // requires rand dependency
 
 /// Chaos Configuration
 #[derive(Clone)]
@@ -109,7 +109,7 @@ where
 
         let delay = self.config.delay_ms;
         let fut = self.inner.call(req);
-        
+
         Box::pin(async move {
             if delay > 0 {
                 tokio::time::sleep(std::time::Duration::from_millis(delay)).await;

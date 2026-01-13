@@ -4,9 +4,9 @@
 //! Replaces the Node.js `apps/identity` service.
 
 use axum::{
-    Router,
     middleware,
     routing::{get, post},
+    Router,
 };
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -16,8 +16,8 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod auth;
-mod telemetry;
 mod chaos;
+mod telemetry;
 
 use auth::JwtConfig;
 /// Shared application state
@@ -42,8 +42,16 @@ async fn main() {
     // JWT configuration - FAILS in production if misconfigured
     let jwt_config = match auth::JwtConfig::from_env() {
         Ok(config) => {
-            let env_name = if config.is_production() { "PRODUCTION" } else { "development" };
-            tracing::info!("🔐 JWT authentication enabled (env: {}, expiry: {}h)", env_name, config.expiration_hours);
+            let env_name = if config.is_production() {
+                "PRODUCTION"
+            } else {
+                "development"
+            };
+            tracing::info!(
+                "🔐 JWT authentication enabled (env: {}, expiry: {}h)",
+                env_name,
+                config.expiration_hours
+            );
             config
         }
         Err(e) => {
@@ -55,26 +63,25 @@ async fn main() {
 
     // Connect to database (optional - server can run without DB for testing)
     let database_url = std::env::var("DATABASE_URL").ok();
-    
+
     let pool = if let Some(ref url) = database_url {
         tracing::info!("🗄️  Connecting to database...");
-        match PgPoolOptions::new()
-            .max_connections(10)
-            .connect(url)
-            .await
-        {
+        match PgPoolOptions::new().max_connections(10).connect(url).await {
             Ok(pool) => {
                 tracing::info!("✅ Database connected");
-                
+
                 // Run migrations
                 tracing::info!("📦 Running migrations...");
                 run_migrations(&pool).await;
                 tracing::info!("✅ Migrations complete");
-                
+
                 Some(pool)
             }
             Err(e) => {
-                tracing::warn!("⚠️  Database connection failed: {}. Running in stateless mode.", e);
+                tracing::warn!(
+                    "⚠️  Database connection failed: {}. Running in stateless mode.",
+                    e
+                );
                 None
             }
         }
@@ -84,10 +91,7 @@ async fn main() {
     };
 
     // Build application state
-    let state = Arc::new(AppState { 
-        pool,
-        jwt_config,
-    });
+    let state = Arc::new(AppState { pool, jwt_config });
 
     // Build the unified router
     let app = build_router(state).await;
@@ -97,7 +101,7 @@ async fn main() {
         .unwrap_or_else(|_| "3000".to_string())
         .parse()
         .expect("PORT must be a number");
-    
+
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("📡 Listening on {}", addr);
 
@@ -143,21 +147,42 @@ async fn build_router(state: Arc<AppState>) -> Router {
         // Auth routes (public)
         .nest_service("/api/v1/auth", auth_routes)
         // Identity Pillar
-        .nest_service("/api/v1/identity", resilient_service(identity_router, 100, 30))
+        .nest_service(
+            "/api/v1/identity",
+            resilient_service(identity_router, 100, 30),
+        )
         // Gate Pillar
-        .nest_service("/api/v1/gate", resilient_service(agentkern_gate::api::router(), 100, 10))
+        .nest_service(
+            "/api/v1/gate",
+            resilient_service(agentkern_gate::api::router(), 100, 10),
+        )
         // Arbiter Pillar
-        .nest_service("/api/v1/arbiter", resilient_service(agentkern_arbiter::api::router(), 50, 60))
+        .nest_service(
+            "/api/v1/arbiter",
+            resilient_service(agentkern_arbiter::api::router(), 50, 60),
+        )
         // Nexus Pillar
-        .nest_service("/api/v1/nexus", resilient_service(agentkern_nexus::api::router(), 200, 30))
+        .nest_service(
+            "/api/v1/nexus",
+            resilient_service(agentkern_nexus::api::router(), 200, 30),
+        )
         // Synapse Pillar
-        .nest_service("/api/v1/synapse", resilient_service(agentkern_synapse::api::router(), 100, 5))
+        .nest_service(
+            "/api/v1/synapse",
+            resilient_service(agentkern_synapse::api::router(), 100, 5),
+        )
         // Treasury Pillar
-        .nest_service("/api/v1/treasury", resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30))
+        .nest_service(
+            "/api/v1/treasury",
+            resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30),
+        )
         // Root health check
         .route("/health", axum::routing::get(root_health))
         // Authentication middleware for protected routes
-        .layer(middleware::from_fn_with_state(state.clone(), auth::auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::auth_middleware,
+        ))
         // Tracing
         .layer(TraceLayer::new_for_http())
         // CORS
@@ -165,19 +190,25 @@ async fn build_router(state: Arc<AppState>) -> Router {
 }
 
 fn resilient_service(
-    router: Router<()>, 
-    concurrency: usize, 
-    timeout_secs: u64
+    router: Router<()>,
+    concurrency: usize,
+    timeout_secs: u64,
 ) -> impl tower::Service<
-        axum::http::Request<axum::body::Body>, 
-        Response = axum::response::Response, 
-        Error = std::convert::Infallible, 
-        Future = impl Send
-    > + Clone + Send + Sync {
+    axum::http::Request<axum::body::Body>,
+    Response = axum::response::Response,
+    Error = std::convert::Infallible,
+    Future = impl Send,
+> + Clone
+       + Send
+       + Sync {
     tower::ServiceBuilder::new()
-        .layer(axum::error_handling::HandleErrorLayer::new(handle_middleware_error))
+        .layer(axum::error_handling::HandleErrorLayer::new(
+            handle_middleware_error,
+        ))
         .layer(tower::limit::ConcurrencyLimitLayer::new(concurrency))
-        .layer(tower::timeout::TimeoutLayer::new(std::time::Duration::from_secs(timeout_secs)))
+        .layer(tower::timeout::TimeoutLayer::new(
+            std::time::Duration::from_secs(timeout_secs),
+        ))
         .service(router)
 }
 
@@ -199,14 +230,16 @@ async fn root_health() -> axum::Json<serde_json::Value> {
 }
 
 /// Handle errors from middleware (Timeout, ConcurrencyLimit)
-async fn handle_middleware_error(err: axum::BoxError) -> (axum::http::StatusCode, axum::Json<serde_json::Value>) {
+async fn handle_middleware_error(
+    err: axum::BoxError,
+) -> (axum::http::StatusCode, axum::Json<serde_json::Value>) {
     if err.is::<tower::timeout::error::Elapsed>() {
         (
             axum::http::StatusCode::GATEWAY_TIMEOUT,
             axum::Json(serde_json::json!({
                 "error": "Request timed out",
                 "status": "timeout"
-            }))
+            })),
         )
     } else {
         (
@@ -214,7 +247,7 @@ async fn handle_middleware_error(err: axum::BoxError) -> (axum::http::StatusCode
             axum::Json(serde_json::json!({
                 "error": format!("Service unavailable: {}", err),
                 "status": "overloaded"
-            }))
+            })),
         )
     }
 }

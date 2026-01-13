@@ -149,7 +149,8 @@ impl CryptoProvider {
             .map_err(|e| CryptoError::SigningFailed(e.to_string()))?;
 
         let classical_sig = signing_key.sign(message);
-        let classical_b64 = base64::engine::general_purpose::STANDARD.encode(classical_sig.to_bytes());
+        let classical_b64 =
+            base64::engine::general_purpose::STANDARD.encode(classical_sig.to_bytes());
 
         let (value, classical_component, pq_component) = match self.mode {
             CryptoMode::Classical => (classical_b64.clone(), Some(classical_b64), None),
@@ -181,7 +182,12 @@ impl CryptoProvider {
         base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
     }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature, public_key: &str) -> Result<bool, CryptoError> {
+    pub fn verify(
+        &self,
+        message: &[u8],
+        signature: &Signature,
+        public_key: &str,
+    ) -> Result<bool, CryptoError> {
         use ed25519_dalek::{Verifier, VerifyingKey};
 
         let pub_bytes = base64::engine::general_purpose::STANDARD
@@ -199,11 +205,15 @@ impl CryptoProvider {
             let sig = ed25519_dalek::Signature::try_from(sig_bytes.as_slice())
                 .map_err(|_| CryptoError::VerificationFailed)?;
 
-            verifying_key.verify(message, &sig).map_err(|_| CryptoError::VerificationFailed)?;
+            verifying_key
+                .verify(message, &sig)
+                .map_err(|_| CryptoError::VerificationFailed)?;
         }
 
         Ok(true)
     }
 
-    pub fn mode(&self) -> CryptoMode { self.mode }
+    pub fn mode(&self) -> CryptoMode {
+        self.mode
+    }
 }

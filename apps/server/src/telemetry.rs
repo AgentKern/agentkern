@@ -1,6 +1,6 @@
 use opentelemetry::global;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace as sdktrace, Resource};
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace as sdktrace, Resource};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
 
 pub fn init_telemetry() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -17,13 +17,14 @@ pub fn init_telemetry() -> Result<(), Box<dyn std::error::Error + Send + Sync + 
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(exporter)
-        .with_trace_config(
-            sdktrace::config().with_resource(Resource::new(vec![
-                opentelemetry::KeyValue::new("service.name", "agentkern-server"),
-                opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
-                opentelemetry::KeyValue::new("deployment.environment", std::env::var("AGENTKERN_ENV").unwrap_or_else(|_| "development".into())),
-            ])),
-        )
+        .with_trace_config(sdktrace::config().with_resource(Resource::new(vec![
+            opentelemetry::KeyValue::new("service.name", "agentkern-server"),
+            opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+            opentelemetry::KeyValue::new(
+                "deployment.environment",
+                std::env::var("AGENTKERN_ENV").unwrap_or_else(|_| "development".into()),
+            ),
+        ])))
         .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
     // Create tracing layer

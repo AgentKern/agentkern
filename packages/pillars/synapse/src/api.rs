@@ -1,15 +1,14 @@
 use axum::{
-    Router,
-    routing::{get, post},
-    Json,
     extract::State,
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{GraphVectorDB, GraphNode, NodeType};
+use crate::{GraphNode, GraphVectorDB, NodeType};
 
 /// Synapse App State
 #[derive(Clone)]
@@ -44,7 +43,7 @@ async fn store_memory(
     // In real app, we'd use a DTO
     let content = payload["content"].clone();
     let vector: Option<Vec<f32>> = serde_json::from_value(payload["vector"].clone()).ok();
-    
+
     let node = GraphNode {
         id: Uuid::new_v4(),
         node_type: NodeType::Memory,
@@ -54,14 +53,17 @@ async fn store_memory(
         updated_at: chrono::Utc::now(),
         version: 1,
     };
-    
+
     let id = state.db.insert_node(node);
-    
-    (StatusCode::CREATED, Json(json!({
-        "stored": true,
-        "id": id,
-        "status": "persisted"
-    })))
+
+    (
+        StatusCode::CREATED,
+        Json(json!({
+            "stored": true,
+            "id": id,
+            "status": "persisted"
+        })),
+    )
 }
 
 async fn query_memory(
@@ -70,18 +72,24 @@ async fn query_memory(
 ) -> (StatusCode, Json<Value>) {
     let vector: Option<Vec<f32>> = serde_json::from_value(payload["vector"].clone()).ok();
     let limit = payload["limit"].as_u64().unwrap_or(5) as usize;
-    
+
     if let Some(vec) = vector {
         let results = state.db.find_similar(&vec, limit);
-        (StatusCode::OK, Json(json!({
-            "results": results,
-            "count": results.len()
-        })))
+        (
+            StatusCode::OK,
+            Json(json!({
+                "results": results,
+                "count": results.len()
+            })),
+        )
     } else {
         // Fallback: Return recent memories or error?
         // For now, error as vector query requires vector
-        (StatusCode::BAD_REQUEST, Json(json!({
-            "error": "Vector required for similarity search"
-        })))
+        (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "Vector required for similarity search"
+            })),
+        )
     }
 }

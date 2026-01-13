@@ -1,15 +1,14 @@
 use axum::{
-    Router,
-    routing::{get, post},
-    Json,
     extract::State,
     http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use serde_json::{json, Value};
-use std::sync::Arc;
 use sqlx::PgPool;
+use std::sync::Arc;
 
-use crate::{Coordinator, PgCoordinator, CoordinationRequest};
+use crate::{CoordinationRequest, Coordinator, PgCoordinator};
 use agentkern_pulse::Pulse;
 
 /// Arbiter App State (in-memory)
@@ -51,7 +50,7 @@ pub fn router_with_pool(pool: PgPool) -> Router {
 async fn health_check(State(state): State<ArbiterState>) -> Json<Value> {
     // Check pulse
     let report = state.coordinator.get_health().await;
-    
+
     Json(json!({
         "status": "ok",
         "pillar": "arbiter",
@@ -67,13 +66,13 @@ async fn schedule_task(
     // Construct CoordinationRequest from payload
     let agent_id = payload["agent_id"].as_str().unwrap_or("unknown");
     let resource = payload["resource"].as_str().unwrap_or("global");
-    
+
     let mut request = CoordinationRequest::new(agent_id, resource);
-    
+
     if let Some(op) = payload["operation"].as_str() {
         request.operation = crate::types::LockType::Write; // Simplify for now
     }
-    
+
     if let Some(priority) = payload["priority"].as_i64() {
         request.priority = priority as i32;
     }
@@ -81,24 +80,33 @@ async fn schedule_task(
     let result = state.coordinator.request(request).await;
 
     if result.granted {
-        (StatusCode::CREATED, Json(json!({
-            "scheduled": true,
-            "lock_id": result.lock.map(|l| l.id),
-            "status": "granted"
-        })))
+        (
+            StatusCode::CREATED,
+            Json(json!({
+                "scheduled": true,
+                "lock_id": result.lock.map(|l| l.id),
+                "status": "granted"
+            })),
+        )
     } else if let Some(pos) = result.queue_position {
-        (StatusCode::ACCEPTED, Json(json!({
-            "scheduled": false,
-            "status": "queued",
-            "position": pos,
-            "wait_ms": result.estimated_wait_ms
-        })))
+        (
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "scheduled": false,
+                "status": "queued",
+                "position": pos,
+                "wait_ms": result.estimated_wait_ms
+            })),
+        )
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({
-            "scheduled": false,
-            "status": "denied",
-            "reason": result.reason
-        })))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "scheduled": false,
+                "status": "denied",
+                "reason": result.reason
+            })),
+        )
     }
 }
 
@@ -110,15 +118,25 @@ async fn acquire_lock_endpoint(
     let resource = payload["resource"].as_str().unwrap_or("global");
     let priority = payload["priority"].as_i64().unwrap_or(0) as i32;
 
-    match state.coordinator.acquire_lock(agent_id, resource, priority).await {
-        Ok(lock) => (StatusCode::OK, Json(json!({
-            "locked": true,
-            "lock_id": lock.id
-        }))),
-        Err(e) => (StatusCode::CONFLICT, Json(json!({
-            "locked": false,
-            "error": e
-        })))
+    match state
+        .coordinator
+        .acquire_lock(agent_id, resource, priority)
+        .await
+    {
+        Ok(lock) => (
+            StatusCode::OK,
+            Json(json!({
+                "locked": true,
+                "lock_id": lock.id
+            })),
+        ),
+        Err(e) => (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "locked": false,
+                "error": e
+            })),
+        ),
     }
 }
 
@@ -128,7 +146,7 @@ async fn acquire_lock_endpoint(
 
 async fn pg_health_check(State(state): State<PgArbiterState>) -> Json<Value> {
     let report = state.coordinator.get_health().await;
-    
+
     Json(json!({
         "status": "ok",
         "pillar": "arbiter",
@@ -144,13 +162,13 @@ async fn pg_schedule_task(
 ) -> (StatusCode, Json<Value>) {
     let agent_id = payload["agent_id"].as_str().unwrap_or("unknown");
     let resource = payload["resource"].as_str().unwrap_or("global");
-    
+
     let mut request = CoordinationRequest::new(agent_id, resource);
-    
+
     if let Some(_op) = payload["operation"].as_str() {
         request.operation = crate::types::LockType::Write;
     }
-    
+
     if let Some(priority) = payload["priority"].as_i64() {
         request.priority = priority as i32;
     }
@@ -158,26 +176,35 @@ async fn pg_schedule_task(
     let result = state.coordinator.request(request).await;
 
     if result.granted {
-        (StatusCode::CREATED, Json(json!({
-            "scheduled": true,
-            "lock_id": result.lock.map(|l| l.id),
-            "status": "granted",
-            "persistent": true
-        })))
+        (
+            StatusCode::CREATED,
+            Json(json!({
+                "scheduled": true,
+                "lock_id": result.lock.map(|l| l.id),
+                "status": "granted",
+                "persistent": true
+            })),
+        )
     } else if let Some(pos) = result.queue_position {
-        (StatusCode::ACCEPTED, Json(json!({
-            "scheduled": false,
-            "status": "queued",
-            "position": pos,
-            "wait_ms": result.estimated_wait_ms,
-            "persistent": true
-        })))
+        (
+            StatusCode::ACCEPTED,
+            Json(json!({
+                "scheduled": false,
+                "status": "queued",
+                "position": pos,
+                "wait_ms": result.estimated_wait_ms,
+                "persistent": true
+            })),
+        )
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({
-            "scheduled": false,
-            "status": "denied",
-            "reason": result.reason
-        })))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "scheduled": false,
+                "status": "denied",
+                "reason": result.reason
+            })),
+        )
     }
 }
 
@@ -189,15 +216,25 @@ async fn pg_acquire_lock_endpoint(
     let resource = payload["resource"].as_str().unwrap_or("global");
     let priority = payload["priority"].as_i64().unwrap_or(0) as i32;
 
-    match state.coordinator.acquire_lock(agent_id, resource, priority).await {
-        Ok(lock) => (StatusCode::OK, Json(json!({
-            "locked": true,
-            "lock_id": lock.id,
-            "persistent": true
-        }))),
-        Err(e) => (StatusCode::CONFLICT, Json(json!({
-            "locked": false,
-            "error": e
-        })))
+    match state
+        .coordinator
+        .acquire_lock(agent_id, resource, priority)
+        .await
+    {
+        Ok(lock) => (
+            StatusCode::OK,
+            Json(json!({
+                "locked": true,
+                "lock_id": lock.id,
+                "persistent": true
+            })),
+        ),
+        Err(e) => (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "locked": false,
+                "error": e
+            })),
+        ),
     }
 }

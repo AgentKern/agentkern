@@ -26,12 +26,12 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.GATE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.GATE_URL || 'http://localhost:3001';
 
 // Test scenarios
 export default function () {
   // Test 1: Health check
-  const healthRes = http.get(`${BASE_URL}/api/gate/health`);
+  const healthRes = http.get(`${BASE_URL}/health`);
   check(healthRes, {
     'health status is 200': (r) => r.status === 200,
     'health response is healthy': (r) => {
@@ -46,7 +46,7 @@ export default function () {
 
   // Test 2: Policy verification (critical path)
   const verifyPayload = JSON.stringify({
-    agentId: `load-test-agent-${__VU}`,
+    agent_id: `load-test-agent-${__VU}`,
     action: 'read_data',
     context: {
       timestamp: new Date().toISOString(),
@@ -56,8 +56,11 @@ export default function () {
   });
 
   const verifyStart = Date.now();
-  const verifyRes = http.post(`${BASE_URL}/api/gate/verify`, verifyPayload, {
-    headers: { 'Content-Type': 'application/json' },
+  const verifyRes = http.post(`${BASE_URL}/verify`, verifyPayload, {
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer load-test-token' 
+    },
   });
   const verifyTime = Date.now() - verifyStart;
   
@@ -87,7 +90,7 @@ export function setup() {
   console.log(`Target URL: ${BASE_URL}`);
   
   // Verify server is reachable
-  const res = http.get(`${BASE_URL}/api/gate/health`);
+  const res = http.get(`${BASE_URL}/health`);
   if (res.status !== 200) {
     console.error('Gate server not reachable, test may fail');
   }

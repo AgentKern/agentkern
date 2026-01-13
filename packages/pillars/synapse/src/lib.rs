@@ -41,12 +41,12 @@
 //! ```
 
 pub mod adaptive;
+pub mod api;
 pub mod drift;
 pub mod graph; // Graph Vector Database
 pub mod intent;
 pub mod state;
 pub mod types; // Adaptive Query Execution (ENGINEERING_STANDARD Section 2)
-pub mod api;
 
 // GLOBAL_GAPS.md modules
 pub mod embeddings; // Polyglot Embeddings (Section 2)

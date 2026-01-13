@@ -1,9 +1,9 @@
-use sqlx::PgPool;
+use agentkern_gate::crypto_agility::{CryptoMode, CryptoProvider, KeyPair};
+use chrono::Utc;
 use serde_json::Value;
+use sqlx::PgPool;
 use thiserror::Error;
 use uuid::Uuid;
-use chrono::Utc;
-use agentkern_gate::crypto_agility::{CryptoProvider, CryptoMode, KeyPair};
 
 #[derive(Error, Debug)]
 pub enum AuditError {
@@ -23,11 +23,17 @@ pub struct AuditService {
 impl AuditService {
     pub fn new(pool: PgPool) -> Self {
         let crypto = CryptoProvider::new(CryptoMode::Hybrid);
-        let keypair = crypto.generate_keypair().expect("Failed to generate audit signing keypair");
-        
+        let keypair = crypto
+            .generate_keypair()
+            .expect("Failed to generate audit signing keypair");
+
         tracing::info!(key_id = %keypair.key_id, "AuditService initialized with PQC signing");
-        
-        Self { pool, crypto, keypair }
+
+        Self {
+            pool,
+            crypto,
+            keypair,
+        }
     }
 
     /// Log a security or compliance event with cryptographic signature
@@ -44,7 +50,7 @@ impl AuditService {
         ip_address: Option<&str>,
     ) -> Result<Uuid, AuditError> {
         let id = Uuid::new_v4();
-        
+
         // Create canonical message for signing
         let canonical = format!(
             "{}:{}:{}:{}:{}:{}:{}:{}",
@@ -57,9 +63,11 @@ impl AuditService {
             details.as_ref().map(|d| d.to_string()).unwrap_or_default(),
             Utc::now().to_rfc3339()
         );
-        
+
         // Sign with PQC (Hybrid Ed25519 + ML-DSA)
-        let signature = self.crypto.sign(canonical.as_bytes(), &self.keypair)
+        let signature = self
+            .crypto
+            .sign(canonical.as_bytes(), &self.keypair)
             .map_err(|e| AuditError::Crypto(e.to_string()))?;
 
         sqlx::query(
@@ -90,14 +98,14 @@ impl AuditService {
     /// Verify the integrity of the audit log hash chain
     /// Returns true if valid, false if tampered
     pub async fn verify_chain(&self) -> Result<bool, AuditError> {
-        // In a real system, you'd fetch in batches. 
+        // In a real system, you'd fetch in batches.
         // For verification, we just check if any row has a hash mismatch.
-        // But since the hash is computed in a TRIGGER, it's hard to spoof unless 
+        // But since the hash is computed in a TRIGGER, it's hard to spoof unless
         // the attacker also has DB superuser access to disable the trigger.
-        
-        // We can verify by re-computing the hash for the last N records 
+
+        // We can verify by re-computing the hash for the last N records
         // and checking if they match the stored event_hash and link to previous_hash.
-        
+
         let rows = sqlx::query_as::<_, (String, String, String, String)>(
             "SELECT id, event_hash, previous_hash, 
                     coalesce(event_type,'') || coalesce(actor_id,'') || coalesce(target_id,'') || 
@@ -105,19 +113,24 @@ impl AuditService {
                     created_at::text || previous_hash as content
              FROM audit_events 
              ORDER BY created_at DESC, id DESC 
-             LIMIT 100"
+             LIMIT 100",
         )
         .fetch_all(&self.pool)
         .await?;
 
         for (_id, stored_hash, _prev_hash, content) in rows {
-            use sha2::{Sha256, Digest};
+            use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(content.as_bytes());
             let computed_hash = hex::encode(hasher.finalize());
 
             if stored_hash != computed_hash {
-                tracing::error!("Audit log tampering detected! ID: {}, Stored: {}, Computed: {}", _id, stored_hash, computed_hash);
+                tracing::error!(
+                    "Audit log tampering detected! ID: {}, Stored: {}, Computed: {}",
+                    _id,
+                    stored_hash,
+                    computed_hash
+                );
                 return Ok(false);
             }
         }

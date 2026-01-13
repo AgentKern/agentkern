@@ -10,7 +10,7 @@ use crate::antifragile::AntifragileEngine;
 use crate::carbon::CarbonScheduler;
 use crate::consensus::ConsensusEngine;
 use crate::cost::CostTracker;
-use crate::locks_pg::{PgLockManager, LockError};
+use crate::locks_pg::{LockError, PgLockManager};
 use crate::queue_pg::PgQueue;
 use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
 use rust_decimal::prelude::*;
@@ -151,19 +151,22 @@ impl PgCoordinator {
         {
             Ok(lock) => {
                 // Remove from queue if present
-                let _ = self.queue.dequeue(&request.agent_id, &request.resource).await;
+                let _ = self
+                    .queue
+                    .dequeue(&request.agent_id, &request.resource)
+                    .await;
                 CoordinationResult::granted(lock)
             }
             Err(LockError::ResourceLocked { .. }) => {
                 // Enqueue in PERSISTENT queue
                 match self.queue.enqueue(request.clone()).await {
                     Ok(position) => {
-                        let wait_ms = self.queue.estimate_wait_ms(position, self.avg_lock_duration_ms);
+                        let wait_ms = self
+                            .queue
+                            .estimate_wait_ms(position, self.avg_lock_duration_ms);
                         CoordinationResult::queued(position as u32, wait_ms)
                     }
-                    Err(e) => {
-                        CoordinationResult::denied(format!("Queue error: {}", e))
-                    }
+                    Err(e) => CoordinationResult::denied(format!("Queue error: {}", e)),
                 }
             }
             Err(e) => {

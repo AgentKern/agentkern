@@ -42,7 +42,11 @@ impl PgLockManager {
         let lock_type_str = format!("{:?}", lock_type);
 
         // Use transaction with row-level locking
-        let mut tx = self.pool.begin().await.map_err(|e| LockError::Database(e.to_string()))?;
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| LockError::Database(e.to_string()))?;
 
         // Clean up expired locks first
         sqlx::query("DELETE FROM arbiter_locks WHERE expires_at < NOW()")
@@ -57,7 +61,7 @@ impl PgLockManager {
             FROM arbiter_locks 
             WHERE resource = $1
             FOR UPDATE
-            "#
+            "#,
         )
         .bind(resource)
         .fetch_optional(&mut *tx)
@@ -75,7 +79,9 @@ impl PgLockManager {
                     .await
                     .map_err(|e| LockError::Database(e.to_string()))?;
 
-                tx.commit().await.map_err(|e| LockError::Database(e.to_string()))?;
+                tx.commit()
+                    .await
+                    .map_err(|e| LockError::Database(e.to_string()))?;
 
                 return Ok(BusinessLock {
                     id: existing.id,
@@ -132,7 +138,9 @@ impl PgLockManager {
         .await
         .map_err(|e| LockError::Database(e.to_string()))?;
 
-        tx.commit().await.map_err(|e| LockError::Database(e.to_string()))?;
+        tx.commit()
+            .await
+            .map_err(|e| LockError::Database(e.to_string()))?;
 
         Ok(BusinessLock {
             id: new_id,
@@ -147,24 +155,22 @@ impl PgLockManager {
 
     /// Release a lock on a resource.
     pub async fn release(&self, agent_id: &str, resource: &str) -> Result<(), LockError> {
-        let result = sqlx::query(
-            "DELETE FROM arbiter_locks WHERE resource = $1 AND locked_by = $2"
-        )
-        .bind(resource)
-        .bind(agent_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| LockError::Database(e.to_string()))?;
+        let result =
+            sqlx::query("DELETE FROM arbiter_locks WHERE resource = $1 AND locked_by = $2")
+                .bind(resource)
+                .bind(agent_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| LockError::Database(e.to_string()))?;
 
         if result.rows_affected() == 0 {
             // Check if lock exists but owned by someone else
-            let lock: Option<(String,)> = sqlx::query_as(
-                "SELECT locked_by FROM arbiter_locks WHERE resource = $1"
-            )
-            .bind(resource)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| LockError::Database(e.to_string()))?;
+            let lock: Option<(String,)> =
+                sqlx::query_as("SELECT locked_by FROM arbiter_locks WHERE resource = $1")
+                    .bind(resource)
+                    .fetch_optional(&self.pool)
+                    .await
+                    .map_err(|e| LockError::Database(e.to_string()))?;
 
             if let Some((owner,)) = lock {
                 return Err(LockError::NotOwner {
@@ -188,7 +194,7 @@ impl PgLockManager {
             SELECT id, resource, locked_by, priority, lock_type, acquired_at, expires_at
             FROM arbiter_locks
             WHERE resource = $1 AND expires_at > NOW()
-            "#
+            "#,
         )
         .bind(resource)
         .fetch_optional(&self.pool)

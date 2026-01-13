@@ -2,12 +2,14 @@
 //!
 //! Per Phase 3 Roadmap: "Implement Takaful (Mutual Risk Sharing) in Treasury"
 //!
-//! Takaful is a Sharia-compliant mutual assistance model where agents 
+//! Takaful is a Sharia-compliant mutual assistance model where agents
 //! contribute to a common pool to share risks.
 
-use std::collections::HashMap;
 use crate::types::{AgentId, Amount};
-use agentkern_governance::industry::finance::shariah::{ShariahComplianceValidator, TransactionDetails, TransactionType};
+use agentkern_governance::industry::finance::shariah::{
+    ShariahComplianceValidator, TransactionDetails, TransactionType,
+};
+use std::collections::HashMap;
 
 /// A Takaful Pool for mutual risk sharing between agents.
 pub struct TakafulPool {
@@ -85,14 +87,17 @@ mod tests {
         let agent_b = AgentId::from("agent-b");
 
         // Agent A contributes $10
-        pool.contribute(agent_a.clone(), Amount::from_float(10.0, 2)).unwrap();
+        pool.contribute(agent_a.clone(), Amount::from_float(10.0, 2))
+            .unwrap();
         // Agent B contributes $5
-        pool.contribute(agent_b.clone(), Amount::from_float(5.0, 2)).unwrap();
+        pool.contribute(agent_b.clone(), Amount::from_float(5.0, 2))
+            .unwrap();
 
         assert_eq!(pool.get_balance().to_float(), 15.0);
 
         // Agent A suffers a failure and claims $12 (more than they put in, but less than pool total)
-        pool.claim(agent_a.clone(), Amount::from_float(12.0, 2)).unwrap();
+        pool.claim(agent_a.clone(), Amount::from_float(12.0, 2))
+            .unwrap();
 
         assert_eq!(pool.get_balance().to_float(), 3.0);
     }

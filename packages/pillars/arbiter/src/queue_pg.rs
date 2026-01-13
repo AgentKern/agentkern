@@ -45,7 +45,8 @@ impl PgQueue {
         .await?;
 
         // Return position in queue
-        self.get_position(&request.agent_id, &request.resource).await
+        self.get_position(&request.agent_id, &request.resource)
+            .await
     }
 
     /// Get queue position for an agent's request.
@@ -91,7 +92,7 @@ impl PgQueue {
                 LIMIT 1
             )
             RETURNING id, agent_id, resource, priority, operation, expected_duration_ms, intent
-            "#
+            "#,
         )
         .bind(resource)
         .fetch_optional(&self.pool)
@@ -119,14 +120,13 @@ impl PgQueue {
 
     /// Get total queue length for a resource.
     pub async fn queue_length(&self, resource: &str) -> usize {
-        let count: Option<(i64,)> = sqlx::query_as(
-            "SELECT COUNT(*) FROM arbiter_queue WHERE resource = $1"
-        )
-        .bind(resource)
-        .fetch_optional(&self.pool)
-        .await
-        .ok()
-        .flatten();
+        let count: Option<(i64,)> =
+            sqlx::query_as("SELECT COUNT(*) FROM arbiter_queue WHERE resource = $1")
+                .bind(resource)
+                .fetch_optional(&self.pool)
+                .await
+                .ok()
+                .flatten();
 
         count.map(|c| c.0 as usize).unwrap_or(0)
     }

@@ -40,6 +40,7 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
+pub mod api;
 pub mod consensus;
 pub mod coordinator;
 pub mod coordinator_pg; // Phase 16: Postgres-backed coordinator
@@ -48,7 +49,6 @@ pub mod locks_pg; // Phase 16: Postgres-backed locks
 pub mod queue;
 pub mod queue_pg; // Phase 16: Postgres-backed queue
 pub mod types;
-pub mod api;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod raft; // Raft Consensus for Atomic Business Locks
@@ -104,7 +104,7 @@ pub use iso42001::{
 };
 pub use killswitch::{KillReason, KillRecord, KillSwitch, TerminationType};
 pub use locks::LockManager;
-pub use locks_pg::{PgLockManager, LockError as PgLockError};
+pub use locks_pg::{LockError as PgLockError, PgLockManager};
 pub use loop_prevention::{
     LoopPreventer, LoopPreventionConfig, LoopPreventionError, TrackedMessage,
 };

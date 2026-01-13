@@ -288,7 +288,7 @@ impl ChaosProxy {
     pub fn stats(&self) -> ChaosStats {
         let stats_map = self.target_stats.lock().clone();
         let mut by_target_str = HashMap::new();
-        
+
         for (k, v) in stats_map {
             by_target_str.insert(k.to_string(), v);
         }
@@ -308,24 +308,32 @@ mod tests {
 
     #[tokio::test]
     async fn test_protocol_chaos() {
-        let config = ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
+        let config =
+            ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
         let proxy = ChaosProxy::new(config);
 
-        let result = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A)).await;
+        let result = proxy
+            .maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A))
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_selective_chaos() {
-        let config = ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
+        let config =
+            ChaosConfig::new().with_target(ChaosTarget::Protocol(Protocol::GoogleA2A), 1.0);
         let proxy = ChaosProxy::new(config);
 
         // Should fail
-        let res1 = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A)).await;
+        let res1 = proxy
+            .maybe_fail(ChaosTarget::Protocol(Protocol::GoogleA2A))
+            .await;
         assert!(res1.is_err());
 
         // Should pass (no config)
-        let res2 = proxy.maybe_fail(ChaosTarget::Protocol(Protocol::AnthropicMCP)).await;
+        let res2 = proxy
+            .maybe_fail(ChaosTarget::Protocol(Protocol::AnthropicMCP))
+            .await;
         assert!(res2.is_ok());
     }
 }

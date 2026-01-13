@@ -69,7 +69,11 @@ impl GateEngine {
     }
 
     /// Set a budget for an agent.
-    pub async fn set_budget(&self, agent_id: impl Into<String>, budget: crate::budget::AgentBudget) {
+    pub async fn set_budget(
+        &self,
+        agent_id: impl Into<String>,
+        budget: crate::budget::AgentBudget,
+    ) {
         let mut budgets = self.budgets.write().await;
         budgets.insert(agent_id.into(), budget);
     }
@@ -152,7 +156,7 @@ impl GateEngine {
                 attacks = ?prompt_analysis.attacks,
                 "Prompt Injection Detected"
             );
-            
+
             return VerificationResult {
                 request_id: request.request_id,
                 allowed: false,
@@ -194,10 +198,10 @@ impl GateEngine {
                         },
                     };
                 }
-                
+
                 // If context has "tokens", consume them
                 if let Some(tokens) = request.context.data.get("tokens").and_then(|t| t.as_u64()) {
-                     if let Err(e) = budget.consume_tokens(tokens) {
+                    if let Err(e) = budget.consume_tokens(tokens) {
                         return VerificationResult {
                             request_id: request.request_id,
                             allowed: false,
@@ -213,7 +217,7 @@ impl GateEngine {
                                 neural_us: None,
                             },
                         };
-                     }
+                    }
                 }
             }
         }

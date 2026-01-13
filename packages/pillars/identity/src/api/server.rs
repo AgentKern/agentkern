@@ -1,17 +1,16 @@
 use axum::{
-    Router,
-    routing::{get, post, delete},
-    Json,
-    extract::{State, Path},
+    extract::{Path, State},
     http::StatusCode,
+    routing::{delete, get, post},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use crate::services::{VerificationService, AgentManager, AuditService};
-use crate::models::{VerificationKey, AgentStatus};
+use crate::models::{AgentStatus, VerificationKey};
+use crate::services::{AgentManager, AuditService, VerificationService};
 
 /// Application state with database pool and services
 pub struct AppState {
@@ -24,7 +23,7 @@ pub struct AppState {
 /// Create router without database (for testing)
 pub async fn app() -> Router {
     let verifier = VerificationService::new();
-    let state = Arc::new(AppState { 
+    let state = Arc::new(AppState {
         verifier,
         pool: None,
         agent_manager: None,
@@ -38,8 +37,8 @@ pub async fn app_with_pool(pool: PgPool) -> Router {
     let verifier = VerificationService::new();
     let agent_manager = AgentManager::new(pool.clone());
     let audit_service = AuditService::new(pool.clone());
-    
-    let state = Arc::new(AppState { 
+
+    let state = Arc::new(AppState {
         verifier,
         pool: Some(pool),
         agent_manager: Some(agent_manager),
@@ -76,7 +75,11 @@ fn build_router(state: Arc<AppState>) -> Router {
 // ============================================================================
 
 async fn health_check(State(state): State<Arc<AppState>>) -> Json<Value> {
-    let db_status = if state.pool.is_some() { "connected" } else { "none" };
+    let db_status = if state.pool.is_some() {
+        "connected"
+    } else {
+        "none"
+    };
     Json(json!({
         "status": "ok",
         "pillar": "identity",
@@ -106,13 +109,22 @@ async fn verify_endpoint(
             if let Some(key) = payload.public_key {
                 match state.verifier.verify(&proof, &key) {
                     Ok(valid) => (StatusCode::OK, Json(json!({ "valid": valid }))),
-                    Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "valid": false, "error": e.to_string() })))
+                    Err(e) => (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({ "valid": false, "error": e.to_string() })),
+                    ),
                 }
             } else {
-                (StatusCode::BAD_REQUEST, Json(json!({ "valid": false, "error": "Missing key for simulation" })))
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "valid": false, "error": "Missing key for simulation" })),
+                )
             }
         }
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "valid": false, "error": e.to_string() })))
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "valid": false, "error": e.to_string() })),
+        ),
     }
 }
 
@@ -136,24 +148,33 @@ struct AgentResponse {
     namespace: String,
 }
 
-async fn list_agents(
-    State(state): State<Arc<AppState>>,
-) -> (StatusCode, Json<Value>) {
+async fn list_agents(State(state): State<Arc<AppState>>) -> (StatusCode, Json<Value>) {
     if let Some(ref manager) = state.agent_manager {
         match manager.list(None).await {
             Ok(agents) => {
-                let response: Vec<_> = agents.iter().map(|a| json!({
-                    "id": a.id,
-                    "name": a.name,
-                    "status": format!("{:?}", a.status),
-                    "namespace": a.namespace
-                })).collect();
+                let response: Vec<_> = agents
+                    .iter()
+                    .map(|a| {
+                        json!({
+                            "id": a.id,
+                            "name": a.name,
+                            "status": format!("{:?}", a.status),
+                            "namespace": a.namespace
+                        })
+                    })
+                    .collect();
                 (StatusCode::OK, Json(json!({ "agents": response })))
             }
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() })))
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "agents": [], "note": "No database connected" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "agents": [], "note": "No database connected" })),
+        )
     }
 }
 
@@ -162,27 +183,39 @@ async fn create_agent(
     Json(payload): Json<CreateAgentRequest>,
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref manager) = state.agent_manager {
-        match manager.register(
-            &payload.id,
-            &payload.name,
-            &payload.version,
-            payload.namespace.as_deref(),
-        ).await {
-            Ok(agent) => (StatusCode::CREATED, Json(json!({
-                "id": agent.id,
-                "name": agent.name,
-                "status": format!("{:?}", agent.status),
-                "namespace": agent.namespace
-            }))),
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() })))
+        match manager
+            .register(
+                &payload.id,
+                &payload.name,
+                &payload.version,
+                payload.namespace.as_deref(),
+            )
+            .await
+        {
+            Ok(agent) => (
+                StatusCode::CREATED,
+                Json(json!({
+                    "id": agent.id,
+                    "name": agent.name,
+                    "status": format!("{:?}", agent.status),
+                    "namespace": agent.namespace
+                })),
+            ),
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::CREATED, Json(json!({
-            "id": payload.id,
-            "name": payload.name,
-            "status": "active",
-            "note": "No database connected"
-        })))
+        (
+            StatusCode::CREATED,
+            Json(json!({
+                "id": payload.id,
+                "name": payload.name,
+                "status": "active",
+                "note": "No database connected"
+            })),
+        )
     }
 }
 
@@ -192,17 +225,26 @@ async fn get_agent(
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref manager) = state.agent_manager {
         match manager.get(&id).await {
-            Ok(agent) => (StatusCode::OK, Json(json!({
-                "id": agent.id,
-                "name": agent.name,
-                "status": format!("{:?}", agent.status),
-                "namespace": agent.namespace,
-                "reputation": agent.reputation
-            }))),
-            Err(e) => (StatusCode::NOT_FOUND, Json(json!({ "error": e.to_string() })))
+            Ok(agent) => (
+                StatusCode::OK,
+                Json(json!({
+                    "id": agent.id,
+                    "name": agent.name,
+                    "status": format!("{:?}", agent.status),
+                    "namespace": agent.namespace,
+                    "reputation": agent.reputation
+                })),
+            ),
+            Err(e) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "id": id, "note": "No database connected" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "id": id, "note": "No database connected" })),
+        )
     }
 }
 
@@ -213,10 +255,16 @@ async fn delete_agent(
     if let Some(ref manager) = state.agent_manager {
         match manager.delete(&id).await {
             Ok(()) => (StatusCode::OK, Json(json!({ "deleted": id }))),
-            Err(e) => (StatusCode::NOT_FOUND, Json(json!({ "error": e.to_string() })))
+            Err(e) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "deleted": id, "note": "No database connected" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "deleted": id, "note": "No database connected" })),
+        )
     }
 }
 
@@ -230,15 +278,24 @@ async fn get_reputation(
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref manager) = state.agent_manager {
         match manager.get(&id).await {
-            Ok(agent) => (StatusCode::OK, Json(json!({
-                "id": agent.id,
-                "score": agent.reputation.score,
-                "level": agent.reputation.trust_level
-            }))),
-            Err(e) => (StatusCode::NOT_FOUND, Json(json!({ "error": e.to_string() })))
+            Ok(agent) => (
+                StatusCode::OK,
+                Json(json!({
+                    "id": agent.id,
+                    "score": agent.reputation.score,
+                    "level": agent.reputation.trust_level
+                })),
+            ),
+            Err(e) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "id": id, "score": 50, "level": "neutral" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "id": id, "score": 50, "level": "neutral" })),
+        )
     }
 }
 
@@ -249,10 +306,16 @@ async fn report_success(
     if let Some(ref manager) = state.agent_manager {
         match manager.record_success(&id, 0).await {
             Ok(()) => (StatusCode::OK, Json(json!({ "id": id, "change": "+1" }))),
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() })))
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "id": id, "score": 51, "change": "+1" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "id": id, "score": 51, "change": "+1" })),
+        )
     }
 }
 
@@ -263,10 +326,16 @@ async fn report_failure(
     if let Some(ref manager) = state.agent_manager {
         match manager.record_failure(&id).await {
             Ok(()) => (StatusCode::OK, Json(json!({ "id": id, "change": "-10" }))),
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() })))
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "id": id, "score": 40, "change": "-10" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "id": id, "score": 40, "change": "-10" })),
+        )
     }
 }
 
@@ -288,22 +357,34 @@ async fn log_audit_event(
     Json(payload): Json<AuditRequest>,
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref audit) = state.audit_service {
-        match audit.log(
-            &payload.event_type,
-            payload.actor_id.as_deref(),
-            None, // actor_type
-            payload.target_id.as_deref(),
-            None, // target_type
-            &payload.action,
-            &payload.outcome,
-            None, // details
-            None, // ip_address
-        ).await {
-            Ok(id) => (StatusCode::CREATED, Json(json!({ "logged": true, "id": id.to_string() }))),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() })))
+        match audit
+            .log(
+                &payload.event_type,
+                payload.actor_id.as_deref(),
+                None, // actor_type
+                payload.target_id.as_deref(),
+                None, // target_type
+                &payload.action,
+                &payload.outcome,
+                None, // details
+                None, // ip_address
+            )
+            .await
+        {
+            Ok(id) => (
+                StatusCode::CREATED,
+                Json(json!({ "logged": true, "id": id.to_string() })),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::CREATED, Json(json!({ "logged": true, "note": "No database connected" })))
+        (
+            StatusCode::CREATED,
+            Json(json!({ "logged": true, "note": "No database connected" })),
+        )
     }
 }
 
@@ -339,20 +420,29 @@ async fn register_key(
         .await;
 
         match result {
-            Ok(_) => (StatusCode::CREATED, Json(json!({
-                "credential_id": payload.credential_id,
-                "principal_id": payload.principal_id,
-                "active": true
-            }))),
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() })))
+            Ok(_) => (
+                StatusCode::CREATED,
+                Json(json!({
+                    "credential_id": payload.credential_id,
+                    "principal_id": payload.principal_id,
+                    "active": true
+                })),
+            ),
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::CREATED, Json(json!({
-            "credential_id": payload.credential_id,
-            "principal_id": payload.principal_id,
-            "active": true,
-            "note": "No database connected"
-        })))
+        (
+            StatusCode::CREATED,
+            Json(json!({
+                "credential_id": payload.credential_id,
+                "principal_id": payload.principal_id,
+                "active": true,
+                "note": "No database connected"
+            })),
+        )
     }
 }
 
@@ -368,10 +458,19 @@ async fn revoke_key(
 
         match result {
             Ok(r) if r.rows_affected() > 0 => (StatusCode::OK, Json(json!({ "revoked": id }))),
-            Ok(_) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Key not found" }))),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() })))
+            Ok(_) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Key not found" })),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            ),
         }
     } else {
-        (StatusCode::OK, Json(json!({ "revoked": id, "note": "No database connected" })))
+        (
+            StatusCode::OK,
+            Json(json!({ "revoked": id, "note": "No database connected" })),
+        )
     }
 }

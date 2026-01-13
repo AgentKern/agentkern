@@ -50,37 +50,37 @@ pub struct AgentReputation {
 pub struct AgentRecord {
     /// Unique Agent ID (UUID or String)
     pub id: String,
-    
+
     /// Display Name
     pub name: String,
-    
+
     /// Namespace isolation
     pub namespace: String,
-    
+
     /// Semantic Version
     pub version: String,
-    
+
     /// Lifecycle Status
     pub status: AgentStatus,
-    
+
     /// Resource Budget (JSONB)
     #[sqlx(json)]
     pub budget: AgentBudget,
-    
+
     /// Usage Stats (JSONB)
     #[sqlx(json)]
     pub usage: AgentUsage,
-    
+
     /// Reputation & Trust (JSONB)
     #[sqlx(json)]
     pub reputation: AgentReputation,
-    
+
     /// Creation Timestamp
     pub created_at: DateTime<Utc>,
-    
+
     /// Last Active Timestamp
     pub last_active_at: DateTime<Utc>,
-    
+
     /// Termination info
     pub terminated_at: Option<DateTime<Utc>>,
     pub termination_reason: Option<String>,

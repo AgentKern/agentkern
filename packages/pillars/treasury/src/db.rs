@@ -130,7 +130,7 @@ impl PgTransferEngine {
     /// Check if this idempotency key was already used
     async fn check_idempotency(&self, key: &str) -> Result<Option<TransactionId>, TransferError> {
         let result = sqlx::query_scalar::<_, Uuid>(
-            "SELECT transaction_id FROM completed_transfers WHERE idempotency_key = $1"
+            "SELECT transaction_id FROM completed_transfers WHERE idempotency_key = $1",
         )
         .bind(key)
         .fetch_optional(&self.pool)
@@ -146,13 +146,13 @@ impl PgTransferEngine {
         transaction_id: TransactionId,
     ) -> Result<(), TransferError> {
         let amount_micros = request.amount.as_micros();
-        
+
         // Start transaction
         let mut tx = self.pool.begin().await?;
 
         // Lock sender's balance row (SELECT FOR UPDATE)
         let sender_balance = sqlx::query_as::<_, (i64, i64)>(
-            "SELECT balance, held FROM agent_balances WHERE agent_id = $1 FOR UPDATE"
+            "SELECT balance, held FROM agent_balances WHERE agent_id = $1 FOR UPDATE",
         )
         .bind(&request.from)
         .fetch_optional(&mut *tx)
@@ -171,7 +171,7 @@ impl PgTransferEngine {
         sqlx::query(
             "INSERT INTO agent_balances (agent_id, balance, currency) 
              VALUES ($1, 0, 'VMC') 
-             ON CONFLICT (agent_id) DO NOTHING"
+             ON CONFLICT (agent_id) DO NOTHING",
         )
         .bind(&request.to)
         .execute(&mut *tx)
@@ -218,13 +218,12 @@ impl PgTransferEngine {
 
     /// Get balance for an agent
     pub async fn get_balance(&self, agent_id: &str) -> Result<i64, TransferError> {
-        let balance = sqlx::query_scalar::<_, i64>(
-            "SELECT balance FROM agent_balances WHERE agent_id = $1"
-        )
-        .bind(agent_id)
-        .fetch_optional(&self.pool)
-        .await?
-        .unwrap_or(0);
+        let balance =
+            sqlx::query_scalar::<_, i64>("SELECT balance FROM agent_balances WHERE agent_id = $1")
+                .bind(agent_id)
+                .fetch_optional(&self.pool)
+                .await?
+                .unwrap_or(0);
 
         Ok(balance)
     }
@@ -247,7 +246,7 @@ impl PgTransferEngine {
     /// Cleanup expired pending transfers
     pub async fn cleanup_expired(&self) -> Result<u64, TransferError> {
         let result = sqlx::query(
-            "DELETE FROM pending_transfers WHERE expires_at < NOW() AND status = 'pending'"
+            "DELETE FROM pending_transfers WHERE expires_at < NOW() AND status = 'pending'",
         )
         .execute(&self.pool)
         .await?;

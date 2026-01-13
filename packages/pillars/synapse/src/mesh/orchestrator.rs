@@ -111,7 +111,10 @@ impl MeshOrchestrator {
         current_region: DataRegion,
     ) -> Result<MemoryPassport, MeshError> {
         let start = std::time::Instant::now();
-        tracing::info!("Performing self-healing restart for agent {}", passport.identity.did);
+        tracing::info!(
+            "Performing self-healing restart for agent {}",
+            passport.identity.did
+        );
 
         // 1. Hibernate (Persistence Check)
         let ticket = self.migration.hibernate(passport, current_region)?;

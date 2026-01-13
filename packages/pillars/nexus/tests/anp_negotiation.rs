@@ -53,7 +53,11 @@ async fn test_anp_parsing() {
     assert_eq!(msg.target_agent, Some("did:example:bob".into()));
     assert_eq!(msg.correlation_id, Some("thread-456".into()));
 
-    let price = msg.params.get("price").and_then(|v: &serde_json::Value| v.as_i64()).unwrap();
+    let price = msg
+        .params
+        .get("price")
+        .and_then(|v: &serde_json::Value| v.as_i64())
+        .unwrap();
     assert_eq!(price, 100);
 }
 
