@@ -517,12 +517,10 @@ impl InferenceSession {
                     reason: "Mutex poisoned".to_string(),
                 })?;
 
-            let input_array = ndarray::Array1::from_vec(input.to_vec())
-                .into_shape_with_order((1, input.len()))
+            let input_array = ndarray::Array2::from_shape_vec((1, input.len()), input.to_vec())
                 .map_err(|e: ndarray::ShapeError| NeuralError::InferenceFailed {
                     reason: e.to_string(),
-                })?
-                .into_dyn();
+                })?;
 
             let input_value = Value::from_array(input_array).map_err(|e: ort::Error| {
                 NeuralError::InferenceFailed {
