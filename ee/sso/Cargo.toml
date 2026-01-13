@@ -40,4 +40,4 @@ urlencoding = "2.1"
 
 # Manual SAML impl (for robustness)
 quick-xml = { version = "0.31", features = ["serialize"] }
-flate2 = "1.0"
+flate2 = "1.1"
