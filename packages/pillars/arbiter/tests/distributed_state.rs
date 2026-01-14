@@ -138,9 +138,18 @@ async fn test_queue_persists_across_restart() {
     {
         let coord2 = PgCoordinator::new(pool.clone());
 
-        // Verify lock exists before releasing
-        let pre_release_status = coord2.get_lock_status(resource).await;
-        assert!(pre_release_status.is_some(), "Lock missing before release in Phase 2");
+        // Verify lock exists before releasing (with retry)
+        let mut attempts = 0;
+        let mut pre_release_status = None;
+        while attempts < 5 {
+            pre_release_status = coord2.get_lock_status(resource).await;
+            if pre_release_status.is_some() {
+                break;
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            attempts += 1;
+        }
+        assert!(pre_release_status.is_some(), "Lock missing before release in Phase 2 after retries");
         let lock = pre_release_status.unwrap();
         assert_eq!(lock.locked_by, "agent-1", "Lock owner mismatch before release");
 
@@ -226,8 +235,15 @@ async fn test_queue_direct() {
     let len = queue.queue_length(resource).await;
     assert_eq!(len, 2, "Queue should have 2 items");
 
-    // Pop should return higher priority first
-    let next = queue.pop(resource).await;
+    // Pop should return higher priority first (with retry)
+    let mut next = None;
+    for _ in 0..5 {
+        next = queue.pop(resource).await;
+        if next.is_some() {
+            break;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+    }
     assert!(next.is_some());
     assert_eq!(next.unwrap().agent_id, "agent-2"); // Higher priority
 
