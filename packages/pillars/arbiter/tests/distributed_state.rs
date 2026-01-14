@@ -32,13 +32,15 @@ async fn setup_pool() -> sqlx::PgPool {
         .expect("Failed to connect to database")
 }
 
-/// Clean up test data before each test
-async fn cleanup(pool: &sqlx::PgPool) {
-    sqlx::query("DELETE FROM arbiter_locks WHERE resource LIKE 'test:%'")
+/// Clean up test data for a specific resource
+async fn cleanup_resource(pool: &sqlx::PgPool, resource: &str) {
+    sqlx::query("DELETE FROM arbiter_locks WHERE resource = $1")
+        .bind(resource)
         .execute(pool)
         .await
         .ok();
-    sqlx::query("DELETE FROM arbiter_queue WHERE resource LIKE 'test:%'")
+    sqlx::query("DELETE FROM arbiter_queue WHERE resource = $1")
+        .bind(resource)
         .execute(pool)
         .await
         .ok();
@@ -102,9 +104,8 @@ async fn test_lock_persists_across_restart() {
 #[tokio::test]
 async fn test_queue_persists_across_restart() {
     let pool = setup_pool().await;
-    cleanup(&pool).await;
-
     let resource = "test:queue_persistence_2";
+    cleanup_resource(&pool, resource).await;
 
     // === Phase 1: Create lock and enqueue waiters ===
     {
@@ -180,10 +181,8 @@ async fn test_queue_persists_across_restart() {
 #[tokio::test]
 async fn test_lock_manager_direct() {
     let pool = setup_pool().await;
-    cleanup(&pool).await;
-
-    let lock_manager = PgLockManager::new(pool.clone());
     let resource = "test:lock_manager_3";
+    cleanup_resource(&pool, resource).await;
 
     // Acquire
     let lock = lock_manager
@@ -213,10 +212,8 @@ async fn test_lock_manager_direct() {
 #[tokio::test]
 async fn test_queue_direct() {
     let pool = setup_pool().await;
-    cleanup(&pool).await;
-
-    let queue = PgQueue::new(pool.clone());
     let resource = "test:queue_direct_4";
+    cleanup_resource(&pool, resource).await;
 
     // Enqueue requests
     let req1 = CoordinationRequest::new("agent-1", resource)
@@ -261,10 +258,8 @@ async fn test_queue_direct() {
 #[tokio::test]
 async fn test_priority_preemption() {
     let pool = setup_pool().await;
-    cleanup(&pool).await;
-
-    let lock_manager = PgLockManager::new(pool.clone());
     let resource = "test:preemption_5";
+    cleanup_resource(&pool, resource).await;
 
     // Low priority acquires
     lock_manager
