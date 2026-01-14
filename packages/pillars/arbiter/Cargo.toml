@@ -69,7 +69,7 @@ rust_decimal_macros = "1.36"
 
 # Internal dependencies
 agentkern-governance = { path = "../../foundation/governance" }
-agentkern-gate = { path = "../gate", features = ["neural"] }
+agentkern-gate = { path = "../gate" }
 agentkern-synapse = { path = "../synapse" }
 agentkern-pulse = { path = "../../foundation/pulse" }
 
