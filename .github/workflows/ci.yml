@@ -111,7 +111,7 @@ jobs:
         run: cargo test -p agentkern-identity
 
       - name: Build agentkern-server
-        run: cargo build -p agentkern-server --release
+        run: cargo build -p agentkern-server --release --no-default-features
 
   # ============================================
   # Identity E2E Tests (Rust Server API)
@@ -260,12 +260,13 @@ jobs:
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 2048
-          temp-reserve-mb: 1024
+          root-reserve-mb: 4096
+          temp-reserve-mb: 2048
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+          remove-docker-images: 'true'
 
       - uses: actions/checkout@v6
 
@@ -289,6 +290,21 @@ jobs:
     name: Rust Coverage
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
       - name: Maximize Build Space
