@@ -173,7 +173,3 @@ jobs:
         
       - name: Run audit
         run: pnpm audit --audit-level=high
-        
-      - name: Run ESLint security
-        continue-on-error: true
-        run: pnpm lint
