@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     cmake \
+    ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace manifest files first for better caching
