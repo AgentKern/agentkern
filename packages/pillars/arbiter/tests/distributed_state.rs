@@ -138,6 +138,12 @@ async fn test_queue_persists_across_restart() {
     {
         let coord2 = PgCoordinator::new(pool.clone());
 
+        // Verify lock exists before releasing
+        let pre_release_status = coord2.get_lock_status(resource).await;
+        assert!(pre_release_status.is_some(), "Lock missing before release in Phase 2");
+        let lock = pre_release_status.unwrap();
+        assert_eq!(lock.locked_by, "agent-1", "Lock owner mismatch before release");
+
         // Release agent-1's lock
         coord2
             .release_lock("agent-1", resource)
@@ -215,6 +221,10 @@ async fn test_queue_direct() {
         .with_intent("Safe direct queue 2");
     let _pos2 = queue.enqueue(req2).await.expect("Failed to enqueue 2");
     // Agent-2 has higher priority, so position depends on ordering logic
+
+    // Verify queue length
+    let len = queue.queue_length(resource).await;
+    assert_eq!(len, 2, "Queue should have 2 items");
 
     // Pop should return higher priority first
     let next = queue.pop(resource).await;
