@@ -20,6 +20,21 @@ jobs:
     name: Gate Tests (Rust)
     runs-on: ubuntu-latest
     
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@v10
@@ -48,6 +63,9 @@ jobs:
         run: cargo clippy --workspace --all-features -- -D warnings
       
       - name: Run tests
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: cargo test --workspace --all-features -- --test-threads=1
 
   # ============================================
