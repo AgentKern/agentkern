@@ -229,6 +229,7 @@ impl PgLockManager {
 #[derive(sqlx::FromRow)]
 struct ExistingLock {
     id: Uuid,
+    #[allow(dead_code)]
     resource: String,
     locked_by: String,
     priority: i32,

@@ -21,6 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 2048
+          temp-reserve-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
       - uses: actions/checkout@v6
       
       - name: Install dependencies
@@ -28,17 +38,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpython3-dev pkg-config
       
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
       
       - name: Check formatting
         run: cargo fmt --all --check
@@ -65,17 +66,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-dev
       
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-identity-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Run Identity Tests
         run: cargo test -p agentkern-identity
@@ -114,13 +106,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-dev
       
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/
-          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('Cargo.lock') }}
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Build agentkern-server
         run: cargo build -p agentkern-server --release
@@ -243,16 +230,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-dev
       
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/
-          key: ${{ runner.os }}-cargo-tarpaulin-${{ hashFiles('Cargo.lock') }}
-      
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
       - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin || true
+        uses: taiki-e/install-action@cargo-tarpaulin
       
       - name: Run coverage
         run: cargo tarpaulin --workspace --out Html --output-dir coverage

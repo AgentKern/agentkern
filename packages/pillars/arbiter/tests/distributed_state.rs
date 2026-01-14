@@ -58,7 +58,8 @@ async fn test_lock_persists_across_restart() {
 
         let request = CoordinationRequest::new(agent_id, resource)
             .with_priority(5)
-            .with_duration_ms(60000); // 60 second TTL
+            .with_duration_ms(60000)
+            .with_intent("Safe lock acquisition for persistence test");
 
         let result = coord1.request(request).await;
         assert!(result.granted, "Lock should be granted");
@@ -83,8 +84,9 @@ async fn test_lock_persists_across_restart() {
         assert_eq!(lock.locked_by, agent_id, "Lock owner should be preserved");
 
         // Another agent should NOT be able to acquire (same priority)
-        let conflict_request =
-            CoordinationRequest::new("agent-conflict", resource).with_priority(5);
+        let conflict_request = CoordinationRequest::new("agent-conflict", resource)
+            .with_priority(5)
+            .with_intent("Safe conflicting request for test");
 
         let conflict_result = coord2.request(conflict_request).await;
         assert!(
@@ -109,18 +111,24 @@ async fn test_queue_persists_across_restart() {
         let coord1 = PgCoordinator::new(pool.clone());
 
         // Agent 1 acquires lock
-        let req1 = CoordinationRequest::new("agent-1", resource).with_priority(5);
+        let req1 = CoordinationRequest::new("agent-1", resource)
+            .with_priority(5)
+            .with_intent("Safe initial lock");
         let result1 = coord1.request(req1).await;
         assert!(result1.granted);
 
         // Agent 2 gets queued
-        let req2 = CoordinationRequest::new("agent-2", resource).with_priority(3);
+        let req2 = CoordinationRequest::new("agent-2", resource)
+            .with_priority(3)
+            .with_intent("Safe waiter 1");
         let result2 = coord1.request(req2).await;
         assert!(!result2.granted);
         assert_eq!(result2.queue_position, Some(1));
 
         // Agent 3 gets queued (higher priority than agent-2)
-        let req3 = CoordinationRequest::new("agent-3", resource).with_priority(4);
+        let req3 = CoordinationRequest::new("agent-3", resource)
+            .with_priority(4)
+            .with_intent("Safe waiter 2");
         let result3 = coord1.request(req3).await;
         assert!(!result3.granted);
     }

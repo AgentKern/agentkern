@@ -23,6 +23,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpython3-dev pkg-config
 
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin
 
