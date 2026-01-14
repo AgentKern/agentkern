@@ -49,9 +49,8 @@ async fn cleanup_resource(pool: &sqlx::PgPool, resource: &str) {
 #[tokio::test]
 async fn test_lock_persists_across_restart() {
     let pool = setup_pool().await;
-    cleanup(&pool).await;
-
     let resource = "test:lock_persistence_1";
+    cleanup_resource(&pool, resource).await;
     let agent_id = "agent-persistence-test";
 
     // === Phase 1: Acquire lock with first coordinator ===
