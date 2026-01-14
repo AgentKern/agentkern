@@ -312,9 +312,6 @@ jobs:
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin
       
-      - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@cargo-tarpaulin
-      
       - name: Install sqlx-cli
         uses: taiki-e/install-action@sqlx-cli
 
