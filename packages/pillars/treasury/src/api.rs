@@ -24,7 +24,7 @@ pub fn router(pool: Option<PgPool>) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/transfer", post(transfer))
-        .route("/balance/:id", get(get_balance))
+        .route("/balance/{id}", get(get_balance))
         .with_state(state)
 }
 
