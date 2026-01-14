@@ -59,6 +59,14 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all --check
       
+      - name: Install sqlx-cli
+        uses: taiki-e/install-action@sqlx-cli
+
+      - name: Run Migrations (Arbiter)
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+        run: sqlx migrate run --source packages/pillars/arbiter/migrations --ignore-missing
+      
       - name: Clippy
         run: cargo clippy --workspace --all-features -- -D warnings
       
@@ -304,7 +312,21 @@ jobs:
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin
       
+      - name: Install cargo-tarpaulin
+        uses: taiki-e/install-action@cargo-tarpaulin
+      
+      - name: Install sqlx-cli
+        uses: taiki-e/install-action@sqlx-cli
+
+      - name: Run Migrations (Arbiter)
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+        run: sqlx migrate run --source packages/pillars/arbiter/migrations --ignore-missing
+
       - name: Run coverage
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: cargo tarpaulin --workspace --out Html --output-dir coverage
       
       - name: Upload coverage report
