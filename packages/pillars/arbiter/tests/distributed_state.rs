@@ -183,6 +183,8 @@ async fn test_lock_manager_direct() {
     let resource = "test:lock_manager_3";
     cleanup_resource(&pool, resource).await;
 
+    let lock_manager = PgLockManager::new(pool.clone());
+
     // Acquire
     let lock = lock_manager
         .acquire("agent-1", resource, 5, LockType::Write, Some(30000))
@@ -213,6 +215,8 @@ async fn test_queue_direct() {
     let pool = setup_pool().await;
     let resource = "test:queue_direct_4";
     cleanup_resource(&pool, resource).await;
+
+    let queue = PgQueue::new(pool.clone());
 
     // Enqueue requests
     let req1 = CoordinationRequest::new("agent-1", resource)
@@ -259,6 +263,8 @@ async fn test_priority_preemption() {
     let pool = setup_pool().await;
     let resource = "test:preemption_5";
     cleanup_resource(&pool, resource).await;
+
+    let lock_manager = PgLockManager::new(pool.clone());
 
     // Low priority acquires
     lock_manager
