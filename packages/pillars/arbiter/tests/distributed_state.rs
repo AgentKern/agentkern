@@ -149,9 +149,15 @@ async fn test_queue_persists_across_restart() {
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
             attempts += 1;
         }
-        assert!(pre_release_status.is_some(), "Lock missing before release in Phase 2 after retries");
+        assert!(
+            pre_release_status.is_some(),
+            "Lock missing before release in Phase 2 after retries"
+        );
         let lock = pre_release_status.unwrap();
-        assert_eq!(lock.locked_by, "agent-1", "Lock owner mismatch before release");
+        assert_eq!(
+            lock.locked_by, "agent-1",
+            "Lock owner mismatch before release"
+        );
 
         // Release agent-1's lock
         coord2
