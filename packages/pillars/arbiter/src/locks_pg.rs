@@ -229,7 +229,7 @@ impl PgLockManager {
 #[derive(sqlx::FromRow)]
 struct ExistingLock {
     id: Uuid,
-    _resource: String,
+    resource: String,
     locked_by: String,
     priority: i32,
     expires_at: chrono::DateTime<Utc>,

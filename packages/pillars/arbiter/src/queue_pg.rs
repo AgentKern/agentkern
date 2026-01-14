@@ -135,7 +135,8 @@ impl PgQueue {
 // SQLx row type
 #[derive(sqlx::FromRow)]
 struct QueueRow {
-    _id: Uuid,
+    #[allow(dead_code)]
+    id: Uuid,
     agent_id: String,
     resource: String,
     priority: i32,

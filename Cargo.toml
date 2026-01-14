@@ -125,8 +125,8 @@ wasmtime = "40.0"
 rand = "0.9"
 
 # Neural
-ort = "2.0.0-rc.10"
-ndarray = "0.16.1"
+ort = "2.0.0-rc.11"
+ndarray = "0.17.2"
 
 # Testing
 temp-env = "0.3"

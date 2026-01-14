@@ -290,13 +290,13 @@ impl CryptoProvider {
             #[cfg(feature = "pqc")]
             CryptoMode::PostQuantum | CryptoMode::Hybrid => {
                 // Generate ML-DSA key pair (PQ Component)
-                // Default to Dilithium5 (ML-DSA-87) for maximum security
-                use pqcrypto_dilithium::dilithium5;
+                // Default to ML-DSA-87 for maximum security
+                use pqcrypto_mldsa::mldsa87;
                 use pqcrypto_traits::sign::{
                     PublicKey as SignPublicKey, SecretKey as SignSecretKey,
                 };
 
-                let (pq_pk, pq_sk) = dilithium5::keypair();
+                let (pq_pk, pq_sk) = mldsa87::keypair();
                 let pq_pub_b64 = base64::Engine::encode(
                     &base64::engine::general_purpose::STANDARD,
                     SignPublicKey::as_bytes(&pq_pk),
@@ -376,20 +376,19 @@ impl CryptoProvider {
             Ok(base64::engine::general_purpose::STANDARD.encode(sig.to_bytes()))
         };
 
-        // Helper to sign with ML-DSA (Real)
         #[cfg(feature = "pqc")]
         let sign_pqc = |priv_b64: &str| -> Result<String, CryptoError> {
-            use pqcrypto_dilithium::dilithium5;
+            use pqcrypto_mldsa::mldsa87;
             use pqcrypto_traits::sign::{DetachedSignature, SecretKey};
 
             let private_bytes = base64::engine::general_purpose::STANDARD
                 .decode(priv_b64)
                 .map_err(|_| CryptoError::InvalidKeyFormat)?;
 
-            let sk = dilithium5::SecretKey::from_bytes(private_bytes.as_slice())
+            let sk = mldsa87::SecretKey::from_bytes(private_bytes.as_slice())
                 .map_err(|e| CryptoError::SigningFailed(format!("Invalid ML-DSA key: {}", e)))?;
 
-            let sig = dilithium5::detached_sign(message, &sk);
+            let sig = mldsa87::detached_sign(message, &sk);
             Ok(base64::engine::general_purpose::STANDARD.encode(sig.as_bytes()))
         };
 
@@ -496,22 +495,22 @@ impl CryptoProvider {
         // Helper to verify ML-DSA (Real)
         #[cfg(feature = "pqc")]
         let verify_pqc = |pub_b64: &str, sig_b64: &str| -> Result<(), CryptoError> {
-            use pqcrypto_dilithium::dilithium5;
+            use pqcrypto_mldsa::mldsa87;
             use pqcrypto_traits::sign::{DetachedSignature, PublicKey};
 
             let pub_bytes = base64::engine::general_purpose::STANDARD
                 .decode(pub_b64)
                 .map_err(|_| CryptoError::InvalidKeyFormat)?;
-            let pk = dilithium5::PublicKey::from_bytes(pub_bytes.as_slice())
+            let pk = mldsa87::PublicKey::from_bytes(pub_bytes.as_slice())
                 .map_err(|_e| CryptoError::InvalidKeyFormat)?;
 
             let sig_bytes = base64::engine::general_purpose::STANDARD
                 .decode(sig_b64)
                 .map_err(|_| CryptoError::VerificationFailed)?;
-            let sig = dilithium5::DetachedSignature::from_bytes(sig_bytes.as_slice())
+            let sig = mldsa87::DetachedSignature::from_bytes(sig_bytes.as_slice())
                 .map_err(|_| CryptoError::VerificationFailed)?;
 
-            dilithium5::verify_detached_signature(&sig, message, &pk)
+            mldsa87::verify_detached_signature(&sig, message, &pk)
                 .map_err(|_| CryptoError::VerificationFailed)?;
             Ok(())
         };
@@ -680,15 +679,15 @@ impl HybridKeyExchange {
         let x25519_pub_b64 =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, x25519_public);
 
-        // Generate ML-KEM-768 keypair using pqcrypto-kyber (stable)
-        // FIPS 203 compliant implementation (Kyber-768 parameter set)
+        // Generate ML-KEM-768 keypair using pqcrypto-mlkem (stable)
+        // FIPS 203 compliant implementation (ML-KEM-768 parameter set)
         #[cfg(feature = "pqc")]
         {
-            use pqcrypto_kyber::kyber768;
+            use pqcrypto_mlkem::mlkem768;
             use pqcrypto_traits::kem::{PublicKey as KemPublicKey, SecretKey as KemSecretKey};
 
             // Generate real ML-KEM-768 keypair
-            let (pk, sk) = kyber768::keypair();
+            let (pk, sk) = mlkem768::keypair();
 
             // Store secret key for decapsulation
             self.mlkem_dk_bytes = Some(KemSecretKey::as_bytes(&sk).to_vec());
@@ -702,7 +701,7 @@ impl HybridKeyExchange {
             tracing::debug!(
                 pk_size = KemPublicKey::as_bytes(&pk).len(),
                 sk_size = KemSecretKey::as_bytes(&sk).len(),
-                "ML-KEM-768 keypair generated (pqcrypto-kyber stable)"
+                "ML-KEM-768 keypair generated (pqcrypto-mlkem stable)"
             );
 
             Ok((x25519_pub_b64, mlkem_pub_b64))

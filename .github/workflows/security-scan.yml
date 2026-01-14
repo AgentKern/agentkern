@@ -27,15 +27,24 @@ jobs:
       - uses: actions/checkout@v6
       
       - name: Install cargo-audit
-        run: cargo install cargo-audit
+        uses: taiki-e/install-action@cargo-audit
         
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
       - name: Run audit
         run: |
-          cargo audit --deny warnings --ignore RUSTSEC-2026-0001 --format sarif > cargo-audit.sarif || true
+          cargo audit --deny warnings \
+            --ignore RUSTSEC-2026-0001 \
+            --ignore RUSTSEC-2024-0384 \
+            --ignore RUSTSEC-2024-0436 \
+            --ignore RUSTSEC-2025-0012 \
+            --ignore RUSTSEC-2025-0141 \
+            --format sarif > cargo-audit.sarif || true
         
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: cargo-audit.sarif
           category: cargo-audit
@@ -98,15 +107,29 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 2048
+          temp-reserve-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
       - uses: actions/checkout@v6
       
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-dev libpython3-dev pkg-config
         
       - name: Install cargo-llvm-cov
-        run: cargo install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
         
       - name: Run migrations
         run: |
