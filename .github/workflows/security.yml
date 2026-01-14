@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@nightly
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -91,7 +91,7 @@ jobs:
     needs: [sbom-rust, sbom-typescript]
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Download Rust SBOMs
         uses: actions/download-artifact@v4
@@ -129,7 +129,7 @@ jobs:
       attestations: write
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Download all SBOMs
         uses: actions/download-artifact@v4
@@ -155,7 +155,7 @@ jobs:
       contents: read
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -186,8 +186,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
-      
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@v10
         with:
@@ -197,6 +195,8 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -234,7 +234,7 @@ jobs:
       security-events: write
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Run Semgrep
         uses: semgrep/semgrep-action@v1
@@ -261,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
@@ -280,7 +280,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -300,7 +300,7 @@ jobs:
     if: github.event_name == 'pull_request'
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
