@@ -113,6 +113,7 @@ async fn test_queue_persists_across_restart() {
         // Agent 1 acquires lock
         let req1 = CoordinationRequest::new("agent-1", resource)
             .with_priority(5)
+            .with_duration_ms(60000)
             .with_intent("Safe initial lock");
         let result1 = coord1.request(req1).await;
         assert!(result1.granted);
@@ -203,11 +204,15 @@ async fn test_queue_direct() {
     let resource = "test:queue_direct_4";
 
     // Enqueue requests
-    let req1 = CoordinationRequest::new("agent-1", resource).with_priority(3);
+    let req1 = CoordinationRequest::new("agent-1", resource)
+        .with_priority(3)
+        .with_intent("Safe direct queue 1");
     let pos1 = queue.enqueue(req1).await.expect("Enqueue should succeed");
     assert_eq!(pos1, 1);
 
-    let req2 = CoordinationRequest::new("agent-2", resource).with_priority(5);
+    let req2 = CoordinationRequest::new("agent-2", resource)
+        .with_priority(5)
+        .with_intent("Safe direct queue 2");
     let _pos2 = queue.enqueue(req2).await.expect("Failed to enqueue 2");
     // Agent-2 has higher priority, so position depends on ordering logic
 
