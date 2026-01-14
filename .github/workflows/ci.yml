@@ -60,7 +60,9 @@ jobs:
         run: cargo fmt --all --check
       
       - name: Install sqlx-cli
-        uses: taiki-e/install-action@sqlx-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli
 
       - name: Run Migrations (Arbiter)
         env:
@@ -313,7 +315,9 @@ jobs:
         uses: taiki-e/install-action@cargo-tarpaulin
       
       - name: Install sqlx-cli
-        uses: taiki-e/install-action@sqlx-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli
 
       - name: Run Migrations (Arbiter)
         env:
