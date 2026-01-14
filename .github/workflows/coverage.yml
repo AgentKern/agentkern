@@ -70,7 +70,7 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo tarpaulin --verbose --workspace --timeout 300 --out Xml
+          cargo tarpaulin --verbose --workspace --timeout 300 --out Xml -- --test-threads 1
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
