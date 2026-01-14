@@ -327,8 +327,11 @@ jobs:
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
 
-      - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@cargo-tarpaulin
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install llvm-tools-preview
+        run: rustup component add llvm-tools-preview
       
       - name: Install sqlx-cli
         uses: taiki-e/install-action@v2
@@ -340,17 +343,20 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
         run: cargo run -p agentkern-server --bin migrate
 
-      - name: Run coverage (Parallel Units)
+      - name: Run coverage (Stateless Units)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
-        run: cargo tarpaulin --verbose --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --timeout 300 --out Html --output-dir coverage
+        run: cargo llvm-cov --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --no-report
 
       - name: Run coverage (Serial Integration)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
-        run: cargo tarpaulin --verbose --packages agentkern-arbiter agentkern-identity agentkern-server --timeout 300 --out Html --output-dir coverage --append -- --test-threads 1
+        run: cargo llvm-cov --packages agentkern-arbiter agentkern-identity agentkern-server --no-report -- --test-threads 1
+      
+      - name: Generate Coverage Report
+        run: cargo llvm-cov report --html --output-dir coverage
       
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

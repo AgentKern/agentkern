@@ -52,8 +52,11 @@ jobs:
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
 
-      - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@cargo-tarpaulin
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install llvm-tools-preview
+        run: rustup component add llvm-tools-preview
 
       - name: Install sqlx-cli
         uses: taiki-e/install-action@v2
@@ -65,24 +68,27 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
         run: cargo run -p agentkern-server --bin migrate
 
-      - name: Generate Code Coverage (Parallel Units)
+      - name: Generate Code Coverage (Stateless Units)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo tarpaulin --verbose --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --timeout 300 --out Xml
+          cargo llvm-cov --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --no-report
 
       - name: Generate Code Coverage (Serial Integration)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo tarpaulin --verbose --packages agentkern-arbiter agentkern-identity agentkern-server --timeout 300 --out Xml --append -- --test-threads 1
+          cargo llvm-cov --packages agentkern-arbiter agentkern-identity agentkern-server --no-report -- --test-threads 1
+
+      - name: Generate LCOV Report
+        run: cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: cobertura.xml
+          files: lcov.info
           fail_ci_if_error: true
           slug: AgentKern/agentkern
