@@ -97,7 +97,7 @@ async fn test_lock_persists_across_restart() {
         assert!(conflict_result.queue_position.is_some(), "Should be queued");
     }
 
-    cleanup_resource(cleanup(&pool).awaitpool, resource).await;
+    cleanup_resource(&pool, resource).await;
 }
 
 #[tokio::test]
@@ -174,7 +174,7 @@ async fn test_queue_persists_across_restart() {
         );
     }
 
-    cleanup_resource(cleanup(&pool).awaitpool, resource).await;
+    cleanup_resource(&pool, resource).await;
 }
 
 #[tokio::test]
@@ -205,7 +205,7 @@ async fn test_lock_manager_direct() {
     let status = lock_manager.get_status(resource).await;
     assert!(status.is_none(), "Lock should be gone after release");
 
-    cleanup_resource(cleanup(&pool).awaitpool, resource).await;
+    cleanup_resource(&pool, resource).await;
 }
 
 #[tokio::test]
@@ -251,7 +251,7 @@ async fn test_queue_direct() {
     let next3 = queue.pop(resource).await;
     assert!(next3.is_none());
 
-    cleanup_resource(cleanup(&pool).awaitpool, resource).await;
+    cleanup_resource(&pool, resource).await;
 }
 
 #[tokio::test]
@@ -278,5 +278,5 @@ async fn test_priority_preemption() {
     let status = lock_manager.get_status(resource).await.unwrap();
     assert_eq!(status.locked_by, "high-agent");
 
-    cleanup_resource(cleanup(&pool).awaitpool, resource).await;
+    cleanup_resource(&pool, resource).await;
 }
