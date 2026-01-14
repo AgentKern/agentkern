@@ -141,7 +141,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
 
 [profile.release]
 lto = false
-# codegen-units = 1 (Disabled to prevent CI OOM)
+codegen-units = 1 # Enabled to prevent CI OOM
 panic = "abort"
 strip = true
 
