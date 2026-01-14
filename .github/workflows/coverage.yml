@@ -14,6 +14,21 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@v10
@@ -40,9 +55,22 @@ jobs:
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin
 
+      - name: Install sqlx-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli
+
+      - name: Run Migrations (Unified)
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+        run: cargo run -p agentkern-server --bin migrate
+
       - name: Generate code coverage
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo tarpaulin --verbose --workspace --timeout 120 --out Xml
+          cargo tarpaulin --verbose --workspace --timeout 300 --out Xml
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
