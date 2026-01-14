@@ -65,12 +65,19 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
         run: cargo run -p agentkern-server --bin migrate
 
-      - name: Generate code coverage
+      - name: Generate Code Coverage (Parallel Units)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo tarpaulin --verbose --workspace --timeout 300 --out Xml -- --test-threads 1
+          cargo tarpaulin --verbose --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --timeout 300 --out Xml --output-dir coverage
+
+      - name: Generate Code Coverage (Serial Integration)
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
+        run: |
+          cargo tarpaulin --verbose --packages agentkern-arbiter agentkern-identity agentkern-server --timeout 300 --out Xml --output-dir coverage --append -- --test-threads 1
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5

@@ -340,11 +340,17 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
         run: cargo run -p agentkern-server --bin migrate
 
-      - name: Run coverage
+      - name: Run coverage (Parallel Units)
         env:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
-        run: cargo tarpaulin --verbose --workspace --timeout 300 --out Html --output-dir coverage -- --test-threads 1
+        run: cargo tarpaulin --verbose --workspace --exclude agentkern-arbiter --exclude agentkern-identity --exclude agentkern-server --timeout 300 --out Html --output-dir coverage
+
+      - name: Run coverage (Serial Integration)
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
+        run: cargo tarpaulin --verbose --packages agentkern-arbiter agentkern-identity agentkern-server --timeout 300 --out Html --output-dir coverage --append -- --test-threads 1
       
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
