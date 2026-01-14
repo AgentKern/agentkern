@@ -229,7 +229,7 @@ impl PgLockManager {
 #[derive(sqlx::FromRow)]
 struct ExistingLock {
     id: Uuid,
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Fix CI warning
     resource: String,
     locked_by: String,
     priority: i32,
