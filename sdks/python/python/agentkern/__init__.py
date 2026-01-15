@@ -17,24 +17,21 @@ Example:
 """
 
 from agentkern._native import (
-    # Version
-    __version__,
-    version,
-    # Classes
-    Agent,
-    LiabilityProof,
-    # Functions
-    parse_proof,
-    create_a2a_request,
-    create_a2a_notification,
+    # Gate / Prompt Guard
+    PromptGuard,
+    GateEngine,
+    ThreatLevel,
+    PromptAction,
+    PromptAnalysis,
 )
+
+__version__ = "0.1.0"
 
 __all__ = [
     "__version__",
-    "version",
-    "Agent",
-    "LiabilityProof",
-    "parse_proof",
-    "create_a2a_request",
-    "create_a2a_notification",
+    "PromptGuard",
+    "GateEngine",
+    "ThreatLevel",
+    "PromptAction",
+    "PromptAnalysis",
 ]

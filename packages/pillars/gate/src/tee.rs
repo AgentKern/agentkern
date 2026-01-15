@@ -308,7 +308,7 @@ impl TeeRuntime {
     }
 
     /// Seal data with hardware key.
-    pub fn seal(&self, data: &[u8], policy: SealingPolicy) -> Result<SealedData, TeeError> {
+    pub fn seal(&self, _data: &[u8], _policy: SealingPolicy) -> Result<SealedData, TeeError> {
         match self.platform {
             // Real HW implementation placeholders (using real crates)
             TeePlatform::IntelTdx | TeePlatform::AmdSevSnp => {

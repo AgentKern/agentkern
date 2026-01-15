@@ -148,7 +148,7 @@ impl PyGateEngine {
 // ============================================================================
 
 #[pymodule]
-fn agentkern(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPromptGuard>()?;
     m.add_class::<PyGateEngine>()?;
     m.add_class::<PyThreatLevel>()?;
