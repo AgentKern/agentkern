@@ -608,11 +608,14 @@ name = "agentkern-server"
 version = "0.1.0"
 dependencies = [
  "agentkern-arbiter",
+ "agentkern-cloud",
+ "agentkern-energy-ee",
  "agentkern-gate",
  "agentkern-identity",
  "agentkern-nexus",
  "agentkern-synapse",
  "agentkern-treasury",
+ "agentkern-trust",
  "axum 0.8.8",
  "backoff",
  "chrono",

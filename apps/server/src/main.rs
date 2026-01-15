@@ -14,6 +14,7 @@ use tower_http::trace::TraceLayer;
 mod auth;
 mod chaos;
 mod telemetry;
+mod ee;
 
 use auth::JwtConfig;
 /// Shared application state
@@ -173,6 +174,12 @@ async fn build_router(state: Arc<AppState>) -> Router {
         .nest_service(
             "/api/v1/treasury",
             resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30),
+        )
+
+        // Enterprise Extension (Wiring)
+        .nest_service(
+            "/api/v1/ee",
+            ee::router(), // Intentionally not resilient (management routes)
         )
         // Root health check
         .route("/health", axum::routing::get(root_health))
