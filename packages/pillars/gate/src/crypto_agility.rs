@@ -21,6 +21,7 @@
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use base64::Engine;
 
 /// Cryptographic errors.
 #[derive(Debug, Error)]
@@ -51,7 +52,14 @@ pub enum CryptoMode {
 
 impl Default for CryptoMode {
     fn default() -> Self {
-        Self::Hybrid // Default to maximum security
+        #[cfg(feature = "pqc")]
+        {
+            Self::Hybrid // Default to maximum security if available
+        }
+        #[cfg(not(feature = "pqc"))]
+        {
+            Self::Classical // Fallback to classical if PQC features not compiled in
+        }
     }
 }
 
@@ -352,7 +360,6 @@ impl CryptoProvider {
     /// Classical: ed25519-dalek
     /// Hybrid: ed25519 + ML-DSA (NIST FIPS 204) when `pqc` feature enabled
     pub fn sign(&self, message: &[u8], keypair: &KeyPair) -> Result<Signature, CryptoError> {
-        use base64::Engine;
         use ed25519_dalek::{Signer, SigningKey};
 
         // Helper to sign with Ed25519
@@ -433,7 +440,7 @@ impl CryptoProvider {
     /// When `pqc` feature enabled, uses real ML-DSA (FIPS 204).
     /// Otherwise, uses deterministic hash-based fallback.
     #[allow(dead_code)]
-    fn generate_pq_signature(&self, _message: &[u8]) -> String {
+    fn generate_pq_signature(&self, message: &[u8]) -> String {
         #[cfg(feature = "pqc")]
         {
             // Real ML-DSA implementation would go here
@@ -458,7 +465,6 @@ impl CryptoProvider {
         signature: &Signature,
         public_key: &str,
     ) -> Result<bool, CryptoError> {
-        use base64::Engine;
         use ed25519_dalek::{Verifier, VerifyingKey};
 
         // Helper to verify Ed25519

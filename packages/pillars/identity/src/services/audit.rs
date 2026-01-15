@@ -22,12 +22,17 @@ pub struct AuditService {
 
 impl AuditService {
     pub fn new(pool: PgPool) -> Self {
-        let crypto = CryptoProvider::new(CryptoMode::Hybrid);
-        let keypair = crypto
-            .generate_keypair()
-            .expect("Failed to generate audit signing keypair");
+        let mut crypto = CryptoProvider::default();
+        let keypair = match crypto.generate_keypair() {
+            Ok(kp) => kp,
+            Err(e) => {
+                tracing::warn!("Failed to generate audit signing keypair with default mode: {}. Falling back to Classical.", e);
+                crypto = CryptoProvider::new(CryptoMode::Classical);
+                crypto.generate_keypair().expect("Failed to generate fallback classical audit signing keypair")
+            }
+        };
 
-        tracing::info!(key_id = %keypair.key_id, "AuditService initialized with PQC signing");
+        tracing::info!(key_id = %keypair.key_id, mode = ?crypto.mode(), "AuditService initialized");
 
         Self {
             pool,
