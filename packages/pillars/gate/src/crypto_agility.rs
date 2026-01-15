@@ -18,7 +18,7 @@
 //! provider.verify(b"message", &signature)?;
 //! ```
 
-use base64::Engine;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -320,20 +320,10 @@ impl CryptoProvider {
 
             #[cfg(not(feature = "pqc"))]
             CryptoMode::PostQuantum | CryptoMode::Hybrid => {
-                // Fallback simulation if PQC feature not enabled
-                // For hybrid, just reuse classical keys but formatted to look consistent
-                if self.mode == CryptoMode::Hybrid {
-                    (
-                        format!("{}:SIMULATED_PQ_KEY", ed_pub_b64),
-                        format!("{}:SIMULATED_PQ_KEY", ed_priv_b64),
-                    )
-                } else {
-                    // PQC only simulation
-                    (
-                        "SIMULATED_PQ_PUB".to_string(),
-                        "SIMULATED_PQ_PRIV".to_string(),
-                    )
-                }
+                // Fail secure: Do not simulate PQC keys in production paths
+                return Err(CryptoError::UnsupportedAlgorithm(
+                    "Post-Quantum features not enabled in build".to_string(),
+                ));
             }
         };
 
@@ -392,10 +382,13 @@ impl CryptoProvider {
             Ok(base64::engine::general_purpose::STANDARD.encode(sig.as_bytes()))
         };
 
-        // Helper to sign with ML-DSA (Simulation Fallback)
+        // Helper to sign with ML-DSA (Real)
         #[cfg(not(feature = "pqc"))]
-        let sign_pqc =
-            |_: &str| -> Result<String, CryptoError> { Ok(self.generate_pq_signature(message)) };
+        let sign_pqc = |_: &str| -> Result<String, CryptoError> {
+            Err(CryptoError::UnsupportedAlgorithm(
+                "Post-Quantum features not enabled in build".to_string(),
+            ))
+        };
 
         let (value, classical_component, pq_component) = match self.mode {
             CryptoMode::Classical => {
@@ -440,7 +433,7 @@ impl CryptoProvider {
     /// When `pqc` feature enabled, uses real ML-DSA (FIPS 204).
     /// Otherwise, uses deterministic hash-based fallback.
     #[allow(dead_code)]
-    fn generate_pq_signature(&self, message: &[u8]) -> String {
+    fn generate_pq_signature(&self, _message: &[u8]) -> String {
         #[cfg(feature = "pqc")]
         {
             // Real ML-DSA implementation would go here
@@ -454,12 +447,7 @@ impl CryptoProvider {
 
         #[cfg(not(feature = "pqc"))]
         {
-            // Graceful fallback: deterministic hash-based signature
-            use sha2::{Digest, Sha256};
-            let mut hasher = Sha256::new();
-            hasher.update(b"PQ-FALLBACK-");
-            hasher.update(message);
-            base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
+            String::new() // Should be unreachable with proper error handling
         }
     }
 
@@ -765,6 +753,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "pqc")]
     fn test_keypair_generation() {
         let provider = CryptoProvider::new(CryptoMode::Hybrid);
         let keypair = provider.generate_keypair().unwrap();
@@ -774,6 +763,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "pqc")]
     fn test_sign_and_verify() {
         let provider = CryptoProvider::new(CryptoMode::Hybrid);
         let keypair = provider.generate_keypair().unwrap();
