@@ -14,7 +14,11 @@ tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 agentkern-pulse = { path = "../../packages/foundation/pulse" }
+agentkern-nexus = { path = "../../packages/pillars/nexus" }
+agentkern-synapse = { path = "../../packages/pillars/synapse" }
+agentkern-gate = { path = "../../packages/pillars/gate" }
 prometheus = "0.14"
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
 temp-env = { workspace = true }

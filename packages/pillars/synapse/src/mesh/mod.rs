@@ -164,6 +164,12 @@ impl GlobalMesh {
             .cloned()
             .collect()
     }
+
+    /// Count total registered cells.
+    pub async fn cell_count(&self) -> usize {
+        let cells = self.cells.read().await;
+        cells.len()
+    }
 }
 
 /// Sync result.

@@ -191,13 +191,17 @@ dependencies = [
 name = "agentkern-cockpit"
 version = "0.1.0"
 dependencies = [
+ "agentkern-gate",
+ "agentkern-nexus",
  "agentkern-pulse",
+ "agentkern-synapse",
  "chrono",
  "prometheus",
  "serde",
  "serde_json",
  "temp-env",
  "thiserror 2.0.17",
+ "tokio",
  "tracing",
  "uuid",
 ]

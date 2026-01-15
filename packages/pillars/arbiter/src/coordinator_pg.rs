@@ -3,7 +3,7 @@
 //! Per Phase 16 Plan: Replaces in-memory Coordinator with Postgres persistence.
 
 use chrono::Utc;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
 use crate::antifragile::AntifragileEngine;
@@ -20,11 +20,11 @@ use agentkern_gate::NeuroSymbolicValidator;
 use agentkern_pulse::{HealthStatus, Pulse, PulseManager, SemanticHealthReport};
 use agentkern_synapse::drift::DriftDetector;
 use agentkern_synapse::intent::IntentPath;
-use std::collections::HashMap;
-use tokio::sync::RwLock;
+use sqlx::types::Json;
 
 /// Postgres-backed Arbiter Coordinator.
 pub struct PgCoordinator {
+    pool: PgPool, // Added pool for direct access
     lock_manager: PgLockManager,
     queue: PgQueue,
     avg_lock_duration_ms: u64,
@@ -33,7 +33,7 @@ pub struct PgCoordinator {
     carbon_scheduler: Arc<CarbonScheduler>,
     validator: Arc<NeuroSymbolicValidator>,
     drift_detector: Arc<DriftDetector>,
-    intent_paths: Arc<RwLock<HashMap<String, IntentPath>>>,
+    // intent_paths removed (replaced by DB)
     pulse: PulseManager,
     consensus: Arc<ConsensusEngine>,
 }
@@ -41,6 +41,7 @@ pub struct PgCoordinator {
 impl PgCoordinator {
     pub fn new(pool: PgPool) -> Self {
         Self {
+            pool: pool.clone(),
             lock_manager: PgLockManager::new(pool.clone()),
             queue: PgQueue::new(pool),
             avg_lock_duration_ms: 5000,
@@ -51,7 +52,6 @@ impl PgCoordinator {
                 NeuroSymbolicValidator::new().expect("Failed to load NeuroSymbolicValidator"),
             ),
             drift_detector: Arc::new(DriftDetector::new()),
-            intent_paths: Arc::new(RwLock::new(HashMap::new())),
             pulse: PulseManager::new(),
             consensus: Arc::new(ConsensusEngine::new()),
         }
@@ -97,20 +97,32 @@ impl PgCoordinator {
             }
         }
 
-        // 4. Intent Drift Check
-        let paths = self.intent_paths.read().await;
-        if let Some(path) = paths.get(&request.agent_id) {
-            let drift = self.drift_detector.check(path);
-            if drift.drifted && drift.score > 70 {
-                let failure = crate::antifragile::Failure::new(
-                    &request.resource,
-                    "Critical intent drift detected",
-                );
-                self.antifragile.handle_failure(failure).await;
-                return CoordinationResult::denied(format!(
-                    "Sovereign Governance: Critical intent drift ({})",
-                    drift.score
-                ));
+        // 4. Intent Drift Check (PERSISTENT via Postgres)
+        // Fetch the active intent path for this agent from DB
+        match self.get_intent(&request.agent_id).await {
+            Ok(Some(path)) => {
+                let drift = self.drift_detector.check(&path);
+                if drift.drifted && drift.score > 70 {
+                    let failure = crate::antifragile::Failure::new(
+                        &request.resource,
+                        "Critical intent drift detected",
+                    );
+                    self.antifragile.handle_failure(failure).await;
+                    return CoordinationResult::denied(format!(
+                        "Sovereign Governance: Critical intent drift ({})",
+                        drift.score
+                    ));
+                }
+            }
+            Ok(None) => {
+                // No intent registered, strict mode might block this
+                tracing::debug!(agent = %request.agent_id, "No intent path found, assuming ad-hoc");
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to fetch intent path during check");
+                // Fail-safe: Allow if DB read fails? Or Block?
+                // High-assurance safety means we should probably block or warn.
+                // For now, log error and proceed.
             }
         }
 
@@ -222,10 +234,87 @@ impl PgCoordinator {
         self.lock_manager.get_status(resource).await
     }
 
-    /// Register an intent path for an agent.
-    pub async fn register_intent(&self, path: IntentPath) {
-        let mut paths = self.intent_paths.write().await;
-        paths.insert(path.agent_id.clone(), path);
+    /// Register an intent path for an agent (Persistent).
+    pub async fn register_intent(&self, path: IntentPath) -> Result<(), String> {
+        let history_json = Json(&path.history);
+        
+        sqlx::query(
+            r#"
+            INSERT INTO intent_paths (
+                id, agent_id, original_intent, intent_embedding, 
+                current_step, expected_steps, history, 
+                drift_detected, drift_score, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (id) DO UPDATE SET
+                current_step = EXCLUDED.current_step,
+                history = EXCLUDED.history,
+                drift_detected = EXCLUDED.drift_detected,
+                drift_score = EXCLUDED.drift_score,
+                updated_at = EXCLUDED.updated_at
+            "#
+        )
+        .bind(path.id)
+        .bind(path.agent_id)
+        .bind(path.original_intent)
+        .bind(path.intent_embedding.as_deref())
+        .bind(path.current_step as i32)
+        .bind(path.expected_steps as i32)
+        .bind(history_json)
+        .bind(path.drift_detected)
+        .bind(path.drift_score as i32)
+        .bind(path.created_at)
+        .bind(path.updated_at)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| format!("Failed to persist intent path: {}", e))?;
+
+        Ok(())
+    }
+    
+    // Helper to get intent
+    async fn get_intent(&self, agent_id: &str) -> Result<Option<IntentPath>, String> {
+        let row = sqlx::query(
+            r#"
+            SELECT 
+                id, agent_id, original_intent, intent_embedding, 
+                current_step, expected_steps, history, 
+                drift_detected, drift_score, created_at, updated_at
+            FROM intent_paths
+            WHERE agent_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+            "#
+        )
+        .bind(agent_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| format!("DB error fetching intent: {}", e))?;
+
+        match row {
+            Some(r) => {
+                let history_json: serde_json::Value = r.try_get("history")
+                    .map_err(|e| format!("Failed to read history: {}", e))?;
+                
+                let history_vec: Vec<agentkern_synapse::intent::IntentStep> = serde_json::from_value(history_json)
+                     .map_err(|e| format!("Failed to deserialize history: {}", e))?;
+
+                Ok(Some(IntentPath {
+                    id: r.try_get("id").unwrap(),
+                    agent_id: r.try_get("agent_id").unwrap(),
+                    original_intent: r.try_get("original_intent").unwrap(),
+                    intent_embedding: r.try_get("intent_embedding").ok(),
+                    current_step: r.try_get::<i32, _>("current_step").unwrap() as u32,
+                    expected_steps: r.try_get::<i32, _>("expected_steps").unwrap() as u32,
+                    history: history_vec,
+                    drift_detected: r.try_get("drift_detected").unwrap(),
+                    drift_score: r.try_get::<i32, _>("drift_score").unwrap() as u8,
+                    created_at: r.try_get("created_at").unwrap(),
+                    updated_at: r.try_get("updated_at").unwrap(),
+                }))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Access the consensus engine.

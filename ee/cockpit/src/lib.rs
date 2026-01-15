@@ -13,6 +13,13 @@
 //! - Alert configuration
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tracing::instrument;
+
+use agentkern_pulse::{Pulse, PulseManager};
+use agentkern_nexus::registry::AgentRegistry;
+use agentkern_synapse::mesh::{GlobalMesh, DataRegion};
+use agentkern_gate::actors::GateSupervisor;
 
 mod license {
     #[derive(Debug, thiserror::Error)]
@@ -200,28 +207,45 @@ impl TeamRole {
 /// Cockpit dashboard service.
 pub struct CockpitService {
     org_id: String,
+    nexus: Arc<AgentRegistry>,
+    synapse: Arc<GlobalMesh>,
+    gate: Arc<GateSupervisor>,
 }
 
 impl CockpitService {
     /// Create a new cockpit service (requires enterprise license).
-    pub fn new(org_id: impl Into<String>) -> Result<Self, license::LicenseError> {
+    /// Create a new cockpit service (requires enterprise license).
+    pub fn new(
+        org_id: impl Into<String>,
+        nexus: Arc<AgentRegistry>,
+        synapse: Arc<GlobalMesh>,
+        gate: Arc<GateSupervisor>,
+    ) -> Result<Self, license::LicenseError> {
         license::require("COCKPIT")?;
         Ok(Self {
             org_id: org_id.into(),
+            nexus,
+            synapse,
+            gate,
         })
     }
 
     /// Get dashboard statistics.
-    pub fn get_stats(&self) -> DashboardStats {
+    pub async fn get_stats(&self) -> DashboardStats {
         // Fetch real-time metrics from Pulse
         let tx_count = agentkern_pulse::TX_COUNTER.get();
         let carbon_intensity = agentkern_pulse::CARBON_INTENSITY.get();
+        
+        // Live Pillar Metrics
+        let active_agents = self.nexus.count().await as u64;
+        let active_cells = self.synapse.cell_count().await as u32;
+        let avg_risk_score = self.gate.status().avg_risk_score;
 
         // Derived metrics (mocked/simulated mixed with real data)
         DashboardStats {
-            active_agents: 128,                      // TODO: Get from Nexus registry
-            active_cells: 5,                         // TODO: Get from Synapse
-            avg_risk_score: 12,                      // TODO: Aggregate from Gate
+            active_agents,
+            active_cells,
+            avg_risk_score,
             requests_per_second: tx_count / 86400.0, // Avg over 24h
             blocked_requests_hour: 0,
             compliance_score: 100,
@@ -317,27 +341,51 @@ mod tests {
     fn test_cockpit_requires_license() {
         // Use temp_env for thread-safe env var handling
         temp_env::with_var_unset("AGENTKERN_LICENSE_KEY", || {
-            let result = CockpitService::new("org-123");
+            let nexus = Arc::new(AgentRegistry::new());
+            let synapse = Arc::new(GlobalMesh::new("test".into(), DataRegion::Global));
+            let gate = Arc::new(GateSupervisor::new());
+            
+            let result = CockpitService::new("org-123", nexus, synapse, gate);
             assert!(result.is_err());
         });
     }
 
-    #[test]
-    fn test_cockpit_with_license() {
+    #[tokio::test]
+    async fn test_cockpit_with_license() {
         temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
-            let result = CockpitService::new("org-123");
+            let nexus = Arc::new(AgentRegistry::new());
+            let synapse = Arc::new(GlobalMesh::new("test".into(), DataRegion::Global));
+            let gate = Arc::new(GateSupervisor::new());
+
+            let result = CockpitService::new("org-123", nexus.clone(), synapse, gate);
             assert!(result.is_ok());
 
+            // Need to spawn this since get_stats is async and we are inside a sync closure in temp_env
+            // Actually temp_env closure can't be async easily. 
+            // We'll just verify creation here.
             let service = result.unwrap();
-            let stats = service.get_stats();
-            assert!(stats.active_agents > 0);
+            
+            // To test async methods inside temp_env, we need a runtime block
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                use agentkern_nexus::agent_card::AgentCard;
+                // Register a dummy agent to verify count
+                nexus.register(AgentCard::new("test", "Test", "url")).await.unwrap();
+                
+                let stats = service.get_stats().await;
+                // active_agents should be 1 now
+                assert_eq!(stats.active_agents, 1); 
+            });
         });
     }
 
     #[test]
     fn test_compliance_status() {
         temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
-            let service = CockpitService::new("org-123").unwrap();
+            let nexus = Arc::new(AgentRegistry::new());
+            let synapse = Arc::new(GlobalMesh::new("test".into(), DataRegion::Global));
+            let gate = Arc::new(GateSupervisor::new());
+            let service = CockpitService::new("org-123", nexus, synapse, gate).unwrap();
 
             let status = service.get_compliance_status();
             assert!(!status.is_empty());
@@ -348,13 +396,17 @@ mod tests {
     #[test]
     fn test_pulse_metrics_integration() {
         temp_env::with_var("AGENTKERN_LICENSE_KEY", Some("test-license"), || {
-            let service = CockpitService::new("org-123").unwrap();
+            let nexus = Arc::new(AgentRegistry::new());
+            let synapse = Arc::new(GlobalMesh::new("test".into(), DataRegion::Global));
+            let gate = Arc::new(GateSupervisor::new());
+            let service = CockpitService::new("org-123", nexus, synapse, gate).unwrap();
 
             // Set some values in Pulse
             agentkern_pulse::CARBON_INTENSITY.set(500.0);
             agentkern_pulse::TX_COUNTER.inc_by(100.0); // Simulate 100 transactions
 
-            let stats = service.get_stats();
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let stats = rt.block_on(service.get_stats());
 
             // Verify stats reflect Pulse values
             assert_eq!(stats.carbon_savings_g, 500.0 * 0.4); // 200.0

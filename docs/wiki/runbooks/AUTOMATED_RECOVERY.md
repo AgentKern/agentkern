@@ -1,7 +1,8 @@
-# AgentKern Automated Runbooks
+# Automated Recovery Runbooks
 
-**Status**: Active  
-**Executor**: Autonomous (Synapse MeshOrchestrator / Arbiter Antifragile)
+> **Status**: Active Policy
+> **Executor**: Autonomous (Synapse MeshOrchestrator / Arbiter Antifragile)
+> **Location**: `docs/wiki/runbooks/AUTOMATED_RECOVERY.md`
 
 ## Overview
 These runbooks define the *autonomous* actions taken by the AgentKern kernel in response to specific failure signals. Manual intervention is only required if autonomous recovery fails > 3 times.

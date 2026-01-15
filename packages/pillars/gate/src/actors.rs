@@ -67,6 +67,7 @@ pub struct GetStatus;
 pub struct SupervisorStatus {
     pub active_policies: usize,
     pub total_evaluations: u64,
+    pub avg_risk_score: u8,
     pub uptime_secs: u64,
 }
 
@@ -145,6 +146,7 @@ pub struct GateSupervisor {
     cells: HashMap<String, Addr<PolicyCellActor>>,
     start_time: std::time::Instant,
     total_evaluations: u64,
+    accumulated_risk: u64,
 }
 
 #[cfg(feature = "actors")]
@@ -154,13 +156,21 @@ impl GateSupervisor {
             cells: HashMap::new(),
             start_time: std::time::Instant::now(),
             total_evaluations: 0,
+            accumulated_risk: 0,
         }
     }
 
     pub fn status(&self) -> SupervisorStatus {
+        let avg = if self.total_evaluations > 0 {
+            (self.accumulated_risk / self.total_evaluations) as u8
+        } else {
+            0
+        };
+
         SupervisorStatus {
             active_policies: self.cells.len(),
             total_evaluations: self.total_evaluations,
+            avg_risk_score: avg,
             uptime_secs: self.start_time.elapsed().as_secs(),
         }
     }
@@ -199,6 +209,9 @@ impl Handler<EvaluatePolicy> for GateSupervisor {
 
     fn handle(&mut self, _msg: EvaluatePolicy, _ctx: &mut Self::Context) -> Self::Result {
         self.total_evaluations += 1;
+        // Mock risk score for now, but track it
+        let risk = 0; // Default safe
+        self.accumulated_risk += risk as u64;
 
         // For now, return default result
         // In production: route to appropriate PolicyCellActor
@@ -234,9 +247,16 @@ impl Handler<GetStatus> for GateSupervisor {
     type Result = SupervisorStatus;
 
     fn handle(&mut self, _msg: GetStatus, _ctx: &mut Self::Context) -> Self::Result {
+        let avg = if self.total_evaluations > 0 {
+            (self.accumulated_risk / self.total_evaluations) as u8
+        } else {
+            0
+        };
+
         SupervisorStatus {
             active_policies: self.cells.len(),
             total_evaluations: self.total_evaluations,
+            avg_risk_score: avg,
             uptime_secs: self.start_time.elapsed().as_secs(),
         }
     }
@@ -278,6 +298,7 @@ pub struct GateSupervisor {
     policies: Arc<RwLock<HashMap<String, ()>>>,
     start_time: std::time::Instant,
     total_evaluations: std::sync::atomic::AtomicU64,
+    accumulated_risk: std::sync::atomic::AtomicU64,
 }
 
 #[cfg(not(feature = "actors"))]
@@ -287,6 +308,7 @@ impl GateSupervisor {
             policies: Arc::new(RwLock::new(HashMap::new())),
             start_time: std::time::Instant::now(),
             total_evaluations: std::sync::atomic::AtomicU64::new(0),
+            accumulated_risk: std::sync::atomic::AtomicU64::new(0),
         }
     }
 
@@ -306,11 +328,14 @@ impl GateSupervisor {
     }
 
     pub fn status(&self) -> SupervisorStatus {
+        let total = self.total_evaluations.load(std::sync::atomic::Ordering::Relaxed);
+        let risk = self.accumulated_risk.load(std::sync::atomic::Ordering::Relaxed);
+        let avg = if total > 0 { (risk / total) as u8 } else { 0 };
+
         SupervisorStatus {
             active_policies: self.policies.read().len(),
-            total_evaluations: self
-                .total_evaluations
-                .load(std::sync::atomic::Ordering::Relaxed),
+            total_evaluations: total,
+            avg_risk_score: avg,
             uptime_secs: self.start_time.elapsed().as_secs(),
         }
     }
