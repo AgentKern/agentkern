@@ -8,6 +8,8 @@ This guide will have you up and running with AgentKern in under 5 minutes.
 
 - Node.js 18+ or Bun 1.0+
 - npm, yarn, or pnpm
+- **Rust 1.75+** (Required for running the local server)
+- **Cargo** (Included with Rust)
 
 ---
 

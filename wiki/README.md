@@ -21,6 +21,7 @@
 | :--- | :--- | :--- |
 | 📜 **Governance** | ✅ Complete | [GOVERNANCE_DESIGN.md](GOVERNANCE_DESIGN.md) |
 | 🛠️ **Infrastructure** | ✅ Complete | [INFRASTRUCTURE_DESIGN.md](INFRASTRUCTURE_DESIGN.md) |
+| 📦 **SDK Design** | ✅ Complete | [SDK_DESIGN.md](SDK_DESIGN.md) |
 
 ---
 
@@ -29,6 +30,15 @@
 | Guide | Description |
 |-------|-------------|
 | 🔌 **[Integration Guide](INTEGRATION_GUIDE.md)** | How to connect your agents to AgentKern |
+
+---
+
+## Operational
+
+| Resource | Description |
+| :--- | :--- |
+| 🚨 **[Automated Recovery](runbooks/AUTOMATED_RECOVERY.md)** | Runbooks for autonomous mesh healing |
+| 📊 **[Audit History](audits/)** | Historical security and compliance audits |
 
 ---
 

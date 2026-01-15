@@ -1,13 +1,13 @@
 # Production Deployment Checklist
 
-Comprehensive checklist for deploying AgentKern v0.2.0 to production.
+Comprehensive checklist for deploying AgentKern v0.2.0 (Rust Unified Server) to production.
 
 ## Pre-Deployment
 
 ### 1. Code Quality ✅
-- [x] All tests passing (67 Identity + 27 SDK)
+- [x] All tests passing (Cargo workspace)
 - [x] Zero compilation errors
-- [x] Security scans clean
+- [x] Security scans clean (`cargo audit`)
 - [x] CHANGELOG updated
 - [x] Git tag created (v0.2.0)
 
@@ -20,7 +20,7 @@ Comprehensive checklist for deploying AgentKern v0.2.0 to production.
 
 ### 3. Environment Configuration
 
-#### Identity Service
+#### Unified Server Configuration
 ```bash
 # Required
 DATABASE_URL=postgresql://user:pass@host:5432/agentkern
@@ -28,10 +28,7 @@ JWT_SECRET=<generate-secure-secret>
 ENCRYPTION_KEY=<generate-aes-256-key>
 
 # Optional
-CORS_ORIGINS=https://app.agentkern.io,https://playground.agentkern.io
-CSP_REPORT_ONLY=false
-LOG_LEVEL=info
-NODE_ENV=production
+RUST_LOG=info,agentkern_server=debug
 PORT=3000
 
 # AWS KMS (if using)
@@ -58,18 +55,18 @@ AGENTKERN_IDENTITY_TENANT_ID=<tenant-id>
 #### 1. Build Images
 
 ```bash
-# Identity service
-docker build -t agentkern/identity:0.2.0 -f apps/identity/Dockerfile .
+# Unified Server
+docker build -t agentkern/server:0.2.0 -f apps/server/Dockerfile .
 
 # Tag as latest
-docker tag agentkern/identity:0.2.0 agentkern/identity:latest
+docker tag agentkern/server:0.2.0 agentkern/server:latest
 ```
 
 #### 2. Push to Registry
 
 ```bash
-docker push agentkern/identity:0.2.0
-docker push agentkern/identity:latest
+docker push agentkern/server:0.2.0
+docker push agentkern/server:latest
 ```
 
 #### 3. Deploy with Docker Compose
@@ -89,19 +86,19 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
-  identity:
-    image: agentkern/identity:0.2.0
+  server:
+    image: agentkern/server:0.2.0
     environment:
       DATABASE_URL: postgresql://agentkern_prod:${DB_PASSWORD}@postgres:5432/agentkern
       JWT_SECRET: ${JWT_SECRET}
-      NODE_ENV: production
+      RUST_LOG: info
     ports:
       - "3000:3000"
     depends_on:
       - postgres
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -134,8 +131,8 @@ kubectl create secret generic agentkern-secrets \
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/postgres.yaml
-kubectl apply -f k8s/identity-deployment.yaml
-kubectl apply -f k8s/identity-service.yaml
+kubectl apply -f k8s/server-deployment.yaml
+kubectl apply -f k8s/server-service.yaml
 kubectl apply -f k8s/ingress.yaml
 ```
 
@@ -151,16 +148,16 @@ aws ecs register-task-definition --cli-input-json file://ecs-task-def.json
 # Create service
 aws ecs create-service \
   --cluster agentkern-prod \
-  --service-name identity \
-  --task-definition agentkern-identity:1 \
+  --service-name server \
+  --task-definition agentkern-server:1 \
   --desired-count 2 \
   --load-balancers ...
 ```
 
 #### Google Cloud Run
 ```bash
-gcloud run deploy identity \
-  --image gcr.io/agentkern/identity:0.2.0 \
+gcloud run deploy server \
+  --image gcr.io/agentkern/server:0.2.0 \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
@@ -173,25 +170,24 @@ gcloud run deploy identity \
 
 ### 1. Database Migrations
 
-```bash
-# Connect to production DB
-psql $DATABASE_URL
+The server automatically handles migrations on startup if configured, or you can run:
 
-# Run migrations (if not auto-run)
-cd apps/identity
-npm run migration:run
+```bash
+# Run migrations manually via binary if needed
+# (Assuming access to the binary in the container)
+docker exec -it agentkern-server /usr/local/bin/agentkern-server migrate
 ```
 
 ### 2. Smoke Tests
 
 ```bash
 # Health check
-curl https://identity.agentkern.io/api/v1/health
+curl https://api.agentkern.io/health
 
 # Create test agent
-curl -X POST https://identity.agentkern.io/api/v1/agents \
+curl -X POST https://api.agentkern.io/api/v1/agents \
   -H "Content-Type: application/json" \
-  -H "X-XSRF-TOKEN: $CSRF_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -d '{"name": "smoke-test"}'
 ```
 
@@ -220,20 +216,20 @@ curl -X POST https://identity.agentkern.io/api/v1/agents \
 ```bash
 # Docker
 docker-compose down
-docker-compose -f docker-compose.prod.yml up -d agentkern/identity:0.1.0
+docker-compose -f docker-compose.prod.yml up -d agentkern/server:0.1.0
 
 # Kubernetes
-kubectl set image deployment/identity identity=agentkern/identity:0.1.0
+kubectl set image deployment/server server=agentkern/server:0.1.0
 
 # Cloud Run
-gcloud run deploy identity --image gcr.io/agentkern/identity:0.1.0
+gcloud run deploy server --image gcr.io/agentkern/server:0.1.0
 ```
 
 ### Database Rollback
 
 ```bash
-# Revert last migration
-npm run migration:revert
+# Revert last migration (manual)
+# requires sqlx-cli or manual SQL execution
 ```
 
 ---
@@ -241,7 +237,7 @@ npm run migration:revert
 ## Success Criteria
 
 - [ ] All health checks passing
-- [ ] Response time < 200ms (p95)
+- [ ] Response time < 5ms (p95) (Rust speed!)
 - [ ] Error rate < 0.1%
 - [ ] Zero security vulnerabilities
 - [ ] Logs flowing to aggregation
