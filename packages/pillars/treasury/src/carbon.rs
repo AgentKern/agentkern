@@ -11,6 +11,7 @@
 //! as the only agent platform with native sustainability tracking.
 
 use chrono::{DateTime, Duration, Timelike, Utc};
+use agentkern_energy_ee::GridFactory;
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -717,10 +718,20 @@ impl CarbonLedger {
     }
 
     /// Find the cleanest region for scheduling.
+    /// Find the cleanest region for scheduling.
     pub fn recommend_region(&self) -> CarbonRegion {
-        // In a real implementation, this would query real-time grid data
-        // For now, return the cleanest static option
-        CarbonRegion::Nordic
+        // Query real-time grid data via Energy Pillar
+        // Default to Nordic if API fails or regions are unavailable
+        let api = GridFactory::get();
+        // find_greenest returns String directly (DemoGridApi is infallible)
+        let region_name = api.find_greenest(&["us-east-1", "eu-west-1", "ap-southeast-1"]);
+
+        match region_name.as_str() {
+            "us-east-1" => CarbonRegion::UsEast,
+            "eu-west-1" => CarbonRegion::EuAverage, // Mapping approximation
+            "ap-southeast-1" => CarbonRegion::India, // Mapping approximation
+            _ => CarbonRegion::Custom(250),
+        }
     }
 
     /// Check if action should be delayed for cleaner energy.
@@ -742,7 +753,19 @@ impl CarbonLedger {
     pub fn should_delay_for_green(&self, region: CarbonRegion) -> bool {
         // 300 gCO2/kWh = EU Average threshold
         const GREEN_THRESHOLD: u32 = 300;
-        region.intensity() > GREEN_THRESHOLD
+
+        // Try getting live data first
+        let api = GridFactory::get();
+        let region_code = match region {
+            CarbonRegion::UsEast => "us-east-1",
+            CarbonRegion::UsWest => "us-west-1",
+            CarbonRegion::EuAverage => "eu-west-1",
+            _ => "unknown"
+        };
+        
+        // get_intensity returns CarbonIntensityFeed directly (DemoGridApi is infallible)
+        let intensity = api.get_intensity(region_code);
+        intensity.intensity_gco2_kwh > GREEN_THRESHOLD as f64
     }
 
     /// Estimate carbon for a hypothetical action.

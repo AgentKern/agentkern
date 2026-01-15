@@ -66,6 +66,7 @@ parking_lot = "0.12.3"
 rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
 rust_decimal_macros = "1.39"
 agentkern-governance = { path = "../../foundation/governance" }
+agentkern-energy-ee = { path = "../../../ee/energy" }
 
 # ============================================================
 # DISTRIBUTED LOCKING (feature-gated for multi-node deployment)

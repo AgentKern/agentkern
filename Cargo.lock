@@ -724,6 +724,7 @@ dependencies = [
 name = "agentkern-treasury"
 version = "0.1.0"
 dependencies = [
+ "agentkern-energy-ee",
  "agentkern-governance",
  "anyhow",
  "axum 0.8.8",
