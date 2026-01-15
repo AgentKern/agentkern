@@ -80,7 +80,7 @@ jobs:
           DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
           JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
         run: |
-          cargo llvm-cov --packages agentkern-arbiter agentkern-identity agentkern-server --no-report -- --test-threads 1
+          cargo llvm-cov -p agentkern-arbiter -p agentkern-identity -p agentkern-server --no-report -- --test-threads 1
 
       - name: Generate LCOV Report
         run: cargo llvm-cov report --lcov --output-path lcov.info

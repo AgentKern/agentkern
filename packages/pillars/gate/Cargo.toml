@@ -34,8 +34,11 @@ http = ["reqwest"]
 sap-rfc = []
 # Full feature set
 # Full feature set
-full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql", "otel", "http", "redis"]
+full = ["io_uring", "wasm", "neural", "actors", "pqc", "sql", "otel", "http", "redis", "compliance", "esg"]
 redis = ["dep:redis", "dep:bb8", "dep:bb8-redis"]
+# Specialized Compliance & ESG features (Opt-in only)
+compliance = [] # HIPAA, Shariah, PCI
+esg = [] # Carbon Veto
 
 [dependencies]
 # Async runtime (Dec 2025 - verified tokio 1.48.0)

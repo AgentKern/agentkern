@@ -28,7 +28,9 @@ impl AuditService {
             Err(e) => {
                 tracing::warn!("Failed to generate audit signing keypair with default mode: {}. Falling back to Classical.", e);
                 crypto = CryptoProvider::new(CryptoMode::Classical);
-                crypto.generate_keypair().expect("Failed to generate fallback classical audit signing keypair")
+                crypto
+                    .generate_keypair()
+                    .expect("Failed to generate fallback classical audit signing keypair")
             }
         };
 

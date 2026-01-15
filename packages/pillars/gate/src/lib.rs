@@ -41,15 +41,20 @@ pub mod budget; // Gas Limits & Budgets (Section 6)
 pub mod crypto_agility; // Quantum-Safe Crypto (Section 3)
 pub mod mtls; // Zero-Trust mTLS (Section 5)
 
-// Re-export compliance modules from governance (single source of truth)
+#[cfg(feature = "compliance")]
 pub use agentkern_governance::industry::finance::pci;
+#[cfg(feature = "compliance")]
 pub use agentkern_governance::industry::finance::shariah as shariah_compliance;
+#[cfg(feature = "compliance")]
 pub use agentkern_governance::industry::healthcare::fhir;
+#[cfg(feature = "compliance")]
 pub use agentkern_governance::industry::healthcare::hipaa;
+#[cfg(feature = "compliance")]
 pub use agentkern_governance::industry::{finance, healthcare};
 pub use agentkern_governance::privacy::global_registry as global_privacy;
 
 // MANDATE.md Section 6: Prompt Defense
+#[cfg(feature = "esg")]
 pub mod carbon;
 pub mod context_guard;
 pub mod prompt_guard; // Prompt injection detection // Energy-Aware Veto (ESG) // RAG memory injection protection
@@ -71,6 +76,7 @@ pub mod wasm; // WASM Component Model
 pub use actors::{GateSupervisor, PolicyResult, SupervisorStatus};
 pub use budget::{AgentBudget, BudgetConfig, BudgetError};
 pub use cache::{CacheLayer, RateLimiter};
+#[cfg(feature = "esg")]
 pub use carbon::{CarbonCheckResult, CarbonVeto};
 pub use connectors::{
     ConnectorConfig, ConnectorHealth, ConnectorProtocol, ConnectorRegistry, LegacyConnector,
@@ -83,15 +89,18 @@ pub use global_privacy::{
     GlobalPrivacyRegistry, Jurisdiction, PrivacyCheckResult, PrivacyError, Regulation,
     TransferStatus,
 };
+#[cfg(feature = "compliance")]
 pub use hipaa::{HipaaError, HipaaRole, HipaaValidator, PhiScanResult};
 pub use mtls::{CertificateInfo, CertificateValidator, MtlsConfig};
 pub use neural::{
     IntentClass, IntentResult, ModelConfig, NeuralError, NeuralGuard, NeuroSymbolicValidator,
 };
+#[cfg(feature = "compliance")]
 pub use pci::{CardBrand, CardToken, PciError, PciValidator};
 pub use policy::{Policy, PolicyAction, PolicyRule};
 pub use provenance::{ModelProvenance, ProvenanceError};
 pub use runtime::{HyperRuntime, TokioRuntime};
+#[cfg(feature = "compliance")]
 pub use shariah_compliance::{
     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 };

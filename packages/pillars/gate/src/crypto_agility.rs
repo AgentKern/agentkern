@@ -18,10 +18,9 @@
 //! provider.verify(b"message", &signature)?;
 //! ```
 
-
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use base64::Engine;
 
 /// Cryptographic errors.
 #[derive(Debug, Error)]

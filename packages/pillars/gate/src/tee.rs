@@ -309,18 +309,43 @@ impl TeeRuntime {
 
     /// Seal data with hardware key.
     pub fn seal(&self, data: &[u8], policy: SealingPolicy) -> Result<SealedData, TeeError> {
-        // Simple XOR "encryption" for simulation
-        let mut ciphertext = data.to_vec();
-        for (i, byte) in ciphertext.iter_mut().enumerate() {
-            *byte ^= self.measurement[i % self.measurement.len()];
-        }
+        match self.platform {
+            // Real HW implementation placeholders (using real crates)
+            TeePlatform::IntelTdx | TeePlatform::AmdSevSnp => {
+                // In production code, this would call the actual driver ioctl
+                // For now, return error as we don't have the driver headers linked
+                // DO NOT USE XOR MOCK
+                Err(TeeError::SealingFailed {
+                    reason: "Hardware sealing driver not linked".to_string(),
+                })
+            }
+            TeePlatform::Simulated => {
+                // Only allow simulation in tests/debug
+                #[cfg(not(debug_assertions))]
+                return Err(TeeError::NotSupported {
+                    feature: "Simulation not allowed in release build".to_string(),
+                });
 
-        Ok(SealedData {
-            ciphertext,
-            tag: vec![0u8; 16],
-            nonce: vec![42u8; 12],
-            policy,
-        })
+                #[cfg(debug_assertions)]
+                {
+                    // Debug-only simple obfuscation for development flow
+                    let mut ciphertext = data.to_vec();
+                    for (i, byte) in ciphertext.iter_mut().enumerate() {
+                        *byte ^= self.measurement[i % self.measurement.len()];
+                    }
+
+                    Ok(SealedData {
+                        ciphertext,
+                        tag: vec![0u8; 16],
+                        nonce: vec![42u8; 12],
+                        policy,
+                    })
+                }
+            }
+            _ => Err(TeeError::NotSupported {
+                feature: format!("Sealing on {:?}", self.platform),
+            }),
+        }
     }
 
     /// Unseal data.

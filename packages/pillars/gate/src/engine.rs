@@ -13,6 +13,7 @@ use std::time::Instant;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+#[cfg(feature = "esg")]
 use crate::carbon::CarbonVeto;
 use crate::dsl::{evaluate, EvalContext};
 use crate::neural::NeuralScorer;
@@ -20,6 +21,7 @@ use crate::policy::{Policy, PolicyAction};
 use crate::types::{
     DataRegion, LatencyBreakdown, VerificationContext, VerificationRequest, VerificationResult,
 };
+#[cfg(feature = "esg")]
 use agentkern_treasury::carbon::ComputeType;
 
 /// The AgentKern Gate Engine.
@@ -37,6 +39,7 @@ pub struct GateEngine {
     /// Current jurisdiction
     jurisdiction: DataRegion,
     /// Carbon policy veto (optional)
+    #[cfg(feature = "esg")]
     carbon_veto: Option<Arc<CarbonVeto>>,
     /// Prompt Injection Guard (Phase 12)
     prompt_guard: crate::prompt_guard::PromptGuard,
@@ -61,6 +64,7 @@ impl GateEngine {
             // Threshold 50: Medium-risk actions trigger neural evaluation
             neural_threshold: 50,
             jurisdiction: DataRegion::Global,
+            #[cfg(feature = "esg")]
             carbon_veto: None,
             prompt_guard: crate::prompt_guard::PromptGuard::new(),
             budgets: Arc::new(RwLock::new(HashMap::new())),
@@ -92,6 +96,7 @@ impl GateEngine {
     }
 
     /// Set the carbon veto controller.
+    #[cfg(feature = "esg")]
     pub fn with_carbon_veto(mut self, veto: CarbonVeto) -> Self {
         self.carbon_veto = Some(Arc::new(veto));
         self
@@ -240,6 +245,8 @@ impl GateEngine {
         };
 
         // === CARBON PATH (ESG Veto) ===
+        // Phase 12: AI-Native Defense
+        #[cfg(feature = "esg")]
         let carbon_result = if let Some(veto) = &self.carbon_veto {
             // In a real request, these would come from the context or a header
             let compute_type = match request.context.data.get("compute_type") {
@@ -267,6 +274,10 @@ impl GateEngine {
         } else {
             None
         };
+
+        // If ESG feature off, always skip (None)
+        #[cfg(not(feature = "esg"))]
+        let carbon_result: Option<agentkern_treasury::carbon::CarbonCheckResult> = None;
 
         let total_us = start.elapsed().as_micros() as u64;
 
@@ -499,6 +510,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "esg")]
     async fn test_carbon_veto_blocks_action() {
         use agentkern_treasury::carbon::{CarbonBudget, CarbonLedger};
         use rust_decimal_macros::dec;

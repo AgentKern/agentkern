@@ -109,6 +109,17 @@ pub enum ComputeType {
     Storage,
 }
 
+/// Results of a carbon check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarbonCheckResult {
+    /// Is the action allowed under current carbon budget?
+    pub allowed: bool,
+    /// Estimated CO2 in grams
+    pub estimated_co2: f64,
+    /// Reason for denial (if any)
+    pub message: Option<String>,
+}
+
 /// Specific GPU model for accurate power profiling (Dec 2025).
 ///
 /// Power consumption varies significantly between GPU generations.
