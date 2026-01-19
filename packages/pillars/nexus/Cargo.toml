@@ -34,7 +34,7 @@ axum = { version = "0.8.8", features = ["ws"] }
 tower = "0.5"
 
 # gRPC (optional)
-tonic = { version = "0.12", optional = true }
+tonic = { version = "0.14", optional = true }
 prost = { version = "0.13", optional = true }
 
 # Error handling
