@@ -134,7 +134,7 @@ deunicode = "1.6"
 
 # Redis Caching (Phase 20)
 redis = { version = "0.27", features = ["tokio-comp"], optional = true }
-bb8 = { version = "0.8", optional = true }
+bb8 = { version = "0.9", optional = true }
 bb8-redis = { version = "0.17", optional = true }
 
 [dev-dependencies]
