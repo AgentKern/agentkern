@@ -245,7 +245,10 @@ impl WattTimeClient {
             .map_err(|e| WattTimeError::RequestFailed(e.to_string()))?;
 
         if !response.status().is_success() {
-             return Err(WattTimeError::ApiError(format!("API request failed with status: {}", response.status())));
+            return Err(WattTimeError::ApiError(format!(
+                "API request failed with status: {}",
+                response.status()
+            )));
         }
 
         let data: serde_json::Value = response
