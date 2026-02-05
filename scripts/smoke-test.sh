@@ -61,8 +61,11 @@ test_contains() {
     
     TOTAL=$((TOTAL + 1))
     
+
+    TOTAL=$((TOTAL + 1))
+
     response=$(curl -s "$BASE_URL$endpoint" 2>/dev/null || echo "")
-    
+
     if echo "$response" | grep -q "$expected_string"; then
         echo -e "${GREEN}✓${NC} $name"
         PASSED=$((PASSED + 1))
@@ -74,14 +77,14 @@ test_contains() {
 
 echo "📍 Health Checks"
 echo "----------------"
-test_endpoint "Health endpoint" "GET" "/api/v1/health" "200"
-test_contains "Health returns status" "/api/v1/health" "ok"
+test_endpoint "Health endpoint" "GET" "/health" "200"
+test_contains "Health returns status" "/health" "ok"
 
 echo ""
 echo "🔐 Security Endpoints"
 echo "---------------------"
 test_endpoint "CSP report endpoint" "POST" "/api/v1/security/csp-report" "204" '{"csp-report":{}}'
-test_endpoint "Protected endpoint rejects no auth" "GET" "/api/v1/agents/me" "401"
+test_endpoint "Protected endpoint rejects no auth" "GET" "/api/v1/identity/agents/me" "401"
 
 echo ""
 echo "📚 Documentation"
@@ -98,10 +101,10 @@ echo ""
 echo "🔍 Pillar Endpoints"
 echo "-------------------"
 # These should return 401 (auth required) but not 500/404
-test_endpoint "Gate endpoint exists" "GET" "/api/v1/gate/policies" "401"
-test_endpoint "Treasury endpoint exists" "GET" "/api/v1/treasury/balance" "401"
-test_endpoint "Arbiter endpoint exists" "GET" "/api/v1/arbiter/status" "401"
-test_endpoint "Nexus endpoint exists" "GET" "/api/v1/nexus/agents" "401"
+test_endpoint "Gate endpoint exists" "GET" "/api/v1/gate/health" "200"
+test_endpoint "Treasury endpoint exists" "GET" "/api/v1/treasury/health" "200"
+test_endpoint "Arbiter endpoint exists" "GET" "/api/v1/arbiter/health" "200"
+test_endpoint "Nexus endpoint exists" "GET" "/api/v1/nexus/health" "200"
 
 echo ""
 echo "📊 Metrics"

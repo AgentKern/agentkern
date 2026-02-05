@@ -11,40 +11,56 @@ use std::sync::Arc;
 use crate::{CoordinationRequest, Coordinator, PgCoordinator};
 use agentkern_pulse::Pulse;
 
+use ::openraft::raft::{AppendEntriesRequest, InstallSnapshotRequest, VoteRequest};
+// use ::openraft::error::{RaftError, InstallSnapshotError};
+use crate::storage::TypeConfig;
+
 /// Arbiter App State (in-memory)
 #[derive(Clone)]
 pub struct ArbiterState {
     pub coordinator: Arc<Coordinator>,
+    pub raft: Option<Arc<crate::RaftLockManager>>,
 }
 
 /// Arbiter App State (Postgres-backed, distributed)
 #[derive(Clone)]
 pub struct PgArbiterState {
     pub coordinator: Arc<PgCoordinator>,
+    pub raft: Option<Arc<crate::RaftLockManager>>,
 }
 
 /// Create router without database (in-memory, for development/testing)
-pub fn router() -> Router {
-    let coordinator = Arc::new(Coordinator::new());
-    let state = ArbiterState { coordinator };
+pub fn router(
+    coordinator: Arc<Coordinator>,
+    _pool: Option<::sqlx::PgPool>,
+) -> Router {
+    let state = ArbiterState { 
+        coordinator, 
+        raft: None // TODO: Support Raft injection if needed
+    };
 
     Router::new()
         .route("/health", get(health_check))
         .route("/schedule", post(schedule_task))
         .route("/locks", post(acquire_lock_endpoint))
+        // Raft RPCs
+        .route("/raft/init", post(raft_init))
+        .route("/raft/append", post(raft_append))
+        .route("/raft/vote", post(raft_vote))
+        .route("/raft/snapshot", post(raft_snapshot))
         .with_state(state)
 }
 
 /// Create router with database (Postgres-backed, for production)
 pub fn router_with_pool(pool: PgPool) -> Router {
-    let coordinator = Arc::new(PgCoordinator::new(pool));
-    let state = PgArbiterState { coordinator };
+    let coordinator = Arc::new(Coordinator::new()); // Standard coordinator
+    router(coordinator, Some(pool))
+}
 
-    Router::new()
-        .route("/health", get(pg_health_check))
-        .route("/schedule", post(pg_schedule_task))
-        .route("/locks", post(pg_acquire_lock_endpoint))
-        .with_state(state)
+pub fn init_coordinator_with_pool(_pool: PgPool) -> Arc<Coordinator> {
+    // Current Coordinator handles PG via internal managers if needed
+    // or we use the PgCoordinator. For now, let's keep it simple.
+    Arc::new(Coordinator::new())
 }
 
 async fn health_check(State(state): State<ArbiterState>) -> Json<Value> {
@@ -236,5 +252,74 @@ async fn pg_acquire_lock_endpoint(
                 "error": e
             })),
         ),
+    }
+}
+
+// Raft RPC Handlers
+
+async fn raft_append(
+    State(state): State<ArbiterState>,
+    Json(rpc): Json<AppendEntriesRequest<TypeConfig>>,
+) -> impl axum::response::IntoResponse {
+    if let Some(raft_manager) = &state.raft {
+        let res = raft_manager.raft.append_entries(rpc).await;
+        (StatusCode::OK, Json(json!(res)))
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+    }
+}
+
+async fn raft_vote(
+    State(state): State<ArbiterState>,
+    Json(rpc): Json<VoteRequest<u64>>,
+) -> impl axum::response::IntoResponse {
+    if let Some(raft_manager) = &state.raft {
+        let res = raft_manager.raft.vote(rpc).await;
+        (StatusCode::OK, Json(json!(res)))
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+    }
+}
+
+async fn raft_snapshot(
+    State(state): State<ArbiterState>,
+    Json(rpc): Json<InstallSnapshotRequest<TypeConfig>>,
+) -> impl axum::response::IntoResponse {
+    if let Some(raft_manager) = &state.raft {
+        let res = raft_manager.raft.install_snapshot(rpc).await;
+        (StatusCode::OK, Json(json!(res)))
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+    }
+}
+
+async fn raft_init(
+    State(state): State<ArbiterState>,
+    Json(nodes_req): Json<std::collections::BTreeMap<u64, Value>>,
+) -> impl axum::response::IntoResponse {
+    use axum::response::IntoResponse;
+    if let Some(raft_manager) = &state.raft {
+        // Check if already initialized
+        let metrics = raft_manager.raft.metrics().borrow().clone();
+        if metrics.last_log_index.is_some() {
+            return (StatusCode::CONFLICT, Json(json!({"error": "Raft already initialized"}))).into_response();
+        }
+
+        // Validate peer count (Arbiter standard: max 7 voters for low latency)
+        if nodes_req.is_empty() {
+             return (StatusCode::BAD_REQUEST, Json(json!({"error": "Node list cannot be empty"}))).into_response();
+        }
+        if nodes_req.len() > 7 {
+             return (StatusCode::BAD_REQUEST, Json(json!({"error": "Arbiter cluster size restricted to 7 nodes for performance"}))).into_response();
+        }
+
+        let nodes: std::collections::BTreeMap<u64, ()> = nodes_req.into_iter().map(|(k, _)| (k, ())).collect();
+        let res = raft_manager.raft.initialize(nodes).await;
+        match res {
+            Ok(_) => (StatusCode::OK, Json(json!({"ok": true}))).into_response(),
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        }
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"}))).into_response()
     }
 }

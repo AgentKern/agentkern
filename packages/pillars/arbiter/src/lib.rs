@@ -49,9 +49,11 @@ pub mod locks_pg; // Phase 16: Postgres-backed locks
 pub mod queue;
 pub mod queue_pg; // Phase 16: Postgres-backed queue
 pub mod types;
+pub mod storage;
+pub mod network;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
-pub mod raft; // Raft Consensus for Atomic Business Locks
+pub mod raft_manager; // Raft Consensus for Atomic Business Locks
 pub mod thread_per_core; // Thread-per-Core for minimal latency
 
 // Re-export compliance modules from governance (single source of truth)
@@ -109,6 +111,6 @@ pub use loop_prevention::{
     LoopPreventer, LoopPreventionConfig, LoopPreventionError, TrackedMessage,
 };
 pub use queue::PriorityQueue;
-pub use raft::{RaftConfig, RaftLockManager, RaftState};
+pub use raft_manager::{RaftConfig, RaftLockManager, RaftState};
 pub use thread_per_core::{ThreadPerCoreConfig, ThreadPerCoreRuntime};
 pub use types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};

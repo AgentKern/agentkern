@@ -11,6 +11,7 @@ use crate::intent::IntentPath;
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 // ============================================================================
@@ -150,10 +151,22 @@ pub struct DriftAlerter {
     webhooks: Arc<RwLock<Vec<WebhookConfig>>>,
     /// Registered callbacks
     callbacks: Arc<RwLock<Vec<AlertCallback>>>,
-    /// Alert history
-    history: Arc<RwLock<Vec<DriftAlert>>>,
+    /// Alert history (Optimized: VecDeque)
+    history: Arc<RwLock<VecDeque<DriftAlert>>>,
     /// Maximum history size
     max_history: usize,
+    /// Shared HTTP client (Optimized: Reuse client)
+    client: reqwest::Client,
+}
+
+impl std::fmt::Debug for DriftAlerter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DriftAlerter")
+            .field("webhooks", &self.webhooks)
+            .field("history_len", &self.history.read().len())
+            .field("max_history", &self.max_history)
+            .finish()
+    }
 }
 
 impl Default for DriftAlerter {
@@ -168,8 +181,9 @@ impl DriftAlerter {
         Self {
             webhooks: Arc::new(RwLock::new(Vec::new())),
             callbacks: Arc::new(RwLock::new(Vec::new())),
-            history: Arc::new(RwLock::new(Vec::new())),
+            history: Arc::new(RwLock::new(VecDeque::new())),
             max_history: 1000,
+            client: reqwest::Client::new(),
         }
     }
 
@@ -190,9 +204,9 @@ impl DriftAlerter {
         // Store in history
         {
             let mut history = self.history.write();
-            history.push(alert.clone());
+            history.push_back(alert.clone());
             if history.len() > self.max_history {
-                history.remove(0);
+                history.pop_front();
             }
         }
 
@@ -204,41 +218,33 @@ impl DriftAlerter {
             }
         }
 
-        // Send to webhooks
+        // Send to webhooks (Optimized: non-blocking spawn)
         let webhooks = self.webhooks.read().clone();
         for webhook in webhooks {
             if alert.severity >= webhook.min_severity {
-                self.send_to_webhook(&webhook, &alert).await;
+                let client = self.client.clone();
+                let alert_clone = alert.clone();
+                tokio::spawn(async move {
+                    Self::send_to_webhook_internal(client, webhook, alert_clone).await;
+                });
             }
         }
     }
 
-    /// Send alert to a webhook.
-    /// Graceful fallback: tries real HTTP, falls back to logging on failure.
-    async fn send_to_webhook(&self, config: &WebhookConfig, alert: &DriftAlert) {
-        // Try actual HTTP POST
-        let client = reqwest::Client::new();
-
+    /// Internal helper for sending alerts to webhooks.
+    async fn send_to_webhook_internal(client: reqwest::Client, config: WebhookConfig, alert: DriftAlert) {
         let mut request = client
             .post(&config.url)
             .header("Content-Type", "application/json")
             .timeout(std::time::Duration::from_millis(config.timeout_ms));
 
-        // Add custom headers
         for (key, value) in &config.headers {
             request = request.header(key.as_str(), value.as_str());
         }
 
-        // Send the request
-        match request.json(alert).send().await {
+        match request.json(&alert).send().await {
             Ok(response) => {
-                if response.status().is_success() {
-                    tracing::info!(
-                        webhook_url = %config.url,
-                        alert_id = %alert.id,
-                        "Drift alert sent successfully"
-                    );
-                } else {
+                if !response.status().is_success() {
                     tracing::warn!(
                         webhook_url = %config.url,
                         status = %response.status(),
@@ -247,14 +253,11 @@ impl DriftAlerter {
                 }
             }
             Err(e) => {
-                // Graceful fallback: log the alert that would have been sent
                 tracing::warn!(
                     webhook_url = %config.url,
                     alert_id = %alert.id,
-                    agent_id = %alert.agent_id,
-                    severity = ?alert.severity,
                     error = %e,
-                    "Webhook failed, alert logged locally"
+                    "Webhook failed"
                 );
             }
         }
@@ -300,6 +303,7 @@ impl DriftAlerter {
 // ============================================================================
 
 /// Drift detector for intent paths.
+#[derive(Debug, Clone)]
 pub struct DriftDetector {
     /// Score threshold for drift detection
     threshold: u8,
@@ -368,6 +372,11 @@ impl DriftDetector {
     pub fn with_alerter(mut self, alerter: Arc<DriftAlerter>) -> Self {
         self.alerter = Some(alerter);
         self
+    }
+
+    /// Get the attached alerter.
+    pub fn get_alerter(&self) -> Option<Arc<DriftAlerter>> {
+        self.alerter.clone()
     }
 
     /// Check an intent path for drift.

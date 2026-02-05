@@ -39,6 +39,10 @@ COPY apps/server/Cargo.toml apps/server/Cargo.toml
 COPY ee/multitenancy/Cargo.toml ee/multitenancy/Cargo.toml
 COPY ee/core/Cargo.toml ee/core/Cargo.toml
 COPY ee/connectors/Cargo.toml ee/connectors/Cargo.toml
+COPY ee/energy/Cargo.toml ee/energy/Cargo.toml
+COPY ee/trust/Cargo.toml ee/trust/Cargo.toml
+COPY ee/cloud/Cargo.toml ee/cloud/Cargo.toml
+COPY ee/sovereign-memory/Cargo.toml ee/sovereign-memory/Cargo.toml
 
 # Copy full source
 COPY packages ./packages
@@ -55,15 +59,28 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security (prevent privilege escalation)
+RUN useradd -m -u 1000 agentkern && \
+    mkdir -p /app && \
+    chown -R agentkern:agentkern /app
 
 WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/target/release/agentkern-server /usr/local/bin/
 
+# Switch to non-root user
+USER agentkern
+
 # Expose default port
 EXPOSE 3000
+
+# Health check for orchestration (Docker, Kubernetes, etc.)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Run the server
 CMD ["agentkern-server"]

@@ -1,0 +1,29 @@
+id: core-system-guardrails
+name: Core System Guardrails
+description: Essential safety policies for the AgentKern Production Environment
+priority: 1000
+enabled: true
+jurisdictions: [global]
+namespace: global
+
+rules:
+  # 1. Critical Safety Block
+  - id: prevent-db-deletion
+    condition: "action == 'delete_database' || action == 'drop_table'"
+    action: deny
+    message: "Critical: Database deletion actions are strictly prohibited via automated agents."
+    risk_score: 100
+
+  # 2. Financial Approval Threshold
+  - id: financial-review-threshold
+    condition: "action == 'transfer_funds' && context.amount > 1000.0"
+    action: review
+    message: "Financial actions > $1000 require human approval."
+    risk_score: 75
+
+  # 3. System Access Audit
+  - id: audit-system-access
+    condition: "action == 'system_access' || action == 'sudo'"
+    action: audit
+    message: "Logging privileged system access."
+    risk_score: 10

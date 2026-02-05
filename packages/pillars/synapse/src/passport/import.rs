@@ -73,24 +73,37 @@ impl PassportImporter {
         let _warnings: Vec<String> = Vec::new();
 
         // Detect format and decrypt if needed
-        let json_data = if data.starts_with(b"ENCRYPTED:") {
+        let mut raw_data = if data.starts_with(b"AEP1") {
+            // New magic header for Encrypted Passport
+            let key = options
+                .decryption_key
+                .as_ref()
+                .ok_or_else(|| PassportError::MissingField("decryption_key".into()))?;
+            self.decrypt(&data[4..], key)?
+        } else if data.starts_with(b"ENCRYPTED:") {
+            // Backward compatibility for old placeholder prefix
             let key = options
                 .decryption_key
                 .as_ref()
                 .ok_or_else(|| PassportError::MissingField("decryption_key".into()))?;
             self.decrypt(&data[10..], key)?
-        } else if data.starts_with(b"{") {
-            data.to_vec()
         } else {
-            // Assume MessagePack binary
-            let passport: MemoryPassport = rmp_serde::from_slice(data)
-                .map_err(|e| PassportError::SerializationError(e.to_string()))?;
-            return self.validate_and_wrap(passport, options);
+            data.to_vec()
         };
 
-        // Parse JSON
-        let passport: MemoryPassport = serde_json::from_slice(&json_data)
-            .map_err(|e| PassportError::SerializationError(e.to_string()))?;
+        // Check if data is compressed (zstd magic header: 0xFD2FB528)
+        if raw_data.starts_with(&[0x28, 0xB5, 0x2F, 0xFD]) {
+            raw_data = self.decompress(&raw_data)?;
+        }
+
+        // Try to parse as JSON or MessagePack
+        let passport: MemoryPassport = if raw_data.starts_with(b"{") {
+            serde_json::from_slice(&raw_data)
+                .map_err(|e| PassportError::SerializationError(e.to_string()))?
+        } else {
+            rmp_serde::from_slice(&raw_data)
+                .map_err(|e| PassportError::SerializationError(e.to_string()))?
+        };
 
         self.validate_and_wrap(passport, options)
     }
@@ -176,10 +189,39 @@ impl PassportImporter {
         Ok(hex::encode(result))
     }
 
-    /// Decrypt data.
-    fn decrypt(&self, data: &[u8], _key: &str) -> Result<Vec<u8>, PassportError> {
-        // Production would use actual AES-256-GCM decryption
-        Ok(data.to_vec())
+    /// Decrypt data using AES-256-GCM.
+    fn decrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, PassportError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm, Nonce,
+        };
+        use sha2::{Digest, Sha256};
+
+        if data.len() < 12 {
+            return Err(PassportError::DecryptionFailed("Ciphertext too short".into()));
+        }
+
+        // Derive 256-bit key from string using SHA-256
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        let key_bytes: [u8; 32] = hasher.finalize().into();
+
+        let cipher = Aes256Gcm::new_from_slice(&key_bytes)
+            .map_err(|e| PassportError::DecryptionFailed(format!("Cipher init failed: {}", e)))?;
+
+        // Extract nonce (first 12 bytes)
+        let nonce = Nonce::from_slice(&data[..12]);
+        let ciphertext = &data[12..];
+
+        cipher
+            .decrypt(nonce, ciphertext)
+            .map_err(|e| PassportError::DecryptionFailed(format!("Decryption failed: {}", e)))
+    }
+
+    /// Decompress data using zstd.
+    fn decompress(&self, data: &[u8]) -> Result<Vec<u8>, PassportError> {
+        zstd::decode_all(data)
+            .map_err(|e| PassportError::SerializationError(format!("Decompression failed: {}", e)))
     }
 
     /// Merge two passports.

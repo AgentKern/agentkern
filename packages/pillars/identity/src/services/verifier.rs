@@ -1,5 +1,9 @@
+// ============================================================================
+// VERIFICATION SERVICE
+// ============================================================================
+
 use crate::models::{LiabilityProof, LiabilityProofPayload, VerificationKey};
-use agentkern_crypto::{CryptoMode, CryptoProvider}; // Signature removed if unused
+use agentkern_crypto::{CryptoMode, CryptoProvider}; 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Timelike, Utc};
 use serde_json;
@@ -19,6 +23,8 @@ pub enum VerificationError {
     ConstraintViolation(String),
     #[error("Key mismatch or not found")]
     KeyError,
+    #[error("Unsupported algorithm: {0}")]
+    UnsupportedAlgorithm(String),
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -27,11 +33,24 @@ pub struct VerificationService {
     // In a real implementation, we might inject a Repo here,
     // but for now we'll assume the caller passes the Key for purity.
     crypto_hybrid: CryptoProvider,
+    replay_cache: Box<dyn ReplayCache>,
+    revocation_cache: Box<dyn RevocationCache>,
 }
 
 impl VerificationService {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_caches(
+        replay_cache: Box<dyn ReplayCache>,
+        revocation_cache: Box<dyn RevocationCache>,
+    ) -> Self {
+        Self {
+            crypto_hybrid: CryptoProvider::new(CryptoMode::Hybrid),
+            replay_cache,
+            revocation_cache,
+        }
     }
 }
 
@@ -39,6 +58,8 @@ impl Default for VerificationService {
     fn default() -> Self {
         Self {
             crypto_hybrid: CryptoProvider::new(CryptoMode::Hybrid),
+            replay_cache: Box::new(InMemoryReplayCache::new()),
+            revocation_cache: Box::new(InMemoryRevocationCache::new()),
         }
     }
 }
@@ -71,18 +92,36 @@ impl VerificationService {
             version,
             payload,
             signature,
+            raw_payload: Some(payload_bytes),
         })
     }
 
     /// Verify a proof against a known public key
-    pub fn verify(
+    pub async fn verify(
         &self,
         proof: &LiabilityProof,
         key: &VerificationKey,
     ) -> Result<bool, VerificationError> {
         let now = Utc::now();
 
-        // 1. Check Expiration
+        // 1. Replay Protection (Critical Security Fix)
+        // Check if proof_id has been seen before
+        if self.replay_cache.has_seen(&proof.payload.proof_id).await {
+            return Err(VerificationError::ConstraintViolation(format!(
+                "Replay detected: proof_id {} already used",
+                proof.payload.proof_id
+            )));
+        }
+
+        // 1b. Revocation Check (New)
+        if self.revocation_cache.is_revoked(&proof.payload.proof_id).await {
+            return Err(VerificationError::ConstraintViolation(format!(
+                "Revoked: proof_id {} is found in blacklist",
+                proof.payload.proof_id
+            )));
+        }
+
+        // 2. Check Expiration
         let expires_at = DateTime::parse_from_rfc3339(&proof.payload.expires_at)
             .map_err(|_| VerificationError::InvalidFormat)?
             .with_timezone(&Utc);
@@ -91,7 +130,7 @@ impl VerificationService {
             return Err(VerificationError::Expired(proof.payload.expires_at.clone()));
         }
 
-        // 2. Check Issue Time
+        // 3. Check Issue Time
         let issued_at = DateTime::parse_from_rfc3339(&proof.payload.issued_at)
             .map_err(|_| VerificationError::InvalidFormat)?
             .with_timezone(&Utc);
@@ -102,7 +141,7 @@ impl VerificationService {
             ));
         }
 
-        // 3. Verify Constraints (Time of Day)
+        // 4. Verify Constraints (Time of Day)
         if let Some(constraints) = &proof.payload.constraints {
             if let Some(valid_hours) = &constraints.valid_hours {
                 let current_hour = now.hour() as u8;
@@ -115,8 +154,18 @@ impl VerificationService {
             }
         }
 
-        // 4. Verify Signature
-        self.verify_signature(proof, key)
+        // 5. Verify Signature
+        if self.verify_signature(proof, key)? {
+            // Mark proof as seen only after successful verification
+            // Calculate TTL based on expiration
+            let ttl = (expires_at - now).num_seconds().max(60) as u64;
+            self.replay_cache
+                .mark_seen(&proof.payload.proof_id, ttl)
+                .await;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     fn verify_signature(
@@ -124,9 +173,16 @@ impl VerificationService {
         proof: &LiabilityProof,
         key: &VerificationKey,
     ) -> Result<bool, VerificationError> {
-        let payload_json = serde_json::to_string(&proof.payload)
-            .map_err(|e| VerificationError::Internal(e.to_string()))?;
-        let data_bytes = payload_json.as_bytes();
+        // Use raw_payload if available to avoid canonicalization issues
+        let data_bytes = if let Some(raw) = &proof.raw_payload {
+            raw.clone() // Clone is necessary as verify takes &[u8]
+        } else {
+            // Fallback: re-serialize (RISKY: assumes consistent formatting)
+            let payload_json = serde_json::to_string(&proof.payload)
+                .map_err(|e| VerificationError::Internal(e.to_string()))?;
+             payload_json.into_bytes()
+        };
+        let data_bytes = data_bytes.as_slice();
 
         // Detect signature type (Hybrid vs Classic)
         let (classical_part, pq_part) = if proof.signature.contains('~') {
@@ -136,10 +192,17 @@ impl VerificationService {
             (Some(proof.signature.clone()), None)
         };
 
+        // Map key algorithm string to agentkern_crypto::Algorithm
+        let algo = match key.algorithm.as_str() {
+            "Ed25519" => agentkern_crypto::Algorithm::Ed25519,
+            "P256" => agentkern_crypto::Algorithm::EcdsaP256,
+            // Fallback for others - or better, return error
+            other => return Err(VerificationError::UnsupportedAlgorithm(other.to_string())),
+        };
+
         // Construct Signature Object for AgentKern-Crypto
-        // Note: algorithm in key might need mapping to agentkern_crypto::Algorithm
         let signature_obj = agentkern_crypto::Signature {
-            algorithm: agentkern_crypto::Algorithm::Ed25519, // Default/Assumption for now
+            algorithm: algo,
             value: proof.signature.clone(),
             key_id: key.id.to_string(),
             classical_component: classical_part,
@@ -150,6 +213,122 @@ impl VerificationService {
         self.crypto_hybrid
             .verify(data_bytes, &signature_obj, &key.public_key)
             .map_err(|_| VerificationError::InvalidSignature)
+    }
+}
+
+// ============================================================================
+// REPLAY PROTECTION
+// ============================================================================
+
+/// Cache trait for replay protection nonce storage.
+#[async_trait::async_trait]
+pub trait ReplayCache: Send + Sync {
+    /// Check if a proof ID has been seen.
+    async fn has_seen(&self, proof_id: &str) -> bool;
+    /// Mark a proof ID as seen with a TTL (seconds).
+    async fn mark_seen(&self, proof_id: &str, ttl_seconds: u64);
+}
+
+/// In-memory implementation of ReplayCache.
+/// ⚠️ WARNING: Not suitable for distributed deployments. Use Redis in production.
+pub struct InMemoryReplayCache {
+    // using std::sync explicitly to avoid conflicts
+    cache: std::sync::RwLock<std::collections::HashMap<String, DateTime<Utc>>>,
+}
+
+impl Default for InMemoryReplayCache {
+    fn default() -> Self {
+        Self {
+            cache: std::sync::RwLock::new(std::collections::HashMap::new()),
+        }
+    }
+}
+
+impl InMemoryReplayCache {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Prune expired entries (manual maintenance)
+    pub fn prune(&self) {
+        let now = Utc::now();
+        if let Ok(mut guard) = self.cache.write() {
+            guard.retain(|_, expiry| *expiry > now);
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl ReplayCache for InMemoryReplayCache {
+    async fn has_seen(&self, proof_id: &str) -> bool {
+        let now = Utc::now();
+        if let Ok(guard) = self.cache.read() {
+            if let Some(expiry) = guard.get(proof_id) {
+                return *expiry > now;
+            }
+        }
+        false
+    }
+
+    async fn mark_seen(&self, proof_id: &str, ttl_seconds: u64) {
+        let now = Utc::now();
+        let expiry = now + chrono::Duration::seconds(ttl_seconds as i64);
+        if let Ok(mut guard) = self.cache.write() {
+            guard.insert(proof_id.to_string(), expiry);
+        }
+    }
+}
+
+// ============================================================================
+// REVOCATION CACHE (BLACKLIST)
+// ============================================================================
+
+/// Cache trait for token revocation (blacklist).
+#[async_trait::async_trait]
+pub trait RevocationCache: Send + Sync {
+    /// Check if a proof ID or token ID is revoked.
+    async fn is_revoked(&self, id: &str) -> bool;
+    /// Revoke a proof ID or token ID with a TTL.
+    async fn revoke(&self, id: &str, ttl_seconds: u64);
+}
+
+/// In-memory implementation of RevocationCache.
+pub struct InMemoryRevocationCache {
+    cache: std::sync::RwLock<std::collections::HashMap<String, DateTime<Utc>>>,
+}
+
+impl Default for InMemoryRevocationCache {
+    fn default() -> Self {
+        Self {
+            cache: std::sync::RwLock::new(std::collections::HashMap::new()),
+        }
+    }
+}
+
+impl InMemoryRevocationCache {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait::async_trait]
+impl RevocationCache for InMemoryRevocationCache {
+    async fn is_revoked(&self, id: &str) -> bool {
+        let now = Utc::now();
+        if let Ok(guard) = self.cache.read() {
+            if let Some(expiry) = guard.get(id) {
+                return *expiry > now;
+            }
+        }
+        false
+    }
+
+    async fn revoke(&self, id: &str, ttl_seconds: u64) {
+        let now = Utc::now();
+        let expiry = now + chrono::Duration::seconds(ttl_seconds as i64);
+        if let Ok(mut guard) = self.cache.write() {
+            guard.insert(id.to_string(), expiry);
+        }
     }
 }
 
@@ -210,8 +389,8 @@ mod tests {
         assert_eq!(proof.payload.proof_id, "test-proof-id");
     }
 
-    #[test]
-    fn test_verify_expiration() {
+    #[tokio::test]
+    async fn test_verify_expiration() {
         let mut payload = create_dummy_payload();
         // Set expiration in the past
         payload.expires_at = (Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
@@ -220,6 +399,7 @@ mod tests {
             version: "1.0".to_string(),
             payload,
             signature: "sig".to_string(),
+            raw_payload: None,
         };
 
         let key = VerificationKey {
@@ -240,7 +420,7 @@ mod tests {
 
         let service = VerificationService::new();
         // verify should fail on expiration BEFORE signature check
-        let result = service.verify(&proof, &key);
+        let result = service.verify(&proof, &key).await;
 
         match result {
             Err(VerificationError::Expired(_)) => {}

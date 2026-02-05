@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgentKern — The Operating System for Autonomous AI Agents</title>
-    <meta name="description" content="AgentKern is the foundational infrastructure layer for orchestrating, verifying, and governing autonomous AI agents. Built in Rust for maximum performance.">
-    <meta name="keywords" content="AI agents, agent infrastructure, autonomous agents, AI safety, Rust, A2A, MCP, agent payments">
+    <title>AgentKern — Cryptographic Safety for AI Agents</title>
+    <meta name="description" content="AgentKern is a Rust-based toolset for enforcing cryptographic safety, state synchronization, and atomic transactions between autonomous AI agents.">
+    <meta name="keywords" content="AI agents, agent safety, Rust, A2A, MCP, agent payments, TEE, NLIP">
     
     <!-- Open Graph -->
     <meta property="og:title" content="AgentKern — The Agent Kernel">
-    <meta property="og:description" content="The Operating System for Autonomous AI Agents. Identity, Safety, Memory, Coordination, Payments, Protocols.">
+    <meta property="og:description" content="Enforce cryptographic safety and atomic transactions for autonomous AI agents.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://agentkern.github.io">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AgentKern — The Agent Kernel">
-    <meta name="twitter:description" content="The Operating System for Autonomous AI Agents">
+    <meta name="twitter:description" content="Cryptographic safety and atomic transactions for AI agents.">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -38,7 +38,7 @@
             --text-muted: #64748b;
             --border: #1e293b;
             --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-            --gradient-2: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
         
         * {
@@ -53,9 +53,15 @@
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1, h2, h3, h4, .logo {
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
         }
         
-        /* Animated background */
         .bg-grid {
             position: fixed;
             top: 0;
@@ -70,7 +76,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 0 24px;
         }
@@ -95,7 +101,7 @@
         }
         
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 800;
             background: var(--gradient-1);
             -webkit-background-clip: text;
@@ -105,7 +111,7 @@
         
         .nav-links {
             display: flex;
-            gap: 32px;
+            gap: 24px;
             list-style: none;
         }
         
@@ -113,7 +119,7 @@
             color: var(--text-secondary);
             text-decoration: none;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             transition: color 0.2s;
         }
         
@@ -121,30 +127,27 @@
             color: var(--text-primary);
         }
         
-        .nav-cta {
-            display: flex;
-            gap: 12px;
-        }
-        
         .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-decoration: none;
             transition: all 0.2s;
             cursor: pointer;
             border: none;
+            display: inline-block;
         }
         
         .btn-primary {
             background: var(--gradient-1);
             color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
         }
         
         .btn-secondary {
@@ -153,294 +156,161 @@
             border: 1px solid var(--border);
         }
         
-        .btn-secondary:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-        
         /* Hero Section */
         .hero {
-            padding: 160px 0 100px;
-            text-align: center;
-        }
-        
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-        }
-        
-        .hero-badge .dot {
-            width: 8px;
-            height: 8px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            padding: 140px 0 80px;
+            text-align: left;
         }
         
         .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 4.5rem);
-            font-weight: 800;
-            line-height: 1.1;
+            font-size: 5rem;
+            line-height: 1;
             margin-bottom: 24px;
-            background: linear-gradient(180deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            font-weight: 800;
+            background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
-        .hero h1 span {
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            background-clip: text;
+
+        .hero-lead {
+            font-size: 1.5rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+            max-width: 900px;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
         
         .hero-subtitle {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            max-width: 640px;
-            margin: 0 auto 40px;
-        }
-        
-        .hero-cta {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 48px;
-            margin-top: 64px;
-            padding-top: 48px;
-            border-top: 1px solid var(--border);
-        }
-        
-        .stat {
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-        
-        /* Pillars Section */
-        .pillars {
-            padding: 100px 0;
-        }
-        
-        .section-header {
-            text-align: center;
-            margin-bottom: 64px;
-        }
-        
-        .section-header h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-        
-        .section-header p {
-            color: var(--text-secondary);
             font-size: 1.1rem;
-            max-width: 580px;
-            margin: 0 auto;
-        }
-        
-        .pillars-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-        }
-        
-        .pillar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px;
-            transition: all 0.3s;
-        }
-        
-        .pillar-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent-primary);
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
-        }
-        
-        .pillar-icon {
-            font-size: 2.5rem;
-            margin-bottom: 16px;
-        }
-        
-        .pillar-card h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .pillar-card p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
+            max-width: 800px;
+            margin-bottom: 40px;
         }
         
-        /* Code Block */
-        .code-section {
-            padding: 100px 0;
-            background: linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.03) 100%);
+        /* Capabilities Section */
+        .capabilities {
+            padding: 40px 0;
         }
         
-        .code-block {
-            background: #0d1117;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        .code-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: #161b22;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .code-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-        
-        .code-dot.red { background: #ff5f56; }
-        .code-dot.yellow { background: #ffbd2e; }
-        .code-dot.green { background: #27ca3e; }
-        
-        .code-content {
-            padding: 24px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            line-height: 1.7;
-            overflow-x: auto;
-        }
-        
-        .code-content .comment { color: #8b949e; }
-        .code-content .keyword { color: #ff7b72; }
-        .code-content .string { color: #a5d6ff; }
-        .code-content .function { color: #d2a8ff; }
-        .code-content .type { color: #79c0ff; }
-        
-        /* CTA Section */
-        .cta-section {
-            padding: 100px 0;
-            text-align: center;
-        }
-        
-        .cta-box {
-            background: var(--gradient-1);
-            border-radius: 24px;
-            padding: 64px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cta-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
-        }
-        
-        .cta-box h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            position: relative;
-        }
-        
-        .cta-box p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            margin-bottom: 32px;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-            position: relative;
-        }
-        
-        .cta-box .btn {
-            background: white;
-            color: var(--accent-primary);
-            font-size: 1rem;
-            padding: 14px 28px;
-            position: relative;
-        }
-        
-        /* Footer */
-        footer {
-            padding: 48px 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 32px;
+        .capabilities h2 {
+            font-size: 1.5rem;
             margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-        
-        .footer-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-        
-        .footer-links a:hover {
             color: var(--text-primary);
         }
         
-        .footer-copy {
-            color: var(--text-muted);
-            font-size: 0.85rem;
+        .cap-list {
+            list-style: none;
+            display: grid;
+            gap: 16px;
         }
         
-        /* Responsive */
+        .cap-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 24px;
+            border-radius: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cap-item:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .cap-item .icon {
+            font-size: 1.2rem;
+            padding-top: 2px;
+        }
+        
+        .cap-item strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+        
+        .cap-item p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        
+        /* Audience Section */
+        .audience {
+            padding: 60px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        .audience-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .audience-box ul {
+            list-style: none;
+            display: grid;
+            gap: 12px;
+        }
+        
+        .audience-box li {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .audience-box li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+        }
+        
+        /* Code Block */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin: 40px 0;
+            overflow-x: auto;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .type { color: #79c0ff; }
+        .function { color: #d2a8ff; }
+        .string { color: #a5d6ff; }
+        .comment { color: #8b949e; }
+        
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        footer a { color: var(--text-muted); text-decoration: none; margin-left:16px; }
+        footer a:hover { color: var(--text-primary); }
+
         @media (max-width: 768px) {
-            .nav-links { display: none; }
-            .hero-stats { flex-direction: column; gap: 24px; }
-            .cta-box { padding: 40px 24px; }
+            .audience { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -451,175 +321,115 @@
         <div class="container nav-content">
             <div class="logo">AgentKern</div>
             <ul class="nav-links">
-                <li><a href="#pillars">Pillars</a></li>
+                <li><a href="https://github.com/AgentKern/agentkern">Source</a></li>
+                <li><a href="./QUICKSTART.md">Documentation</a></li>
                 <li><a href="/agentkern/playground/">Playground</a></li>
-                <li><a href="https://github.com/AgentKern/agentkern/tree/main/docs">Docs</a></li>
-                <li><a href="https://github.com/AgentKern/agentkern">GitHub</a></li>
             </ul>
-            <div class="nav-cta">
-                <a href="/agentkern/playground/" class="btn btn-secondary">Try Playground</a>
-                <a href="https://github.com/AgentKern/agentkern" class="btn btn-primary">Get Started</a>
-            </div>
         </div>
     </nav>
     
-    <main>
+    <main class="container">
         <section class="hero">
-            <div class="container">
-                <div class="hero-badge">
-                    <span class="dot"></span>
-                    Open Source • Apache 2.0
-                </div>
-                <h1>The Operating System for<br><span>Autonomous AI Agents</span></h1>
-                <p class="hero-subtitle">
-                    AgentKern provides the missing infrastructure for AI agent accountability, safety, memory, coordination, payments, and interoperability. Built on a bedrock of Confidential Computing.
-                </p>
-                <div class="hero-cta">
-                    <a href="/agentkern/playground/" class="btn btn-primary">🎮 Try the Playground</a>
-                    <a href="https://github.com/AgentKern/agentkern" class="btn btn-secondary">⭐ Star on GitHub</a>
-                    <a href="https://github.com/AgentKern/agentkern/tree/main/docs" class="btn btn-secondary">Read the Docs</a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <div class="stat-value">6</div>
-                        <div class="stat-label">Core Pillars</div>
+            <h1>AgentKern</h1>
+            <p class="hero-lead">
+                A Rust-based development kit for enforcing cryptographic safety, state synchronization, and atomic transactions between autonomous AI agents.
+            </p>
+            <p class="hero-subtitle">
+                Build agentic systems with verifiable audit trails, hardware-backed identity, and sub-millisecond safety policy enforcement.
+            </p>
+            <div class="hero-cta">
+                <a href="https://github.com/AgentKern/agentkern" class="btn btn-primary">Clone Repository</a>
+                <a href="./QUICKSTART.md" class="btn btn-secondary">Read Docs</a>
+            </div>
+        </section>
+
+        <section class="capabilities">
+            <h2>Specific Capabilities</h2>
+            <div class="cap-list">
+                <div class="cap-item">
+                    <span class="icon">🪪</span>
+                    <div>
+                        <strong>Verify authorship</strong>
+                        <p>Sign every agent action and internal thought using hardware-backed cryptographic keys (TEEs) to generate immutable audit logs.</p>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">334+</div>
-                        <div class="stat-label">Tests Passing</div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Block malicious prompts</strong>
+                        <p>Evaluate incoming text for social engineering and prompt injections in &lt;20ms using an embedded neuro-symbolic verification engine.</p>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">5</div>
-                        <div class="stat-label">Protocols Supported</div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">🧠</span>
+                    <div>
+                        <strong>Synchronize state</strong>
+                        <p>Transport agent context across distributed environments via CRDT-based memory passports to maintain temporal consistency and detect intent drift.</p>
+                    </div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">⚖️</span>
+                    <div>
+                        <strong>Resolve resource contention</strong>
+                        <p>Coordinate multiple agents via priority-based Raft consensus and atomic business locks to prevent race conditions on shared data or APIs.</p>
+                    </div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">💰</span>
+                    <div>
+                        <strong>Execute atomic payments</strong>
+                        <p>Facilitate agent-to-agent transfers and enforce hard spending budgets using a 2-phase commit settlement engine.</p>
+                    </div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">🔀</span>
+                    <div>
+                        <strong>Translate protocols</strong>
+                        <p>Map communication between A2A, MCP, and NLIP standards to allow agents from different vendors to collaborate in the same environment.</p>
                     </div>
                 </div>
             </div>
         </section>
-        
-        <section class="pillars" id="pillars">
-            <div class="container">
-                <div class="section-header">
-                    <h2>The Six Pillars</h2>
-                    <p>Every AI agent needs these universal primitives. AgentKern provides them all.</p>
-                </div>
-                <div class="pillars-grid">
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🪪</div>
-                        <h3>Identity</h3>
-                        <p>Keys live in Hardware Enclaves (TEEs). Cryptographic proof of authorship for every thought and action. Verifiable Credentials for reputation.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🛡️</div>
-                        <h3>Gate</h3>
-                        <p>Neuro-symbolic verification engine. Policy checks in &lt;1ms, prompt injection defense in &lt;20ms.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🧠</div>
-                        <h3>Synapse</h3>
-                        <p>Graph-based state ledger with CRDTs. Track intent paths and detect drift before it becomes a problem.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">⚖️</div>
-                        <h3>Arbiter</h3>
-                        <p>Coordination engine with Raft consensus. Atomic business locks, kill switch, escalation workflows.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">💰</div>
-                        <h3>Treasury</h3>
-                        <p>Native settlement for <strong>Digital Assets</strong>. Agents pay for services with 2-phase commit, budgets, and carbon ledgers.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🔀</div>
-                        <h3>Nexus</h3>
-                        <p>Universal protocol gateway. A2A, MCP, ANP, NLIP, AITP — agents from any vendor can talk.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <section class="code-section">
-            <div class="container">
-                <div class="section-header">
-                    <h2>Built for Developers</h2>
-                    <p>Clean APIs, comprehensive docs, and a focus on developer experience.</p>
-                </div>
-                <div class="code-block">
-                    <div class="code-header">
-                        <span class="code-dot red"></span>
-                        <span class="code-dot yellow"></span>
-                        <span class="code-dot green"></span>
-                    </div>
-                    <div class="code-content">
+
+        <div class="code-block">
 <span class="keyword">use</span> <span class="type">agentkern_gate</span>::<span class="type">PromptGuard</span>;
 <span class="keyword">use</span> <span class="type">agentkern_treasury</span>::<span class="type">TransferEngine</span>;
 
-<span class="comment">// Protect against prompt injection</span>
+<span class="comment">// 1. Intercept injection attempts</span>
 <span class="keyword">let</span> guard = <span class="function">PromptGuard::new</span>();
-<span class="keyword">let</span> analysis = guard.<span class="function">analyze</span>(user_input);
+<span class="keyword">let</span> result = guard.<span class="function">analyze</span>(input);
+<span class="keyword">if</span> result.action == <span class="type">PromptAction</span>::<span class="type">Block</span> { <span class="keyword">return</span> <span class="function">Err</span>(<span class="string">"Blocked"</span>); }
 
-<span class="keyword">if</span> analysis.action == <span class="type">PromptAction</span>::<span class="type">Block</span> {
-    <span class="keyword">return</span> <span class="function">Err</span>(<span class="string">"Injection detected"</span>);
-}
-
-<span class="comment">// Agents can pay each other</span>
-<span class="keyword">let</span> result = engine.<span class="function">transfer</span>(request).<span class="keyword">await</span>?;
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Enterprise Section -->
-        <section class="pillars" style="background: var(--bg-dark);">
-            <div class="container">
-                <div class="section-header">
-                    <h2>Enterprise Infrastructure</h2>
-                    <p>AgentKern isn't just for code. It's for <strong>Governance</strong>, <strong>Risk</strong>, and <strong>Compliance</strong>.</p>
-                </div>
-                <div class="pillars-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🇪🇺</div>
-                        <h3>EU AI Act Ready</h3>
-                        <p>Native compliance with the EU AI Act. Trace every decision, explain every outcome, and maintain a full audit trail automatically.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">📉</div>
-                        <h3>Cost Control</h3>
-                        <p>Stop runaway API bills. Set hard spending limits, budget caps, and approval workflows for every agent in your fleet.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🔒</div>
-                        <h3>Liability Shield</h3>
-                        <p>When an agent makes a mistake, who is responsible? Our Identity pillar provides cryptographic proof of authorship for liability insurance.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon">🌐</div>
-                        <h3>Sovereign Mesh</h3>
-                        <p>For Nations and Privacy-First Orgs. Data never leaves your border. Code runs on certified local hardware (TPM/TEE). Complete sovereignty.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <section class="cta-section">
-            <div class="container">
-                <div class="cta-box">
-                    <h2>Ready to Build?</h2>
-                    <p>Star us on GitHub and join the community building the infrastructure for the agentic economy.</p>
-                    <a href="https://github.com/AgentKern/agentkern" class="btn">Get Started →</a>
-                </div>
-            </div>
-        </section>
-    </main>
-    
-    <footer>
-        <div class="container">
-            <div class="footer-links">
-                <a href="https://github.com/AgentKern/agentkern">GitHub</a>
-                <a href="https://github.com/AgentKern/agentkern/tree/main/docs">Documentation</a>
-                <a href="https://github.com/AgentKern/agentkern/blob/main/LICENSE">License (Apache 2.0)</a>
-            </div>
-            <p class="footer-copy">© 2025 AgentKern. Built for the Agentic Economy.</p>
+<span class="comment">// 2. Execute atomic payment between agents</span>
+<span class="keyword">let</span> transfer = engine.<span class="function">transfer</span>(request).<span class="keyword">await</span>?;
         </div>
-    </footer>
+
+        <section class="audience">
+            <div class="audience-box">
+                <h3>Who this is for</h3>
+                <ul>
+                    <li>Engineers building autonomous agents in regulated sectors (Finance, Healthcare, Defense).</li>
+                    <li>Developers requiring verifiable proof for liability and insurance of AI actions.</li>
+                    <li>Systems architects needing hard safety guardrails that run at native Rust speeds.</li>
+                </ul>
+            </div>
+            <div class="audience-box">
+                <h3>Who this is not for</h3>
+                <ul>
+                    <li>Users looking for a "no-code" agent builder or prompt orchestrator.</li>
+                    <li>Developers building simple, single-prompt chat interfaces without state requirements.</li>
+                    <li>Teams that do not require cryptographic audit trails or hardware-rooted trust.</li>
+                </ul>
+            </div>
+        </section>
+
+        <footer>
+            <span>© 2026 AgentKern Project</span>
+            <div>
+                <a href="https://github.com/AgentKern/agentkern">GitHub</a>
+                <a href="https://github.com/AgentKern/agentkern/blob/main/LICENSE">Apache 2.0</a>
+            </div>
+        </footer>
+    </main>
 </body>
 </html>

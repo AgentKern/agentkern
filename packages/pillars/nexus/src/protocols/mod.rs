@@ -24,8 +24,7 @@ pub use translator::{FieldMapping, ProtocolTranslator, TranslationResult};
 #[cfg(feature = "a2a")]
 pub use a2a::A2AAdapter;
 
-#[cfg(feature = "mcp")]
-pub use mcp::MCPAdapter;
+pub use mcp::McpAdapter;
 
 #[cfg(feature = "nlip")]
 pub use nlip::{NLIPAdapter, NLIPContent, NLIPEnvelope};

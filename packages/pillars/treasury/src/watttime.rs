@@ -145,12 +145,10 @@ impl WattTimeClient {
         }
 
         if !response.status().is_success() {
-            // Fall back to location-based estimate
-            tracing::warn!(
-                "WattTime API returned {}, falling back to estimate",
+            return Err(WattTimeError::RequestFailed(format!(
+                "API returned error status: {}",
                 response.status()
-            );
-            return Ok(self.estimate_from_location(lat, lon));
+            )));
         }
 
         let data: serde_json::Value = response
@@ -174,9 +172,8 @@ impl WattTimeClient {
 
     /// Fallback implementation when http feature is disabled.
     #[cfg(not(feature = "http"))]
-    pub async fn get_intensity(&self, lat: f64, lon: f64) -> Result<u32, WattTimeError> {
-        // Return location-based estimate when API is not available
-        Ok(self.estimate_from_location(lat, lon))
+    pub async fn get_intensity(&self, _lat: f64, _lon: f64) -> Result<u32, WattTimeError> {
+        Err(WattTimeError::RequestFailed("HTTP feature disabled".into()))
     }
 
     /// Authenticate with WattTime v3 API.
@@ -277,10 +274,11 @@ impl WattTimeClient {
     /// Fallback forecast when http feature is disabled.
     #[cfg(not(feature = "http"))]
     pub async fn get_forecast(&self, _ba: &str) -> Result<Vec<ForecastPoint>, WattTimeError> {
-        self.mock_forecast()
+        Err(WattTimeError::RequestFailed("HTTP feature disabled".into()))
     }
 
     /// Generate mock forecast data (fallback).
+    #[cfg(test)]
     fn mock_forecast(&self) -> Result<Vec<ForecastPoint>, WattTimeError> {
         use chrono::Timelike;
         let now = chrono::Utc::now();
@@ -368,6 +366,7 @@ impl WattTimeClient {
     }
 
     /// Estimate intensity from lat/lon (fallback when API unavailable).
+    #[cfg(test)]
     fn estimate_from_location(&self, lat: f64, lon: f64) -> u32 {
         // Rough estimates based on grid carbon intensity by region
         if lon < -100.0 && lat > 32.0 && lat < 42.0 {

@@ -16,3 +16,11 @@ pub use triggers::{
     EscalationLevel, EscalationTrigger, TriggerConfig, TriggerResult, TriggerType, TrustThreshold,
 };
 pub use webhook::{WebhookConfig, WebhookNotifier, WebhookPayload, WebhookResult};
+
+
+/// Trait for escalation connectors (e.g., Slack, PagerDuty).
+#[async_trait::async_trait]
+pub trait EscalationConnector: Send + Sync {
+    /// Send an escalation alert.
+    async fn send(&self, trigger: &triggers::TriggerResult) -> Result<(), String>;
+}

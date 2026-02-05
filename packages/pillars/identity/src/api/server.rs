@@ -107,7 +107,7 @@ async fn verify_endpoint(
     match proof_res {
         Ok(proof) => {
             if let Some(key) = payload.public_key {
-                match state.verifier.verify(&proof, &key) {
+                match state.verifier.verify(&proof, &key).await {
                     Ok(valid) => (StatusCode::OK, Json(json!({ "valid": valid }))),
                     Err(e) => (
                         StatusCode::BAD_REQUEST,

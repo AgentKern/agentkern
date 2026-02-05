@@ -17,7 +17,37 @@ pub struct GateState {
 
 pub fn router() -> Router {
     let engine = Arc::new(GateEngine::new());
-    // TODO: Load policies from database or config file
+    router_with_engine(engine)
+}
+
+pub fn router_with_engine(engine: Arc<GateEngine>) -> Router {
+    // Load policies from disk (background task)
+    let engine_clone = engine.clone();
+    tokio::spawn(async move {
+        // Use imports from crate::loader
+        use crate::loader::{FilePolicyLoader, PolicyLoader};
+        
+        // P3: Configurable policy path
+        let policy_dir = std::env::var("POLICY_DIR").unwrap_or_else(|_| "./policies".to_string());
+        let loader = FilePolicyLoader::new(policy_dir);
+        
+        match loader.load_all().await {
+             Ok(policies) => {
+                 let count = policies.len();
+                 for p in policies {
+                     engine_clone.register_policy(p).await;
+                 }
+                 if count > 0 {
+                     tracing::info!("✅ Loaded {} policies from disk", count);
+                 } else {
+                     tracing::info!("ℹ️ No policies found in policy directory");
+                 }
+             }
+             Err(e) => {
+                 tracing::warn!("⚠️ Failed to load policies from disk: {}", e);
+             }
+        }
+    });
 
     let state = GateState { engine };
 
