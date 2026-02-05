@@ -198,7 +198,9 @@ impl PassportImporter {
         use sha2::{Digest, Sha256};
 
         if data.len() < 12 {
-            return Err(PassportError::DecryptionFailed("Ciphertext too short".into()));
+            return Err(PassportError::DecryptionFailed(
+                "Ciphertext too short".into(),
+            ));
         }
 
         // Derive 256-bit key from string using SHA-256

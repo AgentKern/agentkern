@@ -283,7 +283,7 @@ impl GateEngine {
         // Calculate final risk score
         let final_risk = if let Some((neural_risk, _)) = neural_result {
             // Expert Fix: Symbolic risk acts as a floor for final risk scoring.
-            // This prevents neural evaluation from "averaging down" a high-risk 
+            // This prevents neural evaluation from "averaging down" a high-risk
             // symbolic finding (e.g. 90 symbolic + 10 neural = 50 is unsafe).
             let avg = ((symbolic_risk as u16 + neural_risk as u16) / 2) as u8;
             symbolic_risk.max(avg)
@@ -296,11 +296,9 @@ impl GateEngine {
 
         // BLOCKING THRESHOLD: 80
         const BLOCKING_THRESHOLD: u8 = 80;
-        
+
         // Final decision: Explicit Deny OR High Risk OR Carbon Veto will block.
-        let allowed = blocking.is_empty() 
-            && final_risk < BLOCKING_THRESHOLD 
-            && carbon_allowed;
+        let allowed = blocking.is_empty() && final_risk < BLOCKING_THRESHOLD && carbon_allowed;
 
         let reasoning = if !carbon_allowed {
             carbon_result
@@ -310,7 +308,10 @@ impl GateEngine {
         } else if !blocking.is_empty() {
             format!("Blocked by symbolic policies: {}", blocking.join(", "))
         } else if final_risk >= BLOCKING_THRESHOLD {
-            format!("Action blocked due to high risk score ({} >= {})", final_risk, BLOCKING_THRESHOLD)
+            format!(
+                "Action blocked due to high risk score ({} >= {})",
+                final_risk, BLOCKING_THRESHOLD
+            )
         } else {
             "All policies passed".to_string()
         };
@@ -635,6 +636,8 @@ mod tests {
         assert_eq!(result.symbolic_risk_score, 100);
         // Final risk should be at least 100 (max of symbolic)
         assert!(result.final_risk_score >= 100);
-        assert!(result.blocking_policies.contains(&"strict-policy".to_string()));
+        assert!(result
+            .blocking_policies
+            .contains(&"strict-policy".to_string()));
     }
 }

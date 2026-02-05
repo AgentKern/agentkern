@@ -10,8 +10,8 @@
 //! This addresses ESG requirements and positions AgentKern
 //! as the only agent platform with native sustainability tracking.
 
+use agentkern_governance::esg::{CarbonIntensityFeed, GridApi};
 use chrono::{DateTime, Duration, Timelike, Utc};
-use agentkern_governance::esg::{GridApi, CarbonIntensityFeed};
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -756,7 +756,9 @@ impl CarbonLedger {
     /// Find the cleanest region for scheduling.
     pub async fn recommend_region(&self) -> CarbonRegion {
         // Query real-time grid data via provider
-        let region_name = self.grid_provider.find_greenest(&["us-east-1", "eu-west-1", "ap-southeast-1"])
+        let region_name = self
+            .grid_provider
+            .find_greenest(&["us-east-1", "eu-west-1", "ap-southeast-1"])
             .await
             .unwrap_or_else(|_| "us-east-1".to_string());
 
@@ -793,14 +795,16 @@ impl CarbonLedger {
             CarbonRegion::UsEast => "us-east-1",
             CarbonRegion::UsWest => "us-west-1",
             CarbonRegion::EuAverage => "eu-west-1",
-            _ => "unknown"
+            _ => "unknown",
         };
-        
-        let intensity_val = self.grid_provider.get_intensity(region_code)
+
+        let intensity_val = self
+            .grid_provider
+            .get_intensity(region_code)
             .await
             .map(|f| f.intensity_gco2_kwh)
             .unwrap_or(250.0); // Default to moderate if API fails
-            
+
         intensity_val > GREEN_THRESHOLD as f64
     }
 

@@ -17,7 +17,7 @@ pub struct NexusState {
 
 pub fn router() -> Router {
     let nexus = Arc::new(Nexus::new());
-    
+
     // Register defaults
     let nx_clone = nexus.clone();
     tokio::spawn(async move {
@@ -26,7 +26,7 @@ pub fn router() -> Router {
         nx_clone.register_adapter(McpAdapter::new()).await;
         tracing::debug!("Registered AgentKern and MCP adapters");
     });
-    
+
     let state = NexusState { nexus };
 
     Router::new()

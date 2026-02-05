@@ -11,10 +11,10 @@ use crate::antifragile::AntifragileEngine;
 use crate::carbon::CarbonScheduler;
 use crate::consensus::ConsensusEngine;
 use crate::cost::CostTracker;
+use crate::escalation::{EscalationConnector, WebhookNotifier};
 use crate::locks::{LockError, LockManager};
 use crate::queue::PriorityQueue;
 use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
-use crate::escalation::{WebhookNotifier, EscalationConnector};
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
@@ -179,7 +179,15 @@ impl Coordinator {
 
         // Try to acquire lock
         if let Some(raft) = &self.raft_manager {
-            match raft.acquire_lock(&request.agent_id, &request.resource, request.priority, 30000).await {
+            match raft
+                .acquire_lock(
+                    &request.agent_id,
+                    &request.resource,
+                    request.priority,
+                    30000,
+                )
+                .await
+            {
                 Ok(true) => {
                     let lock = BusinessLock {
                         id: uuid::Uuid::new_v4(),
@@ -194,10 +202,11 @@ impl Coordinator {
                 }
                 Ok(false) => {
                     // Fallback to queue if locked
-                     let mut queue = self.queue.write().await;
-                     let position = queue.enqueue(request.clone()) as u32;
-                     let wait_ms = queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
-                     return CoordinationResult::queued(position, wait_ms);
+                    let mut queue = self.queue.write().await;
+                    let position = queue.enqueue(request.clone()) as u32;
+                    let wait_ms =
+                        queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
+                    return CoordinationResult::queued(position, wait_ms);
                 }
                 Err(e) => {
                     return CoordinationResult::denied(format!("Raft consensus error: {}", e));
@@ -358,8 +367,8 @@ impl Pulse for Coordinator {
             timestamp: Utc::now(),
             carbon_intensity: intensity,
             cost_index,
-            latency_ms: 0,     // Real-time latency monitoring required
-            uptime_secs: 0,    // Real-time uptime monitoring required
+            latency_ms: 0,  // Real-time latency monitoring required
+            uptime_secs: 0, // Real-time uptime monitoring required
             message: "Autonomous Coordination Engine active (Metrics N/A)".to_string(),
         }
     }

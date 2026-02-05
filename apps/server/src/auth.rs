@@ -20,8 +20,8 @@ use axum::{
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::AppState;
@@ -125,7 +125,10 @@ impl JwtConfig {
 
         // AWS KMS Decryption (Phase 6 Hardening)
         if let Ok(key_id) = std::env::var("JWT_KMS_KEY_ID") {
-            tracing::info!("🔐 AWS KMS key ID detected: {}. Attempting decryption...", key_id);
+            tracing::info!(
+                "🔐 AWS KMS key ID detected: {}. Attempting decryption...",
+                key_id
+            );
             secret = decrypt_with_kms(&secret, &key_id).await.map_err(|e| {
                 tracing::error!("❌ KMS decryption failed: {}", e);
                 ConfigError::KmsError(e.to_string())
@@ -424,7 +427,7 @@ pub async fn login(
 
 /// Verify agent secret against stored hash
 /// Uses bcrypt for production-grade password hashing
-/// 
+///
 /// # Security Considerations
 /// - Stored hash should be generated with `hash_secret()`
 /// - Bcrypt automatically handles salt and timing attacks
@@ -663,7 +666,9 @@ mod tests {
     async fn test_token_revocation() {
         let jti = "test-jti-uuid-12345";
         assert!(!is_token_revoked(None, jti).await);
-        revoke_token(None, jti.to_string(), 3600).await.expect("Failed to revoke token");
+        revoke_token(None, jti.to_string(), 3600)
+            .await
+            .expect("Failed to revoke token");
         assert!(is_token_revoked(None, jti).await);
     }
 
@@ -672,13 +677,16 @@ mod tests {
         use std::time::Instant;
         let secret = "test-performance-secret-1234567890";
         let hash = hash_secret(secret).expect("Failed to hash secret");
-        
+
         let start = Instant::now();
         assert!(verify_secret(secret, &hash));
         let duration = start.elapsed();
-        
+
         tracing::info!("Bcrypt verification took {:?}", duration);
         // Cost factor 12 should take > 50ms and < 300ms on typical hardware
-        assert!(duration.as_millis() >= 50, "Bcrypt verification too fast! Check cost factor.");
+        assert!(
+            duration.as_millis() >= 50,
+            "Bcrypt verification too fast! Check cost factor."
+        );
     }
 }

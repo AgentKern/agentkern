@@ -1,4 +1,7 @@
-use axum::{routing::{get, post}, Json, Router};
+use axum::{
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -10,7 +13,7 @@ use agentkern_sovereign_memory_ee::{MemoryEncryptor, EncryptionConfig, Encrypted
 
 #[derive(Deserialize)]
 pub struct EncryptedBlob {
-    pub _data: Vec<u8>
+    pub _data: Vec<u8>,
 }
 
 pub fn router() -> Router<()> {
@@ -43,7 +46,7 @@ async fn check_license() -> Json<Value> {
             "status": "missing",
             "tier": "demo",
             "message": "Set AGENTKERN_LICENSE_KEY for Enterprise features"
-        }))
+        })),
     }
 }
 

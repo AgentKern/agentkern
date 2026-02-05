@@ -8,8 +8,8 @@ pub mod embeddings;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub use embeddings::{EmbeddingResult, PolyglotEmbedder};
 use crate::embeddings::EmbeddingError;
+pub use embeddings::{EmbeddingResult, PolyglotEmbedder};
 
 /// Supported languages with native embedding models.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -144,7 +144,11 @@ impl PolyglotMemory {
     ///
     /// Innovation: Uses cosine similarity on in-memory index for embedded use,
     /// falls back to Qdrant for production scale when QDRANT_URL is set.
-    pub async fn search(&self, query: &str, top_k: usize) -> Result<Vec<SearchResult>, EmbeddingError> {
+    pub async fn search(
+        &self,
+        query: &str,
+        top_k: usize,
+    ) -> Result<Vec<SearchResult>, EmbeddingError> {
         let query_embedding = self.embed(query).await?;
 
         // Try Qdrant first if URL is configured

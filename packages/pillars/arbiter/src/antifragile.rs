@@ -16,10 +16,10 @@
 //! - Automated runbook execution
 
 use chrono::{DateTime, Duration, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 // ============================================================================
 // SEVERITY & CATEGORY (merged from synapse/antifragile.rs)
@@ -486,7 +486,7 @@ impl FailureVelocity {
     fn advance(&mut self) {
         let now = Utc::now().timestamp();
         let diff = (now - self.last_update_ms).max(0) as usize;
-        
+
         if diff > 0 {
             for _ in 0..diff.min(self.window_secs) {
                 self.buckets.pop_front();

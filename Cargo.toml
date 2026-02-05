@@ -34,31 +34,6 @@ members = [
     "packages/foundation/pulse",           # Observability & Health
     
     # ===========================================================================
-    # ENTERPRISE EDITION (Commercial)
-    # ===========================================================================
-    "ee/audit-export",
-    "ee/billing",
-    "ee/cloud",
-    "ee/cockpit",
-    "ee/multitenancy",
-    "ee/sovereign-mesh",
-    "ee/sso",
-    "ee/treasury",
-    "ee/trust",
-    "ee/connectors",
-    # Phase 1: Core Infrastructure (Hardening)
-    "ee/core",
-    "ee/idp",
-    "ee/microvm",
-    "ee/sovereign-memory",
-    # Phase 2: Vertical Modules
-    "ee/energy",
-    "ee/escalation",
-    # Phase 3: Domain Modules
-    "ee/retail",
-    "ee/models",
-    "ee/productivity",
-    # ===========================================================================
     # SDK PACKAGES
     # ===========================================================================
     "sdks/core",

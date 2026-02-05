@@ -10,11 +10,11 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
+mod agents;
 mod auth;
 mod chaos;
-mod telemetry;
 mod ee;
-mod agents;
+mod telemetry;
 
 use auth::JwtConfig;
 /// Shared application state
@@ -99,7 +99,10 @@ async fn main() {
                 Some(client)
             }
             Err(e) => {
-                tracing::warn!("⚠️  Redis initialization failed: {}. Revocation will be in-memory.", e);
+                tracing::warn!(
+                    "⚠️  Redis initialization failed: {}. Revocation will be in-memory.",
+                    e
+                );
                 None
             }
         }
@@ -109,8 +112,11 @@ async fn main() {
     };
 
     // Initialize Core Engines for sharing
-    let gate = Arc::new(agentkern_gate::engine::GateEngine::new().with_jurisdiction(agentkern_gate::types::DataRegion::Global));
-    
+    let gate = Arc::new(
+        agentkern_gate::engine::GateEngine::new()
+            .with_jurisdiction(agentkern_gate::types::DataRegion::Global),
+    );
+
     let arbiter = if let Some(ref p) = pool {
         agentkern_arbiter::api::init_coordinator_with_pool(p.clone())
     } else {
@@ -118,9 +124,9 @@ async fn main() {
     };
 
     // Build application state
-    let state = Arc::new(AppState { 
-        pool, 
-        redis, 
+    let state = Arc::new(AppState {
+        pool,
+        redis,
         jwt_config,
         gate: gate.clone(),
         arbiter: arbiter.clone(),
@@ -148,12 +154,10 @@ async fn main() {
         .expect("Server failed to start");
 }
 
-
 async fn build_router(state: Arc<AppState>) -> Router {
     // CORS configuration
-    let allowed_origins = std::env::var("ALLOWED_ORIGINS")
-        .unwrap_or_else(|_| "*".to_string());
-    
+    let allowed_origins = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "*".to_string());
+
     let cors = if allowed_origins == "*" {
         if std::env::var("RUST_ENV").unwrap_or_default() == "production" {
             tracing::warn!("⚠️  CORS allowed_origin is '*' in PRODUCTION! (Set ALLOWED_ORIGINS)");
@@ -167,7 +171,7 @@ async fn build_router(state: Arc<AppState>) -> Router {
             .split(',')
             .map(|s| s.trim().parse().expect("Invalid CORS origin"))
             .collect();
-        
+
         CorsLayer::new()
             .allow_origin(origins)
             .allow_methods(Any)
@@ -206,7 +210,11 @@ async fn build_router(state: Arc<AppState>) -> Router {
         // Gate Pillar
         .nest_service(
             "/api/v1/gate",
-            resilient_service(agentkern_gate::api::router_with_engine(state.gate.clone()), 100, 10),
+            resilient_service(
+                agentkern_gate::api::router_with_engine(state.gate.clone()),
+                100,
+                10,
+            ),
         )
         // Arbiter Pillar
         .nest_service(
@@ -234,7 +242,6 @@ async fn build_router(state: Arc<AppState>) -> Router {
             resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30),
         )
         */
-
         // Enterprise Extension (Wiring)
         .nest_service(
             "/api/v1/ee",
@@ -357,7 +364,10 @@ fn validate_required_environment_variables() {
     // Validate PORT if specified
     if let Ok(port_str) = std::env::var("PORT") {
         if let Err(_) = port_str.parse::<u16>() {
-            tracing::error!("❌ PORT must be a valid u16 number (0-65535), got: {}", port_str);
+            tracing::error!(
+                "❌ PORT must be a valid u16 number (0-65535), got: {}",
+                port_str
+            );
             std::process::exit(1);
         }
     }

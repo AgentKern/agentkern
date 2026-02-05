@@ -27,7 +27,7 @@ pub fn init_telemetry() -> anyhow::Result<()> {
             ),
         ]))
         .build();
-    
+
     global::set_tracer_provider(provider.clone());
     let tracer = provider.tracer("agentkern-server");
 

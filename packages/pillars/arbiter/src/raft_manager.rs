@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::storage::{TypeConfig, SledStore};
+use crate::storage::{SledStore, TypeConfig};
 
 pub use openraft::Config as RaftConfig;
 pub use openraft::RaftState;
@@ -115,19 +115,23 @@ impl LockStateMachine {
                 }
                 Ok(false) // Lock doesn't exist
             }
-            LockCommand::Heartbeat { resource, agent_id, timestamp_ms } => {
+            LockCommand::Heartbeat {
+                resource,
+                agent_id,
+                timestamp_ms,
+            } => {
                 if let Some(existing) = self.locks.get_mut(resource) {
-                   if existing.agent_id == *agent_id {
-                       // Deterministic heartbeat expiration (e.g., extend by 30s)
-                       existing.expires_at_ms = *timestamp_ms + 30_000;
-                       return Ok(true);
-                   }
+                    if existing.agent_id == *agent_id {
+                        // Deterministic heartbeat expiration (e.g., extend by 30s)
+                        existing.expires_at_ms = *timestamp_ms + 30_000;
+                        return Ok(true);
+                    }
                 }
                 Ok(false)
             }
         }
     }
-    
+
     pub fn get_lock(&self, resource: &str, current_timestamp_ms: i64) -> Option<&LockEntry> {
         self.locks
             .get(resource)
@@ -152,18 +156,20 @@ impl RaftLockManager {
             election_timeout_max: 300,
             ..Default::default()
         };
-        
+
         let config = Arc::new(config);
         let store = SledStore::new(path);
         let network = Network::new();
-        
+
         let raft = RaftType::new(
             node_id,
             config,
             network.clone(),
             store.clone(),
             store.clone(),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
         Self {
             raft,
@@ -233,10 +239,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&temp_dir);
         std::fs::create_dir_all(&temp_dir).unwrap();
         let path = temp_dir.to_str().unwrap().to_string();
-        
+
         // Initialize Raft node 1
         let manager = RaftLockManager::new(1, "127.0.0.1:9000".to_string(), path.clone()).await;
-        
+
         // Initialize single-node cluster
         let nodes = std::collections::BTreeMap::from([(1, ())]);
         let _ = manager.raft.initialize(nodes).await;
@@ -247,7 +253,7 @@ mod tests {
         // Assert leader state or successful init
         let metrics = manager.raft.metrics().borrow().clone();
         assert!(metrics.current_term >= 1);
-        
+
         // Clean up
         let _ = std::fs::remove_dir_all(temp_dir);
     }

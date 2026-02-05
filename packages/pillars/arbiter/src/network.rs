@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use ::openraft::error::{NetworkError, RPCError, RaftError, InstallSnapshotError, RemoteError};
-use ::openraft::raft::{AppendEntriesRequest, AppendEntriesResponse, InstallSnapshotRequest, InstallSnapshotResponse, VoteRequest, VoteResponse};
+use ::openraft::error::{InstallSnapshotError, NetworkError, RPCError, RaftError, RemoteError};
+use ::openraft::raft::{
+    AppendEntriesRequest, AppendEntriesResponse, InstallSnapshotRequest, InstallSnapshotResponse,
+    VoteRequest, VoteResponse,
+};
 use ::openraft::{RaftNetwork, RaftNetworkFactory};
 use parking_lot::RwLock;
 
@@ -56,13 +59,16 @@ impl RaftNetwork<TypeConfig> for NetworkConnection {
         _option: ::openraft::network::RPCOption,
     ) -> Result<AppendEntriesResponse<u64>, RPCError<u64, (), RaftError<u64>>> {
         let url = format!("http://{}/raft/append", self.addr);
-        let resp = self.client.post(&url)
+        let resp = self
+            .client
+            .post(&url)
             .json(&rpc)
             .send()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 
-        let res: Result<AppendEntriesResponse<u64>, RaftError<u64>> = resp.json()
+        let res: Result<AppendEntriesResponse<u64>, RaftError<u64>> = resp
+            .json()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 
@@ -73,15 +79,19 @@ impl RaftNetwork<TypeConfig> for NetworkConnection {
         &mut self,
         rpc: InstallSnapshotRequest<TypeConfig>,
         _option: ::openraft::network::RPCOption,
-    ) -> Result<InstallSnapshotResponse<u64>, RPCError<u64, (), RaftError<u64, InstallSnapshotError>>> {
+    ) -> Result<InstallSnapshotResponse<u64>, RPCError<u64, (), RaftError<u64, InstallSnapshotError>>>
+    {
         let url = format!("http://{}/raft/snapshot", self.addr);
-        let resp = self.client.post(&url)
+        let resp = self
+            .client
+            .post(&url)
             .json(&rpc)
             .send()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 
-        let res: Result<InstallSnapshotResponse<u64>, RaftError<u64, InstallSnapshotError>> = resp.json()
+        let res: Result<InstallSnapshotResponse<u64>, RaftError<u64, InstallSnapshotError>> = resp
+            .json()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 
@@ -94,13 +104,16 @@ impl RaftNetwork<TypeConfig> for NetworkConnection {
         _option: ::openraft::network::RPCOption,
     ) -> Result<VoteResponse<u64>, RPCError<u64, (), RaftError<u64>>> {
         let url = format!("http://{}/raft/vote", self.addr);
-        let resp = self.client.post(&url)
+        let resp = self
+            .client
+            .post(&url)
             .json(&rpc)
             .send()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 
-        let res: Result<VoteResponse<u64>, RaftError<u64>> = resp.json()
+        let res: Result<VoteResponse<u64>, RaftError<u64>> = resp
+            .json()
             .await
             .map_err(|e| RPCError::Network(NetworkError::new(&e)))?;
 

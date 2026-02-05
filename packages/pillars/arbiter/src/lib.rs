@@ -46,11 +46,11 @@ pub mod coordinator;
 pub mod coordinator_pg; // Phase 16: Postgres-backed coordinator
 pub mod locks;
 pub mod locks_pg; // Phase 16: Postgres-backed locks
+pub mod network;
 pub mod queue;
 pub mod queue_pg; // Phase 16: Postgres-backed queue
-pub mod types;
 pub mod storage;
-pub mod network;
+pub mod types;
 
 // Hyper-Stack modules (per ARCHITECTURE.md)
 pub mod raft_manager; // Raft Consensus for Atomic Business Locks

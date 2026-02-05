@@ -232,7 +232,11 @@ impl DriftAlerter {
     }
 
     /// Internal helper for sending alerts to webhooks.
-    async fn send_to_webhook_internal(client: reqwest::Client, config: WebhookConfig, alert: DriftAlert) {
+    async fn send_to_webhook_internal(
+        client: reqwest::Client,
+        config: WebhookConfig,
+        alert: DriftAlert,
+    ) {
         let mut request = client
             .post(&config.url)
             .header("Content-Type", "application/json")

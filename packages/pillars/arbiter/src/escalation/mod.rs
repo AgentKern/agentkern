@@ -17,7 +17,6 @@ pub use triggers::{
 };
 pub use webhook::{WebhookConfig, WebhookNotifier, WebhookPayload, WebhookResult};
 
-
 /// Trait for escalation connectors (e.g., Slack, PagerDuty).
 #[async_trait::async_trait]
 pub trait EscalationConnector: Send + Sync {

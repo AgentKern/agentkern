@@ -266,7 +266,10 @@ async fn raft_append(
         let res = raft_manager.raft.append_entries(rpc).await;
         (StatusCode::OK, Json(json!(res)))
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error": "Raft not initialized"})),
+        )
     }
 }
 
@@ -278,7 +281,10 @@ async fn raft_vote(
         let res = raft_manager.raft.vote(rpc).await;
         (StatusCode::OK, Json(json!(res)))
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error": "Raft not initialized"})),
+        )
     }
 }
 
@@ -290,7 +296,10 @@ async fn raft_snapshot(
         let res = raft_manager.raft.install_snapshot(rpc).await;
         (StatusCode::OK, Json(json!(res)))
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"})))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error": "Raft not initialized"})),
+        )
     }
 }
 
@@ -303,24 +312,47 @@ async fn raft_init(
         // Check if already initialized
         let metrics = raft_manager.raft.metrics().borrow().clone();
         if metrics.last_log_index.is_some() {
-            return (StatusCode::CONFLICT, Json(json!({"error": "Raft already initialized"}))).into_response();
+            return (
+                StatusCode::CONFLICT,
+                Json(json!({"error": "Raft already initialized"})),
+            )
+                .into_response();
         }
 
         // Validate peer count (Arbiter standard: max 7 voters for low latency)
         if nodes_req.is_empty() {
-             return (StatusCode::BAD_REQUEST, Json(json!({"error": "Node list cannot be empty"}))).into_response();
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Node list cannot be empty"})),
+            )
+                .into_response();
         }
         if nodes_req.len() > 7 {
-             return (StatusCode::BAD_REQUEST, Json(json!({"error": "Arbiter cluster size restricted to 7 nodes for performance"}))).into_response();
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(
+                    json!({"error": "Arbiter cluster size restricted to 7 nodes for performance"}),
+                ),
+            )
+                .into_response();
         }
 
-        let nodes: std::collections::BTreeMap<u64, ()> = nodes_req.into_iter().map(|(k, _)| (k, ())).collect();
+        let nodes: std::collections::BTreeMap<u64, ()> =
+            nodes_req.into_iter().map(|(k, _)| (k, ())).collect();
         let res = raft_manager.raft.initialize(nodes).await;
         match res {
             Ok(_) => (StatusCode::OK, Json(json!({"ok": true}))).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response(),
         }
     } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": "Raft not initialized"}))).into_response()
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error": "Raft not initialized"})),
+        )
+            .into_response()
     }
 }
