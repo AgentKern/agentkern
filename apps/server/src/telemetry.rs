@@ -1,31 +1,35 @@
 use opentelemetry::global;
+use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{propagation::TraceContextPropagator, trace as sdktrace, Resource};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
 
-pub fn init_telemetry() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+pub fn init_telemetry() -> anyhow::Result<()> {
     // Set global propagator for context propagation
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     // Configure OTLP exporter (Jaeger/Honeycomb)
     // Default endpoint: http://localhost:4317 (gRPC)
-    let exporter = opentelemetry_otlp::new_exporter()
-        .tonic()
-        .with_endpoint("http://localhost:4317");
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint("http://localhost:4317")
+        .build()?;
 
     // Configure tracer provider
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(exporter)
-        .with_trace_config(sdktrace::config().with_resource(Resource::new(vec![
+    let provider = opentelemetry_sdk::trace::TracerProvider::builder()
+        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
+        .with_resource(Resource::new(vec![
             opentelemetry::KeyValue::new("service.name", "agentkern-server"),
             opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
             opentelemetry::KeyValue::new(
                 "deployment.environment",
                 std::env::var("AGENTKERN_ENV").unwrap_or_else(|_| "development".into()),
             ),
-        ])))
-        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+        ]))
+        .build();
+    
+    global::set_tracer_provider(provider.clone());
+    let tracer = provider.tracer("agentkern-server");
 
     // Create tracing layer
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
