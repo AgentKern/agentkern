@@ -1,0 +1,22 @@
+name: 'Setup Rust'
+description: 'Standardized Rust environment setup with caching'
+inputs:
+  components:
+    description: 'Rust components to install'
+    required: false
+    default: 'rustfmt, clippy'
+  cache-key:
+    description: 'Additional cache key'
+    required: false
+    default: 'v1'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: ${{ inputs.components }}
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+      with:
+        key: ${{ inputs.cache-key }}
