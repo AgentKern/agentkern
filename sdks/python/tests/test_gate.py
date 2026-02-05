@@ -6,7 +6,7 @@ from agentkern import PromptGuard, PromptAction, ThreatLevel
 def test_prompt_guard_safe():
     guard = PromptGuard()
     analysis = guard.analyze("Hello world")
-    assert analysis.threat_level == ThreatLevel.None
+    assert analysis.threat_level == getattr(ThreatLevel, "None")
     assert analysis.action == PromptAction.Allow
 
 def test_prompt_guard_unsafe():

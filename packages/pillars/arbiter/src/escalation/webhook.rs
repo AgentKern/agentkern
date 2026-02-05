@@ -3,8 +3,10 @@
 //! Supports common webhook formats for Slack, Teams, PagerDuty, and custom endpoints.
 
 use super::triggers::{EscalationLevel, TriggerResult};
+use super::EscalationConnector;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Webhook result.
 pub type WebhookResult<T> = Result<T, WebhookError>;
@@ -84,6 +86,7 @@ pub struct WebhookPayload {
 /// Webhook notifier.
 pub struct WebhookNotifier {
     configs: Vec<WebhookConfig>,
+    connectors: Vec<Arc<dyn EscalationConnector>>,
 }
 
 impl WebhookNotifier {
@@ -91,7 +94,13 @@ impl WebhookNotifier {
     pub fn new() -> Self {
         Self {
             configs: Vec::new(),
+            connectors: Vec::new(),
         }
+    }
+
+    /// Add an escalation connector (Enterprise).
+    pub fn add_connector(&mut self, connector: Arc<dyn EscalationConnector>) {
+        self.connectors.push(connector);
     }
 
     /// Add a webhook configuration.
@@ -114,12 +123,25 @@ impl WebhookNotifier {
 
     /// Send notification for a trigger result.
     pub fn notify(&self, trigger: &TriggerResult) -> Vec<WebhookResult<()>> {
+        // Core Webhooks
         let webhooks = self.applicable_webhooks(trigger.level);
-
-        webhooks
+        let results: Vec<_> = webhooks
             .iter()
             .map(|webhook| self.send_webhook(webhook, trigger))
-            .collect()
+            .collect();
+
+        // Enterprise Connectors
+        for connector in &self.connectors {
+            let conn = connector.clone();
+            let t = trigger.clone();
+            tokio::spawn(async move {
+                if let Err(e) = conn.send(&t).await {
+                    tracing::error!(error = %e, "Escalation connector failed");
+                }
+            });
+        }
+
+        results
     }
 
     /// Send to a specific webhook.

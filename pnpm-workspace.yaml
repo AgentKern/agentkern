@@ -1,7 +1,5 @@
 packages:
   - 'apps/*'
   - 'packages/**'
-  - 'sdks/*'
-  - 'sdks/typescript/*'
-  - 'sdks/typescript/agentkern'
+  - 'sdks/**'
   - 'ee/*'

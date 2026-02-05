@@ -84,4 +84,6 @@ pub struct LiabilityProof {
     pub version: String,
     pub payload: LiabilityProofPayload,
     pub signature: String,
+    #[serde(skip)]
+    pub raw_payload: Option<Vec<u8>>,
 }

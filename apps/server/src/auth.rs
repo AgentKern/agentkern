@@ -7,6 +7,7 @@
 //! - Minimum 32-byte secret required
 //! - Agent credentials validated against database
 //! - Token blacklist support for revocation
+//! - AWS KMS support for secret decryption
 
 use axum::{
     body::Body,
@@ -20,8 +21,17 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::Mutex;
 
 use crate::AppState;
+
+/// Token blacklist for revocation tracking (production should use Redis)
+static TOKEN_BLACKLIST: std::sync::OnceLock<Mutex<HashSet<String>>> = std::sync::OnceLock::new();
+
+fn get_token_blacklist() -> &'static Mutex<HashSet<String>> {
+    TOKEN_BLACKLIST.get_or_init(|| Mutex::new(HashSet::new()))
+}
 
 /// Minimum secret length for security (256 bits = 32 bytes)
 const MIN_SECRET_LENGTH: usize = 32;
@@ -91,19 +101,17 @@ pub enum ConfigError {
     SecretTooShort(usize),
     #[error("JWT_SECRET has low entropy: avoid simple patterns")]
     LowEntropy,
+    #[error("KMS decryption failed: {0}")]
+    KmsError(String),
 }
 
 impl JwtConfig {
-    /// Create JWT config from environment variables.
-    ///
-    /// FAILS if:
-    /// - JWT_SECRET not set in production
-    /// - JWT_SECRET is too short
     /// - JWT_SECRET has low entropy (simple patterns)
-    pub fn from_env() -> Result<Self, ConfigError> {
+    /// - KMS decryption fails (if configured)
+    pub async fn from_env() -> Result<Self, ConfigError> {
         let environment = Environment::from_env();
 
-        let secret = match std::env::var("JWT_SECRET") {
+        let mut secret = match std::env::var("JWT_SECRET") {
             Ok(s) => s,
             Err(_) => {
                 if environment == Environment::Production {
@@ -114,6 +122,16 @@ impl JwtConfig {
                 "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION".to_string()
             }
         };
+
+        // AWS KMS Decryption (Phase 6 Hardening)
+        if let Ok(key_id) = std::env::var("JWT_KMS_KEY_ID") {
+            tracing::info!("🔐 AWS KMS key ID detected: {}. Attempting decryption...", key_id);
+            secret = decrypt_with_kms(&secret, &key_id).await.map_err(|e| {
+                tracing::error!("❌ KMS decryption failed: {}", e);
+                ConfigError::KmsError(e.to_string())
+            })?;
+            tracing::info!("✅ JWT_SECRET decrypted via AWS KMS");
+        }
 
         // Validate secret length
         if secret.len() < MIN_SECRET_LENGTH {
@@ -255,10 +273,16 @@ pub async fn auth_middleware(
 
             match validate_token(&state.jwt_config, token) {
                 Ok(token_data) => {
-                    // TODO: Check token blacklist for revocation
-                    // if is_token_revoked(&state.pool, &token_data.claims.jti).await {
-                    //     return Err(StatusCode::UNAUTHORIZED);
-                    // }
+                    // Check token blacklist for revocation
+                    if is_token_revoked(state.redis.as_ref(), &token_data.claims.jti).await {
+                        tracing::warn!(
+                            subject = %token_data.claims.sub,
+                            jti = %token_data.claims.jti,
+                            "Revoked token attempted use for {}",
+                            path
+                        );
+                        return Err(StatusCode::UNAUTHORIZED);
+                    }
 
                     tracing::debug!(
                         subject = %token_data.claims.sub,
@@ -399,11 +423,175 @@ pub async fn login(
 }
 
 /// Verify agent secret against stored hash
-/// TODO: Upgrade to bcrypt or argon2 in production
+/// Uses bcrypt for production-grade password hashing
+/// 
+/// # Security Considerations
+/// - Stored hash should be generated with `hash_secret()`
+/// - Bcrypt automatically handles salt and timing attacks
+/// - Cost parameter tuned for ~100ms verification time
 fn verify_secret(provided: &str, stored_hash: &str) -> bool {
-    // For now, simple comparison
-    // In production: use bcrypt::verify or argon2::verify
-    provided == stored_hash
+    // Use bcrypt for secure verification
+    match bcrypt::verify(provided, stored_hash) {
+        Ok(valid) => valid,
+        Err(e) => {
+            tracing::warn!("Bcrypt verification error: {}", e);
+            false
+        }
+    }
+}
+
+/// Hash a secret for secure storage
+/// Uses bcrypt with cost factor 12 (~100ms)
+/// Used in admin endpoints and secret rotation
+pub fn hash_secret(secret: &str) -> Result<String, bcrypt::BcryptError> {
+    bcrypt::hash(secret, 12)
+}
+
+/// Decrypt a secret using AWS KMS
+async fn decrypt_with_kms(
+    ciphertext_b64: &str,
+    key_id: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    use base64::Engine as _;
+    let ciphertext = base64::engine::general_purpose::STANDARD.decode(ciphertext_b64)?;
+
+    let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let client = aws_sdk_kms::Client::new(&config);
+
+    let blob = aws_sdk_kms::primitives::Blob::new(ciphertext);
+    let resp = client
+        .decrypt()
+        .ciphertext_blob(blob)
+        .key_id(key_id)
+        .send()
+        .await?;
+
+    let plaintext = resp.plaintext().ok_or("No plaintext in KMS response")?;
+    let secret = String::from_utf8(plaintext.as_ref().to_vec())?;
+
+    Ok(secret)
+}
+
+/// Check if a token has been revoked
+async fn is_token_revoked(redis_client: Option<&redis::Client>, jti: &str) -> bool {
+    // 1. Check Redis if available
+    if let Some(client) = redis_client {
+        if let Ok(mut conn) = client.get_multiplexed_async_connection().await {
+            use redis::AsyncCommands;
+            let key = format!("auth:revocation:{}", jti);
+            match conn.exists::<_, bool>(key).await {
+                Ok(exists) => {
+                    if exists {
+                        return true;
+                    }
+                }
+                Err(e) => tracing::error!("Redis revocation check failed: {}", e),
+            }
+        }
+    }
+
+    // 2. Fallback to in-memory blacklist
+    get_token_blacklist()
+        .lock()
+        .map(|bl| bl.contains(jti))
+        .unwrap_or(false)
+}
+
+/// Revoke a token by adding JTI to blacklist
+pub async fn revoke_token(
+    redis_client: Option<&redis::Client>,
+    jti: String,
+    ttl_secs: i64,
+) -> Result<(), String> {
+    // 1. Revoke in Redis if available
+    if let Some(client) = redis_client {
+        if let Ok(mut conn) = client.get_multiplexed_async_connection().await {
+            use redis::AsyncCommands;
+            let key = format!("auth:revocation:{}", jti);
+            // Set with TTL (max token life)
+            let _: () = conn
+                .set_ex(key, 1, ttl_secs.max(0) as u64)
+                .await
+                .map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    }
+
+    // 2. Fallback to in-memory blacklist
+    get_token_blacklist()
+        .lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?
+        .insert(jti);
+    Ok(())
+}
+
+/// Logout endpoint - revoke the current token
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    claims: Option<axum::Extension<Claims>>,
+) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
+    let claims = claims.ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(serde_json::json!({ "error": "No valid token" })),
+    ))?;
+
+    let ttl = (claims.exp - Utc::now().timestamp()).max(0);
+
+    match revoke_token(state.redis.as_ref(), claims.jti.clone(), ttl).await {
+        Ok(_) => {
+            tracing::info!("Token {} revoked via logout", claims.jti);
+            Ok(StatusCode::OK)
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        )),
+    }
+}
+
+/// Admin request to hash a secret
+#[derive(Deserialize)]
+pub struct HashSecretRequest {
+    pub secret: String,
+}
+
+/// Admin endpoint to hash a secret (for manual DB updates)
+pub async fn admin_hash_secret(
+    Json(payload): Json<HashSecretRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    match hash_secret(&payload.secret) {
+        Ok(hash) => Ok(Json(serde_json::json!({ "hash": hash }))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e.to_string() })),
+        )),
+    }
+}
+
+/// Admin request to revoke a specific JTI
+#[derive(Deserialize)]
+pub struct RevokeRequest {
+    pub jti: String,
+}
+
+/// Admin endpoint to manually revoke a token JTI
+pub async fn admin_revoke(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RevokeRequest>,
+) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
+    // For admin revoke, we use a default TTL of 24h if we don't know the exact expiry
+    let ttl = 24 * 3600;
+
+    match revoke_token(state.redis.as_ref(), payload.jti.clone(), ttl).await {
+        Ok(_) => {
+            tracing::info!("Token {} revoked by admin", payload.jti);
+            Ok(StatusCode::OK)
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": e })),
+        )),
+    }
 }
 
 /// Refresh token endpoint
@@ -461,5 +649,36 @@ mod tests {
 
         let valid = "a".repeat(MIN_SECRET_LENGTH);
         assert!(valid.len() >= MIN_SECRET_LENGTH);
+    }
+
+    #[test]
+    fn test_bcrypt_verification() {
+        let secret = "test-secret-long-enough-for-validation";
+        let hash = hash_secret(secret).expect("Failed to hash secret");
+        assert!(verify_secret(secret, &hash));
+        assert!(!verify_secret("wrong-secret", &hash));
+    }
+
+    #[tokio::test]
+    async fn test_token_revocation() {
+        let jti = "test-jti-uuid-12345";
+        assert!(!is_token_revoked(None, jti).await);
+        revoke_token(None, jti.to_string(), 3600).await.expect("Failed to revoke token");
+        assert!(is_token_revoked(None, jti).await);
+    }
+
+    #[test]
+    fn test_bcrypt_performance() {
+        use std::time::Instant;
+        let secret = "test-performance-secret-1234567890";
+        let hash = hash_secret(secret).expect("Failed to hash secret");
+        
+        let start = Instant::now();
+        assert!(verify_secret(secret, &hash));
+        let duration = start.elapsed();
+        
+        tracing::info!("Bcrypt verification took {:?}", duration);
+        // Cost factor 12 should take > 50ms and < 300ms on typical hardware
+        assert!(duration.as_millis() >= 50, "Bcrypt verification too fast! Check cost factor.");
     }
 }

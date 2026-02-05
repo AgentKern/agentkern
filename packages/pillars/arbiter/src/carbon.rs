@@ -90,8 +90,11 @@ pub enum EmissionScope {
     Scope3,
 }
 
+pub use agentkern_governance::esg::GridApi;
+use std::sync::Arc;
+
 /// Carbon scheduler for sustainable execution.
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct CarbonScheduler {
     /// Region data
     regions: HashMap<String, CarbonRegion>,
@@ -99,6 +102,19 @@ pub struct CarbonScheduler {
     total_emissions_grams: f64,
     /// Transaction count
     transaction_count: u64,
+    /// Optional real-time grid API (Enterprise)
+    grid_api: Option<Arc<dyn GridApi>>,
+}
+
+impl std::fmt::Debug for CarbonScheduler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CarbonScheduler")
+            .field("regions", &self.regions)
+            .field("total_emissions_grams", &self.total_emissions_grams)
+            .field("transaction_count", &self.transaction_count)
+            .field("has_grid_api", &self.grid_api.is_some())
+            .finish()
+    }
 }
 
 impl Default for CarbonScheduler {
@@ -192,7 +208,14 @@ impl CarbonScheduler {
             regions,
             total_emissions_grams: 0.0,
             transaction_count: 0,
+            grid_api: None,
         }
+    }
+
+    /// Set the real-time grid API.
+    pub fn with_grid_api(mut self, grid_api: Arc<dyn GridApi>) -> Self {
+        self.grid_api = Some(grid_api);
+        self
     }
 
     /// Get all green regions.
@@ -279,6 +302,14 @@ impl CarbonScheduler {
 
     /// Get real-time carbon intensity for a region.
     pub async fn get_current_intensity(&self, region_id: &str) -> Option<f32> {
+        // Prefer EE Grid API if available
+        if let Some(api) = &self.grid_api {
+            if let Ok(feed) = api.get_intensity(region_id).await {
+                return Some(feed.intensity_gco2_kwh as f32);
+            }
+        }
+
+        // Fallback to internal static data
         self.regions
             .get(region_id)
             .map(|r| r.current_grams_per_kwh as f32)

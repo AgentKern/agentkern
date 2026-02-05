@@ -7,6 +7,7 @@
 //! - Safety Path (Neural): <20ms (only when risk > threshold)
 
 use chrono::Utc;
+use dashmap::DashMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -44,7 +45,7 @@ pub struct GateEngine {
     /// Prompt Injection Guard (Phase 12)
     prompt_guard: crate::prompt_guard::PromptGuard,
     /// Agent Budgets (Phase 12)
-    budgets: Arc<RwLock<HashMap<String, crate::budget::AgentBudget>>>,
+    budgets: Arc<DashMap<String, crate::budget::AgentBudget>>,
     /// Explainability Engine (Phase 12)
     explainability: crate::explain::ExplainabilityEngine,
 }
@@ -67,7 +68,7 @@ impl GateEngine {
             #[cfg(feature = "esg")]
             carbon_veto: None,
             prompt_guard: crate::prompt_guard::PromptGuard::new(),
-            budgets: Arc::new(RwLock::new(HashMap::new())),
+            budgets: Arc::new(DashMap::new()),
             explainability: crate::explain::ExplainabilityEngine::new(),
         }
     }
@@ -78,8 +79,7 @@ impl GateEngine {
         agent_id: impl Into<String>,
         budget: crate::budget::AgentBudget,
     ) {
-        let mut budgets = self.budgets.write().await;
-        budgets.insert(agent_id.into(), budget);
+        self.budgets.insert(agent_id.into(), budget);
     }
 
     /// Set the jurisdiction for policy filtering.
@@ -183,8 +183,7 @@ impl GateEngine {
         // Phase 12: AI-Native Defense
         // Enforce token/API limits
         {
-            let mut budgets = self.budgets.write().await;
-            if let Some(budget) = budgets.get_mut(&request.agent_id) {
+            if let Some(mut budget) = self.budgets.get_mut(&request.agent_id) {
                 // Consume 1 API call for the verification itself
                 if let Err(e) = budget.consume_api_call() {
                     return VerificationResult {
@@ -283,8 +282,11 @@ impl GateEngine {
 
         // Calculate final risk score
         let final_risk = if let Some((neural_risk, _)) = neural_result {
-            // Combine symbolic and neural scores (weighted average)
-            ((symbolic_risk as u16 + neural_risk as u16) / 2) as u8
+            // Expert Fix: Symbolic risk acts as a floor for final risk scoring.
+            // This prevents neural evaluation from "averaging down" a high-risk 
+            // symbolic finding (e.g. 90 symbolic + 10 neural = 50 is unsafe).
+            let avg = ((symbolic_risk as u16 + neural_risk as u16) / 2) as u8;
+            symbolic_risk.max(avg)
         } else {
             symbolic_risk
         };
@@ -294,7 +296,11 @@ impl GateEngine {
 
         // BLOCKING THRESHOLD: 80
         const BLOCKING_THRESHOLD: u8 = 80;
-        let allowed = blocking.is_empty() && final_risk < BLOCKING_THRESHOLD && carbon_allowed;
+        
+        // Final decision: Explicit Deny OR High Risk OR Carbon Veto will block.
+        let allowed = blocking.is_empty() 
+            && final_risk < BLOCKING_THRESHOLD 
+            && carbon_allowed;
 
         let reasoning = if !carbon_allowed {
             carbon_result
@@ -302,9 +308,9 @@ impl GateEngine {
                 .and_then(|r| r.message.clone())
                 .unwrap_or_else(|| "Blocked by carbon budget".to_string())
         } else if !blocking.is_empty() {
-            format!("Blocked by policies: {}", blocking.join(", "))
-        } else if final_risk >= 80 {
-            "Action blocked due to high risk score".to_string()
+            format!("Blocked by symbolic policies: {}", blocking.join(", "))
+        } else if final_risk >= BLOCKING_THRESHOLD {
+            format!("Action blocked due to high risk score ({} >= {})", final_risk, BLOCKING_THRESHOLD)
         } else {
             "All policies passed".to_string()
         };
@@ -596,5 +602,39 @@ mod tests {
             .build();
         let res_c = engine.verify(req_c).await;
         assert!(res_c.allowed);
+    }
+
+    #[tokio::test]
+    async fn test_symbolic_deny_precedence() {
+        let engine = GateEngine::new();
+
+        // Register a policy that denies "dangerous_action" with 100 risk
+        let policy = Policy {
+            id: "strict-policy".to_string(),
+            name: "Strict Policy".to_string(),
+            description: String::new(),
+            priority: 100,
+            enabled: true,
+            jurisdictions: vec![],
+            namespace: "global".to_string(),
+            rules: vec![PolicyRule {
+                id: "deny-dangerous".to_string(),
+                condition: "action == 'dangerous_action'".to_string(),
+                action: PolicyAction::Deny,
+                message: Some("Dangerous".to_string()),
+                risk_score: Some(100),
+            }],
+        };
+        engine.register_policy(policy).await;
+
+        let request = VerificationRequestBuilder::new("agent-1", "dangerous_action").build();
+
+        // Even if neural were to return 0, symbolic Deny must block and set risk floor.
+        let result = engine.verify(request).await;
+        assert!(!result.allowed);
+        assert_eq!(result.symbolic_risk_score, 100);
+        // Final risk should be at least 100 (max of symbolic)
+        assert!(result.final_risk_score >= 100);
+        assert!(result.blocking_policies.contains(&"strict-policy".to_string()));
     }
 }

@@ -20,7 +20,7 @@ pyo3 = { version = "0.24" }
 
 # SDK Core
 # SDK Core
-agentkern-sdk-core = { path = "../../packages/sdk-core" }
+agentkern-sdk-core = { path = "../core" }
 
 # Pillars
 agentkern-gate = { path = "../../packages/pillars/gate" }

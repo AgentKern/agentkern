@@ -5,6 +5,7 @@ dist
 .DS_Store
 coverage
 .turbo
+.venv
 
 # Rust build artifacts
 target/
@@ -38,19 +39,14 @@ load-test-results/
 .pnpm-store/
 *.tsbuildinfo
 
-# Strategic Docs (Local Only)
-MANDATE.md
-ARCHITECTURE.md
-STRATEGY.md
-LICENSING_STRATEGY.md
-COMPETITIVE_LANDSCAPE.md
-ENGINEERING_STANDARD.md
-RESEARCH_DIGEST_2026.md
-NAMING_OPTIONS.md
-GLOBAL_GAPS.md
-VERIMANTLE_MANIFESTO.md
-ALTERNATIVE_UNICORN_IDEAS.md
-API_OPPORTUNITY_ANALYSIS_2026.md
-ARTICLES_PRIVATE.md
-publishing/
-assets/
+# стратегические документы (Stale)
+# Removed for clarity: MANDATE, ARCHITECTURE, etc.
+# These are now in docs/ or deleted.
+
+docs/governance/articles
+
+# chaos
+chaos_run.log
+
+# Quarantine (Enterprise modules managed separately)
+ee/

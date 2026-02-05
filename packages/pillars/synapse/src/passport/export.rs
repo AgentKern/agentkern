@@ -136,10 +136,21 @@ impl PassportExporter {
                     .as_ref()
                     .ok_or_else(|| PassportError::MissingField("encryption_key".into()))?;
 
-                let json = serde_json::to_vec(&export_passport)
+                let serialized = serde_json::to_vec(&export_passport)
                     .map_err(|e| PassportError::SerializationError(e.to_string()))?;
 
-                self.encrypt(&json, key)
+                let data_to_encrypt = if options.compress {
+                    self.compress(&serialized)?
+                } else {
+                    serialized
+                };
+
+                let encrypted = self.encrypt(&data_to_encrypt, key)?;
+                
+                // Add magic header to distinguish from raw data/msgpack
+                let mut final_data = b"AEP1".to_vec();
+                final_data.extend(encrypted);
+                Ok(final_data)
             }
         }
     }
@@ -166,16 +177,38 @@ impl PassportExporter {
 
     /// Compress data using zstd.
     fn compress(&self, data: &[u8]) -> Result<Vec<u8>, PassportError> {
-        // Using simple compression - in production use zstd
-        Ok(data.to_vec()) // Placeholder - actual compression would go here
+        // Level 3 is a good balance of speed and compression ratio
+        zstd::encode_all(std::io::Cursor::new(data), 3)
+            .map_err(|e| PassportError::SerializationError(format!("Compression failed: {}", e)))
     }
 
     /// Encrypt data using AES-256-GCM.
-    fn encrypt(&self, data: &[u8], _key: &str) -> Result<Vec<u8>, PassportError> {
-        // Production would use actual AES-256-GCM encryption
-        // For now, return a marked version
-        let mut result = b"ENCRYPTED:".to_vec();
-        result.extend_from_slice(data);
+    fn encrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, PassportError> {
+        use aes_gcm::{
+            aead::{Aead, KeyInit},
+            Aes256Gcm, Nonce,
+        };
+        use sha2::{Digest, Sha256};
+
+        // Derive 256-bit key from string using SHA-256
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        let key_bytes: [u8; 32] = hasher.finalize().into();
+
+        let cipher = Aes256Gcm::new_from_slice(&key_bytes)
+            .map_err(|e| PassportError::SerializationError(format!("Cipher init failed: {}", e)))?;
+
+        // Generate random nonce (12 bytes for GCM)
+        let nonce_bytes: [u8; 12] = rand::random();
+        let nonce = Nonce::from_slice(&nonce_bytes);
+
+        let ciphertext = cipher
+            .encrypt(nonce, data)
+            .map_err(|e| PassportError::SerializationError(format!("Encryption failed: {}", e)))?;
+
+        // Prepend nonce to ciphertext for decryption
+        let mut result = nonce_bytes.to_vec();
+        result.extend(ciphertext);
         Ok(result)
     }
 }

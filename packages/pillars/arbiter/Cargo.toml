@@ -15,11 +15,13 @@ path = "src/bin/server.rs"
 
 [features]
 default = []
-# Per ARCHITECTURE.md: Raft Consensus for Atomic Business Locks
-raft = ["openraft"]
+# Per ARCHITECTURE.md: Raft Consensus is now core
+# raft = ["openraft"] # Removed: OpenRaft is mandatory
 # Thread-per-core for minimal context switching
 thread_per_core = ["tokio-uring"]
-full = ["raft", "thread_per_core"]
+full = ["thread_per_core"]
+# Enterprise Edition features
+ee = ["dep:agentkern-energy-ee", "dep:agentkern-escalation-ee"]
 
 [dependencies]
 # Async runtime (per ARCHITECTURE: Thread-per-Core)
@@ -31,13 +33,17 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Raft for distributed consensus (per ARCHITECTURE: Strong Consistency)
-openraft = { version = "0.9", optional = true }
+openraft = { version = "0.9", features = ["serde", "storage-v2"] }
 async-trait = { workspace = true }
 
 # HTTP server (updated Dec 2025)
 axum = "0.8.8"
+reqwest = { workspace = true }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Storage Engine for Raft Persistence (Pure Rust)
+sled = "0.34"
 
 # Tracing
 tracing = "0.1"
@@ -72,6 +78,10 @@ agentkern-governance = { path = "../../foundation/governance" }
 agentkern-gate = { path = "../gate" }
 agentkern-synapse = { path = "../synapse" }
 agentkern-pulse = { path = "../../foundation/pulse" }
+
+# EE Modules (Optional)
+agentkern-energy-ee = { path = "../../../ee/energy", optional = true }
+agentkern-escalation-ee = { path = "../../../ee/escalation", optional = true }
 
 [dev-dependencies]
 madsim = "0.2.34"

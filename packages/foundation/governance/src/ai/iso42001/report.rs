@@ -5,6 +5,15 @@
 use super::{ComplianceFinding, FindingSeverity};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ReportError {
+    #[error("Serialization failed: {0}")]
+    SerializationError(String),
+    #[error("Format not supported: {0}")]
+    FormatNotSupported(String),
+}
 
 /// Report format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,12 +42,23 @@ pub struct AuditReport {
 
 impl AuditReport {
     /// Export to specified format.
-    pub fn export(&self, format: ReportFormat) -> String {
+    /// 
+    /// # Note on PDF Export
+    /// PDF export is not yet implemented. Returns Markdown as fallback.
+    /// To generate PDFs, consider:
+    /// - Use printpdf crate: `printpdf = "0.7"`
+    /// - Export to Markdown first, then convert with external tool
+    /// - Use headless browser solution for exact formatting
+    pub fn export(&self, format: ReportFormat) -> Result<String, ReportError> {
         match format {
-            ReportFormat::Json => self.to_json(),
-            ReportFormat::Markdown => self.to_markdown(),
-            ReportFormat::Html => self.to_html(),
-            ReportFormat::Pdf => self.to_markdown(), // Placeholder
+            ReportFormat::Json => Ok(self.to_json()),
+            ReportFormat::Markdown => Ok(self.to_markdown()),
+            ReportFormat::Html => Ok(self.to_html()),
+            ReportFormat::Pdf => {
+                Err(ReportError::FormatNotSupported(
+                    "PDF export is not implemented. Please use Markdown or HTML.".to_string()
+                ))
+            }
         }
     }
 
@@ -161,7 +181,7 @@ impl ReportGenerator {
     }
 
     /// Generate report from audit events.
-    pub fn generate(&self, report: &AuditReport, format: ReportFormat) -> String {
+    pub fn generate(&self, report: &AuditReport, format: ReportFormat) -> Result<String, ReportError> {
         report.export(format)
     }
 }
@@ -189,7 +209,7 @@ mod tests {
     #[test]
     fn test_markdown_export() {
         let report = create_test_report();
-        let md = report.export(ReportFormat::Markdown);
+        let md = report.export(ReportFormat::Markdown).unwrap();
 
         assert!(md.contains("ISO/IEC 42001"));
         assert!(md.contains("TEST-ORG"));
@@ -199,7 +219,7 @@ mod tests {
     #[test]
     fn test_json_export() {
         let report = create_test_report();
-        let json = report.export(ReportFormat::Json);
+        let json = report.export(ReportFormat::Json).unwrap();
 
         assert!(json.contains("organization_id"));
         assert!(json.contains("compliance_score"));
@@ -208,10 +228,21 @@ mod tests {
     #[test]
     fn test_html_export() {
         let report = create_test_report();
-        let html = report.export(ReportFormat::Html);
+        let html = report.export(ReportFormat::Html).unwrap();
 
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("TEST-ORG"));
+    }
+
+    #[test]
+    fn test_pdf_export_fails() {
+        let report = create_test_report();
+        let result = report.export(ReportFormat::Pdf);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ReportError::FormatNotSupported(msg) => assert!(msg.contains("not implemented")),
+            _ => panic!("Expected FormatNotSupported error"),
+        }
     }
 
     #[test]
@@ -224,7 +255,7 @@ mod tests {
             recommendation: "Fix it".to_string(),
         });
 
-        let md = report.export(ReportFormat::Markdown);
+        let md = report.export(ReportFormat::Markdown).unwrap();
         assert!(md.contains("Test finding"));
     }
 }

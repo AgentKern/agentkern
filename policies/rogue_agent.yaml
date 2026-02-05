@@ -1,0 +1,12 @@
+id: rogue-agent-blocker
+name: Rogue Agent Blocker
+description: Prevents rogue agents from performing critical illegal actions.
+priority: 900
+enabled: true
+namespace: default
+rules:
+  - id: deny-unauthorized-access
+    condition: "action == 'unauthorized_system_access'"
+    action: deny
+    message: "SECURITY BREACH ATTEMPT: Rogue agent blocked."
+    risk_score: 100

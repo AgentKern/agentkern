@@ -351,19 +351,67 @@ const SAFETY_BYPASS_PATTERNS: &[&str] = &[
 ];
 
 // ============================================================================
+// ============================================================================
 // PROMPT GUARD
 // ============================================================================
 
+use once_cell::sync::Lazy;
+
+// Static pattern sets initialized once
+static INSTRUCTION_OVERRIDE_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    INSTRUCTION_OVERRIDE_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static ROLE_HIJACKING_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    ROLE_HIJACKING_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static PROMPT_LEAKAGE_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    PROMPT_LEAKAGE_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static ENCODING_EVASION_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    ENCODING_EVASION_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static CODE_INJECTION_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    CODE_INJECTION_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static SOCIAL_ENGINEERING_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    SOCIAL_ENGINEERING_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
+static SAFETY_BYPASS_SET: Lazy<HashSet<String>> = Lazy::new(|| {
+    SAFETY_BYPASS_PATTERNS
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect()
+});
+
 /// Prompt guard for detecting injection attacks.
+/// Optimized (2025): Uses Lazy statics to avoid per-instance allocation.
+#[derive(Clone)]
 pub struct PromptGuard {
-    /// Cached pattern sets for fast lookup
-    instruction_override: HashSet<String>,
-    role_hijacking: HashSet<String>,
-    prompt_leakage: HashSet<String>,
-    encoding_evasion: HashSet<String>,
-    code_injection: HashSet<String>,
-    social_engineering: HashSet<String>,
-    safety_bypass: HashSet<String>,
+    // Zero-sized struct, purely logic
 }
 
 impl Default for PromptGuard {
@@ -373,38 +421,11 @@ impl Default for PromptGuard {
 }
 
 impl PromptGuard {
-    /// Create a new prompt guard with default patterns.
+    /// Create a new prompt guard.
+    /// Now cheap to call (zero allocation).
     pub fn new() -> Self {
-        Self {
-            instruction_override: INSTRUCTION_OVERRIDE_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            role_hijacking: ROLE_HIJACKING_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            prompt_leakage: PROMPT_LEAKAGE_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            encoding_evasion: ENCODING_EVASION_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            code_injection: CODE_INJECTION_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            social_engineering: SOCIAL_ENGINEERING_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-            safety_bypass: SAFETY_BYPASS_PATTERNS
-                .iter()
-                .map(|s| s.to_lowercase())
-                .collect(),
-        }
+        // Ensure statics are initialized (optional, happens on access anyway)
+        Self {}
     }
 
     /// Analyze a prompt for potential attacks.
@@ -422,8 +443,8 @@ impl PromptGuard {
         let mut matched_patterns = Vec::new();
         let mut threat_score: u32 = 0;
 
-        // Check each attack category
-        for pattern in &self.instruction_override {
+        // Check each attack category using Lazy statics
+        for pattern in INSTRUCTION_OVERRIDE_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::InstructionOverride);
                 matched_patterns.push(pattern.clone());
@@ -431,7 +452,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.role_hijacking {
+        for pattern in ROLE_HIJACKING_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::RoleHijacking);
                 matched_patterns.push(pattern.clone());
@@ -439,7 +460,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.prompt_leakage {
+        for pattern in PROMPT_LEAKAGE_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::PromptLeakage);
                 matched_patterns.push(pattern.clone());
@@ -447,7 +468,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.encoding_evasion {
+        for pattern in ENCODING_EVASION_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::EncodingEvasion);
                 matched_patterns.push(pattern.clone());
@@ -455,7 +476,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.code_injection {
+        for pattern in CODE_INJECTION_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::CodeInjection);
                 matched_patterns.push(pattern.clone());
@@ -463,7 +484,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.social_engineering {
+        for pattern in SOCIAL_ENGINEERING_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::SocialEngineering);
                 matched_patterns.push(pattern.clone());
@@ -471,7 +492,7 @@ impl PromptGuard {
             }
         }
 
-        for pattern in &self.safety_bypass {
+        for pattern in SAFETY_BYPASS_SET.iter() {
             if lower.contains(pattern) {
                 attacks.push(AttackType::SafetyBypass);
                 matched_patterns.push(pattern.clone());

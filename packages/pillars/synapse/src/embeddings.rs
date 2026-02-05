@@ -186,6 +186,18 @@ impl Default for PolyglotEmbedder {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum EmbeddingError {
+    #[error("API request failed: {0}")]
+    ApiError(String),
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+    #[error("JSON parse error: {0}")]
+    ParseError(String),
+    #[error("Missing embedding in response")]
+    MissingEmbedding,
+}
+
 impl PolyglotEmbedder {
     /// Create a new polyglot embedder with the given configuration.
     pub fn new(config: EmbeddingConfig) -> Self {
@@ -198,52 +210,30 @@ impl PolyglotEmbedder {
     }
 
     /// Generate embeddings for text in a specific region.
-    ///
-    /// Graceful fallback: Uses real API if AGENTKERN_EMBEDDINGS_API_KEY set,
-    /// otherwise returns zero vector for demo/development.
-    pub async fn embed(&self, text: &str, region: SynapseRegion) -> Vec<f32> {
+    pub async fn embed(&self, text: &str, region: SynapseRegion) -> Result<Vec<f32>, EmbeddingError> {
         let provider = self.provider_for(region);
-        let dimension = provider.dimension();
 
-        // Check for API key (graceful fallback pattern)
+        // Check for API key
         let api_key = std::env::var("AGENTKERN_EMBEDDINGS_API_KEY")
             .or_else(|_| std::env::var("OPENAI_API_KEY"))
-            .ok();
+            .map_err(|_| EmbeddingError::ConfigError("No API key found in AGENTKERN_EMBEDDINGS_API_KEY or OPENAI_API_KEY".into()))?;
 
-        if let Some(key) = api_key {
-            if !key.is_empty() {
-                // Try real API call
-                match self.call_embedding_api(&key, text, provider).await {
-                    Ok(embedding) => return embedding,
-                    Err(e) => {
-                        tracing::warn!(
-                            error = %e,
-                            provider = %provider.model_name(),
-                            "Embedding API failed, using fallback"
-                        );
-                    }
-                }
-            }
+        if api_key.is_empty() {
+             return Err(EmbeddingError::ConfigError("Empty API key found".into()));
         }
 
-        // Fallback: return deterministic mock vector based on text hash
-        tracing::debug!(
-            provider = %provider.model_name(),
-            region = ?region,
-            text_len = text.len(),
-            "Using fallback embedding (no API key or offline)"
-        );
-
-        self.generate_fallback_embedding(text, dimension)
+        // Try real API call
+        self.call_embedding_api(&api_key, text, provider).await
     }
 
     /// Call actual embedding API.
+    #[cfg(not(test))]
     async fn call_embedding_api(
         &self,
         api_key: &str,
         text: &str,
         provider: &EmbeddingProvider,
-    ) -> Result<Vec<f32>, String> {
+    ) -> Result<Vec<f32>, EmbeddingError> {
         let client = reqwest::Client::new();
 
         let response = client
@@ -256,20 +246,20 @@ impl PolyglotEmbedder {
             }))
             .send()
             .await
-            .map_err(|e| format!("HTTP error: {}", e))?;
+            .map_err(|e| EmbeddingError::ApiError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(format!("API error: {}", response.status()));
+            return Err(EmbeddingError::ApiError(format!("API error: {}", response.status())));
         }
 
         let body: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| format!("JSON parse error: {}", e))?;
+            .map_err(|e| EmbeddingError::ParseError(e.to_string()))?;
 
         let embedding = body["data"][0]["embedding"]
             .as_array()
-            .ok_or("Missing embedding in response")?
+            .ok_or(EmbeddingError::MissingEmbedding)?
             .iter()
             .filter_map(|v| v.as_f64().map(|f| f as f32))
             .collect();
@@ -277,8 +267,15 @@ impl PolyglotEmbedder {
         Ok(embedding)
     }
 
-    /// Generate deterministic fallback embedding from text hash.
-    fn generate_fallback_embedding(&self, text: &str, dimension: usize) -> Vec<f32> {
+    #[cfg(test)]
+    async fn call_embedding_api(
+        &self,
+        _api_key: &str,
+        text: &str,
+        provider: &EmbeddingProvider,
+    ) -> Result<Vec<f32>, EmbeddingError> {
+        // Return deterministic mock vector in tests
+        let dimension = provider.dimension();
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
@@ -286,7 +283,6 @@ impl PolyglotEmbedder {
         text.hash(&mut hasher);
         let hash = hasher.finish();
 
-        // Generate deterministic pseudo-random vector
         let mut embedding = Vec::with_capacity(dimension);
         let mut seed = hash;
         for _ in 0..dimension {
@@ -295,15 +291,7 @@ impl PolyglotEmbedder {
             embedding.push(val);
         }
 
-        // Normalize to unit vector
-        let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
-        if norm > 0.0 {
-            for x in &mut embedding {
-                *x /= norm;
-            }
-        }
-
-        embedding
+        Ok(embedding)
     }
 
     /// Check if a language is supported for a region.
@@ -377,7 +365,8 @@ mod tests {
     #[tokio::test]
     async fn test_embed_placeholder() {
         let embedder = PolyglotEmbedder::default();
-        let embedding = embedder.embed("مرحبا بالعالم", SynapseRegion::Mena).await;
+        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        let embedding = embedder.embed("مرحبا بالعالم", SynapseRegion::Mena).await.unwrap();
 
         // Jais has 5120 dimensions
         assert_eq!(embedding.len(), 5120);

@@ -14,6 +14,7 @@ use crate::cost::CostTracker;
 use crate::locks::{LockError, LockManager};
 use crate::queue::PriorityQueue;
 use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
+use crate::escalation::{WebhookNotifier, EscalationConnector};
 use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
@@ -21,6 +22,7 @@ use agentkern_gate::NeuroSymbolicValidator;
 use agentkern_pulse::{HealthStatus, Pulse, PulseManager, SemanticHealthReport};
 use agentkern_synapse::drift::DriftDetector;
 use agentkern_synapse::intent::IntentPath;
+// use uuid::Uuid;
 
 /// The Arbiter Coordinator.
 pub struct Coordinator {
@@ -41,6 +43,10 @@ pub struct Coordinator {
     pulse: PulseManager,
     /// Consensus engine for multi-agent governance
     consensus: Arc<ConsensusEngine>,
+    /// Optional Raft Manager for distributed consistency
+    raft_manager: Option<Arc<crate::RaftLockManager>>,
+    /// Escalation notifier
+    notifier: Arc<RwLock<WebhookNotifier>>,
 }
 
 impl Default for Coordinator {
@@ -58,8 +64,6 @@ impl Coordinator {
             antifragile: Arc::new(AntifragileEngine::new()),
             cost_tracker: Arc::new(CostTracker::new()),
             carbon_scheduler: Arc::new(CarbonScheduler::new()),
-            // Initializing complex components.
-            // In production, these might be injected or loaded from config.
             validator: Arc::new(
                 NeuroSymbolicValidator::new().expect("Failed to load NeuroSymbolicValidator"),
             ),
@@ -67,7 +71,28 @@ impl Coordinator {
             intent_paths: Arc::new(RwLock::new(HashMap::new())),
             pulse: PulseManager::new(),
             consensus: Arc::new(ConsensusEngine::new()),
+            raft_manager: None,
+            notifier: Arc::new(RwLock::new(WebhookNotifier::new())),
         }
+    }
+
+    /// Set the real-time grid API for the carbon scheduler.
+    pub fn with_grid_api(self, grid_api: Arc<dyn crate::carbon::GridApi>) -> Self {
+        Self {
+            carbon_scheduler: Arc::new(CarbonScheduler::new().with_grid_api(grid_api)),
+            ..self
+        }
+    }
+
+    /// Register an escalation connector.
+    pub async fn add_escalation_connector(&self, connector: Arc<dyn EscalationConnector>) {
+        let mut notifier = self.notifier.write().await;
+        notifier.add_connector(connector);
+    }
+
+    pub fn with_raft(mut self, raft: Arc<crate::RaftLockManager>) -> Self {
+        self.raft_manager = Some(raft);
+        self
     }
 
     /// Request coordination for a resource.
@@ -153,6 +178,33 @@ impl Coordinator {
         }
 
         // Try to acquire lock
+        if let Some(raft) = &self.raft_manager {
+            match raft.acquire_lock(&request.agent_id, &request.resource, request.priority, 30000).await {
+                Ok(true) => {
+                    let lock = BusinessLock {
+                        id: uuid::Uuid::new_v4(),
+                        resource: request.resource.clone(),
+                        locked_by: request.agent_id.clone(),
+                        acquired_at: Utc::now(),
+                        expires_at: Utc::now() + chrono::Duration::seconds(30),
+                        priority: request.priority,
+                        lock_type: request.operation,
+                    };
+                    return CoordinationResult::granted(lock);
+                }
+                Ok(false) => {
+                    // Fallback to queue if locked
+                     let mut queue = self.queue.write().await;
+                     let position = queue.enqueue(request.clone()) as u32;
+                     let wait_ms = queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
+                     return CoordinationResult::queued(position, wait_ms);
+                }
+                Err(e) => {
+                    return CoordinationResult::denied(format!("Raft consensus error: {}", e));
+                }
+            }
+        }
+
         match self
             .lock_manager
             .acquire(
@@ -194,6 +246,24 @@ impl Coordinator {
         resource: &str,
         priority: i32,
     ) -> Result<BusinessLock, String> {
+        if let Some(raft) = &self.raft_manager {
+            match raft.acquire_lock(agent_id, resource, priority, 30000).await {
+                Ok(true) => {
+                    return Ok(BusinessLock {
+                        id: uuid::Uuid::new_v4(),
+                        resource: resource.to_string(),
+                        locked_by: agent_id.to_string(),
+                        acquired_at: Utc::now(),
+                        expires_at: Utc::now() + chrono::Duration::seconds(30),
+                        priority,
+                        lock_type: LockType::Write,
+                    });
+                }
+                Ok(false) => return Err("Lock conflict via Raft consensus".into()),
+                Err(e) => return Err(format!("Raft consensus error: {}", e)),
+            }
+        }
+
         self.lock_manager
             .acquire(agent_id, resource, priority, LockType::Write, None)
             .await
@@ -202,6 +272,17 @@ impl Coordinator {
 
     /// Release a lock and grant to next in queue if any.
     pub async fn release_lock(&self, agent_id: &str, resource: &str) -> Result<(), String> {
+        if let Some(raft) = &self.raft_manager {
+            match raft.release_lock(agent_id, resource).await {
+                Ok(_) => {
+                    // Note: Queuing logic for Raft is not yet implemented.
+                    // Distributed queuing would require Raft-backed queue.
+                    return Ok(());
+                }
+                Err(e) => return Err(format!("Raft consensus error: {}", e)),
+            }
+        }
+
         self.lock_manager
             .release(agent_id, resource)
             .await
@@ -277,9 +358,9 @@ impl Pulse for Coordinator {
             timestamp: Utc::now(),
             carbon_intensity: intensity,
             cost_index,
-            latency_ms: 5,     // Mock latency
-            uptime_secs: 3600, // Mock uptime
-            message: "Autonomous Coordination Engine active".to_string(),
+            latency_ms: 0,     // Real-time latency monitoring required
+            uptime_secs: 0,    // Real-time uptime monitoring required
+            message: "Autonomous Coordination Engine active (Metrics N/A)".to_string(),
         }
     }
 }

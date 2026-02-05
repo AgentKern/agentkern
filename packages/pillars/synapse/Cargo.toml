@@ -75,6 +75,9 @@ rand = "0.8"
 # Encryption-at-rest dependencies (Dec 2025)
 base64 = "0.22"
 
+# Compression (Core Stabilization - Feb 2026)
+zstd = "0.13"
+
 [dev-dependencies]
 tokio-test = "0.4"
 

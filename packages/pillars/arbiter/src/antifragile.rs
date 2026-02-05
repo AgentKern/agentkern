@@ -17,9 +17,9 @@
 
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use parking_lot::RwLock;
 
 // ============================================================================
 // SEVERITY & CATEGORY (merged from synapse/antifragile.rs)
@@ -455,45 +455,60 @@ impl CircuitBreaker {
 // PREDICTIVE CIRCUIT BREAKER (Innovation: opens BEFORE cascade)
 // ============================================================================
 
-/// Failure velocity tracker for predictive opening.
+/// Optimized failure velocity tracker using time-based buckets.
 #[derive(Debug, Clone)]
 pub struct FailureVelocity {
-    /// Timestamps of recent failures (rolling window)
-    failure_times: Vec<DateTime<Utc>>,
+    /// Failure counts per bucket (e.g., 1-second buckets)
+    buckets: VecDeque<u32>,
     /// Window size in seconds
-    window_secs: i64,
+    window_secs: usize,
     /// Velocity threshold (failures/minute) to trigger prediction
     threshold: f64,
+    /// Last bucket update time
+    last_update_ms: i64,
 }
 
 impl FailureVelocity {
-    pub fn new(window_secs: i64, threshold: f64) -> Self {
+    pub fn new(window_secs: usize, threshold: f64) -> Self {
+        let mut buckets = VecDeque::with_capacity(window_secs);
+        for _ in 0..window_secs {
+            buckets.push_back(0);
+        }
         Self {
-            failure_times: Vec::new(),
+            buckets,
             window_secs,
             threshold,
+            last_update_ms: Utc::now().timestamp(),
         }
     }
 
-    /// Record a failure timestamp.
-    pub fn record(&mut self) {
-        let now = Utc::now();
-        self.failure_times.push(now);
+    /// Advance buckets based on current time.
+    fn advance(&mut self) {
+        let now = Utc::now().timestamp();
+        let diff = (now - self.last_update_ms).max(0) as usize;
+        
+        if diff > 0 {
+            for _ in 0..diff.min(self.window_secs) {
+                self.buckets.pop_front();
+                self.buckets.push_back(0);
+            }
+            self.last_update_ms = now;
+        }
+    }
 
-        // Prune old entries outside window
-        let cutoff = now - Duration::seconds(self.window_secs);
-        self.failure_times.retain(|t| *t > cutoff);
+    /// Record a failure.
+    pub fn record(&mut self) {
+        self.advance();
+        if let Some(last) = self.buckets.back_mut() {
+            *last += 1;
+        }
     }
 
     /// Get current velocity (failures per minute).
     pub fn velocity(&self) -> f64 {
-        if self.failure_times.is_empty() {
-            return 0.0;
-        }
-
-        let count = self.failure_times.len() as f64;
+        let total_failures: u32 = self.buckets.iter().sum();
         let window_minutes = self.window_secs as f64 / 60.0;
-        count / window_minutes
+        total_failures as f64 / window_minutes
     }
 
     /// Check if velocity exceeds threshold (cascade predicted).
@@ -671,8 +686,8 @@ agentkern_circuit_failures{{circuit="{}"}} {}
 
 /// Antifragile engine - learns from failures.
 pub struct AntifragileEngine {
-    /// Failure history
-    failures: Arc<RwLock<Vec<Failure>>>,
+    /// Failure history (Optimized: VecDeque for O(1) removal)
+    failures: Arc<RwLock<VecDeque<Failure>>>,
     /// Circuit breakers by service
     circuits: Arc<RwLock<HashMap<String, CircuitBreaker>>>,
     /// Recovery strategies
@@ -683,28 +698,8 @@ pub struct AntifragileEngine {
 
 impl AntifragileEngine {
     /// Create a new antifragile engine with default strategies.
-    ///
-    /// ## Recovery Strategy Rationale (EPISTEMIC WARRANT)
-    ///
-    /// These are **initial calibration values** that should be tuned based on
-    /// observed recovery success in your environment. The engine learns and
-    /// adapts over time via the `failure_stats` tracking.
-    ///
-    /// | Strategy | Priority | Success Rate | Recovery Time |
-    /// |----------|----------|--------------|---------------|
-    /// | failover_to_replica | 90 | 85% | 500ms |
-    /// | retry_with_backoff | 80 | 70% | 2000ms |
-    /// | reduce_load | 70 | 60% | 5000ms |
-    /// | return_cached | 50 | 90% | 10ms |
-    ///
-    /// **Priority**: Higher = tried first. Failover is fastest recovery.
-    /// **Success Rate**: Initial estimate; engine tracks actual success.
-    /// **Recovery Time**: Based on typical cloud infrastructure latencies.
-    ///
-    /// Reference: AWS Well-Architected Framework - Reliability Pillar (2024)
     pub fn new() -> Self {
         // Initial strategy definitions - these are calibration starting points
-        // The engine learns actual success rates from recorded failures
         let strategies = vec![
             RecoveryStrategy {
                 name: "retry_with_backoff".into(),
@@ -741,7 +736,7 @@ impl AntifragileEngine {
         ];
 
         Self {
-            failures: Arc::new(RwLock::new(Vec::new())),
+            failures: Arc::new(RwLock::new(VecDeque::new())),
             circuits: Arc::new(RwLock::new(HashMap::new())),
             strategies,
             failure_stats: Arc::new(RwLock::new(HashMap::new())),
@@ -752,24 +747,25 @@ impl AntifragileEngine {
     pub async fn handle_failure(&self, failure: Failure) -> Option<RecoveryStrategy> {
         // Record failure
         {
-            let mut failures = self.failures.write().await;
-            failures.push(failure.clone());
+            let mut failures = self.failures.write();
+            failures.push_back(failure.clone());
 
             // Keep only last 1000 failures
             if failures.len() > 1000 {
-                failures.remove(0);
+                // VecDeque::pop_front is O(1)
+                failures.pop_front();
             }
         }
 
         // Update stats
         {
-            let mut stats = self.failure_stats.write().await;
+            let mut stats = self.failure_stats.write();
             *stats.entry(failure.class.clone()).or_insert(0) += 1;
         }
 
         // Update circuit breaker
         {
-            let mut circuits = self.circuits.write().await;
+            let mut circuits = self.circuits.write();
             let circuit = circuits
                 .entry(failure.service.clone())
                 .or_insert_with(|| CircuitBreaker::new(&failure.service));
@@ -791,7 +787,7 @@ impl AntifragileEngine {
 
     /// Record a successful recovery.
     pub async fn record_recovery(&self, service: &str) {
-        let mut circuits = self.circuits.write().await;
+        let mut circuits = self.circuits.write();
         if let Some(circuit) = circuits.get_mut(service) {
             circuit.record_success();
         }
@@ -799,7 +795,7 @@ impl AntifragileEngine {
 
     /// Check if a service is available (circuit not open).
     pub async fn is_service_available(&self, service: &str) -> bool {
-        let mut circuits = self.circuits.write().await;
+        let mut circuits = self.circuits.write();
         let circuit = circuits
             .entry(service.to_string())
             .or_insert_with(|| CircuitBreaker::new(service));
@@ -808,12 +804,12 @@ impl AntifragileEngine {
 
     /// Get failure statistics.
     pub async fn get_stats(&self) -> HashMap<FailureClass, u32> {
-        self.failure_stats.read().await.clone()
+        self.failure_stats.read().clone()
     }
 
     /// Get recent failures for a service.
     pub async fn get_recent_failures(&self, service: &str, limit: usize) -> Vec<Failure> {
-        let failures = self.failures.read().await;
+        let failures = self.failures.read();
         failures
             .iter()
             .rev()

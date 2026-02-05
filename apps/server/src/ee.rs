@@ -1,6 +1,8 @@
-use axum::{routing::get, Json, Router};
+use axum::{routing::{get, post}, Json, Router};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use agentkern_energy_ee::GridFactory;
+use agentkern_sovereign_memory_ee::{MemoryEncryptor, EncryptionConfig, EncryptedBlob};
 
 pub fn router() -> Router<()> {
     Router::new()
@@ -8,6 +10,8 @@ pub fn router() -> Router<()> {
         .route("/license/check", get(check_license))
         .route("/trust/stats", get(trust_stats))
         .route("/cloud/mesh", get(mesh_stats))
+        .route("/memory/encrypt", post(memory_encrypt))
+        .route("/memory/decrypt", post(memory_decrypt))
 }
 
 /// Get real-time energy intensity (Energy Pillar)
@@ -75,6 +79,70 @@ async fn mesh_stats() -> Json<Value> {
                 "cells": coordinator.healthy_cell_count(),
                 "cluster": "agentkern-mesh"
             }))
+        },
+        Err(e) => Json(json!({
+            "status": "offline",
+            "error": e.to_string(),
+            "hint": "Enterprise License Required"
+        }))
+    }
+}
+/// Request to encrypt memory
+#[derive(Deserialize)]
+struct EncryptRequest {
+    plaintext: String,
+}
+
+/// Request to decrypt memory
+#[derive(Deserialize)]
+struct DecryptRequest {
+    blob: EncryptedBlob,
+}
+
+/// Encrypt agent memory (Sovereign Memory Pillar)
+/// Requires License & AGENTKERN_LOCAL_KEK
+async fn memory_encrypt(Json(payload): Json<EncryptRequest>) -> Json<Value> {
+    let config = EncryptionConfig::default();
+    match MemoryEncryptor::new(config) {
+        Ok(encryptor) => {
+            match encryptor.encrypt(payload.plaintext.as_bytes()).await {
+                Ok(blob) => Json(json!({
+                    "status": "encrypted",
+                    "blob": blob
+                })),
+                Err(e) => Json(json!({
+                    "status": "error",
+                    "error": e.to_string()
+                }))
+            }
+        },
+        Err(e) => Json(json!({
+            "status": "offline",
+            "error": e.to_string(),
+            "hint": "Enterprise License Required"
+        }))
+    }
+}
+
+/// Decrypt agent memory (Sovereign Memory Pillar)
+/// Requires License & AGENTKERN_LOCAL_KEK
+async fn memory_decrypt(Json(payload): Json<DecryptRequest>) -> Json<Value> {
+    let config = EncryptionConfig::default();
+    match MemoryEncryptor::new(config) {
+        Ok(encryptor) => {
+            match encryptor.decrypt(&payload.blob).await {
+                Ok(plaintext) => {
+                    let text = String::from_utf8_lossy(&plaintext).to_string();
+                    Json(json!({
+                        "status": "decrypted",
+                        "plaintext": text
+                    }))
+                },
+                Err(e) => Json(json!({
+                    "status": "error",
+                    "error": e.to_string()
+                }))
+            }
         },
         Err(e) => Json(json!({
             "status": "offline",

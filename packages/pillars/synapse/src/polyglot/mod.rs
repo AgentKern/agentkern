@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub use embeddings::{EmbeddingResult, PolyglotEmbedder};
+use crate::embeddings::EmbeddingError;
 
 /// Supported languages with native embedding models.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -118,7 +119,7 @@ impl PolyglotMemory {
     }
 
     /// Embed text with automatic language detection.
-    pub async fn embed(&self, text: &str) -> EmbeddingResult {
+    pub async fn embed(&self, text: &str) -> Result<EmbeddingResult, EmbeddingError> {
         let language = Language::detect(text);
         let embedder = self
             .embedders
@@ -128,22 +129,23 @@ impl PolyglotMemory {
     }
 
     /// Store a document with its embedding.
-    pub async fn store(&self, id: &str, text: &str) {
+    pub async fn store(&self, id: &str, text: &str) -> Result<(), EmbeddingError> {
         let language = Language::detect(text);
-        let embedding = self.embed(text).await;
+        let embedding = self.embed(text).await?;
 
         let mut index = self.index.write();
         index.push((id.to_string(), embedding.vector, text.to_string(), language));
 
         tracing::debug!(id = %id, language = ?language, "Stored document in polyglot memory");
+        Ok(())
     }
 
     /// Semantic search with cross-lingual intent verification.
     ///
     /// Innovation: Uses cosine similarity on in-memory index for embedded use,
     /// falls back to Qdrant for production scale when QDRANT_URL is set.
-    pub async fn search(&self, query: &str, top_k: usize) -> Vec<SearchResult> {
-        let query_embedding = self.embed(query).await;
+    pub async fn search(&self, query: &str, top_k: usize) -> Result<Vec<SearchResult>, EmbeddingError> {
+        let query_embedding = self.embed(query).await?;
 
         // Try Qdrant first if URL is configured
         if let Some(ref _qdrant_url) = self.qdrant_url {
@@ -156,7 +158,7 @@ impl PolyglotMemory {
         // In-memory search using cosine similarity
         let index = self.index.read();
         if index.is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
 
         let mut scored: Vec<(f32, &String, &String, &Language)> = index
@@ -171,7 +173,7 @@ impl PolyglotMemory {
         scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
         // Return top_k results
-        scored
+        Ok(scored
             .into_iter()
             .take(top_k)
             .map(|(score, id, text, language)| SearchResult {
@@ -180,7 +182,7 @@ impl PolyglotMemory {
                 score,
                 language: *language,
             })
-            .collect()
+            .collect())
     }
 
     /// Get index size.

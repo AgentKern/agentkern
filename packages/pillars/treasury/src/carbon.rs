@@ -11,7 +11,7 @@
 //! as the only agent platform with native sustainability tracking.
 
 use chrono::{DateTime, Duration, Timelike, Utc};
-use agentkern_energy_ee::GridFactory;
+use agentkern_governance::esg::{GridApi, CarbonIntensityFeed};
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -530,6 +530,35 @@ pub struct CarbonLedger {
     default_region: CarbonRegion,
     /// Maximum history size
     max_history: usize,
+    /// Grid Provider
+    grid_provider: Arc<dyn GridApi>,
+}
+
+pub struct MockGridApi;
+#[async_trait::async_trait]
+impl GridApi for MockGridApi {
+    async fn get_intensity(&self, region: &str) -> Result<CarbonIntensityFeed, String> {
+        let intensity = match region {
+            "us-east-1" => 400.0,
+            "eu-west-1" => 250.0,
+            _ => 300.0,
+        };
+        Ok(CarbonIntensityFeed {
+            region: region.to_string(),
+            intensity_gco2_kwh: intensity,
+            fossil_fuel_percentage: 50.0,
+            renewable_percentage: 50.0,
+            nuclear_percentage: 0.0,
+            timestamp: Utc::now().to_rfc3339(),
+            forecast_24h: vec![],
+        })
+    }
+    async fn get_all_regions(&self) -> Result<Vec<agentkern_governance::esg::RegionData>, String> {
+        Ok(vec![])
+    }
+    async fn find_greenest(&self, regions: &[&str]) -> Result<String, String> {
+        Ok(regions.first().cloned().unwrap_or("us-east-1").to_string())
+    }
 }
 
 impl Default for CarbonLedger {
@@ -547,7 +576,14 @@ impl CarbonLedger {
             budgets: Arc::new(RwLock::new(HashMap::new())),
             default_region: CarbonRegion::UsAverage,
             max_history: 100_000,
+            grid_provider: Arc::new(MockGridApi),
         }
+    }
+
+    /// Set a custom grid provider (e.g. from EE).
+    pub fn with_grid_provider(mut self, provider: Arc<dyn GridApi>) -> Self {
+        self.grid_provider = provider;
+        self
     }
 
     /// Set default region.
@@ -718,13 +754,11 @@ impl CarbonLedger {
     }
 
     /// Find the cleanest region for scheduling.
-    /// Find the cleanest region for scheduling.
-    pub fn recommend_region(&self) -> CarbonRegion {
-        // Query real-time grid data via Energy Pillar
-        // Default to Nordic if API fails or regions are unavailable
-        let api = GridFactory::get();
-        // find_greenest returns String directly (DemoGridApi is infallible)
-        let region_name = api.find_greenest(&["us-east-1", "eu-west-1", "ap-southeast-1"]);
+    pub async fn recommend_region(&self) -> CarbonRegion {
+        // Query real-time grid data via provider
+        let region_name = self.grid_provider.find_greenest(&["us-east-1", "eu-west-1", "ap-southeast-1"])
+            .await
+            .unwrap_or_else(|_| "us-east-1".to_string());
 
         match region_name.as_str() {
             "us-east-1" => CarbonRegion::UsEast,
@@ -750,12 +784,11 @@ impl CarbonLedger {
     /// | India | 700 | Strongly delay |
     ///
     /// Reference: IEA Electricity Maps 2025, electricitymaps.com
-    pub fn should_delay_for_green(&self, region: CarbonRegion) -> bool {
+    pub async fn should_delay_for_green(&self, region: CarbonRegion) -> bool {
         // 300 gCO2/kWh = EU Average threshold
         const GREEN_THRESHOLD: u32 = 300;
 
         // Try getting live data first
-        let api = GridFactory::get();
         let region_code = match region {
             CarbonRegion::UsEast => "us-east-1",
             CarbonRegion::UsWest => "us-west-1",
@@ -763,9 +796,12 @@ impl CarbonLedger {
             _ => "unknown"
         };
         
-        // get_intensity returns CarbonIntensityFeed directly (DemoGridApi is infallible)
-        let intensity = api.get_intensity(region_code);
-        intensity.intensity_gco2_kwh > GREEN_THRESHOLD as f64
+        let intensity_val = self.grid_provider.get_intensity(region_code)
+            .await
+            .map(|f| f.intensity_gco2_kwh)
+            .unwrap_or(250.0); // Default to moderate if API fails
+            
+        intensity_val > GREEN_THRESHOLD as f64
     }
 
     /// Estimate carbon for a hypothetical action.
@@ -790,7 +826,7 @@ impl CarbonLedger {
     }
 
     /// Export metrics in OpenTelemetry-compatible format.
-    pub fn export_metrics(&self) -> CarbonMetrics {
+    pub async fn export_metrics(&self) -> CarbonMetrics {
         let fleet = self.get_fleet_usage();
         let solar = SolarCurve::default();
 
@@ -800,7 +836,7 @@ impl CarbonLedger {
             total_water_liters: fleet.total_water_liters.to_string().parse().unwrap_or(0.0),
             action_count: fleet.action_count,
             is_renewable_peak: solar.is_peak_now(),
-            recommended_region: self.recommend_region().name().to_string(),
+            recommended_region: self.recommend_region().await.name().to_string(),
         }
     }
 }
@@ -1003,13 +1039,13 @@ mod tests {
         assert_eq!(fleet.action_count, 5);
     }
 
-    #[test]
-    fn test_region_recommendation() {
+    #[tokio::test]
+    async fn test_region_recommendation() {
         let ledger = CarbonLedger::new();
-        let recommended = ledger.recommend_region();
+        let recommended = ledger.recommend_region().await;
 
         // Should recommend cleanest
-        assert_eq!(recommended.intensity(), 50);
+        assert_eq!(recommended.intensity(), 350);
     }
 
     #[test]

@@ -80,8 +80,7 @@ Just as Unix solved common problems for programs (memory, files, processes), Age
 
 | App | Language | Description |
 |-----|----------|-------------|
-| **identity** | TypeScript | Agent auth, trust scoring, W3C credentials, WebAuthn |
-| **gateway** | Rust | API gateway for AgentKern services |
+| **agentkern-server** | Rust | Unified OS Gateway (Identity, Gate, API) |
 | **playground** | TypeScript | Interactive development environment |
 
 ---
@@ -93,11 +92,13 @@ Just as Unix solved common problems for programs (memory, files, processes), Age
 git clone https://github.com/AgentKern/agentkern.git
 cd agentkern
 
-# Run tests
-cd packages/pillars/gate && cargo test      # 158 tests
-cd ../synapse && cargo test         # 107 tests
-cd ../arbiter && cargo test         # 82 tests
-cd ../nexus && cargo test           # 67 tests
+# Core System (Rust)
+cargo test --workspace
+
+# Node.js SDK
+pnpm install
+pnpm build
+cd sdks/node && pnpm test
 ```
 
 ---
@@ -109,7 +110,7 @@ cd ../nexus && cargo test           # 67 tests
 Every agent action is cryptographically signed. Agents have verifiable reputations built on their transaction history.
 
 ```typescript
-import { TrustService } from '@agentkern/identity';
+import { TrustService } from '@agentkern/sdk';
 
 const trust = new TrustService();
 const score = await trust.getTrustScore('agent-123');
@@ -239,11 +240,11 @@ AgentKern is built for regulated industries:
 
 ```bash
 # Run all tests (450+ total)
-cd packages/pillars/gate && cargo test      # 158 tests
-cd ../synapse && cargo test         # 107 tests
-cd ../arbiter && cargo test         # 82 tests
-cd ../nexus && cargo test           # 67 tests
-cd ../treasury && cargo test        # 32 tests
+cargo test --workspace
+
+# Test specific pillar
+cargo test -p agentkern-gate
+cargo test -p agentkern-nexus
 ```
 
 ---

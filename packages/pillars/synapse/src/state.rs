@@ -9,7 +9,7 @@
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use parking_lot::RwLock;
 
 use crate::drift::{DriftDetector, DriftResult};
 use crate::intent::IntentPath;
@@ -44,6 +44,22 @@ impl StateStore {
         }
     }
 
+    /// Attach an alerter to the drift detector.
+    pub fn with_alerter(mut self, alerter: Arc<crate::drift::DriftAlerter>) -> Self {
+        self.drift_detector = self.drift_detector.with_alerter(alerter);
+        self
+    }
+
+    /// Get the drift detector.
+    pub fn drift_detector(&self) -> &DriftDetector {
+        &self.drift_detector
+    }
+
+    /// Get the alerter if one is attached.
+    pub fn get_alerter(&self) -> Option<Arc<crate::drift::DriftAlerter>> {
+        self.drift_detector.get_alerter()
+    }
+
     /// Set the node ID for distributed operations.
     pub fn with_node_id(mut self, node_id: impl Into<String>) -> Self {
         self.node_id = node_id.into();
@@ -56,33 +72,36 @@ impl StateStore {
 
     /// Get the state for an agent.
     pub async fn get_state(&self, agent_id: &str) -> Option<AgentState> {
-        let states = self.states.read().await;
+        let states = self.states.read();
         states.get(agent_id).cloned()
     }
 
     /// Update the state for an agent.
     pub async fn update_state(&self, update: StateUpdate) -> AgentState {
-        let mut states = self.states.write().await;
+        let mut states = self.states.write();
 
         let state = states
             .entry(update.agent_id.clone())
             .or_insert_with(|| AgentState::new(&update.agent_id));
 
         // Apply updates
+        let now = Utc::now();
         for (key, value) in update.updates {
-            state.state.insert(key, value);
+            state.state.insert(key.clone(), value);
+            state.state_metadata.insert(key, now);
         }
 
         // Apply deletes
         if let Some(keys) = update.deletes {
             for key in keys {
                 state.state.remove(&key);
+                state.state_metadata.remove(&key);
             }
         }
 
         // Increment version and update clock
         state.version += 1;
-        state.updated_at = Utc::now();
+        state.updated_at = now;
         let clock = state.vector_clock.entry(self.node_id.clone()).or_insert(0);
         *clock += 1;
 
@@ -91,7 +110,7 @@ impl StateStore {
 
     /// Merge remote state (for distributed sync).
     pub async fn merge_state(&self, remote: AgentState) {
-        let mut states = self.states.write().await;
+        let mut states = self.states.write();
 
         let local = states
             .entry(remote.agent_id.clone())
@@ -112,14 +131,14 @@ impl StateStore {
         expected_steps: u32,
     ) -> IntentPath {
         let path = IntentPath::new(agent_id, intent, expected_steps);
-        let mut intents = self.intents.write().await;
+        let mut intents = self.intents.write();
         intents.insert(path.agent_id.clone(), path.clone());
         path
     }
 
     /// Get the current intent path for an agent.
     pub async fn get_intent(&self, agent_id: &str) -> Option<IntentPath> {
-        let intents = self.intents.read().await;
+        let intents = self.intents.read();
         intents.get(agent_id).cloned()
     }
 
@@ -130,17 +149,28 @@ impl StateStore {
         action: impl Into<String>,
         result: Option<String>,
     ) -> Option<IntentPath> {
-        let mut intents = self.intents.write().await;
+        let mut intents = self.intents.write();
 
         if let Some(path) = intents.get_mut(agent_id) {
             path.record_step(action, result);
 
-            // Check for drift
+            // Check for drift (Synchronous check for return value)
             let drift_result = self.drift_detector.check(path);
             path.drift_detected = drift_result.drifted;
             path.drift_score = drift_result.score;
 
-            Some(path.clone())
+            let path_clone = path.clone();
+
+            // Trigger alerting in background
+            if path_clone.drift_detected {
+                let detector = self.drift_detector.clone();
+                let path_for_alert = path_clone.clone();
+                tokio::spawn(async move {
+                    let _ = detector.check_and_alert(&path_for_alert).await;
+                });
+            }
+
+            Some(path_clone)
         } else {
             None
         }
@@ -148,7 +178,7 @@ impl StateStore {
 
     /// Check for intent drift.
     pub async fn check_drift(&self, agent_id: &str) -> Option<DriftResult> {
-        let intents = self.intents.read().await;
+        let intents = self.intents.read();
         intents
             .get(agent_id)
             .map(|path| self.drift_detector.check(path))

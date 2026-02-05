@@ -27,3 +27,6 @@ pub mod privacy;
 pub use ai::{EuAiActExporter, RiskLevel, TechnicalDocumentation};
 pub use audit::{AuditLedger, AuditOutcome, AuditRecord, InfrastructureEvidenceCollector};
 pub use privacy::GlobalPrivacyRegistry;
+
+pub mod esg;
+pub use esg::{CarbonIntensityFeed, GridApi, RegionData};

@@ -35,9 +35,13 @@ impl ProtocolAdapter for AgentKernAdapter {
     }
 
     fn detect(&self, data: &[u8]) -> bool {
-        // Check for JSON-RPC 2.0 with A2A methods
+        // Check for JSON-RPC 2.0 OR Native AgentKern format
         if let Ok(text) = std::str::from_utf8(data) {
-            text.contains("jsonrpc") && text.contains("2.0")
+            // A2A/JSON-RPC style
+            let is_jsonrpc = text.contains("jsonrpc") && text.contains("2.0");
+            // Native NexusMessage style
+            let is_native = text.contains("source_protocol") && text.contains("agentkern");
+            is_jsonrpc || is_native
         } else {
             false
         }

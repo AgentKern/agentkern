@@ -183,8 +183,9 @@ impl<T: Clone> LwwRegister<T> {
     }
 
     /// Merge with another register.
+    /// Uses deterministic tie-breaking (NodeId) for equal timestamps.
     pub fn merge(&mut self, other: &LwwRegister<T>) {
-        if other.timestamp > self.timestamp {
+        if other.timestamp > self.timestamp || (other.timestamp == self.timestamp && other.writer > self.writer) {
             self.value = other.value.clone();
             self.timestamp = other.timestamp;
             self.writer = other.writer.clone();
@@ -279,18 +280,20 @@ impl<T: Clone + Eq + std::hash::Hash> OrSet<T> {
 
     /// Merge with another OR-Set.
     pub fn merge(&mut self, other: &OrSet<T>) {
-        // Add all elements from other (except tombstoned)
+        // Merge tombstones first to optimize the addition of other elements
+        self.tombstones.extend(other.tombstones.iter().cloned());
+
+        // Add all elements from other that are NOT tombstoned
         for elem in &other.elements {
-            if !self.tombstones.contains(&elem.tag) && !other.tombstones.contains(&elem.tag) {
+            if !self.tombstones.contains(&elem.tag) {
                 self.elements.insert(elem.clone());
             }
         }
 
-        // Merge tombstones
-        self.tombstones.extend(other.tombstones.iter().cloned());
-
         // Remove tombstoned elements
-        self.elements.retain(|e| !self.tombstones.contains(&e.tag));
+        if !self.tombstones.is_empty() {
+            self.elements.retain(|e| !self.tombstones.contains(&e.tag));
+        }
     }
 }
 
@@ -360,29 +363,32 @@ impl<K: Clone + Eq + std::hash::Hash, V: Clone> LwwMap<K, V> {
 
     /// Merge with another LWW-Map.
     pub fn merge(&mut self, other: &LwwMap<K, V>) {
-        // Merge entries
-        for (key, register) in &other.entries {
-            let entry = self
-                .entries
-                .entry(key.clone())
-                .or_insert_with(LwwRegister::new);
-            entry.merge(register);
-        }
-
-        // Merge tombstones
+        // Merge tombstones first
         for (key, &ts) in &other.tombstones {
             let entry = self.tombstones.entry(key.clone()).or_insert(0);
             *entry = (*entry).max(ts);
         }
 
-        // Remove entries older than tombstones
-        self.entries.retain(|k, r| {
-            if let Some(&tomb_ts) = self.tombstones.get(k) {
-                r.timestamp() > tomb_ts
-            } else {
-                true
+        // Merge entries
+        for (key, other_register) in &other.entries {
+            let tomb_ts = self.tombstones.get(key).cloned().unwrap_or(0);
+            
+            if other_register.timestamp() > tomb_ts {
+                let local_register = self.entries.entry(key.clone()).or_insert_with(LwwRegister::new);
+                local_register.merge(other_register);
             }
-        });
+        }
+
+        // Remove entries older than tombstones
+        if !self.tombstones.is_empty() {
+            self.entries.retain(|k, r| {
+                if let Some(&tomb_ts) = self.tombstones.get(k) {
+                    r.timestamp() > tomb_ts
+                } else {
+                    true
+                }
+            });
+        }
     }
 }
 

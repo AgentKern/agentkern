@@ -30,10 +30,11 @@ use ort::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-#[cfg(feature = "neural")]
-use std::sync::Mutex;
-use thiserror::Error;
 use unicode_normalization::UnicodeNormalization;
+use thiserror::Error;
+
+// #[cfg(feature = "neural")]
+// use std::sync::Mutex; // Removed as ort::Session is Sync
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -443,7 +444,7 @@ pub struct InferenceSession {
     #[allow(dead_code)]
     config: ModelConfig,
     #[cfg(feature = "neural")]
-    session: Option<Mutex<Session>>,
+    session: Option<Session>,
     /// Tracks load state in mock mode (used in feature-gated code).
     #[cfg(not(feature = "neural"))]
     #[allow(dead_code)]
@@ -492,7 +493,7 @@ impl InferenceSession {
 
         Ok(Self {
             config,
-            session: Some(Mutex::new(session)),
+            session: Some(session),
         })
     }
 
@@ -508,14 +509,11 @@ impl InferenceSession {
     /// Run inference on input tensor.
     #[cfg(feature = "neural")]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        if let Some(ref session_mutex) = self.session {
+        if let Some(ref session) = self.session {
             use ort::inputs;
 
-            let mut session = session_mutex
-                .lock()
-                .map_err(|_| NeuralError::InferenceFailed {
-                    reason: "Mutex poisoned".to_string(),
-                })?;
+            // Session is Sync, no lock needed
+
 
             let input_array = ndarray::Array2::from_shape_vec((1, input.len()), input.to_vec())
                 .map_err(|e: ndarray::ShapeError| NeuralError::InferenceFailed {
@@ -543,15 +541,32 @@ impl InferenceSession {
 
             Ok(output_tuple.1.to_vec())
         } else {
-            // Fallback to mock inference
-            self.mock_run(input)
+            // No silent mocks in production
+            #[cfg(not(test))]
+            {
+                 return Err(NeuralError::InferenceFailed { reason: "Session not initialized and neural hardware disabled. soul.".into() });
+            }
+            #[cfg(test)]
+            {
+                self.mock_run(input)
+            }
         }
     }
 
     /// Run inference (mock version).
     #[cfg(not(feature = "neural"))]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        self.mock_run(input)
+        // In production builds (not feature "neural"), we always return an error.
+        // However, we allow the mock for tests (both unit and integration).
+        // Integration tests don't set #[cfg(test)] in the library, 
+        // so we use a check that works for both.
+        if cfg!(debug_assertions) || cfg!(test) {
+            self.mock_run(input)
+        } else {
+            Err(NeuralError::InferenceFailed { 
+                reason: "Neural feature disabled. Rebuild with --features neural for production. soul.".into() 
+            })
+        }
     }
 
     /// Mock inference for testing/fallback.
@@ -990,8 +1005,16 @@ pub struct NeuralScorer {
 impl NeuralScorer {
     /// Create a new scorer.
     pub fn new() -> Self {
+        let guard = match NeuralGuard::new() {
+            Ok(g) => Some(g),
+            Err(e) => {
+                tracing::error!("Failed to initialize NeuralGuard: {}. Using symbolic fallback only.", e);
+                None
+            }
+        };
+
         Self {
-            guard: NeuralGuard::new().ok(),
+            guard,
             threshold: 50,
         }
     }
@@ -1007,10 +1030,14 @@ impl NeuralScorer {
         if let Some(guard) = &self.guard {
             match guard.classify_intent(action) {
                 Ok(result) => result.intent.risk_score(),
-                Err(_) => 50, // Default on error
+                Err(e) => {
+                    tracing::warn!("Neural inference failed: {}. Defaulting to medium risk.", e);
+                    50 // Default on error
+                }
             }
         } else {
-            50 // Default when no guard
+            // Guard failed to init - return safe default but we already logged critical error at startup
+            50
         }
     }
 }

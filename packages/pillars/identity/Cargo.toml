@@ -32,3 +32,4 @@ hex = "0.4"
 agentkern-crypto = { path = "../../foundation/crypto" }
 agentkern-gate = { path = "../gate" }
 agentkern-nexus = { path = "../nexus" } # Reusing AgentCard/Protocol types if needed
+async-trait.workspace = true

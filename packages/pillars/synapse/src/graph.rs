@@ -140,8 +140,21 @@ impl GraphVectorDB {
     }
 
     /// Find similar nodes by vector (cosine similarity).
+    ///
+    /// WARNING: This is an O(N) operation using linear scan.
+    /// For production datasets > 1000 nodes, use an external HNSW vector index
+    /// (e.g., Qdrant, Milvus, or PGVector).
     pub fn find_similar(&self, vector: &[f32], limit: usize) -> Vec<SimilarityResult> {
         let nodes = self.nodes.read();
+        
+        // P2: Performance Safeguard
+        if nodes.len() > 1000 {
+            tracing::warn!(
+                node_count = nodes.len(),
+                "GraphVectorDB: performing linear scan on large dataset. Latency will be O(N)."
+            );
+        }
+
         let mut results: Vec<SimilarityResult> = nodes
             .values()
             .filter_map(|node| {

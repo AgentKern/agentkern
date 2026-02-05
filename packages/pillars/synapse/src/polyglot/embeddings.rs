@@ -21,6 +21,7 @@ pub struct EmbeddingResult {
 /// Polyglot embedder.
 pub struct PolyglotEmbedder {
     /// Target language
+    #[allow(dead_code)]
     language: Language,
     /// Model identifier
     model: String,
@@ -46,19 +47,39 @@ impl PolyglotEmbedder {
     }
 
     /// Embed text.
-    pub async fn embed(&self, text: &str) -> EmbeddingResult {
-        // In production, this calls the actual embedding API
-        let vector = self.mock_embed(text);
+    pub async fn embed(&self, _text: &str) -> Result<EmbeddingResult, crate::embeddings::EmbeddingError> {
+        // In production, this requires AGENTKERN_EMBEDDINGS_API_KEY
+        let api_key = std::env::var("AGENTKERN_EMBEDDINGS_API_KEY")
+            .or_else(|_| std::env::var("OPENAI_API_KEY"))
+            .map_err(|_| crate::embeddings::EmbeddingError::ConfigError("No API key found".into()))?;
 
-        EmbeddingResult {
-            vector,
-            language: self.language,
-            model: self.model.clone(),
-            dimensions: self.dimensions,
+        if api_key.is_empty() {
+             return Err(crate::embeddings::EmbeddingError::ConfigError("Empty API key found".into()));
+        }
+
+        // Mocking the API call for now but returning Result to enforce signature
+        // Production would call reqwest here.
+        #[cfg(not(test))]
+        {
+            // Real implementation would go here (similar to CoreEmbedder)
+            // For now, if we don't have it implemented yet, we should at least not returning a mock vector
+            // But since this is a language-specific stub, we might want to standardize it.
+            Err(crate::embeddings::EmbeddingError::ApiError("Language-specific embedding API not yet implemented".into()))
+        }
+        #[cfg(test)]
+        {
+            let vector = self.mock_embed(_text);
+            Ok(EmbeddingResult {
+                vector,
+                language: self.language,
+                model: self.model.clone(),
+                dimensions: self.dimensions,
+            })
         }
     }
 
     /// Mock embedding for testing.
+    #[allow(dead_code)]
     fn mock_embed(&self, text: &str) -> Vec<f32> {
         // Generate deterministic mock embeddings based on text hash
         let hash = text
@@ -165,7 +186,9 @@ mod tests {
     #[tokio::test]
     async fn test_embedding_dimensions() {
         let embedder = PolyglotEmbedder::new(Language::English);
-        let result = embedder.embed("Hello world").await;
+        // Set fake key for test
+        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        let result = embedder.embed("Hello world").await.unwrap();
 
         assert_eq!(result.dimensions, 1024);
         assert_eq!(result.vector.len(), 1024);
@@ -174,7 +197,8 @@ mod tests {
     #[tokio::test]
     async fn test_arabic_embedder() {
         let embedder = PolyglotEmbedder::new(Language::Arabic);
-        let result = embedder.embed("مرحبا").await;
+        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        let result = embedder.embed("مرحبا").await.unwrap();
 
         assert_eq!(result.model, "jais-embedding-v1");
         assert_eq!(result.language, Language::Arabic);

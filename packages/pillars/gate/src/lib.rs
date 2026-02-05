@@ -20,6 +20,7 @@
 pub mod api;
 pub mod dsl;
 pub mod engine;
+pub mod loader;
 pub mod neural;
 pub mod policy;
 pub mod types;

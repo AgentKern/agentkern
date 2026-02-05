@@ -10,7 +10,7 @@ use agentkern_gate::prompt_guard::{PromptAction, PromptGuard, ThreatLevel};
 // PROMPT GUARD
 // ============================================================================
 
-#[pyclass(name = "ThreatLevel")]
+#[pyclass(name = "ThreatLevel", eq, ord)]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PyThreatLevel {
     None = 0,
@@ -32,7 +32,7 @@ impl From<ThreatLevel> for PyThreatLevel {
     }
 }
 
-#[pyclass(name = "PromptAction")]
+#[pyclass(name = "PromptAction", eq)]
 #[derive(Clone, PartialEq, Eq)]
 pub enum PyPromptAction {
     Allow,

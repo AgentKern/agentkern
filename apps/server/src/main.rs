@@ -9,19 +9,22 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
-// use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod auth;
 mod chaos;
 mod telemetry;
 mod ee;
+mod agents;
 
 use auth::JwtConfig;
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Option<sqlx::PgPool>,
+    pub redis: Option<redis::Client>,
     pub jwt_config: JwtConfig,
+    pub gate: Arc<agentkern_gate::engine::GateEngine>,
+    pub arbiter: Arc<agentkern_arbiter::Coordinator>,
 }
 
 #[tokio::main]
@@ -36,8 +39,11 @@ async fn main() {
 
     tracing::info!("🚀 Starting AgentKern Unified Server");
 
+    // Validate required environment variables before startup
+    validate_required_environment_variables();
+
     // JWT configuration - FAILS in production if misconfigured
-    let jwt_config = match auth::JwtConfig::from_env() {
+    let jwt_config = match auth::JwtConfig::from_env().await {
         Ok(config) => {
             let env_name = if config.is_production() {
                 "PRODUCTION"
@@ -67,11 +73,7 @@ async fn main() {
             Ok(pool) => {
                 tracing::info!("✅ Database connected");
 
-                // Run migrations
-                tracing::info!("📦 Running migrations...");
-                run_migrations(&pool).await;
-                tracing::info!("✅ Migrations complete");
-
+                tracing::info!("✅ Database connected");
                 Some(pool)
             }
             Err(e) => {
@@ -87,8 +89,45 @@ async fn main() {
         None
     };
 
+    // Connect to Redis (optional - required for production revocation)
+    let redis_url = std::env::var("REDIS_URL").ok();
+    let redis = if let Some(ref url) = redis_url {
+        tracing::info!("📡 Connecting to Redis...");
+        match redis::Client::open(url.as_str()) {
+            Ok(client) => {
+                tracing::info!("✅ Redis client initialized");
+                Some(client)
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Redis initialization failed: {}. Revocation will be in-memory.", e);
+                None
+            }
+        }
+    } else {
+        tracing::warn!("⚠️  REDIS_URL not set. Revocation will be in-memory.");
+        None
+    };
+
+    // Initialize Core Engines for sharing
+    let gate = Arc::new(agentkern_gate::engine::GateEngine::new().with_jurisdiction(agentkern_gate::types::DataRegion::Global));
+    
+    let arbiter = if let Some(ref p) = pool {
+        agentkern_arbiter::api::init_coordinator_with_pool(p.clone())
+    } else {
+        Arc::new(agentkern_arbiter::Coordinator::new())
+    };
+
     // Build application state
-    let state = Arc::new(AppState { pool, jwt_config });
+    let state = Arc::new(AppState { 
+        pool, 
+        redis, 
+        jwt_config,
+        gate: gate.clone(),
+        arbiter: arbiter.clone(),
+    });
+
+    // Start Resident Agents
+    agents::start_agents(state.clone());
 
     // Build the unified router
     let app = build_router(state).await;
@@ -109,23 +148,31 @@ async fn main() {
         .expect("Server failed to start");
 }
 
-/// Run SQLx migrations from all pillars
-async fn run_migrations(pool: &sqlx::PgPool) {
-    // Identity pillar migrations
-    let mut migrator = sqlx::migrate!("../../packages/pillars/identity/migrations");
-    migrator
-        .set_ignore_missing(true)
-        .run(pool)
-        .await
-        .expect("Failed to run Identity migrations");
-}
 
 async fn build_router(state: Arc<AppState>) -> Router {
     // CORS configuration
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "*".to_string());
+    
+    let cors = if allowed_origins == "*" {
+        if std::env::var("RUST_ENV").unwrap_or_default() == "production" {
+            tracing::warn!("⚠️  CORS allowed_origin is '*' in PRODUCTION! (Set ALLOWED_ORIGINS)");
+        }
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any)
+    } else {
+        let origins: Vec<axum::http::HeaderValue> = allowed_origins
+            .split(',')
+            .map(|s| s.trim().parse().expect("Invalid CORS origin"))
+            .collect();
+        
+        CorsLayer::new()
+            .allow_origin(origins)
+            .allow_methods(Any)
+            .allow_headers(Any)
+    };
 
     // Get the Identity pillar router (passing pool if available)
     let identity_router: Router<()> = if let Some(ref pool) = state.pool {
@@ -134,11 +181,17 @@ async fn build_router(state: Arc<AppState>) -> Router {
         agentkern_identity::api::server::app().await
     };
 
-    // Auth routes (public)
     let auth_routes = Router::new()
         .route("/login", post(auth::login))
         .route("/token", post(auth::login)) // Alias
         .route("/refresh", post(auth::refresh_token))
+        .route("/logout", post(auth::logout)) // ← NEW: Revokes token
+        .with_state(state.clone());
+
+    // Admin routes (protected)
+    let admin_routes = Router::new()
+        .route("/hash-secret", post(auth::admin_hash_secret))
+        .route("/revoke-token", post(auth::admin_revoke))
         .with_state(state.clone());
     // Build unified router with all pillars
     // Explicitly declare Router<()> to catch type mismatches
@@ -153,12 +206,16 @@ async fn build_router(state: Arc<AppState>) -> Router {
         // Gate Pillar
         .nest_service(
             "/api/v1/gate",
-            resilient_service(agentkern_gate::api::router(), 100, 10),
+            resilient_service(agentkern_gate::api::router_with_engine(state.gate.clone()), 100, 10),
         )
         // Arbiter Pillar
         .nest_service(
             "/api/v1/arbiter",
-            resilient_service(agentkern_arbiter::api::router(), 50, 60),
+            resilient_service(
+                agentkern_arbiter::api::router(state.arbiter.clone(), state.pool.clone()),
+                50,
+                60,
+            ),
         )
         // Nexus Pillar
         .nest_service(
@@ -181,6 +238,8 @@ async fn build_router(state: Arc<AppState>) -> Router {
             "/api/v1/ee",
             ee::router(), // Intentionally not resilient (management routes)
         )
+        // Admin Auth Endpoints (Protected)
+        .nest("/api/v1/admin", admin_routes)
         // Root health check
         .route("/health", axum::routing::get(root_health))
         // Authentication middleware for protected routes
@@ -254,5 +313,55 @@ async fn handle_middleware_error(
                 "status": "overloaded"
             })),
         )
+    }
+}
+/// Validate required environment variables at startup
+/// Fail-fast principle: exit if critical configs are missing
+fn validate_required_environment_variables() {
+    let is_production = std::env::var("RUST_ENV")
+        .unwrap_or_else(|_| "development".to_string())
+        .to_lowercase()
+        == "production";
+
+    // Always required
+    if let Err(_) = std::env::var("JWT_SECRET") {
+        if is_production {
+            tracing::error!("❌ CRITICAL: JWT_SECRET not set in PRODUCTION");
+            std::process::exit(1);
+        } else {
+            tracing::warn!("⚠️  JWT_SECRET not set (required in production)");
+        }
+    }
+
+    // Validate JWT_SECRET length in production
+    if is_production {
+        if let Ok(secret) = std::env::var("JWT_SECRET") {
+            if secret.len() < 32 {
+                tracing::error!("❌ CRITICAL: JWT_SECRET must be at least 32 bytes in PRODUCTION");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    // Warn if DATABASE_URL not set (optional but recommended)
+    if let Err(_) = std::env::var("DATABASE_URL") {
+        if is_production {
+            tracing::warn!("⚠️  DATABASE_URL not set in PRODUCTION (running stateless)");
+        } else {
+            tracing::info!("ℹ️  DATABASE_URL not set (running in stateless mode)");
+        }
+    }
+
+    // Validate PORT if specified
+    if let Ok(port_str) = std::env::var("PORT") {
+        if let Err(_) = port_str.parse::<u16>() {
+            tracing::error!("❌ PORT must be a valid u16 number (0-65535), got: {}", port_str);
+            std::process::exit(1);
+        }
+    }
+
+    // Log startup validation complete
+    if is_production {
+        tracing::info!("✅ Production environment variables validated");
     }
 }

@@ -141,7 +141,7 @@ run_validation_tests() {
     
     # Test 1: Health check should still respond
     log_info "Test 1: Health endpoint availability..."
-    if curl -sf "http://localhost:8080/health" > /dev/null 2>&1; then
+    if curl -sf "http://localhost:3000/health" > /dev/null 2>&1; then
         test_results+=("✓ Health endpoint: PASS")
     else
         test_results+=("✗ Health endpoint: FAIL")
@@ -152,7 +152,7 @@ run_validation_tests() {
     log_info "Test 2: Probabilistic request success..."
     local success_count=0
     for i in {1..10}; do
-        if curl -sf "http://localhost:8080/api/v1/arbiter/health" > /dev/null 2>&1; then
+        if curl -sf "http://localhost:3000/api/v1/arbiter/health" > /dev/null 2>&1; then
             ((success_count++))
         fi
     done
@@ -165,7 +165,7 @@ run_validation_tests() {
     
     # Test 3: Database connectivity should be maintained
     log_info "Test 3: Database connectivity..."
-    if curl -sf "http://localhost:8080/api/v1/identity/health" > /dev/null 2>&1; then
+    if curl -sf "http://localhost:3000/api/v1/identity/health" > /dev/null 2>&1; then
         test_results+=("✓ Database connectivity: PASS")
     else
         test_results+=("✗ Database connectivity: UNCERTAIN")

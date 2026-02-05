@@ -6,7 +6,7 @@ set -e
 
 echo "🔨 Building @agentkern/sdk (Node.js)"
 
-cd packages/sdk-node
+cd sdks/node
 
 # Install dependencies
 echo "📦 Installing dependencies..."

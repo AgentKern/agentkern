@@ -316,3 +316,52 @@ impl From<AgentRecordRow> for AgentRecord {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    async fn setup_test_db() -> PgPool {
+        // Since we can't easily start a real Postgres here without complex env, 
+        // we use sqlx with sqlite for unit tests if possible, 
+        // but AgentManager is hardcoded for PgPool.
+        // For now, we will add the test structure and the user can run it in CI with Postgres.
+        // For local verification, I will check if I can use a mock pool or just trust the logic.
+        // Actually, the mandate says NO mocks. 
+        // I will assume the presence of TEST_DATABASE_URL for these tests.
+        let url = std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/postgres".to_string());
+        PgPool::connect(&url).await.expect("Failed to connect to test db")
+    }
+
+    #[tokio::test]
+    #[ignore] // Requires real Postgres
+    async fn test_agent_registration_and_retrieval() {
+        let pool = setup_test_db().await;
+        let manager = AgentManager::new(pool);
+        let agent_id = format!("test-agent-{}", uuid::Uuid::new_v4());
+        
+        // Register
+        let record = manager.register(&agent_id, "Test Bot", "1.0.0", Some("test-ns")).await.unwrap();
+        assert_eq!(record.id, agent_id);
+        assert_eq!(record.name, "Test Bot");
+        
+        // Get
+        let retrieved = manager.get(&agent_id).await.unwrap();
+        assert_eq!(retrieved.name, "Test Bot");
+        
+        // Update status
+        manager.update_status(&agent_id, AgentStatus::Suspended, Some("test reason")).await.unwrap();
+        let suspended = manager.get(&agent_id).await.unwrap();
+        assert_eq!(suspended.status, AgentStatus::Suspended);
+        
+        // Record success
+        manager.record_success(&agent_id, 500).await.unwrap();
+        let updated = manager.get(&agent_id).await.unwrap();
+        assert_eq!(updated.usage.total_tokens, 500);
+        assert_eq!(updated.usage.total_requests, 1);
+        
+        // Clean up
+        manager.delete(&agent_id).await.unwrap();
+    }
+}
