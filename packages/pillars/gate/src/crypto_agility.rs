@@ -439,7 +439,7 @@ impl CryptoProvider {
     /// When `pqc` feature enabled, uses real ML-DSA (FIPS 204).
     /// Otherwise, uses deterministic hash-based fallback.
     #[allow(dead_code)]
-    fn generate_pq_signature(&self, _message: &[u8]) -> String {
+    fn generate_pq_signature(&self, message: &[u8]) -> String {
         #[cfg(feature = "pqc")]
         {
             // Real ML-DSA implementation would go here
