@@ -15,43 +15,48 @@ path = "src/bin/migrate.rs"
 
 [dependencies]
 # Async Runtime
-tokio = { version = "1.36", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 
 # Web Framework
-axum = { version = "0.8.1", features = ["macros"] }
+axum = { workspace = true, features = ["macros"] }
 tower = { version = "0.5", features = ["util", "timeout", "limit", "load-shed", "steer", "filter"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
-
-
 # Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 # Configuration
 dotenvy = "0.15"
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 # Database
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
+# Use workspace version for consistency
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio-rustls"] }
 
 # JWT Authentication
 jsonwebtoken = "9"
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4"] }
-thiserror = "2"
+chrono = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
 
 # Password Hashing (Production Security)
 bcrypt = "0.17"
 argon2 = "0.5"
-opentelemetry = "0.22"
-opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.15"
-tracing-opentelemetry = "0.23"
-rand = "0.8"
+
+# OpenTelemetry (Modern Suite 0.27)
+opentelemetry = { version = "0.27", features = ["trace"] }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["http-proto", "grpc-tonic"] }
+opentelemetry-http = "0.27"
+tracing-opentelemetry = "0.28"
+
+# Random
+rand = { workspace = true }
 base64 = { workspace = true }
 redis = { workspace = true }
 aws-config = { workspace = true }
