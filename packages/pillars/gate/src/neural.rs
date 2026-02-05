@@ -33,8 +33,8 @@ use std::collections::HashMap;
 use thiserror::Error;
 use unicode_normalization::UnicodeNormalization;
 
-// #[cfg(feature = "neural")]
-// use std::sync::Mutex; // Removed as ort::Session is Sync
+#[cfg(feature = "neural")]
+use std::sync::Mutex;
 
 /// Neural inference errors.
 #[derive(Debug, Error)]
@@ -444,7 +444,7 @@ pub struct InferenceSession {
     #[allow(dead_code)]
     config: ModelConfig,
     #[cfg(feature = "neural")]
-    session: Option<Session>,
+    session: Mutex<Option<Session>>,
     /// Tracks load state in mock mode (used in feature-gated code).
     #[cfg(not(feature = "neural"))]
     #[allow(dead_code)]
@@ -462,7 +462,7 @@ impl InferenceSession {
         } else {
             return Ok(Self {
                 config,
-                session: None,
+                session: Mutex::new(None),
             });
         };
 
@@ -470,7 +470,7 @@ impl InferenceSession {
             // Return session without model loaded - will use mock inference
             return Ok(Self {
                 config,
-                session: None,
+                session: Mutex::new(None),
             });
         }
 
@@ -493,7 +493,7 @@ impl InferenceSession {
 
         Ok(Self {
             config,
-            session: Some(session),
+            session: Mutex::new(Some(session)),
         })
     }
 
@@ -509,7 +509,11 @@ impl InferenceSession {
     /// Run inference on input tensor.
     #[cfg(feature = "neural")]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        if let Some(ref session) = self.session {
+        let mut lock = self.session.lock().map_err(|_| NeuralError::InferenceFailed {
+            reason: "Failed to acquire session lock".to_string(),
+        })?;
+
+        if let Some(ref mut session) = *lock {
             use ort::inputs;
 
             // Session is Sync, no lock needed
