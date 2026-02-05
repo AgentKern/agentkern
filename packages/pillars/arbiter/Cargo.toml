@@ -20,8 +20,6 @@ default = []
 # Thread-per-core for minimal context switching
 thread_per_core = ["tokio-uring"]
 full = ["thread_per_core"]
-# Enterprise Edition features
-ee = ["dep:agentkern-energy-ee", "dep:agentkern-escalation-ee"]
 
 [dependencies]
 # Async runtime (per ARCHITECTURE: Thread-per-Core)
@@ -79,9 +77,7 @@ agentkern-gate = { path = "../gate" }
 agentkern-synapse = { path = "../synapse" }
 agentkern-pulse = { path = "../../foundation/pulse" }
 
-# EE Modules (Optional)
-agentkern-energy-ee = { path = "../../../ee/energy", optional = true }
-agentkern-escalation-ee = { path = "../../../ee/escalation", optional = true }
+# SDK Configuration (Phase 20)
 
 [dev-dependencies]
 madsim = "0.2.34"
