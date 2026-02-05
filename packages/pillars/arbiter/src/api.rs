@@ -55,7 +55,7 @@ pub fn router(
 /// Create router with database (Postgres-backed, for production)
 pub fn router_with_pool(pool: PgPool) -> Router {
     let coordinator = Arc::new(Coordinator::new()); // Standard coordinator
-    router(coordinator, Some(pool))
+    router(coordinator, None, Some(pool))
 }
 
 pub fn init_coordinator_with_pool(_pool: PgPool) -> Arc<Coordinator> {
