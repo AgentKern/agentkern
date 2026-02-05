@@ -281,7 +281,6 @@ impl WattTimeClient {
         Err(WattTimeError::RequestFailed("HTTP feature disabled".into()))
     }
 
-
     /// Get the balancing authority (grid region) for a location.
     #[cfg(feature = "http")]
     pub async fn get_region(&self, lat: f64, lon: f64) -> Result<String, WattTimeError> {

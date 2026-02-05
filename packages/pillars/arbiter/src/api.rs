@@ -161,7 +161,6 @@ async fn acquire_lock_endpoint(
 // Postgres-backed handlers (for PgCoordinator)
 // ============================================================================
 
-
 // Raft RPC Handlers
 
 async fn raft_append(
