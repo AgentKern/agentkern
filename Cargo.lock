@@ -68,12 +68,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "adler2"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
-
-[[package]]
 name = "aead"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,8 +106,6 @@ dependencies = [
 name = "agentkern-arbiter"
 version = "0.1.0"
 dependencies = [
- "agentkern-energy-ee",
- "agentkern-escalation-ee",
  "agentkern-gate",
  "agentkern-governance",
  "agentkern-pulse",
@@ -146,96 +138,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-audit-export"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
-]
-
-[[package]]
-name = "agentkern-billing"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-cloud"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "hmac",
- "jsonwebtoken",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.17",
- "tokio",
- "tokio-test",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-cockpit"
-version = "0.1.0"
-dependencies = [
- "agentkern-gate",
- "agentkern-nexus",
- "agentkern-pulse",
- "agentkern-synapse",
- "chrono",
- "prometheus",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-connectors-ee"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "quick-xml 0.37.5",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-core-ee"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "agentkern-crypto"
 version = "0.1.0"
 dependencies = [
@@ -260,44 +162,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-energy-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "agentkern-core-ee",
- "agentkern-governance",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "agentkern-escalation-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "agentkern-gate"
 version = "0.1.0"
 dependencies = [
  "actix",
  "agentkern-governance",
- "agentkern-multitenancy",
  "agentkern-parsers",
  "agentkern-treasury",
  "anyhow",
@@ -388,65 +257,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-idp-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-core-ee",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-microvm-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "async-trait",
- "hex",
- "serde",
- "sha2",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "wasmtime",
-]
-
-[[package]]
-name = "agentkern-models-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "agentkern-core-ee",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-multitenancy"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
-]
-
-[[package]]
 name = "agentkern-native"
 version = "0.1.0"
 dependencies = [
@@ -506,22 +316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agentkern-productivity-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-core-ee",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "agentkern-pulse"
 version = "0.1.0"
 dependencies = [
@@ -552,23 +346,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "agentkern-retail-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "agentkern-core-ee",
- "async-trait",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -619,15 +396,11 @@ name = "agentkern-server"
 version = "0.1.0"
 dependencies = [
  "agentkern-arbiter",
- "agentkern-cloud",
- "agentkern-energy-ee",
  "agentkern-gate",
  "agentkern-identity",
  "agentkern-nexus",
- "agentkern-sovereign-memory-ee",
  "agentkern-synapse",
  "agentkern-treasury",
- "agentkern-trust",
  "argon2",
  "aws-config",
  "aws-sdk-kms",
@@ -652,55 +425,6 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry 0.23.0",
  "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-sovereign-memory-ee"
-version = "0.1.0"
-dependencies = [
- "agentkern-connectors-ee",
- "aws-config",
- "aws-sdk-kms",
- "base64 0.22.1",
- "ring",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tokio",
- "tokio-test",
- "tracing",
-]
-
-[[package]]
-name = "agentkern-sovereign-mesh"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
-]
-
-[[package]]
-name = "agentkern-sso"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "chrono",
- "flate2",
- "jsonwebtoken",
- "quick-xml 0.31.0",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "urlencoding",
  "uuid",
 ]
 
@@ -763,31 +487,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
-]
-
-[[package]]
-name = "agentkern-treasury-ee"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "agentkern-trust"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "temp-env",
- "thiserror 2.0.17",
- "tracing",
 ]
 
 [[package]]
@@ -2239,9 +1938,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.11.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b35204fbdc0b3f4446b89fc1ac2cf84a8a68971995d0bf2e925ec7cd960f9cb3"
+checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 dependencies = [
  "serde",
 ]
@@ -3292,16 +2991,6 @@ checksum = "35f6839d7b3b98adde531effaf34f0c2badc6f4735d26fe74709d8e513a96ef3"
 dependencies = [
  "bitflags 2.10.0",
  "rustc_version",
-]
-
-[[package]]
-name = "flate2"
-version = "1.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b375d6465b98090a5f25b1c7703f3859783755aa9a80433b36e0379a3ec2f369"
-dependencies = [
- "crc32fast",
- "miniz_oxide",
 ]
 
 [[package]]
@@ -4608,16 +4297,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "miniz_oxide"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
-dependencies = [
- "adler2",
- "simd-adler32",
-]
 
 [[package]]
 name = "mio"
@@ -6120,26 +5799,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quick-xml"
-version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
-dependencies = [
- "memchr",
- "serde",
-]
-
-[[package]]
-name = "quick-xml"
-version = "0.37.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "331e97a1af0bf59823e6eadffe373d7b27f485be8748f71471c662c1f269b7fb"
-dependencies = [
- "memchr",
- "serde",
-]
-
-[[package]]
 name = "quickcheck"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7096,12 +6755,6 @@ dependencies = [
  "digest",
  "rand_core 0.6.4",
 ]
-
-[[package]]
-name = "simd-adler32"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2"
 
 [[package]]
 name = "simdutf8"
