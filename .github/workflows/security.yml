@@ -24,6 +24,8 @@ jobs:
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
       
       - name: Install cargo-sbom
         run: cargo install cargo-sbom
