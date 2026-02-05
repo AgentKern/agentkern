@@ -245,8 +245,7 @@ impl WattTimeClient {
             .map_err(|e| WattTimeError::RequestFailed(e.to_string()))?;
 
         if !response.status().is_success() {
-            // Fall back to mock forecast
-            return self.mock_forecast();
+             return Err(WattTimeError::ApiError(format!("API request failed with status: {}", response.status())));
         }
 
         let data: serde_json::Value = response
