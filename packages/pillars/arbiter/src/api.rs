@@ -32,11 +32,12 @@ pub struct PgArbiterState {
 /// Create router without database (in-memory, for development/testing)
 pub fn router(
     coordinator: Arc<Coordinator>,
+    raft_manager: Option<Arc<crate::RaftLockManager>>,
     _pool: Option<::sqlx::PgPool>,
 ) -> Router {
-    let state = ArbiterState { 
-        coordinator, 
-        raft: None // TODO: Support Raft injection if needed
+    let state = ArbiterState {
+        coordinator,
+        raft: raft_manager,
     };
 
     Router::new()
