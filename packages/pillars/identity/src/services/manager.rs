@@ -320,7 +320,6 @@ impl From<AgentRecordRow> for AgentRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
 
     async fn setup_test_db() -> PgPool {
         // Since we can't easily start a real Postgres here without complex env,
