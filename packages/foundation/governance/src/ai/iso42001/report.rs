@@ -42,7 +42,7 @@ pub struct AuditReport {
 
 impl AuditReport {
     /// Export to specified format.
-    /// 
+    ///
     /// # Note on PDF Export
     /// PDF export is not yet implemented. Returns Markdown as fallback.
     /// To generate PDFs, consider:
@@ -54,11 +54,9 @@ impl AuditReport {
             ReportFormat::Json => Ok(self.to_json()),
             ReportFormat::Markdown => Ok(self.to_markdown()),
             ReportFormat::Html => Ok(self.to_html()),
-            ReportFormat::Pdf => {
-                Err(ReportError::FormatNotSupported(
-                    "PDF export is not implemented. Please use Markdown or HTML.".to_string()
-                ))
-            }
+            ReportFormat::Pdf => Err(ReportError::FormatNotSupported(
+                "PDF export is not implemented. Please use Markdown or HTML.".to_string(),
+            )),
         }
     }
 
@@ -181,7 +179,11 @@ impl ReportGenerator {
     }
 
     /// Generate report from audit events.
-    pub fn generate(&self, report: &AuditReport, format: ReportFormat) -> Result<String, ReportError> {
+    pub fn generate(
+        &self,
+        report: &AuditReport,
+        format: ReportFormat,
+    ) -> Result<String, ReportError> {
         report.export(format)
     }
 }

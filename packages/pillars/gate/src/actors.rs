@@ -328,8 +328,12 @@ impl GateSupervisor {
     }
 
     pub fn status(&self) -> SupervisorStatus {
-        let total = self.total_evaluations.load(std::sync::atomic::Ordering::Relaxed);
-        let risk = self.accumulated_risk.load(std::sync::atomic::Ordering::Relaxed);
+        let total = self
+            .total_evaluations
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let risk = self
+            .accumulated_risk
+            .load(std::sync::atomic::Ordering::Relaxed);
         let avg = if total > 0 { (risk / total) as u8 } else { 0 };
 
         SupervisorStatus {

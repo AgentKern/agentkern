@@ -35,18 +35,11 @@ COPY packages/pillars/treasury/Cargo.toml packages/pillars/treasury/Cargo.toml
 COPY packages/pillars/identity/Cargo.toml packages/pillars/identity/Cargo.toml
 
 # Copy application manifest
+# Copy application manifest
 COPY apps/server/Cargo.toml apps/server/Cargo.toml
-COPY ee/multitenancy/Cargo.toml ee/multitenancy/Cargo.toml
-COPY ee/core/Cargo.toml ee/core/Cargo.toml
-COPY ee/connectors/Cargo.toml ee/connectors/Cargo.toml
-COPY ee/energy/Cargo.toml ee/energy/Cargo.toml
-COPY ee/trust/Cargo.toml ee/trust/Cargo.toml
-COPY ee/cloud/Cargo.toml ee/cloud/Cargo.toml
-COPY ee/sovereign-memory/Cargo.toml ee/sovereign-memory/Cargo.toml
 
 # Copy full source
 COPY packages ./packages
-COPY ee ./ee
 COPY sdks ./sdks
 COPY apps/server ./apps/server
 

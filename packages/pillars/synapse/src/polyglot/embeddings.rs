@@ -47,14 +47,21 @@ impl PolyglotEmbedder {
     }
 
     /// Embed text.
-    pub async fn embed(&self, _text: &str) -> Result<EmbeddingResult, crate::embeddings::EmbeddingError> {
+    pub async fn embed(
+        &self,
+        _text: &str,
+    ) -> Result<EmbeddingResult, crate::embeddings::EmbeddingError> {
         // In production, this requires AGENTKERN_EMBEDDINGS_API_KEY
         let api_key = std::env::var("AGENTKERN_EMBEDDINGS_API_KEY")
             .or_else(|_| std::env::var("OPENAI_API_KEY"))
-            .map_err(|_| crate::embeddings::EmbeddingError::ConfigError("No API key found".into()))?;
+            .map_err(|_| {
+                crate::embeddings::EmbeddingError::ConfigError("No API key found".into())
+            })?;
 
         if api_key.is_empty() {
-             return Err(crate::embeddings::EmbeddingError::ConfigError("Empty API key found".into()));
+            return Err(crate::embeddings::EmbeddingError::ConfigError(
+                "Empty API key found".into(),
+            ));
         }
 
         // Mocking the API call for now but returning Result to enforce signature
@@ -64,7 +71,9 @@ impl PolyglotEmbedder {
             // Real implementation would go here (similar to CoreEmbedder)
             // For now, if we don't have it implemented yet, we should at least not returning a mock vector
             // But since this is a language-specific stub, we might want to standardize it.
-            Err(crate::embeddings::EmbeddingError::ApiError("Language-specific embedding API not yet implemented".into()))
+            Err(crate::embeddings::EmbeddingError::ApiError(
+                "Language-specific embedding API not yet implemented".into(),
+            ))
         }
         #[cfg(test)]
         {

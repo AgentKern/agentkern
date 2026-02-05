@@ -185,7 +185,9 @@ impl<T: Clone> LwwRegister<T> {
     /// Merge with another register.
     /// Uses deterministic tie-breaking (NodeId) for equal timestamps.
     pub fn merge(&mut self, other: &LwwRegister<T>) {
-        if other.timestamp > self.timestamp || (other.timestamp == self.timestamp && other.writer > self.writer) {
+        if other.timestamp > self.timestamp
+            || (other.timestamp == self.timestamp && other.writer > self.writer)
+        {
             self.value = other.value.clone();
             self.timestamp = other.timestamp;
             self.writer = other.writer.clone();
@@ -372,9 +374,12 @@ impl<K: Clone + Eq + std::hash::Hash, V: Clone> LwwMap<K, V> {
         // Merge entries
         for (key, other_register) in &other.entries {
             let tomb_ts = self.tombstones.get(key).cloned().unwrap_or(0);
-            
+
             if other_register.timestamp() > tomb_ts {
-                let local_register = self.entries.entry(key.clone()).or_insert_with(LwwRegister::new);
+                let local_register = self
+                    .entries
+                    .entry(key.clone())
+                    .or_insert_with(LwwRegister::new);
                 local_register.merge(other_register);
             }
         }

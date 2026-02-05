@@ -6,8 +6,8 @@
 //! - Atomic Business Locks
 //! - Priority-based scheduling
 
-use std::collections::{BTreeSet, HashMap};
 use chrono::{DateTime, Duration, Utc};
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -67,18 +67,22 @@ impl LockManager {
                 if existing.locked_by == agent_id {
                     // Extend the lock
                     let mut lock = existing.clone();
-                    
+
                     // Remove old index entry
-                    inner.expiration_index.remove(&(existing.expires_at, resource.to_string()));
-                    
+                    inner
+                        .expiration_index
+                        .remove(&(existing.expires_at, resource.to_string()));
+
                     lock.expires_at = Utc::now()
                         + Duration::milliseconds(
                             duration_ms.unwrap_or(self.default_ttl_seconds as u64 * 1000) as i64,
                         );
-                        
+
                     // Add new index entry
-                    inner.expiration_index.insert((lock.expires_at, resource.to_string()));
-                    
+                    inner
+                        .expiration_index
+                        .insert((lock.expires_at, resource.to_string()));
+
                     inner.locks.insert(resource.to_string(), lock.clone());
                     return Ok(lock);
                 }
@@ -94,9 +98,11 @@ impl LockManager {
                         priority,
                         existing.priority
                     );
-                    
+
                     // Remove old index entry
-                    inner.expiration_index.remove(&(existing.expires_at, resource.to_string()));
+                    inner
+                        .expiration_index
+                        .remove(&(existing.expires_at, resource.to_string()));
                 } else {
                     return Err(LockError::ResourceLocked {
                         resource: resource.to_string(),
@@ -106,7 +112,9 @@ impl LockManager {
                 }
             } else {
                 // Remove expired but still present lock from index
-                inner.expiration_index.remove(&(existing.expires_at, resource.to_string()));
+                inner
+                    .expiration_index
+                    .remove(&(existing.expires_at, resource.to_string()));
             }
         }
 
@@ -114,7 +122,7 @@ impl LockManager {
         let ttl_ms = duration_ms.unwrap_or(self.default_ttl_seconds as u64 * 1000);
         let now = Utc::now();
         let expires_at = now + Duration::milliseconds(ttl_ms as i64);
-        
+
         let lock = BusinessLock {
             id: Uuid::new_v4(),
             resource: resource.to_string(),
@@ -126,8 +134,10 @@ impl LockManager {
         };
 
         inner.locks.insert(resource.to_string(), lock.clone());
-        inner.expiration_index.insert((expires_at, resource.to_string()));
-        
+        inner
+            .expiration_index
+            .insert((expires_at, resource.to_string()));
+
         Ok(lock)
     }
 
@@ -144,9 +154,11 @@ impl LockManager {
                     requester: agent_id.to_string(),
                 });
             }
-            
+
             // Remove from index
-            inner.expiration_index.remove(&(lock.expires_at, resource.to_string()));
+            inner
+                .expiration_index
+                .remove(&(lock.expires_at, resource.to_string()));
             inner.locks.remove(resource);
             Ok(())
         } else {
@@ -159,28 +171,32 @@ impl LockManager {
     /// Get the current lock status for a resource.
     pub async fn get_status(&self, resource: &str) -> Option<BusinessLock> {
         let inner = self.inner.read().await;
-        inner.locks.get(resource).filter(|l| !l.is_expired()).cloned()
+        inner
+            .locks
+            .get(resource)
+            .filter(|l| !l.is_expired())
+            .cloned()
     }
 
     /// Clean up expired locks using the expiration index.
     pub async fn cleanup_expired(&self) -> usize {
         let mut inner = self.inner.write().await;
         let now = Utc::now();
-        
+
         let mut expired_keys = Vec::new();
-        
+
         // Use the index to find all expired items
         for (expires_at, resource) in inner.expiration_index.range(..=(now, String::new())) {
             expired_keys.push((*expires_at, resource.clone()));
         }
 
         let count = expired_keys.len();
-        
+
         for entry in expired_keys {
             inner.expiration_index.remove(&entry);
             inner.locks.remove(&entry.1);
         }
-        
+
         count
     }
 }
@@ -284,7 +300,7 @@ mod tests {
             .acquire("agent-1", "resource-1", 0, LockType::Write, Some(10))
             .await
             .unwrap();
-            
+
         // Acquire with long TTL
         manager
             .acquire("agent-1", "resource-2", 0, LockType::Write, Some(10000))
@@ -296,7 +312,7 @@ mod tests {
 
         let cleaned = manager.cleanup_expired().await;
         assert_eq!(cleaned, 1);
-        
+
         assert!(manager.get_status("resource-1").await.is_none());
         assert!(manager.get_status("resource-2").await.is_some());
     }

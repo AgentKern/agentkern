@@ -146,7 +146,7 @@ impl GraphVectorDB {
     /// (e.g., Qdrant, Milvus, or PGVector).
     pub fn find_similar(&self, vector: &[f32], limit: usize) -> Vec<SimilarityResult> {
         let nodes = self.nodes.read();
-        
+
         // P2: Performance Safeguard
         if nodes.len() > 1000 {
             tracing::warn!(

@@ -1,18 +1,18 @@
-use agentkern_identity::services::manager::AgentManager;
 use agentkern_arbiter::Coordinator;
 use agentkern_gate::engine::GateEngine;
-use agentkern_gate::types::{VerificationRequest, VerificationContext, DataRegion as GateRegion};
+use agentkern_gate::types::{DataRegion as GateRegion, VerificationContext, VerificationRequest};
+use agentkern_identity::services::manager::AgentManager;
 // use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
 // use agentkern_treasury::types::Amount;
-use agentkern_synapse::passport::export::{PassportExporter, ExportOptions, ExportFormat};
-use agentkern_synapse::passport::schema::{MemoryPassport, AgentIdentity, ProvenanceSignature};
-use agentkern_nexus::Nexus;
 use agentkern_nexus::agent_card::ProtocolSupport;
+use agentkern_nexus::Nexus;
+use agentkern_synapse::passport::export::{ExportFormat, ExportOptions, PassportExporter};
+use agentkern_synapse::passport::schema::{AgentIdentity, MemoryPassport, ProvenanceSignature};
 // use std::sync::Arc;
+use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
-use sqlx::postgres::PgPoolOptions;
 
 // ANSI Colors
 const CYAN: &str = "\x1b[36m";
@@ -32,7 +32,7 @@ async fn main() {
 
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/postgres".to_string());
-    
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
@@ -46,7 +46,9 @@ async fn main() {
     println!("{WHITE}Narrative: Every agent must have a stable, non-repudiable identity.{RESET}");
     if let Some(ref p) = pool {
         let identity_manager = AgentManager::new(p.clone());
-        let _ = identity_manager.register(&agent_id, "DemoAgent", "1.0.0", Some("demo")).await;
+        let _ = identity_manager
+            .register(&agent_id, "DemoAgent", "1.0.0", Some("demo"))
+            .await;
         println!("{GREEN}✅ Agent Registered: {agent_id}{RESET}\n");
     } else {
         println!("{YELLOW}⚠️  Skipping identity persistence (no database connection).{RESET}\n");
@@ -57,7 +59,10 @@ async fn main() {
     println!("{BOLD}{YELLOW}⚖️  PILLAR 2: ARBITER (Distributed Coordination){RESET}");
     println!("{WHITE}Narrative: Agents cooperate by acquiring distributed locks on shared resources.{RESET}");
     let arbiter = Coordinator::new();
-    let lock_id = arbiter.acquire_lock("global:shared_resource", &agent_id, 10).await.unwrap();
+    let lock_id = arbiter
+        .acquire_lock("global:shared_resource", &agent_id, 10)
+        .await
+        .unwrap();
     println!("{GREEN}✅ Lock Acquired. Lock ID: {lock_id:?}{RESET}\n");
     sleep(Duration::from_millis(1500)).await;
 
@@ -74,15 +79,24 @@ async fn main() {
         timestamp: chrono::Utc::now(),
     };
     let result = gate.verify(request).await;
-    println!("{GREEN}✅ Gate Decision: {} (Reason: {}){RESET}", if result.allowed { "ALLOWED" } else { "BLOCKED" }, result.reasoning);
-    println!("{BLUE}   Latency Insight: Total {}μs (Neural Fallback: {:?}){RESET}\n", result.latency.total_us, result.latency.neural_us);
+    println!(
+        "{GREEN}✅ Gate Decision: {} (Reason: {}){RESET}",
+        if result.allowed { "ALLOWED" } else { "BLOCKED" },
+        result.reasoning
+    );
+    println!(
+        "{BLUE}   Latency Insight: Total {}μs (Neural Fallback: {:?}){RESET}\n",
+        result.latency.total_us, result.latency.neural_us
+    );
     sleep(Duration::from_millis(1500)).await;
 
     // --- PILLAR 4 ---
     println!("{BOLD}{YELLOW}💰  PILLAR 4: TREASURY (Micropayment Rails){RESET}");
     println!("{WHITE}Narrative: Agents pay other agents atomically for resources or data.{RESET}");
     // use agentkern_treasury::{BalanceLedger, Currency};
-    println!("{YELLOW}⚠️  Treasury Pillar is currently quarantined for core stabilization.{RESET}\n");
+    println!(
+        "{YELLOW}⚠️  Treasury Pillar is currently quarantined for core stabilization.{RESET}\n"
+    );
     /*
     let ledger = Arc::new(BalanceLedger::new(Currency::VMC));
     let treasury = TransferEngine::new(ledger);
@@ -109,8 +123,8 @@ async fn main() {
             algorithm: "Ed25519".into(),
             created_at: chrono::Utc::now().timestamp_millis() as u64,
             updated_at: chrono::Utc::now().timestamp_millis() as u64,
-        }, 
-        "US"
+        },
+        "US",
     );
     passport.provenance.signatures.push(ProvenanceSignature {
         signer: format!("did:agentkern:{}", agent_id),
@@ -125,7 +139,10 @@ async fn main() {
         ..Default::default()
     };
     let exported = exporter.export(&passport, &options).unwrap();
-    println!("{GREEN}✅ Secure Passport Exported: {} bytes.{RESET}", exported.len());
+    println!(
+        "{GREEN}✅ Secure Passport Exported: {} bytes.{RESET}",
+        exported.len()
+    );
     println!("{BLUE}   Header Verified: {:?}{RESET}\n", &exported[0..4]);
     sleep(Duration::from_millis(1500)).await;
 

@@ -43,10 +43,10 @@ pub struct RegionData {
 pub trait GridApi: Send + Sync {
     /// Get real-time carbon intensity for a region.
     async fn get_intensity(&self, region: &str) -> Result<CarbonIntensityFeed, String>;
-    
+
     /// Get all regions data.
     async fn get_all_regions(&self) -> Result<Vec<RegionData>, String>;
-    
+
     /// Find the greenest region among candidates.
     async fn find_greenest(&self, regions: &[&str]) -> Result<String, String>;
 }

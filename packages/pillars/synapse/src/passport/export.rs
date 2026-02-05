@@ -146,7 +146,7 @@ impl PassportExporter {
                 };
 
                 let encrypted = self.encrypt(&data_to_encrypt, key)?;
-                
+
                 // Add magic header to distinguish from raw data/msgpack
                 let mut final_data = b"AEP1".to_vec();
                 final_data.extend(encrypted);

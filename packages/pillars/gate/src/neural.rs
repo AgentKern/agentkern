@@ -30,8 +30,8 @@ use ort::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use unicode_normalization::UnicodeNormalization;
 use thiserror::Error;
+use unicode_normalization::UnicodeNormalization;
 
 // #[cfg(feature = "neural")]
 // use std::sync::Mutex; // Removed as ort::Session is Sync
@@ -514,7 +514,6 @@ impl InferenceSession {
 
             // Session is Sync, no lock needed
 
-
             let input_array = ndarray::Array2::from_shape_vec((1, input.len()), input.to_vec())
                 .map_err(|e: ndarray::ShapeError| NeuralError::InferenceFailed {
                     reason: e.to_string(),
@@ -544,7 +543,9 @@ impl InferenceSession {
             // No silent mocks in production
             #[cfg(not(test))]
             {
-                 return Err(NeuralError::InferenceFailed { reason: "Session not initialized and neural hardware disabled. soul.".into() });
+                return Err(NeuralError::InferenceFailed {
+                    reason: "Session not initialized and neural hardware disabled. soul.".into(),
+                });
             }
             #[cfg(test)]
             {
@@ -558,13 +559,15 @@ impl InferenceSession {
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
         // In production builds (not feature "neural"), we always return an error.
         // However, we allow the mock for tests (both unit and integration).
-        // Integration tests don't set #[cfg(test)] in the library, 
+        // Integration tests don't set #[cfg(test)] in the library,
         // so we use a check that works for both.
         if cfg!(debug_assertions) || cfg!(test) {
             self.mock_run(input)
         } else {
-            Err(NeuralError::InferenceFailed { 
-                reason: "Neural feature disabled. Rebuild with --features neural for production. soul.".into() 
+            Err(NeuralError::InferenceFailed {
+                reason:
+                    "Neural feature disabled. Rebuild with --features neural for production. soul."
+                        .into(),
             })
         }
     }
@@ -1008,7 +1011,10 @@ impl NeuralScorer {
         let guard = match NeuralGuard::new() {
             Ok(g) => Some(g),
             Err(e) => {
-                tracing::error!("Failed to initialize NeuralGuard: {}. Using symbolic fallback only.", e);
+                tracing::error!(
+                    "Failed to initialize NeuralGuard: {}. Using symbolic fallback only.",
+                    e
+                );
                 None
             }
         };

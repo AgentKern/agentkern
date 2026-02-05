@@ -65,7 +65,4 @@ agentkern-nexus = { path = "../../packages/pillars/nexus" }
 agentkern-synapse = { path = "../../packages/pillars/synapse" }
 # Enterprise Pillars
 agentkern-treasury = { path = "../../packages/pillars/treasury" }
-agentkern-cloud = { path = "../../ee/cloud" }
-agentkern-trust = { path = "../../ee/trust" }
-agentkern-energy-ee = { path = "../../ee/energy" }
-agentkern-sovereign-memory-ee = { path = "../../ee/sovereign-memory" }
+# Enterprise Pillars

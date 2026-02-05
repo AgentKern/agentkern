@@ -38,14 +38,22 @@ impl AgentState {
     /// Merge with another state (CRDT key-level LWW semantics)
     pub fn merge(&mut self, other: &AgentState) {
         if self.agent_id != other.agent_id {
-            tracing::warn!("Attempted to merge states of different agents: {} and {}", self.agent_id, other.agent_id);
+            tracing::warn!(
+                "Attempted to merge states of different agents: {} and {}",
+                self.agent_id,
+                other.agent_id
+            );
             return;
         }
 
         // Key-level Last Write Wins
         for (key, other_val) in &other.state {
-            let other_ts = other.state_metadata.get(key).cloned().unwrap_or(other.updated_at);
-            
+            let other_ts = other
+                .state_metadata
+                .get(key)
+                .cloned()
+                .unwrap_or(other.updated_at);
+
             let mut should_update = false;
             if let Some(local_ts) = self.state_metadata.get(key) {
                 if other_ts > *local_ts {
@@ -113,13 +121,17 @@ mod tests {
     fn test_agent_state_concurrent_merge() {
         let mut state1 = AgentState::new("agent-1");
         let now = Utc::now();
-        state1.state.insert("key1".to_string(), serde_json::json!("v1"));
+        state1
+            .state
+            .insert("key1".to_string(), serde_json::json!("v1"));
         state1.state_metadata.insert("key1".to_string(), now);
         state1.version = 1;
 
         let mut state2 = AgentState::new("agent-1");
         let later = now + chrono::Duration::seconds(1);
-        state2.state.insert("key2".to_string(), serde_json::json!("v2"));
+        state2
+            .state
+            .insert("key2".to_string(), serde_json::json!("v2"));
         state2.state_metadata.insert("key2".to_string(), later);
         state2.version = 2;
 
@@ -135,12 +147,16 @@ mod tests {
     fn test_agent_state_lww_conflict() {
         let mut state1 = AgentState::new("agent-1");
         let now = Utc::now();
-        state1.state.insert("key1".to_string(), serde_json::json!("v1"));
+        state1
+            .state
+            .insert("key1".to_string(), serde_json::json!("v1"));
         state1.state_metadata.insert("key1".to_string(), now);
 
         let mut state2 = AgentState::new("agent-1");
         let later = now + chrono::Duration::seconds(1);
-        state2.state.insert("key1".to_string(), serde_json::json!("v2"));
+        state2
+            .state
+            .insert("key1".to_string(), serde_json::json!("v2"));
         state2.state_metadata.insert("key1".to_string(), later);
 
         state1.merge(&state2);

@@ -237,7 +237,7 @@ impl PgCoordinator {
     /// Register an intent path for an agent (Persistent).
     pub async fn register_intent(&self, path: IntentPath) -> Result<(), String> {
         let history_json = Json(&path.history);
-        
+
         sqlx::query(
             r#"
             INSERT INTO intent_paths (
@@ -252,7 +252,7 @@ impl PgCoordinator {
                 drift_detected = EXCLUDED.drift_detected,
                 drift_score = EXCLUDED.drift_score,
                 updated_at = EXCLUDED.updated_at
-            "#
+            "#,
         )
         .bind(path.id)
         .bind(path.agent_id)
@@ -271,7 +271,7 @@ impl PgCoordinator {
 
         Ok(())
     }
-    
+
     // Helper to get intent
     async fn get_intent(&self, agent_id: &str) -> Result<Option<IntentPath>, String> {
         let row = sqlx::query(
@@ -284,7 +284,7 @@ impl PgCoordinator {
             WHERE agent_id = $1
             ORDER BY created_at DESC
             LIMIT 1
-            "#
+            "#,
         )
         .bind(agent_id)
         .fetch_optional(&self.pool)
@@ -293,11 +293,13 @@ impl PgCoordinator {
 
         match row {
             Some(r) => {
-                let history_json: serde_json::Value = r.try_get("history")
+                let history_json: serde_json::Value = r
+                    .try_get("history")
                     .map_err(|e| format!("Failed to read history: {}", e))?;
-                
-                let history_vec: Vec<agentkern_synapse::intent::IntentStep> = serde_json::from_value(history_json)
-                     .map_err(|e| format!("Failed to deserialize history: {}", e))?;
+
+                let history_vec: Vec<agentkern_synapse::intent::IntentStep> =
+                    serde_json::from_value(history_json)
+                        .map_err(|e| format!("Failed to deserialize history: {}", e))?;
 
                 Ok(Some(IntentPath {
                     id: r.try_get("id").unwrap(),

@@ -210,16 +210,24 @@ impl PolyglotEmbedder {
     }
 
     /// Generate embeddings for text in a specific region.
-    pub async fn embed(&self, text: &str, region: SynapseRegion) -> Result<Vec<f32>, EmbeddingError> {
+    pub async fn embed(
+        &self,
+        text: &str,
+        region: SynapseRegion,
+    ) -> Result<Vec<f32>, EmbeddingError> {
         let provider = self.provider_for(region);
 
         // Check for API key
         let api_key = std::env::var("AGENTKERN_EMBEDDINGS_API_KEY")
             .or_else(|_| std::env::var("OPENAI_API_KEY"))
-            .map_err(|_| EmbeddingError::ConfigError("No API key found in AGENTKERN_EMBEDDINGS_API_KEY or OPENAI_API_KEY".into()))?;
+            .map_err(|_| {
+                EmbeddingError::ConfigError(
+                    "No API key found in AGENTKERN_EMBEDDINGS_API_KEY or OPENAI_API_KEY".into(),
+                )
+            })?;
 
         if api_key.is_empty() {
-             return Err(EmbeddingError::ConfigError("Empty API key found".into()));
+            return Err(EmbeddingError::ConfigError("Empty API key found".into()));
         }
 
         // Try real API call
@@ -249,7 +257,10 @@ impl PolyglotEmbedder {
             .map_err(|e| EmbeddingError::ApiError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(EmbeddingError::ApiError(format!("API error: {}", response.status())));
+            return Err(EmbeddingError::ApiError(format!(
+                "API error: {}",
+                response.status()
+            )));
         }
 
         let body: serde_json::Value = response
@@ -366,7 +377,10 @@ mod tests {
     async fn test_embed_placeholder() {
         let embedder = PolyglotEmbedder::default();
         std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
-        let embedding = embedder.embed("مرحبا بالعالم", SynapseRegion::Mena).await.unwrap();
+        let embedding = embedder
+            .embed("مرحبا بالعالم", SynapseRegion::Mena)
+            .await
+            .unwrap();
 
         // Jais has 5120 dimensions
         assert_eq!(embedding.len(), 5120);

@@ -3,7 +3,7 @@
 // ============================================================================
 
 use crate::models::{LiabilityProof, LiabilityProofPayload, VerificationKey};
-use agentkern_crypto::{CryptoMode, CryptoProvider}; 
+use agentkern_crypto::{CryptoMode, CryptoProvider};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Timelike, Utc};
 use serde_json;
@@ -114,7 +114,11 @@ impl VerificationService {
         }
 
         // 1b. Revocation Check (New)
-        if self.revocation_cache.is_revoked(&proof.payload.proof_id).await {
+        if self
+            .revocation_cache
+            .is_revoked(&proof.payload.proof_id)
+            .await
+        {
             return Err(VerificationError::ConstraintViolation(format!(
                 "Revoked: proof_id {} is found in blacklist",
                 proof.payload.proof_id
@@ -180,7 +184,7 @@ impl VerificationService {
             // Fallback: re-serialize (RISKY: assumes consistent formatting)
             let payload_json = serde_json::to_string(&proof.payload)
                 .map_err(|e| VerificationError::Internal(e.to_string()))?;
-             payload_json.into_bytes()
+            payload_json.into_bytes()
         };
         let data_bytes = data_bytes.as_slice();
 
