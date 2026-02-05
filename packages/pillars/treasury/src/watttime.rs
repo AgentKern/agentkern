@@ -16,6 +16,8 @@ pub enum WattTimeError {
     AuthFailed(String),
     #[error("API request failed: {0}")]
     RequestFailed(String),
+    #[error("API error: {0}")]
+    ApiError(String),
     #[error("Rate limited: retry after {0}s")]
     RateLimited(u32),
     #[error("Region not found: {0}")]
