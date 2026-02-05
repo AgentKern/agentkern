@@ -550,9 +550,9 @@ impl InferenceSession {
             // No silent mocks in production
             #[cfg(not(test))]
             {
-                return Err(NeuralError::InferenceFailed {
+                Err(NeuralError::InferenceFailed {
                     reason: "Session not initialized and neural hardware disabled. soul.".into(),
-                });
+                })
             }
             #[cfg(test)]
             {
@@ -600,6 +600,7 @@ impl InferenceSession {
     /// - "execute", "admin", "root", "sudo" → SystemOp/Suspicious
     ///
     /// **TO DEPLOY SAFELY**: Build with `--features neural` and provide ONNX models.
+    #[allow(dead_code)]
     fn mock_run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
         tracing::debug!(
             "Using mock neural inference - keyword detection mode. \
