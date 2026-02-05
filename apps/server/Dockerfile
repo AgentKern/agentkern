@@ -1,10 +1,20 @@
-# Build stage
-FROM rust:1.92-slim-bookworm AS builder
-
+# Base stage
+FROM rust:1.92-slim-bookworm AS chef
 WORKDIR /app
+RUN cargo install cargo-chef --locked
 
-# Install build dependencies
-# split into minimal layers for better caching
+# Planner stage
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Builder stage
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the cached layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Install system dependencies needed for linking
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     libssl-dev \
@@ -12,39 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     cmake \
-    ca-certificates \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy workspace manifest files first for better caching
-COPY Cargo.toml Cargo.lock ./
-COPY packages/foundation/crypto/Cargo.toml packages/foundation/crypto/Cargo.toml
-COPY packages/foundation/governance/Cargo.toml packages/foundation/governance/Cargo.toml
-COPY packages/foundation/parsers/Cargo.toml packages/foundation/parsers/Cargo.toml
-COPY packages/foundation/pulse/Cargo.toml packages/foundation/pulse/Cargo.toml
-COPY packages/foundation/runtime/Cargo.toml packages/foundation/runtime/Cargo.toml
-COPY packages/foundation/edge/Cargo.toml packages/foundation/edge/Cargo.toml
-COPY packages/foundation/native-binding/Cargo.toml packages/foundation/native-binding/Cargo.toml
-
-# Copy pillar manifests
-COPY packages/pillars/arbiter/Cargo.toml packages/pillars/arbiter/Cargo.toml
-COPY packages/pillars/gate/Cargo.toml packages/pillars/gate/Cargo.toml
-COPY packages/pillars/nexus/Cargo.toml packages/pillars/nexus/Cargo.toml
-COPY packages/pillars/synapse/Cargo.toml packages/pillars/synapse/Cargo.toml
-COPY packages/pillars/treasury/Cargo.toml packages/pillars/treasury/Cargo.toml
-COPY packages/pillars/identity/Cargo.toml packages/pillars/identity/Cargo.toml
-
-# Copy application manifest
-# Copy application manifest
-COPY apps/server/Cargo.toml apps/server/Cargo.toml
-
-# Copy full source
-COPY packages ./packages
-COPY sdks ./sdks
-COPY apps/server ./apps/server
-
-# Build release binary
-RUN cargo build -p agentkern-server --release
+# Build application
+COPY . .
+RUN cargo build --release -p agentkern-server
 
 # Runtime stage
 FROM debian:bookworm-slim
