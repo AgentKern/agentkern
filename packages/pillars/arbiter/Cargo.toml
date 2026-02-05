@@ -20,6 +20,7 @@ default = []
 # Thread-per-core for minimal context switching
 thread_per_core = ["tokio-uring"]
 full = ["thread_per_core"]
+ee = []
 
 [dependencies]
 # Async runtime (per ARCHITECTURE: Thread-per-Core)

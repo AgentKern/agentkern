@@ -102,8 +102,8 @@ where
         }
 
         // 2. Random Failure
-        let mut rng = rand::thread_rng();
-        if rng.gen_bool(self.config.failure_rate) {
+        let mut rng = rand::rng();
+        if rng.random_bool(self.config.failure_rate) {
             return Box::pin(async move {
                 // Simulate 500 Internal Server Error
                 let mut resp = Response::new(Body::from("Chaos Monkey: Artificial Failure"));

@@ -1,7 +1,7 @@
 use opentelemetry::global;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace as sdktrace, Resource};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
 
 pub fn init_telemetry() -> anyhow::Result<()> {
