@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     cmake \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build dependencies - this is the cached layer!
