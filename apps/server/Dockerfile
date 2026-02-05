@@ -11,10 +11,8 @@ RUN cargo chef prepare --recipe-path recipe.json
 # Builder stage
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
-# Build dependencies - this is the cached layer!
-RUN cargo chef cook --release --recipe-path recipe.json
 
-# Install system dependencies needed for linking
+# Install system dependencies needed for compiling dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     libssl-dev \
@@ -23,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     cmake \
     && rm -rf /var/lib/apt/lists/*
+
+# Build dependencies - this is the cached layer!
+RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
