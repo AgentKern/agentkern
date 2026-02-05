@@ -509,9 +509,12 @@ impl InferenceSession {
     /// Run inference on input tensor.
     #[cfg(feature = "neural")]
     pub fn run(&self, input: &[f32]) -> Result<Vec<f32>, NeuralError> {
-        let mut lock = self.session.lock().map_err(|_| NeuralError::InferenceFailed {
-            reason: "Failed to acquire session lock".to_string(),
-        })?;
+        let mut lock = self
+            .session
+            .lock()
+            .map_err(|_| NeuralError::InferenceFailed {
+                reason: "Failed to acquire session lock".to_string(),
+            })?;
 
         if let Some(ref mut session) = *lock {
             use ort::inputs;

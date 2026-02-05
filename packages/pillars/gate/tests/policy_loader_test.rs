@@ -1,6 +1,5 @@
 use agentkern_gate::loader::{FilePolicyLoader, PolicyLoader};
 use std::path::PathBuf;
-use tokio::time::{sleep, Duration};
 
 #[tokio::test]
 async fn test_policy_loading_from_file() {

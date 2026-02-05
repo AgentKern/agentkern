@@ -1,7 +1,6 @@
 use agentkern_synapse::passport::export::{ExportFormat, ExportOptions, PassportExporter};
 use agentkern_synapse::passport::import::{ImportOptions, PassportImporter};
 use agentkern_synapse::passport::schema::{AgentIdentity, MemoryPassport, ProvenanceSignature};
-use std::collections::HashMap;
 
 fn sample_identity() -> AgentIdentity {
     AgentIdentity {

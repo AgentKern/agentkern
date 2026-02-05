@@ -281,27 +281,6 @@ impl WattTimeClient {
         Err(WattTimeError::RequestFailed("HTTP feature disabled".into()))
     }
 
-    /// Generate mock forecast data (fallback).
-    #[cfg(test)]
-    fn mock_forecast(&self) -> Result<Vec<ForecastPoint>, WattTimeError> {
-        use chrono::Timelike;
-        let now = chrono::Utc::now();
-        let mut forecast = Vec::new();
-
-        for i in 0..24 {
-            let point_time = now + chrono::Duration::hours(i);
-            let hour = point_time.hour() as f64;
-            // Sinusoidal pattern: lower at midday due to solar
-            let value = 400.0 + 100.0 * (hour * std::f64::consts::PI / 12.0).sin();
-
-            forecast.push(ForecastPoint {
-                point_time: point_time.to_rfc3339(),
-                value,
-            });
-        }
-
-        Ok(forecast)
-    }
 
     /// Get the balancing authority (grid region) for a location.
     #[cfg(feature = "http")]
