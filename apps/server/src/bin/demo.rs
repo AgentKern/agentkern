@@ -2,13 +2,13 @@ use agentkern_identity::services::manager::AgentManager;
 use agentkern_arbiter::Coordinator;
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::types::{VerificationRequest, VerificationContext, DataRegion as GateRegion};
-use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
-use agentkern_treasury::types::Amount;
+// use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
+// use agentkern_treasury::types::Amount;
 use agentkern_synapse::passport::export::{PassportExporter, ExportOptions, ExportFormat};
 use agentkern_synapse::passport::schema::{MemoryPassport, AgentIdentity, ProvenanceSignature};
 use agentkern_nexus::Nexus;
 use agentkern_nexus::agent_card::ProtocolSupport;
-use std::sync::Arc;
+// use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -81,7 +81,9 @@ async fn main() {
     // --- PILLAR 4 ---
     println!("{BOLD}{YELLOW}💰  PILLAR 4: TREASURY (Micropayment Rails){RESET}");
     println!("{WHITE}Narrative: Agents pay other agents atomically for resources or data.{RESET}");
-    use agentkern_treasury::{BalanceLedger, Currency};
+    // use agentkern_treasury::{BalanceLedger, Currency};
+    println!("{YELLOW}⚠️  Treasury Pillar is currently quarantined for core stabilization.{RESET}\n");
+    /*
     let ledger = Arc::new(BalanceLedger::new(Currency::VMC));
     let treasury = TransferEngine::new(ledger);
     let tx_request = TransferRequest {
@@ -93,6 +95,7 @@ async fn main() {
     };
     let tx_result = treasury.transfer(tx_request).await;
     println!("{GREEN}✅ Treasury Request Processed. Status: {:?}{RESET}\n", tx_result.status);
+    */
     sleep(Duration::from_millis(1500)).await;
 
     // --- PILLAR 5 ---

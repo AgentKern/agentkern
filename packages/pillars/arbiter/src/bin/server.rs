@@ -78,7 +78,7 @@ async fn main() {
 
     let coordinator = Arc::new(coordinator);
     
-    let app = agentkern_arbiter::api::router(coordinator, Some(raft_manager))
+    let app = agentkern_arbiter::api::router(coordinator, Some(raft_manager), None)
         .layer(TraceLayer::new_for_http());
 
     tracing::info!("⚖️ AgentKern-Arbiter server running on http://{}", addr);

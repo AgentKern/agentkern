@@ -212,7 +212,7 @@ async fn build_router(state: Arc<AppState>) -> Router {
         .nest_service(
             "/api/v1/arbiter",
             resilient_service(
-                agentkern_arbiter::api::router(state.arbiter.clone(), state.pool.clone()),
+                agentkern_arbiter::api::router(state.arbiter.clone(), None, state.pool.clone()),
                 50,
                 60,
             ),
@@ -227,11 +227,13 @@ async fn build_router(state: Arc<AppState>) -> Router {
             "/api/v1/synapse",
             resilient_service(agentkern_synapse::api::router(), 100, 5),
         )
-        // Treasury Pillar
+        // Treasury Pillar (Quarantined)
+        /*
         .nest_service(
             "/api/v1/treasury",
             resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30),
         )
+        */
 
         // Enterprise Extension (Wiring)
         .nest_service(
@@ -288,7 +290,7 @@ async fn root_health() -> axum::Json<serde_json::Value> {
             "arbiter": "active",
             "nexus": "active",
             "synapse": "active",
-            "treasury": "active"
+            "treasury": "quarantined"
         }
     }))
 }
