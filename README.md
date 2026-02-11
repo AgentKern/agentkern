@@ -81,6 +81,8 @@ Just as Unix solved common problems for programs (memory, files, processes), Age
 | App | Language | Description |
 |-----|----------|-------------|
 | **agentkern-server** | Rust | Unified OS Gateway (Identity, Gate, API) |
+| **dashboard** | React | Live Operations Center (Real-time Monitoring) |
+| **gate-cli** | Rust | Standalone Policy Management Tool |
 | **playground** | TypeScript | Interactive development environment |
 
 ---
@@ -99,6 +101,21 @@ cargo test --workspace
 pnpm install
 pnpm build
 cd sdks/node && pnpm test
+```
+
+## Developer Tools
+
+### 🖥️ Live Operations Dashboard
+Monitor your agent fleet in real-time.
+```bash
+cd apps/dashboard
+npm install && npm run dev
+```
+
+### 🛡️ Policy CLI
+Manage security policies without starting the full server.
+```bash
+cargo run -p agentkern-gate --bin gate-cli -- init my-policy
 ```
 
 ---
@@ -207,7 +224,9 @@ AgentKern Nexus supports all major agent communication standards:
 
 ## Enterprise Edition (ee/)
 
-Commercial features for production deployments:
+Enterprise modules are maintained in a separate private repository and overlaid locally into `ee/`.
+
+Commercial features for production deployments include:
 
 | Feature | Description |
 |---------|-------------|
@@ -219,7 +238,15 @@ Commercial features for production deployments:
 | **Slack/Teams/PagerDuty** | Native escalation integrations |
 | **Carbon Grid API** | Real-time intensity + offsets |
 
-See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md) for licensing.
+Overlay workflow:
+
+```bash
+./scripts/pull-ee.sh
+./ee/scripts/init-workspace.sh
+cargo build --workspace
+```
+
+See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md) for full setup details.
 
 ---
 
@@ -265,14 +292,21 @@ cargo test -p agentkern-nexus
 ## License
 
 - **packages/** — Apache 2.0 (Free, Open Source)
-- **ee/** — Commercial License (See [ee/LICENSE-ENTERPRISE.md](ee/LICENSE-ENTERPRISE.md))
+- **apps/** — Apache 2.0
+- **Enterprise Features** — Commercial License (See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md))
 
 ---
 
 ## Contributing
 
-Contributions to `packages/` are welcome under Apache 2.0.
-Enterprise features in `ee/` require a CLA.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Code standards and guidelines
+- Development setup
+- Testing requirements
+- Pull request process
+
+**License**: All contributions to this repository are welcome under Apache 2.0.
+Enterprise features are maintained in a separate repository. See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md).
 
 ---
 
