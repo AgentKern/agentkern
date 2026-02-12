@@ -94,7 +94,7 @@ rust_decimal_macros = "1.39"
 uuid = { version = "1.19", features = ["v4", "serde"] }
 
 # WASM
-wasmtime = "40.0"
+wasmtime = "41.0"
 
 # Random
 rand = "0.9"
