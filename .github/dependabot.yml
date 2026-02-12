@@ -4,71 +4,58 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
       - "npm"
     groups:
-      dev-dependencies:
+      npm-non-major:
         patterns:
-          - "@types/*"
-          - "typescript"
-          - "eslint*"
-          - "prettier*"
-          - "jest*"
+          - "*"
         update-types:
           - "minor"
           - "patch"
-
-  # NPM - Identity app
-  - package-ecosystem: "npm"
-    directory: "/apps/identity"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "npm"
-      - "identity"
-
-  # NPM - Playground app
-  - package-ecosystem: "npm"
-    directory: "/apps/playground"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "npm"
-      - "playground"
 
   # Rust - Root workspace
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
       - "rust"
+    groups:
+      cargo-non-major:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
+    open-pull-requests-limit: 2
     commit-message:
       prefix: "chore(ci)"
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      github-actions-non-major:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
