@@ -58,7 +58,7 @@ thiserror = "2.0"
 anyhow = "1.0.95"
 
 # UUID and time
-uuid = { version = "1.11", features = ["v4", "serde"] }
+uuid = { version = "1.20", features = ["v4", "serde"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 
 # Concurrent data structures
