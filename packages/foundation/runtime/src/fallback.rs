@@ -195,9 +195,13 @@ mod tests {
     #[test]
     fn test_service_mode_default_demo() {
         // Without any env vars, should default to demo
-        std::env::remove_var("AGENTKERN_TEST_API_KEY");
-        std::env::remove_var("AGENTKERN_TEST_DISABLED");
-        std::env::remove_var("AGENTKERN_OFFLINE");
+        // SAFETY: test-only env var manipulation; tests using unique prefixes
+        // to avoid cross-test interference.
+        unsafe {
+            std::env::remove_var("AGENTKERN_TEST_API_KEY");
+            std::env::remove_var("AGENTKERN_TEST_DISABLED");
+            std::env::remove_var("AGENTKERN_OFFLINE");
+        }
 
         let mode = ServiceMode::detect("test");
         assert_eq!(mode, ServiceMode::Demo);
@@ -207,20 +211,22 @@ mod tests {
 
     #[test]
     fn test_service_mode_live_with_key() {
-        std::env::set_var("AGENTKERN_LIVETEST_API_KEY", "sk-test-123");
+        // SAFETY: test-only env var manipulation with unique prefix "livetest"
+        unsafe { std::env::set_var("AGENTKERN_LIVETEST_API_KEY", "sk-test-123") };
         let mode = ServiceMode::detect("livetest");
         assert_eq!(mode, ServiceMode::Live);
         assert!(!mode.use_fallback());
-        std::env::remove_var("AGENTKERN_LIVETEST_API_KEY");
+        unsafe { std::env::remove_var("AGENTKERN_LIVETEST_API_KEY") };
     }
 
     #[test]
     fn test_service_mode_disabled() {
-        std::env::set_var("AGENTKERN_DISTEST_DISABLED", "1");
+        // SAFETY: test-only env var manipulation with unique prefix "distest"
+        unsafe { std::env::set_var("AGENTKERN_DISTEST_DISABLED", "1") };
         let mode = ServiceMode::detect("distest");
         assert_eq!(mode, ServiceMode::Disabled);
         assert!(!mode.is_operational());
-        std::env::remove_var("AGENTKERN_DISTEST_DISABLED");
+        unsafe { std::env::remove_var("AGENTKERN_DISTEST_DISABLED") };
     }
 
     #[test]

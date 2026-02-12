@@ -32,17 +32,12 @@ Changes to React components will be reflected instantly in the browser without a
 
 ---
 
-## 3. Native Bindings (Re-building)
+## 3. SDK Rebuild (Optional)
 
-If you modify the Rust code in `packages/foundation/native-binding`, you must re-build the N-API module for the playground to see the changes.
+If you modify SDK Rust crates, rebuild the SDK package before local verification.
 
 ```bash
-# In the root or playground directory
-pnpm install # Triggers a re-build via turbo
+pnpm --dir sdks/node build
 ```
-Or manually:
-```bash
-cd packages/foundation/native-binding
-pnpm build
-```
-Then restart the playground if it doesn't pick up the new `.node` file.
+
+Then re-run your SDK smoke checks.

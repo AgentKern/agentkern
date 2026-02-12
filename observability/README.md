@@ -28,8 +28,8 @@ docker compose -f docker-compose.otel.yml up -d
 
 ```
 ┌─────────────────┐     ┌──────────────────┐
-│  AgentKern App  │────▶│  OTEL Collector  │
-│  (Identity)     │     │  :4317 (gRPC)    │
+│ AgentKern Server│────▶│  OTEL Collector  │
+│    (Rust)       │     │  :4317 (gRPC)    │
 └─────────────────┘     └────────┬─────────┘
                                  │
         ┌────────────────────────┼────────────────────────┐
@@ -57,19 +57,14 @@ Set these in your app to enable telemetry:
 ```bash
 # Enable OpenTelemetry
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_SERVICE_NAME=agentkern-identity
+OTEL_SERVICE_NAME=agentkern-server
 OTEL_TRACES_SAMPLER=parentbased_traceidratio
 OTEL_TRACES_SAMPLER_ARG=0.1  # 10% sampling in prod
 ```
 
-### NestJS Integration
+### Server Integration
 
-The Identity service automatically exports telemetry when configured:
-
-```typescript
-// Already included in apps/identity
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
-```
+The unified Rust server exports telemetry when configured with the OTEL variables above.
 
 ## Grafana Dashboards
 

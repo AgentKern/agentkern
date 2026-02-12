@@ -59,17 +59,17 @@
 | Responsibility | Module | Description |
 |----------------|--------|-------------|
 | Lock Management | `coordinator.rs`, `locks.rs` | Atomic business locks with priority preemption |
-| Consensus | `raft.rs` | Distributed consensus for strong consistency |
+| Consensus | `raft_manager.rs`, `consensus.rs` | Distributed consensus for strong consistency |
 | Runtime | `thread_per_core.rs` | Sub-millisecond latency via core pinning |
 | Emergency | `killswitch.rs` | Hardware-level agent termination |
-| Resilience | `antifragile.rs`, `chaos.rs` | Self-healing and fault injection |
+| Resilience | `chaos.rs`, `bulkhead.rs` | Fault injection and resilience boundaries |
 | Isolation | `bulkhead.rs` | Budget-based agent resource limits |
 | Safety | `loop_prevention.rs` | Runaway loop detection |
-| DR | `dr_scheduler.rs` | Automated disaster recovery drills |
-| Sustainability | `carbon.rs` | Carbon-aware scheduling |
+| Queueing | `queue.rs`, `queue_pg.rs` | Priority queueing and fairness |
+| Persistence | `storage.rs`, `coordinator_pg.rs` | Durable coordination state |
 | FinOps | `cost.rs` | Per-agent cost tracking |
 | Escalation | `escalation/` | Human-in-the-loop approval |
-| Compliance | `entity/` | Shariah, screening, formation |
+| Entity Governance | `entity/` | Entity lifecycle and governance workflows |
 
 ### Location
 
@@ -81,16 +81,18 @@ packages/pillars/arbiter/
 │   ├── coordinator.rs       # High-level coordination API
 │   ├── locks.rs             # Lock manager with TTL
 │   ├── queue.rs             # Priority queue
-│   ├── raft.rs              # Raft consensus
+│   ├── raft_manager.rs      # Raft network/state manager
+│   ├── consensus.rs         # Consensus policies
 │   ├── thread_per_core.rs   # Hyper-loop runtime
 │   ├── killswitch.rs        # Emergency termination
-│   ├── antifragile.rs       # Self-healing engine
 │   ├── chaos.rs             # Fault injection
 │   ├── bulkhead.rs          # Resource isolation
 │   ├── loop_prevention.rs   # $47K incident prevention
-│   ├── dr_scheduler.rs      # DR drill automation
-│   ├── carbon.rs            # Carbon scheduling
 │   ├── cost.rs              # Cost tracking
+│   ├── queue_pg.rs          # Postgres queue backend
+│   ├── locks_pg.rs          # Postgres lock backend
+│   ├── coordinator_pg.rs    # Postgres coordinator backend
+│   ├── storage.rs           # Persistent store
 │   ├── escalation/          # Human-in-the-loop
 │   │   ├── mod.rs
 │   │   ├── triggers.rs      # Escalation triggers
@@ -1048,26 +1050,24 @@ let result = checker.check(&operation);
 | [`coordinator.rs`](../../packages/pillars/arbiter/src/coordinator.rs) | 171 | High-level coordination API |
 | [`locks.rs`](../../packages/pillars/arbiter/src/locks.rs) | 231 | Lock manager with TTL |
 | [`queue.rs`](../../packages/pillars/arbiter/src/queue.rs) | ~170 | Priority queue |
-| [`raft.rs`](../../packages/pillars/arbiter/src/raft.rs) | 359 | Raft consensus |
+| [`raft_manager.rs`](../../packages/pillars/arbiter/src/raft_manager.rs) | ~280 | Raft consensus manager |
+| [`consensus.rs`](../../packages/pillars/arbiter/src/consensus.rs) | ~190 | Consensus policy engine |
 | [`thread_per_core.rs`](../../packages/pillars/arbiter/src/thread_per_core.rs) | 229 | Hyper-loop runtime |
 | [`killswitch.rs`](../../packages/pillars/arbiter/src/killswitch.rs) | 345 | Emergency termination |
-| [`antifragile.rs`](../../packages/pillars/arbiter/src/antifragile.rs) | 938 | Self-healing engine |
 | [`chaos.rs`](../../packages/pillars/arbiter/src/chaos.rs) | 544 | Fault injection |
 | [`bulkhead.rs`](../../packages/pillars/arbiter/src/bulkhead.rs) | 593 | Resource isolation |
 | [`loop_prevention.rs`](../../packages/pillars/arbiter/src/loop_prevention.rs) | 450 | $47K prevention |
-| [`dr_scheduler.rs`](../../packages/pillars/arbiter/src/dr_scheduler.rs) | 420 | DR drill automation |
-| [`carbon.rs`](../../packages/pillars/arbiter/src/carbon.rs) | 363 | Carbon scheduling |
 | [`cost.rs`](../../packages/pillars/arbiter/src/cost.rs) | 526 | Cost tracking |
+| [`queue_pg.rs`](../../packages/pillars/arbiter/src/queue_pg.rs) | ~220 | Postgres queue backend |
+| [`locks_pg.rs`](../../packages/pillars/arbiter/src/locks_pg.rs) | ~260 | Postgres lock backend |
+| [`coordinator_pg.rs`](../../packages/pillars/arbiter/src/coordinator_pg.rs) | ~300 | Postgres coordinator |
+| [`storage.rs`](../../packages/pillars/arbiter/src/storage.rs) | ~220 | Durable storage |
 | [`escalation/mod.rs`](../../packages/pillars/arbiter/src/escalation/mod.rs) | 19 | Escalation exports |
 | [`escalation/triggers.rs`](../../packages/pillars/arbiter/src/escalation/triggers.rs) | 377 | Escalation triggers |
 | [`escalation/approval.rs`](../../packages/pillars/arbiter/src/escalation/approval.rs) | ~350 | Approval workflows |
 | [`escalation/webhook.rs`](../../packages/pillars/arbiter/src/escalation/webhook.rs) | ~370 | Webhook notifications |
 | [`entity/mod.rs`](../../packages/pillars/arbiter/src/entity/mod.rs) | ~24 | Entity exports |
-| [`entity/compliance.rs`](../../packages/pillars/arbiter/src/entity/compliance.rs) | ~300 | Compliance checks |
 | [`entity/formation.rs`](../../packages/pillars/arbiter/src/entity/formation.rs) | ~135 | Entity formation |
-| [`entity/liability.rs`](../../packages/pillars/arbiter/src/entity/liability.rs) | ~120 | Liability tracking |
-| [`entity/screening.rs`](../../packages/pillars/arbiter/src/entity/screening.rs) | ~190 | Sanctions screening |
-| [`entity/shariah.rs`](../../packages/pillars/arbiter/src/entity/shariah.rs) | ~245 | Shariah compliance |
 | [`bin/server.rs`](../../packages/pillars/arbiter/src/bin/server.rs) | ~120 | HTTP server |
 
 **Total: ~7,500+ lines of Rust**

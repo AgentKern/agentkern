@@ -14,17 +14,17 @@
 6. [Neural Inference](#6-neural-inference)
 7. [Policy Definition](#7-policy-definition)
 8. [Crypto Agility](#8-crypto-agility)
-9. [Trusted Execution Environment (TEE)](#9-trusted-execution-environment-tee)
+9. [Transport Security](#9-transport-security)
 10. [Data Sovereignty](#10-data-sovereignty)
 11. [Budget & Gas Limits](#11-budget--gas-limits)
-12. [Carbon Veto (ESG)](#12-carbon-veto-esg)
+12. [Budget Enforcement (ESG-Aware)](#12-budget-enforcement-esg-aware)
 13. [Explainability Engine](#13-explainability-engine)
 14. [mTLS & Zero-Trust](#14-mtls--zero-trust)
 15. [Observability & Metrics](#15-observability--metrics)
 16. [Actor-Based Supervision](#16-actor-based-supervision)
 17. [Feature Flags](#17-feature-flags)
 18. [WASM Policy Engine](#18-wasm-policy-engine)
-19. [Legacy Connectors](#19-legacy-connectors)
+19. [Enterprise Connectors](#19-enterprise-connectors)
 20. [Runtime & Performance](#20-runtime--performance)
 21. [Complete Module Map](#21-complete-module-map)
 
@@ -69,10 +69,10 @@
 | RAG Memory Protection | `context_guard.rs` | Scan retrieved context for attacks |
 | Neural Classification | `neural.rs` | ONNX-based ML inference |
 | Cryptography | `crypto_agility.rs` | Post-quantum ready crypto |
-| Confidential Computing | `tee.rs` | Hardware enclave support |
-| Data Sovereignty | `sovereign.rs` | Geo-fenced data controls |
+| Transport Security | `mtls.rs` | Zero-trust mTLS enforcement |
+| Data Sovereignty | `lib.rs` (`sovereign`) | Geo-fenced data controls |
 | Budget Enforcement | `budget.rs` | Token/API/cost limits |
-| Carbon Accounting | `carbon.rs` | ESG-based veto |
+| Connector Governance | `connectors/registry.rs` | External system policy controls |
 | Explainability | `explain.rs` | Human-readable decisions |
 
 ### Location
@@ -85,22 +85,20 @@ packages/pillars/gate/
 │   ├── prompt_guard.rs      # Prompt injection detection
 │   ├── context_guard.rs     # RAG context protection
 │   ├── neural.rs            # ONNX neural inference
-│   ├── policy.rs            # Policy definitions
+│   ├── policy/mod.rs        # Policy definitions
 │   ├── dsl.rs               # Expression parser
 │   ├── types.rs             # Core types
 │   ├── crypto_agility.rs    # Quantum-safe crypto
-│   ├── tee.rs               # Hardware enclaves
-│   ├── sovereign.rs         # Geo-fencing
-│   ├── budget.rs            # Gas limits
-│   ├── carbon.rs            # Carbon veto
-│   ├── explain.rs           # Explainability
 │   ├── mtls.rs              # Zero-trust mTLS
+│   ├── lib.rs               # Includes sovereign controller module
+│   ├── budget.rs            # Gas limits
+│   ├── explain.rs           # Explainability
 │   ├── observability.rs     # Metrics & tracing
 │   ├── metrics.rs           # Prometheus export
 │   ├── actors.rs            # Actix supervision
 │   ├── feature_flags.rs     # Canary rollouts
 │   ├── runtime.rs           # io_uring runtime
-│   ├── connectors/          # Legacy system bridges
+│   ├── connectors/          # Enterprise system adapters
 │   └── wasm/                # WASM policy isolation
 └── tests/
 ```
@@ -358,7 +356,7 @@ The BPE tokenizer handles evasion attempts:
 
 ## 7. Policy Definition
 
-YAML-based policy DSL in [`policy.rs`](../../packages/pillars/gate/src/policy.rs) and [`dsl.rs`](../../packages/pillars/gate/src/dsl.rs).
+YAML-based policy DSL in [`policy/mod.rs`](../../packages/pillars/gate/src/policy/mod.rs) and [`dsl.rs`](../../packages/pillars/gate/src/dsl.rs).
 
 ### Policy Structure
 
@@ -461,59 +459,29 @@ assert!(provider.is_quantum_safe());
 
 ---
 
-## 9. Trusted Execution Environment (TEE)
+## 9. Transport Security
 
-Hardware enclave support in [`tee.rs`](../../packages/pillars/gate/src/tee.rs).
+Zero-trust transport controls in [`mtls.rs`](../../packages/pillars/gate/src/mtls.rs).
 
-### Supported Platforms
+### mTLS Configuration
 
 ```rust
-pub enum TeePlatform {
-    IntelTdx,    // Intel Trust Domain Extensions
-    AmdSevSnp,   // AMD Secure Encrypted Virtualization
-    IntelSgx,    // Intel Software Guard Extensions
-    ArmCca,      // ARM Confidential Compute Architecture
-    Simulated,   // Development only
-}
+use agentkern_gate::{CertificateValidator, MtlsConfig};
+
+let validator = CertificateValidator::new(MtlsConfig::strict());
 ```
 
-### Attestation
+### Certificate Validation
 
 ```rust
-let runtime = TeeRuntime::detect()?;
-let attestation = runtime.get_attestation(user_data)?;
-
-// attestation contains:
-// - platform: TeePlatform
-// - measurement: Hash of enclave code
-// - quote: Cryptographic proof
-```
-
-### Sealing (Data at Rest)
-
-```rust
-// Seal data with hardware key
-let sealed = runtime.seal(secret_data, SealingPolicy::SealToMeasurement)?;
-
-// Unseal (only works on same enclave)
-let unsealed = runtime.unseal(&sealed)?;
-```
-
-### Secret Management
-
-```rust
-// Store secret in protected memory
-runtime.store_secret("api_key", api_key.as_bytes())?;
-
-// Retrieve
-let key = runtime.get_secret("api_key")?;
+validator.validate_connection(Some(&client_cert), Some("agent-123"))?;
 ```
 
 ---
 
 ## 10. Data Sovereignty
 
-Geo-fencing in [`sovereign.rs`](../../packages/pillars/gate/src/sovereign.rs).
+Geo-fencing in [`lib.rs`](../../packages/pillars/gate/src/lib.rs) via the `sovereign` module.
 
 ### Data Regions
 
@@ -602,41 +570,27 @@ let summary = budget.summary();
 
 ---
 
-## 12. Carbon Veto (ESG)
+## 12. Budget Enforcement (ESG-Aware)
 
-Energy-aware veto in [`carbon.rs`](../../packages/pillars/gate/src/carbon.rs).
+Resource-aware enforcement in [`budget.rs`](../../packages/pillars/gate/src/budget.rs).
 
-### Carbon Check
+### Budget Check
 
 ```rust
-let veto = CarbonVeto::new(ledger)
-    .with_default_region(CarbonRegion::UsWest)
-    .with_watttime(watttime_client, lat, lon);
-
-let result = veto.evaluate(
-    &agent_id,
-    "inference",
-    ComputeType::Gpu,
-    60_000, // 60 seconds
-);
-
-if !result.allowed {
-    // "Carbon budget exceeded. Daily limit: 100g, Current: 95g, Requested: 10g"
-}
+let mut budget = AgentBudget::new("agent-123", BudgetConfig::default());
+budget.consume_tokens(500)?;
+budget.consume_api_call()?;
+budget.consume_cost(0.5)?;
 ```
 
-### WattTime Integration
+### Connector Policy Controls
 
-Gate can use real-time grid carbon intensity from WattTime API:
+Connector lifecycle and health governance are managed in [`connectors/registry.rs`](../../packages/pillars/gate/src/connectors/registry.rs).
 
 ```rust
-// Dynamic evaluation using live grid intensity
-let result = veto.evaluate_dynamic(
-    &agent_id,
-    "training",
-    ComputeType::GpuCluster,
-    3600_000, // 1 hour
-).await;
+let registry = ConnectorRegistry::new();
+registry.register("sql-main", connector, vec!["prod".to_string()])?;
+registry.disable("sql-main")?;
 ```
 
 ---
@@ -960,9 +914,9 @@ let stats = registry.stats();
 
 ---
 
-## 19. Legacy Connectors
+## 19. Enterprise Connectors
 
-WASM-isolated bridges for enterprise systems in [`connectors/`](../../packages/pillars/gate/src/connectors/).
+WASM-isolated adapters for enterprise systems in [`connectors/`](../../packages/pillars/gate/src/connectors/).
 
 ### Connector Protocol Types
 
@@ -1012,13 +966,13 @@ impl ConnectorProtocol {
 | **Community (Free)** | `SqlConnector` only |
 | **Enterprise** | All connectors (SAP, SWIFT, IBM, Oracle, Salesforce) |
 
-### LegacyConnector Trait
+### Connector Trait
 
 All connectors implement this interface:
 
 ```rust
 #[async_trait]
-pub trait LegacyConnector: Send + Sync {
+pub trait ConnectorAdapter: Send + Sync {
     /// Connector name
     fn name(&self) -> &str;
     
@@ -1031,14 +985,14 @@ pub trait LegacyConnector: Send + Sync {
     /// Health check
     async fn health_check(&self) -> ConnectorResult<ConnectorHealth>;
     
-    /// Translate A2A task → Legacy message
-    fn translate_to_legacy(&self, task: &A2ATaskPayload) -> ConnectorResult<LegacyMessage>;
+    /// Translate A2A task → external protocol message
+    fn translate_to_external(&self, task: &A2ATaskPayload) -> ConnectorResult<ExternalMessage>;
     
-    /// Translate Legacy message → A2A task
-    fn translate_from_legacy(&self, msg: &LegacyMessage) -> ConnectorResult<A2ATaskPayload>;
+    /// Translate external protocol message → A2A task
+    fn translate_from_external(&self, msg: &ExternalMessage) -> ConnectorResult<A2ATaskPayload>;
     
-    /// Execute legacy operation
-    async fn execute(&self, msg: &LegacyMessage) -> ConnectorResult<LegacyMessage>;
+    /// Execute external operation
+    async fn execute(&self, msg: &ExternalMessage) -> ConnectorResult<ExternalMessage>;
 }
 ```
 
@@ -1264,21 +1218,20 @@ pub struct IoUringRuntimeConfig {
 | [`neural.rs`](../../packages/pillars/gate/src/neural.rs) | 881 | ONNX neural inference |
 | [`context_guard.rs`](../../packages/pillars/gate/src/context_guard.rs) | 304 | RAG context protection |
 | [`crypto_agility.rs`](../../packages/pillars/gate/src/crypto_agility.rs) | 669 | Post-quantum cryptography |
-| [`tee.rs`](../../packages/pillars/gate/src/tee.rs) | 515 | Hardware enclaves |
-| [`sovereign.rs`](../../packages/pillars/gate/src/sovereign.rs) | 351 | Data sovereignty |
+| [`mtls.rs`](../../packages/pillars/gate/src/mtls.rs) | 376 | Zero-trust mTLS |
+| [`lib.rs`](../../packages/pillars/gate/src/lib.rs) | 207 | Sovereign controller + exports |
 | [`budget.rs`](../../packages/pillars/gate/src/budget.rs) | 389 | Gas limits |
-| [`carbon.rs`](../../packages/pillars/gate/src/carbon.rs) | 214 | Carbon veto |
+| [`connectors/registry.rs`](../../packages/pillars/gate/src/connectors/registry.rs) | ~370 | Connector governance |
 | [`explain.rs`](../../packages/pillars/gate/src/explain.rs) | 448 | Explainability |
-| [`policy.rs`](../../packages/pillars/gate/src/policy.rs) | 162 | Policy definitions |
+| [`policy/mod.rs`](../../packages/pillars/gate/src/policy/mod.rs) | ~150 | Policy definitions |
 | [`dsl.rs`](../../packages/pillars/gate/src/dsl.rs) | 215 | Expression parser |
 | [`types.rs`](../../packages/pillars/gate/src/types.rs) | 136 | Core types |
-| [`mtls.rs`](../../packages/pillars/gate/src/mtls.rs) | 376 | Zero-trust mTLS |
 | [`observability.rs`](../../packages/pillars/gate/src/observability.rs) | 702 | Metrics & tracing |
 | [`metrics.rs`](../../packages/pillars/gate/src/metrics.rs) | 316 | Prometheus export |
 | [`actors.rs`](../../packages/pillars/gate/src/actors.rs) | 311 | Actix supervision |
 | [`feature_flags.rs`](../../packages/pillars/gate/src/feature_flags.rs) | 307 | Feature management |
 | [`runtime.rs`](../../packages/pillars/gate/src/runtime.rs) | 193 | io_uring runtime |
-| [`connectors/`](../../packages/pillars/gate/src/connectors/) | ~500 | Legacy bridges (SAP, SWIFT, SQL) |
+| [`connectors/`](../../packages/pillars/gate/src/connectors/) | ~500 | Enterprise adapters (SAP, SWIFT, SQL) |
 | [`wasm/mod.rs`](../../packages/pillars/gate/src/wasm/mod.rs) | 270 | WASM policy engine |
 | [`wasm/registry.rs`](../../packages/pillars/gate/src/wasm/registry.rs) | ~350 | WASM module registry |
 | [`wasm/loader.rs`](../../packages/pillars/gate/src/wasm/loader.rs) | ~100 | WASM module loader |

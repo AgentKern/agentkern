@@ -1,9 +1,9 @@
 [package]
 name = "agentkern-synapse"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "AgentKern-Synapse: Graph-based State Ledger with CRDTs and Adaptive Query Execution"
-license = "MIT"
+license = "Apache-2.0"
 
 [lib]
 name = "agentkern_synapse"

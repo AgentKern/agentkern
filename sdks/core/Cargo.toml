@@ -2,7 +2,7 @@
 name = "agentkern-sdk-core"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 description = "AgentKern SDK Core - Liability Proofs and Agent Cryptography"
 repository = "https://github.com/agentkern/agentkern"
 keywords = ["ai-agents", "cryptography", "liability", "sdk"]

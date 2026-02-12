@@ -4,48 +4,72 @@ All interactions with AgentKern must be authenticated and signed via an [Identit
 
 ---
 
-## SDK (TypeScript)
+## HTTP API (Unified Server)
 
-### Initialization
-```typescript
-import { AgentKern } from '@agentkern/sdk';
-
-const client = new AgentKern({
-  apiKey: 'ak_prod_xyz...',
-  environment: 'production',
-  region: 'us' // 'us', 'eu', 'global'
-});
+Base URL (local default):
+```text
+http://localhost:3000
 ```
 
-### Identity: `register`
-Registers a new agent and returns a Memory Passport.
-```typescript
-const agent = await client.identity.register('processor-1');
-// Returns: { id: string, publicKey: string }
+### 1) Authenticate
+```bash
+curl -sS -X POST http://localhost:3000/api/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"agent_id":"playground-auth-agent","secret":"playground-auth-secret"}'
 ```
 
-### Gate: `verify`
-Performs neuro-symbolic analysis on text prompts.
-```typescript
-const result = await client.gate.verify(agentId, "User input text...");
-// Returns: { threat_level: 'None' | 'Low' | 'Medium' | 'High' | 'Critical', attacks: string[] }
+### 2) Identity: Register agent
+```bash
+curl -sS -X POST http://localhost:3000/api/v1/identity/agents \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"id":"agent-123","name":"demo-agent","version":"1.0.0","namespace":"default"}'
 ```
 
-### Synapse: `updateState`
-Synchronizes state across the mesh cell.
-```typescript
-await client.synapse.updateState(resourceId, { key: 'value' });
+### 3) Gate: Verify action
+```bash
+curl -sS -X POST http://localhost:3000/api/v1/gate/verify \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"agent_id":"agent-123","action":"transfer_funds","namespace":"default","context":{"amount":500}}'
 ```
 
-### Treasury: `transfer`
-Executes an atomic 2-phase commit payment.
+### 4) Arbiter: Acquire lock
+```bash
+curl -sS -X POST http://localhost:3000/api/v1/arbiter/locks \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"agent_id":"agent-123","resource":"database:accounts","priority":5}'
+```
+
+### 5) Synapse: Store memory
+```bash
+curl -sS -X POST http://localhost:3000/api/v1/synapse/memory/store \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"content":{"type":"intent_path","intent":"Process customer order"}}'
+```
+
+### 6) Health
+```bash
+curl -sS http://localhost:3000/health
+curl -sS http://localhost:3000/api/v1/gate/health
+curl -sS http://localhost:3000/api/v1/identity/health
+```
+
+---
+
+## SDK (Node local crypto)
+
+Use `@agentkern/sdk` for local cryptographic identity/proof operations, and use HTTP for live pillar decisions.
+
 ```typescript
-const tx = await client.treasury.transfer({
-  from: senderId,
-  to: receiverId,
-  amount: 100.0,
-  idempotency_key: 'unique_uuid'
-});
+import { Agent } from '@agentkern/sdk';
+
+const agent = Agent.generate('processor-1');
+const proof = agent.createProof('filesystem:write:/etc/config');
+const valid = Agent.verifyProof(proof);
+console.log({ id: agent.id, valid });
 ```
 
 ---

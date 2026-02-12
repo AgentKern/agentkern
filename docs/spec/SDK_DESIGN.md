@@ -1,52 +1,55 @@
-# SDK Architecture: Unified Rust Core (2026)
+# SDK Architecture: Rust Core + HTTP Runtime (2026)
 
-AgentKern uses a "Unified Core" strategy for its SDKs. Instead of reimplementing cryptographic and protocol logic in every language, we maintain a single source of truth in Rust (`agentkern-sdk-core`) and bind it to other languages.
+AgentKern SDKs follow a single model: shared Rust cryptographic core plus HTTP integration with the unified server.
 
-## 🏗️ The Hybrid Architecture
+## 🏗️ Architecture
 
 ```mermaid
 graph TD
-    subgraph "Rust Core (packages/sdk-core)"
-        RC[Core Logic] --> Crypto[Ed25519 / PQC]
-        RC --> Protocol[A2A / Nexus / MCP]
-        RC --> Validation[Safety Verification]
+    subgraph "Rust Core (sdks/core)"
+        CORE[agentkern-sdk-core]
+        CORE --> CRYPTO[Signing / Proofs]
+        CORE --> PROTO[Protocol Types]
+        CORE --> VERIFY[Validation]
     end
 
-    subgraph "Bindings Layer"
-        RC --> |napi-rs| TS[TypeScript / Node.js]
-        RC --> |uniffi| PY[Python]
-        RC --> |uniffi| CS[C# / .NET]
+    subgraph "Language SDKs"
+        CORE --> NODE[Node SDK - sdks/node]
+        CORE --> PY[Python SDK - sdks/python]
     end
 
-    subgraph "Consumers"
-        TS --> |npm| SDK_TS[@agentkern/sdk]
-        PY --> |pip| SDK_PY[agentkern]
+    subgraph "Runtime Integration"
+        NODE --> HTTP[apps/server HTTP API]
+        PY --> HTTP
     end
 ```
 
 ## 🛠️ Implementation Details
 
-### 1. TypeScript SDK (`sdks/typescript`)
-The Node.js SDK uses `napi-rs` to bind the Rust core. This allows sub-millisecond local proof generation and verification directly in the Node event loop without the overhead of HTTP calls to a sidecar.
-
-- **Primary Interface**: `@agentkern/sdk`
-- **Key Class**: `Agent` (High-level wrapper around the FFI handles)
+### 1. Node SDK (`sdks/node`)
+- **Primary Package**: `@agentkern/sdk`
+- **Local Capabilities**: Agent identity, proof generation, proof verification
+- **Runtime Path**: HTTP API calls to `apps/server` for pillar decisions
 
 ### 2. Python SDK (`sdks/python`)
-Targeted at data scientists and AI agent developers. Uses `UniFFI` to generate native Python bindings.
+- **Primary Package**: `agentkern`
+- **Local Capabilities**: Agent identity and proof operations
+- **Runtime Path**: HTTP API calls to `apps/server`
 
-- **Integrations**: Native adapters for LangChain, CrewAI, and OpenAI Client.
+### 3. Shared Core (`sdks/core`)
+- **Single Source of Truth** for proof and signing logic
+- Reused by both Node and Python SDK packages
 
 ---
 
 ## 🔒 Security Principles
 
-1. **Local Signing**: Private keys never leave the agent's memory. Signing happens in the Rust core.
-2. **Deterministic Handshakes**: All SDKs use the same state machine for A2A handshakes, ensuring perfect interoperability.
-3. **Rust Integrity**: The core logic is compile-time verified for memory safety, protecting agents from common FFI buffer overflows.
+1. **Local Signing**: Private keys remain in process memory in SDK runtimes.
+2. **Deterministic Verification**: Core verification logic is shared across SDKs.
+3. **Server-Enforced Runtime Policy**: Gate/Arbiter/Synapse decisions are enforced via server APIs.
 
 ## 📅 Roadmap (2026)
 
-- **Q1**: Finalize N-API bindings for Identity management [DONE].
-- **Q2**: UniFFI generation for Python and C# [IN PROGRESS].
-- **Q3**: WASM Component Model (WCM) support for browser-based agents.
+- **Q1**: Stabilize Node and Python SDK release workflow
+- **Q2**: Expand API-generated client coverage for additional languages
+- **Q3**: Strengthen integration test matrices for SDK + server contracts

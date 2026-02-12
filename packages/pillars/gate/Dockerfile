@@ -20,18 +20,23 @@ RUN cargo build --release --package agentkern-gate --bin gate-server
 # Runtime stage - minimal image
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S agentkern \
+    && adduser -S -u 1000 -G agentkern agentkern
 
 WORKDIR /app
 
 # Copy the built binary
 COPY --from=builder /app/target/release/gate-server /app/gate-server
+RUN chown -R agentkern:agentkern /app
 
 # Set environment
 ENV PORT=3001
 ENV RUST_LOG=info
 
 EXPOSE 3001
+
+USER agentkern
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

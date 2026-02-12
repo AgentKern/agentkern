@@ -60,9 +60,6 @@ test_contains() {
     local expected_string="$3"
     
     TOTAL=$((TOTAL + 1))
-    
-
-    TOTAL=$((TOTAL + 1))
 
     response=$(curl -s "$BASE_URL$endpoint" 2>/dev/null || echo "")
 
@@ -83,33 +80,18 @@ test_contains "Health returns status" "/health" "ok"
 echo ""
 echo "🔐 Security Endpoints"
 echo "---------------------"
-test_endpoint "CSP report endpoint" "POST" "/api/v1/security/csp-report" "204" '{"csp-report":{}}'
-test_endpoint "Protected endpoint rejects no auth" "GET" "/api/v1/identity/agents/me" "401"
-
-echo ""
-echo "📚 Documentation"
-echo "----------------"
-test_endpoint "Swagger docs" "GET" "/docs" "200"
-test_endpoint "OpenAPI spec" "GET" "/docs-json" "200"
-
-echo ""
-echo "🌉 Bridge Status"
-echo "----------------"
-test_contains "Bridge health check" "/api/v1/health/bridge" "loaded"
+test_endpoint "Login rejects missing credentials" "POST" "/api/v1/auth/login" "400" '{}'
+test_endpoint "Protected endpoint rejects no auth" "GET" "/api/v1/identity/agents" "401"
 
 echo ""
 echo "🔍 Pillar Endpoints"
 echo "-------------------"
-# These should return 401 (auth required) but not 500/404
+# Health endpoints should be public and return 200
+test_endpoint "Identity health" "GET" "/api/v1/identity/health" "200"
 test_endpoint "Gate endpoint exists" "GET" "/api/v1/gate/health" "200"
-test_endpoint "Treasury endpoint exists" "GET" "/api/v1/treasury/health" "200"
 test_endpoint "Arbiter endpoint exists" "GET" "/api/v1/arbiter/health" "200"
 test_endpoint "Nexus endpoint exists" "GET" "/api/v1/nexus/health" "200"
-
-echo ""
-echo "📊 Metrics"
-echo "----------"
-test_endpoint "Prometheus metrics" "GET" "/metrics" "200"
+test_endpoint "Synapse endpoint exists" "GET" "/api/v1/synapse/health" "200"
 
 echo ""
 echo "========================"

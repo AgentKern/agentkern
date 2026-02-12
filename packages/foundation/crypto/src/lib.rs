@@ -169,14 +169,36 @@ impl CryptoProvider {
         })
     }
 
+    /// Generate a post-quantum signature placeholder.
+    ///
+    /// # Security Warning
+    ///
+    /// This is a **deterministic hash-based placeholder** — NOT a real post-quantum
+    /// digital signature. It does not involve a private key and provides no
+    /// cryptographic assurance. It exists solely to preserve the API contract
+    /// while real ML-DSA (FIPS 204) support is implemented behind the `pqc` feature.
+    ///
+    /// Enable the `pqc` feature for real post-quantum signatures.
     fn generate_pq_signature(&self, message: &[u8]) -> String {
         use sha2::{Digest, Sha256};
+        tracing::warn!(
+            "PQ signature is a placeholder (SHA256 hash). Enable the `pqc` feature for real ML-DSA signatures."
+        );
         let mut hasher = Sha256::new();
-        hasher.update(b"PQ-FALLBACK-");
+        hasher.update(b"PQ-PLACEHOLDER-NOT-SECURE-");
         hasher.update(message);
         base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
     }
 
+    /// Verify a signature against the given message and public key.
+    ///
+    /// Verification is mode-aware:
+    /// - **Classical**: Requires and verifies the classical (Ed25519) component.
+    /// - **PostQuantum**: Requires the PQ component (placeholder verification for now).
+    /// - **Hybrid**: Requires and verifies BOTH classical and PQ components.
+    ///
+    /// Returns `Err(CryptoError::VerificationFailed)` if any required component
+    /// is missing or invalid.
     pub fn verify(
         &self,
         message: &[u8],
@@ -185,14 +207,21 @@ impl CryptoProvider {
     ) -> Result<bool, CryptoError> {
         use ed25519_dalek::{Verifier, VerifyingKey};
 
-        let pub_bytes = base64::engine::general_purpose::STANDARD
-            .decode(public_key)
-            .map_err(|_| CryptoError::InvalidKeyFormat)?;
+        // Verify classical component when required (Classical or Hybrid mode)
+        let classical_required = matches!(self.mode, CryptoMode::Classical | CryptoMode::Hybrid);
+        if classical_required {
+            let classical_b64 = signature
+                .classical_component
+                .as_ref()
+                .ok_or(CryptoError::VerificationFailed)?;
 
-        let verifying_key = VerifyingKey::try_from(pub_bytes.as_slice())
-            .map_err(|_| CryptoError::InvalidKeyFormat)?;
+            let pub_bytes = base64::engine::general_purpose::STANDARD
+                .decode(public_key)
+                .map_err(|_| CryptoError::InvalidKeyFormat)?;
 
-        if let Some(ref classical_b64) = signature.classical_component {
+            let verifying_key = VerifyingKey::try_from(pub_bytes.as_slice())
+                .map_err(|_| CryptoError::InvalidKeyFormat)?;
+
             let sig_bytes = base64::engine::general_purpose::STANDARD
                 .decode(classical_b64)
                 .map_err(|_| CryptoError::VerificationFailed)?;
@@ -203,6 +232,28 @@ impl CryptoProvider {
             verifying_key
                 .verify(message, &sig)
                 .map_err(|_| CryptoError::VerificationFailed)?;
+        }
+
+        // Verify PQ component when required (PostQuantum or Hybrid mode)
+        let pq_required = matches!(self.mode, CryptoMode::PostQuantum | CryptoMode::Hybrid);
+        if pq_required {
+            let pq_b64 = signature
+                .pq_component
+                .as_ref()
+                .ok_or(CryptoError::VerificationFailed)?;
+
+            // Placeholder verification: recompute the expected hash and compare.
+            // This ensures at minimum that the PQ component matches the message,
+            // even though it provides no real cryptographic security.
+            use sha2::{Digest, Sha256};
+            let mut hasher = Sha256::new();
+            hasher.update(b"PQ-PLACEHOLDER-NOT-SECURE-");
+            hasher.update(message);
+            let expected = base64::engine::general_purpose::STANDARD.encode(hasher.finalize());
+
+            if *pq_b64 != expected {
+                return Err(CryptoError::VerificationFailed);
+            }
         }
 
         Ok(true)

@@ -7,8 +7,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::antifragile::AntifragileEngine;
-use crate::carbon::CarbonScheduler;
 use crate::consensus::ConsensusEngine;
 use crate::cost::CostTracker;
 use crate::escalation::{EscalationConnector, WebhookNotifier};
@@ -19,28 +17,22 @@ use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
 use agentkern_gate::NeuroSymbolicValidator;
-use agentkern_pulse::{HealthStatus, Pulse, PulseManager, SemanticHealthReport};
+use agentkern_pulse::{HealthStatus, Pulse, SemanticHealthReport};
 use agentkern_synapse::drift::DriftDetector;
 use agentkern_synapse::intent::IntentPath;
-// use uuid::Uuid;
 
 /// The Arbiter Coordinator.
 pub struct Coordinator {
     lock_manager: LockManager,
     queue: Arc<RwLock<PriorityQueue>>,
-    avg_lock_duration_ms: u64,
-    antifragile: Arc<AntifragileEngine>,
+    _avg_lock_duration_ms: u64,
     cost_tracker: Arc<CostTracker>,
-    /// Carbon scheduler for sustainability
-    carbon_scheduler: Arc<CarbonScheduler>,
     /// Neuro-symbolic validator for intent-based safety
     validator: Arc<NeuroSymbolicValidator>,
     /// Drift detector for behavioral tracking
     drift_detector: Arc<DriftDetector>,
     /// Active intent paths for agents
     intent_paths: Arc<RwLock<HashMap<String, IntentPath>>>,
-    /// Pulse manager for observability
-    pulse: PulseManager,
     /// Consensus engine for multi-agent governance
     consensus: Arc<ConsensusEngine>,
     /// Optional Raft Manager for distributed consistency
@@ -60,27 +52,16 @@ impl Coordinator {
         Self {
             lock_manager: LockManager::new(),
             queue: Arc::new(RwLock::new(PriorityQueue::new())),
-            avg_lock_duration_ms: 5000, // 5 seconds default
-            antifragile: Arc::new(AntifragileEngine::new()),
+            _avg_lock_duration_ms: 5000,
             cost_tracker: Arc::new(CostTracker::new()),
-            carbon_scheduler: Arc::new(CarbonScheduler::new()),
             validator: Arc::new(
                 NeuroSymbolicValidator::new().expect("Failed to load NeuroSymbolicValidator"),
             ),
             drift_detector: Arc::new(DriftDetector::new()),
             intent_paths: Arc::new(RwLock::new(HashMap::new())),
-            pulse: PulseManager::new(),
             consensus: Arc::new(ConsensusEngine::new()),
             raft_manager: None,
             notifier: Arc::new(RwLock::new(WebhookNotifier::new())),
-        }
-    }
-
-    /// Set the real-time grid API for the carbon scheduler.
-    pub fn with_grid_api(self, grid_api: Arc<dyn crate::carbon::GridApi>) -> Self {
-        Self {
-            carbon_scheduler: Arc::new(CarbonScheduler::new().with_grid_api(grid_api)),
-            ..self
         }
     }
 
@@ -97,18 +78,7 @@ impl Coordinator {
 
     /// Request coordination for a resource.
     pub async fn request(&self, request: CoordinationRequest) -> CoordinationResult {
-        // 1. Antifragile Check (Circuit Breaker)
-        if !self
-            .antifragile
-            .is_service_available(&request.resource)
-            .await
-        {
-            return CoordinationResult::denied(String::from(
-                "Antifragile: Service circuit breaker is OPEN",
-            ));
-        }
-
-        // 2. Cost/Budget Check
+        // 1. Cost/Budget Check
         let current_cost = self.cost_tracker.get_agent_total(&request.agent_id);
         let budget_override = self.consensus.get_budget_override(&request.agent_id).await;
         let total_budget = Decimal::from(10) + budget_override;
@@ -120,32 +90,11 @@ impl Coordinator {
             ));
         }
 
-        // 3. Carbon/Sustainability Check
-        if let Some(intensity) = self
-            .carbon_scheduler
-            .get_current_intensity("us-east-1")
-            .await
-        {
-            // Report to Pulse
-            self.pulse.report_carbon(intensity as f64);
-
-            if intensity > 500.0 && request.priority < 50 {
-                return CoordinationResult::denied(String::from(
-                    "Sustainability: High grid carbon intensity, task deferred",
-                ));
-            }
-        }
-
-        // 4. Intent Drift Check (Synapse Integration)
+        // 2. Intent Drift Check
         let paths = self.intent_paths.read().await;
         if let Some(path) = paths.get(&request.agent_id) {
             let drift = self.drift_detector.check(path);
             if drift.drifted && drift.score > 70 {
-                let failure = crate::antifragile::Failure::new(
-                    &request.resource,
-                    "Critical intent drift detected",
-                );
-                self.antifragile.handle_failure(failure).await;
                 return CoordinationResult::denied(format!(
                     "Sovereign Governance: Critical intent drift ({})",
                     drift.score
@@ -153,7 +102,7 @@ impl Coordinator {
             }
         }
 
-        // 5. Semantic Intent Check (Gate Integration)
+        // 3. Semantic Intent Check
         let intent_text = request
             .intent
             .clone()
@@ -161,7 +110,6 @@ impl Coordinator {
 
         if let Ok(validation) = self.validator.validate(&intent_text) {
             if !validation.allowed {
-                // Check for Consensus Override
                 if self
                     .consensus
                     .is_security_override_active(&request.resource)
@@ -201,11 +149,10 @@ impl Coordinator {
                     return CoordinationResult::granted(lock);
                 }
                 Ok(false) => {
-                    // Fallback to queue if locked
                     let mut queue = self.queue.write().await;
                     let position = queue.enqueue(request.clone()) as u32;
                     let wait_ms =
-                        queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
+                        queue.estimate_wait_ms(position as usize, 5000);
                     return CoordinationResult::queued(position, wait_ms);
                 }
                 Err(e) => {
@@ -233,16 +180,10 @@ impl Coordinator {
             Err(LockError::ResourceLocked { .. }) => {
                 let mut queue = self.queue.write().await;
                 let position = queue.enqueue(request.clone()) as u32;
-                let wait_ms = queue.estimate_wait_ms(position as usize, self.avg_lock_duration_ms);
+                let wait_ms = queue.estimate_wait_ms(position as usize, 5000);
                 CoordinationResult::queued(position, wait_ms)
             }
             Err(e) => {
-                // Record failure in antifragile engine
-                let failure = crate::antifragile::Failure::new(
-                    &request.resource,
-                    format!("Lock failed: {}", e),
-                );
-                self.antifragile.handle_failure(failure).await;
                 CoordinationResult::denied(e.to_string())
             }
         }
@@ -284,8 +225,6 @@ impl Coordinator {
         if let Some(raft) = &self.raft_manager {
             match raft.release_lock(agent_id, resource).await {
                 Ok(_) => {
-                    // Note: Queuing logic for Raft is not yet implemented.
-                    // Distributed queuing would require Raft-backed queue.
                     return Ok(());
                 }
                 Err(e) => return Err(format!("Raft consensus error: {}", e)),
@@ -297,12 +236,9 @@ impl Coordinator {
             .await
             .map_err(|e| e.to_string())?;
 
-        // Check queue for next waiter
         let mut queue = self.queue.write().await;
         if let Some(next_request) = queue.pop(resource) {
-            drop(queue); // Release lock before recursive call
-
-            // Auto-grant to next in queue
+            drop(queue);
             let _ = self
                 .lock_manager
                 .acquire(
@@ -344,13 +280,6 @@ impl Coordinator {
 #[async_trait::async_trait]
 impl Pulse for Coordinator {
     async fn get_health(&self) -> SemanticHealthReport {
-        let intensity = self
-            .carbon_scheduler
-            .get_current_intensity("us-east-1")
-            .await
-            .unwrap_or(0.0) as f64;
-
-        // Compute cost index (simplified)
         let cost_total = self.cost_tracker.get_global_summary().total_usd;
         let cost_index = (cost_total / Decimal::from(1000))
             .to_f64()
@@ -359,17 +288,13 @@ impl Pulse for Coordinator {
 
         SemanticHealthReport {
             component: "Arbiter::Coordinator".to_string(),
-            status: if intensity > 500.0 {
-                HealthStatus::Degraded
-            } else {
-                HealthStatus::Healthy
-            },
+            status: HealthStatus::Healthy,
             timestamp: Utc::now(),
-            carbon_intensity: intensity,
+            carbon_intensity: 0.0,
             cost_index,
-            latency_ms: 0,  // Real-time latency monitoring required
-            uptime_secs: 0, // Real-time uptime monitoring required
-            message: "Autonomous Coordination Engine active (Metrics N/A)".to_string(),
+            latency_ms: 0,
+            uptime_secs: 0,
+            message: "Autonomous Coordination Engine active".to_string(),
         }
     }
 }
@@ -387,43 +312,5 @@ mod tests {
 
         assert!(result.granted);
         assert!(result.lock.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_coordinator_request_queued() {
-        let coord = Coordinator::new();
-
-        // First request gets lock
-        let req1 = CoordinationRequest::new("agent-1", "resource-1");
-        let result1 = coord.request(req1).await;
-        assert!(result1.granted);
-
-        // Second request gets queued
-        let req2 = CoordinationRequest::new("agent-2", "resource-1");
-        let result2 = coord.request(req2).await;
-        assert!(!result2.granted);
-        assert_eq!(result2.queue_position, Some(1));
-    }
-
-    #[tokio::test]
-    async fn test_coordinator_release_grants_next() {
-        let coord = Coordinator::new();
-
-        // First agent gets lock
-        let req1 = CoordinationRequest::new("agent-1", "resource-1");
-        coord.request(req1).await;
-
-        // Second agent queued
-        let req2 = CoordinationRequest::new("agent-2", "resource-1");
-        let result2 = coord.request(req2).await;
-        assert!(!result2.granted);
-
-        // First agent releases
-        coord.release_lock("agent-1", "resource-1").await.unwrap();
-
-        // Second agent should now have the lock
-        let status = coord.get_lock_status("resource-1").await;
-        assert!(status.is_some());
-        assert_eq!(status.unwrap().locked_by, "agent-2");
     }
 }

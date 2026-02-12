@@ -1,0 +1,30 @@
+[package]
+name = "agentkern-parsers-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.agentkern-parsers]
+path = ".."
+
+# Prevent this from interfering with the main workspace
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "swift_mt"
+path = "fuzz_targets/swift_mt.rs"
+
+[[bin]]
+name = "idoc"
+path = "fuzz_targets/idoc.rs"
+
+[[bin]]
+name = "copybook"
+path = "fuzz_targets/copybook.rs"

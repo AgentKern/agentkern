@@ -13,12 +13,12 @@ name: Performance Tests
 on:
   pull_request:
     paths:
-      - 'apps/identity/**'
+      - 'apps/server/**'
       - 'packages/pillars/**'
   push:
     branches: [main]
     paths:
-      - 'apps/identity/**'
+      - 'apps/server/**'
   schedule:
     # Weekly soak test (Sunday 2 AM UTC)
     - cron: '0 2 * * 0'
@@ -40,7 +40,56 @@ permissions:
   pull-requests: write
 
 jobs:
-# Smoke tests disabled until k6 scripts are restored for Rust server
+  smoke-test:
+    name: K6 Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: agentkern_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - uses: swatinem/rust-cache@v2
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Build agentkern-server
+        run: cargo build -p agentkern-server --release
+
+      - name: Start Server
+        env:
+          DATABASE_URL: "postgres://postgres:root@localhost:5432/agentkern_test"
+          JWT_SECRET: "agentkern-dev-secret-DO-NOT-USE-IN-PRODUCTION"
+          PORT: 3000
+        run: |
+          ./target/release/agentkern-server > server.log 2>&1 &
+          
+      - name: Wait for Server
+        run: |
+           timeout 60s bash -c 'until curl -s http://localhost:3000/health | grep -q "ok"; do sleep 1; done' || (cat server.log && exit 1)
+
+      - name: Run K6 Smoke Test
+        env:
+          GATE_URL: http://localhost:3000
+        run: k6 run tests/performance/gate-load-test.js
 
 # Soak and load tests disabled
 

@@ -31,7 +31,7 @@ It provides resilience, censorship resistance, and real-time trust propagation.
 |------|-------------|--------------|
 | **Full Node** | Stores complete trust history | 100GB+, always online |
 | **Light Node** | Caches recent data, queries full nodes | 1GB, intermittent |
-| **Bridge Node** | Connects to external systems | API access |
+| **Gateway Node** | Connects to external systems | API access |
 
 ---
 

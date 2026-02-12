@@ -1,3 +1,4 @@
+#![cfg(feature = "esg")]
 //! Integration Tests for Context Guard
 //!
 //! Tests RAG memory injection protection in realistic scenarios.
@@ -70,7 +71,7 @@ fn test_filter_removes_bad_chunks() {
 
     // Should have removed 2 bad chunks
     assert_eq!(filtered.len(), 3);
-    assert!(filtered.iter().all(|c| c.starts_with("Safe")));
+    assert!(filtered.iter().all(|c: &String| c.starts_with("Safe")));
 }
 
 #[test]

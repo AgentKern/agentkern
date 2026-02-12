@@ -15,10 +15,6 @@ pub enum EntityType {
     Llc,
     /// Corporation (C-Corp, S-Corp, etc.)
     Corporation,
-    /// Takaful - Islamic mutual risk sharing
-    Takaful,
-    /// Waqf - Islamic endowment/trust
-    Waqf,
     /// Decentralized Autonomous Organization
     Dao,
     /// Partnership
@@ -33,18 +29,12 @@ impl EntityType {
         match self {
             Self::Llc => &["US", "EU", "UK", "SG", "AE"],
             Self::Corporation => &["US", "EU", "UK", "JP", "CN"],
-            Self::Takaful => &["MY", "SA", "AE", "BH", "PK", "ID"],
-            Self::Waqf => &["MY", "SA", "AE", "TR", "PK"],
             Self::Dao => &["WY", "TN", "UT", "CH"], // US states + Switzerland
             Self::Partnership => &["US", "EU", "UK"],
             Self::Individual => &["*"], // Global
         }
     }
     
-    /// Check if this entity type is Shariah-compliant by default.
-    pub fn is_shariah_compliant(&self) -> bool {
-        matches!(self, Self::Takaful | Self::Waqf)
-    }
 }
 
 /// Formation request for an agent entity.
@@ -60,7 +50,7 @@ pub struct FormationRequest {
     pub entity_name: String,
     /// Initial capital (in smallest currency unit)
     pub initial_capital: Option<u64>,
-    /// Require Shariah compliance
+    /// Require Shariah compliance (Stubbed in OSS)
     pub require_shariah: bool,
     /// ESG compliance level
     pub esg_level: Option<EsgLevel>,
@@ -141,8 +131,6 @@ mod tests {
 
     #[test]
     fn test_shariah_compliant_types() {
-        assert!(EntityType::Takaful.is_shariah_compliant());
-        assert!(EntityType::Waqf.is_shariah_compliant());
         assert!(!EntityType::Llc.is_shariah_compliant());
     }
 }

@@ -13,7 +13,7 @@ fi
 
 # 2. Run core foundation tests
 echo "📦 Testing foundation packages..."
-cargo test -p agentkern-crypto -p agentkern-foundation -p agentkern-parsers -p agentkern-pulse -p agentkern-runtime
+cargo test -p agentkern-crypto -p agentkern-edge -p agentkern-governance -p agentkern-pulse -p agentkern-runtime
 
 # 3. Run pillar tests
 echo "🏛️ Testing pillars..."

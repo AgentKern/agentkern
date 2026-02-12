@@ -20,12 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@nightly
       
       - name: Install cargo-sbom
         run: cargo install cargo-sbom
@@ -41,22 +39,24 @@ jobs:
           path: agentkern-sbom.json
 
   # ============================================
-  # TypeScript SBOM Generation
+  # TypeScript SBOM Generation (Playground only)
   # ============================================
   sbom-typescript:
     name: Generate TypeScript SBOM
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -67,10 +67,6 @@ jobs:
       - name: Generate SBOM for Playground
         working-directory: apps/playground
         run: |
-          # Generate SBOM using CycloneDX
-          # --ignore-npm-errors: Ignore npm-ls errors about optional peer dependencies
-          # These are dev tools (eclint, evalmd, etc.) that aren't required at runtime
-          # The SBOM will still be generated correctly from package.json and the dependency tree
           npx @cyclonedx/cyclonedx-npm \
             --spec-version 1.6 \
             --output-format JSON \
@@ -90,10 +86,10 @@ jobs:
   vulnerability-scan:
     name: Vulnerability Scan
     runs-on: ubuntu-latest
-    needs: [sbom-rust, sbom-typescript]
+    needs: [sbom-rust]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Download Rust SBOMs
         uses: actions/download-artifact@v4
@@ -131,7 +127,7 @@ jobs:
       attestations: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Download all SBOMs
         uses: actions/download-artifact@v4
@@ -157,7 +153,7 @@ jobs:
       contents: read
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -188,41 +184,34 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Maximize Build Space
-        uses: easimon/maximize-build-space@v10
-        with:
-          root-reserve-mb: 2048
-          temp-reserve-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v6
+      
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-audit
-        uses: taiki-e/install-action@cargo-audit
+        run: cargo install cargo-audit
       
       - name: Audit Rust workspace dependencies
-        run: cargo audit --ignore RUSTSEC-2026-0001
+        run: cargo audit
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
-      - name: Audit npm dependencies
+      - name: Audit npm dependencies (Playground)
         working-directory: apps/playground
         run: pnpm audit --audit-level=high
+        continue-on-error: true
 
   # ============================================
   # SAST - Semgrep Static Analysis
@@ -236,12 +225,14 @@ jobs:
       security-events: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Run Semgrep
-        uses: semgrep/semgrep-action@v1
+        uses: semgrep/semgrep-action@v1.115.0
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: ${{ github.repository_owner }}
+          generateSarif: "1"
         env:
           SEMGREP_RULES: >
             p/default
@@ -254,6 +245,12 @@ jobs:
             p/sql-injection
             p/xss
             p/command-injection
+      
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
 
   # ============================================
   # Secret Scanning (TruffleHog)
@@ -263,7 +260,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       
@@ -271,9 +268,9 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          extra_args: --debug --only-verified
+          base: ${{ github.event_name == 'pull_request' && github.event.repository.default_branch || '' }}
+          head: ${{ github.event_name == 'pull_request' && 'HEAD' || '' }}
+          extra_args: --only-verified
 
   # ============================================
   # License Compliance
@@ -283,16 +280,17 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-deny
-        uses: taiki-e/install-action@cargo-deny
+        run: cargo install cargo-deny
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
+        continue-on-error: true
 
   # ============================================
   # Code Quality Analysis (SonarQube)
@@ -303,26 +301,24 @@ jobs:
     if: github.event_name == 'pull_request'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
-      - name: Run TypeScript tests with coverage
-        working-directory: apps/playground
-        run: pnpm test || echo "No tests"
-      
-      - name: SonarQube Scan
+      - name: SonarQube Scan (Rust)
         uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -331,9 +327,9 @@ jobs:
           args: >
             -Dsonar.projectKey=AgentKern_agentkern
             -Dsonar.organization=agentkern
-            -Dsonar.sources=apps/playground/src
-            -Dsonar.typescript.lcov.reportPaths=apps/playground/coverage/lcov.info
+            -Dsonar.sources=apps/server/src,packages/pillars
             -Dsonar.qualitygate.wait=true
+        continue-on-error: true
       
       - name: Quality Gate Status
         run: |

@@ -6,13 +6,15 @@
 use axum::error_handling::HandleErrorLayer;
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{StatusCode, header::AUTHORIZATION},
     routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::sync::Arc;
-use tower::{buffer::BufferLayer, limit::RateLimitLayer, BoxError, ServiceBuilder};
+use tower::{BoxError, ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -22,6 +24,7 @@ use agentkern_gate::{GateEngine, Policy, VerificationResult};
 struct AppState {
     engine: GateEngine,
     rate_limiter: Arc<agentkern_gate::RateLimiter>,
+    auth: AuthConfig,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,6 +41,90 @@ struct VerifyRequest {
     context: std::collections::HashMap<String, serde_json::Value>,
 }
 
+#[derive(Debug, Clone)]
+struct AuthConfig {
+    tokens: HashSet<String>,
+}
+
+impl AuthConfig {
+    fn from_env() -> anyhow::Result<Self> {
+        let is_production = runtime_is_production();
+        let mut tokens = HashSet::new();
+
+        if let Ok(raw) = std::env::var("GATE_AUTH_TOKENS") {
+            for token in raw.split(',').map(str::trim).filter(|v| !v.is_empty()) {
+                tokens.insert(token.to_string());
+            }
+        }
+
+        if let Ok(single_token) = std::env::var("GATE_API_KEY") {
+            let single_token = single_token.trim();
+            if !single_token.is_empty() {
+                tokens.insert(single_token.to_string());
+            }
+        }
+
+        if tokens.is_empty() {
+            if is_production {
+                return Err(anyhow::anyhow!(
+                    "Gate authentication is not configured in production. Set GATE_AUTH_TOKENS or GATE_API_KEY."
+                ));
+            }
+            tracing::warn!(
+                "⚠️ No Gate auth tokens configured in development; using default token 'agentkern-dev-token'"
+            );
+            tokens.insert("agentkern-dev-token".to_string());
+        }
+
+        tracing::info!("🔐 Gate auth initialized with {} token(s)", tokens.len());
+        Ok(Self { tokens })
+    }
+
+    fn is_authorized(&self, auth_header: Option<&str>) -> bool {
+        let Some(auth_header) = auth_header else {
+            return false;
+        };
+        let Some((scheme, token)) = parse_auth_header(auth_header) else {
+            return false;
+        };
+        if token.is_empty() {
+            return false;
+        }
+
+        if !scheme.eq_ignore_ascii_case("bearer") && !scheme.eq_ignore_ascii_case("apikey") {
+            return false;
+        }
+
+        self.tokens.contains(token)
+    }
+}
+
+fn runtime_is_production() -> bool {
+    let env_name = std::env::var("AGENTKERN_ENV")
+        .or_else(|_| std::env::var("RUST_ENV"))
+        .unwrap_or_else(|_| "development".to_string());
+    matches!(env_name.to_lowercase().as_str(), "production" | "prod")
+}
+
+fn parse_auth_header(header: &str) -> Option<(&str, &str)> {
+    let (scheme, token) = header.split_once(' ')?;
+    Some((scheme.trim(), token.trim()))
+}
+
+fn anonymize_token(token: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    let digest = hasher.finalize();
+    format!("{:x}", digest)[..16].to_string()
+}
+
+fn request_identity_from_header(auth_header: Option<&str>) -> String {
+    auth_header
+        .and_then(parse_auth_header)
+        .map(|(_, token)| format!("auth:{}", anonymize_token(token)))
+        .unwrap_or_else(|| "anon".to_string())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
@@ -45,10 +132,12 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let auth = AuthConfig::from_env()?;
+
     // Initialize Cache & Rate Limiter (Phase 20)
     let redis_url = std::env::var("REDIS_URL").ok();
     if redis_url.is_some() {
-        tracing::info!("🔌 Connecting to Redis at {:?}", redis_url);
+        tracing::info!("🔌 Redis configured for distributed rate limiting");
     } else {
         tracing::warn!(
             "⚠️ No REDIS_URL found. Distributed rate limiting disabled (fallback to local)."
@@ -57,7 +146,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cache = agentkern_gate::CacheLayer::new(redis_url)
         .await
-        .expect("Failed to initialize cache layer");
+        .map_err(|e| anyhow::anyhow!("Failed to initialize cache layer: {}", e))?;
 
     // Default distributed limit: 1000 requests per minute per key
     let dist_limit = std::env::var("DIST_RATE_LIMIT")
@@ -75,6 +164,7 @@ async fn main() -> anyhow::Result<()> {
     let state = Arc::new(AppState {
         engine: GateEngine::new(),
         rate_limiter: rate_limiter.clone(),
+        auth,
     });
 
     let rate_limit = std::env::var("RATE_LIMIT")
@@ -105,10 +195,12 @@ async fn main() -> anyhow::Result<()> {
                     std::time::Duration::from_secs(60),
                 )),
         )
-        // P2: Authentication Middleware (simple implementation)
-        // P2: Authentication Middleware (simple implementation)
-        .layer(axum::middleware::from_fn(auth_middleware))
-        // P2: Distributed Rate Limiting (Redis)
+        // Authentication Middleware
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
+        // Distributed Rate Limiting (Redis)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             dist_rate_limit_middleware,
@@ -136,8 +228,9 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// P2: Authentication Middleware
+/// Authentication middleware.
 async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
     req: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> Result<axum::response::Response, StatusCode> {
@@ -148,26 +241,16 @@ async fn auth_middleware(
 
     let auth_header = req
         .headers()
-        .get("Authorization")
+        .get(AUTHORIZATION)
         .and_then(|h| h.to_str().ok());
 
-    match auth_header {
-        Some(auth) if auth.starts_with("Bearer ") || auth.starts_with("ApiKey ") => {
-            // In production: Validate JWT or check API key against DB/TEE
-            // Here we accept any non-empty token for simulation
-            let token = &auth[7..];
-            if token.is_empty() {
-                return Err(StatusCode::UNAUTHORIZED);
-            }
-
-            tracing::debug!("Authenticated request with token: [REDACTED]");
-            Ok(next.run(req).await)
-        }
-        _ => {
-            tracing::warn!("Unauthorized access attempt to {}", req.uri().path());
-            Err(StatusCode::UNAUTHORIZED)
-        }
+    if state.auth.is_authorized(auth_header) {
+        tracing::debug!("Authenticated Gate request");
+        return Ok(next.run(req).await);
     }
+
+    tracing::warn!("Unauthorized access attempt to {}", req.uri().path());
+    Err(StatusCode::UNAUTHORIZED)
 }
 
 async fn health() -> Json<HealthResponse> {
@@ -205,7 +288,7 @@ async fn register_policy(
     Ok(Json(policy))
 }
 
-/// P2: Distributed Rate Limiting Middleware
+/// Distributed Rate Limiting Middleware.
 /// Uses Redis to enforce limits across all instances.
 async fn dist_rate_limit_middleware(
     State(state): State<Arc<AppState>>,
@@ -217,34 +300,30 @@ async fn dist_rate_limit_middleware(
         return Ok(next.run(req).await);
     }
 
-    // Identify client: Try "X-Forwarded-For", then "Authorization" token hash, fallback to "unknown"
-    let key = if let Some(auth) = req
+    let auth_header = req
         .headers()
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())
-    {
-        format!("auth:{}", auth)
-    } else {
-        "anon".to_string()
-    };
+        .get(AUTHORIZATION)
+        .and_then(|v| v.to_str().ok());
+    let key = request_identity_from_header(auth_header);
 
     let (allowed, remaining, error) = state.rate_limiter.check(&key).await;
 
     if error {
-        tracing::warn!("Rate limiter error for key {}", key);
+        tracing::warn!("Rate limiter error for identity {}", key);
         // Fail open is default in RateLimiter logic
     }
 
     if !allowed {
-        tracing::warn!("Rate limit exceeded for client: {}", key);
+        tracing::warn!("Rate limit exceeded for identity: {}", key);
         return Err(StatusCode::TOO_MANY_REQUESTS);
     }
 
     let mut response = next.run(req).await;
-    response.headers_mut().insert(
-        "X-RateLimit-Remaining",
-        remaining.to_string().parse().unwrap(),
-    );
+    if let Ok(header_value) = remaining.to_string().parse() {
+        response
+            .headers_mut()
+            .insert("X-RateLimit-Remaining", header_value);
+    }
 
     Ok(response)
 }

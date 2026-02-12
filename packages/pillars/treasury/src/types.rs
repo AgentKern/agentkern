@@ -1,6 +1,7 @@
 //! Treasury Types
 
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -94,19 +95,31 @@ impl Amount {
     pub fn zero_with_decimals(decimals: u8) -> Self {
         Self { value: 0, decimals }
     }
+
+    fn from_decimal_with_scale(value: Decimal, decimals: u8) -> Self {
+        let multiplier = Decimal::from(10i64.pow(decimals as u32));
+        let scaled = (value * multiplier).round();
+        let raw = scaled.to_i64().unwrap_or_else(|| {
+            if scaled.is_sign_negative() {
+                i64::MIN
+            } else {
+                i64::MAX
+            }
+        });
+        Self {
+            value: raw,
+            decimals,
+        }
+    }
 }
 
 impl std::ops::Add for Amount {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        if self.decimals != other.decimals {
-            panic!("Cannot add amounts with different decimals");
-        }
-        Self {
-            value: self.value + other.value,
-            decimals: self.decimals,
-        }
+        let decimals = self.decimals.max(other.decimals);
+        let sum = self.to_decimal() + other.to_decimal();
+        Self::from_decimal_with_scale(sum, decimals)
     }
 }
 
@@ -114,13 +127,9 @@ impl std::ops::Sub for Amount {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        if self.decimals != other.decimals {
-            panic!("Cannot subtract amounts with different decimals");
-        }
-        Self {
-            value: self.value - other.value,
-            decimals: self.decimals,
-        }
+        let decimals = self.decimals.max(other.decimals);
+        let diff = self.to_decimal() - other.to_decimal();
+        Self::from_decimal_with_scale(diff, decimals)
     }
 }
 
@@ -166,5 +175,23 @@ mod tests {
         let b = Amount::new(300, 2);
         let c = a.sub(&b).unwrap();
         assert_eq!(c.value, 700);
+    }
+
+    #[test]
+    fn test_add_with_mixed_decimals() {
+        let a = Amount::new(100, 2); // 1.00
+        let b = Amount::new(1, 1); // 0.1
+        let c = a + b;
+        assert_eq!(c.decimals, 2);
+        assert_eq!(c.value, 110);
+    }
+
+    #[test]
+    fn test_sub_with_mixed_decimals() {
+        let a = Amount::new(110, 2); // 1.10
+        let b = Amount::new(1, 1); // 0.1
+        let c = a - b;
+        assert_eq!(c.decimals, 2);
+        assert_eq!(c.value, 100);
     }
 }

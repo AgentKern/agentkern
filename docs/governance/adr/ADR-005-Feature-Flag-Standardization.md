@@ -55,7 +55,7 @@ The standardized naming scheme will follow:
 - Clearer separation between OSS and Enterprise features
 
 ### Negative
-- Initial refactoring effort required to rename legacy flags
+- Initial refactoring effort required to rename existing flags
 - Need to update documentation for custom builds
 
 ## Future Considerations

@@ -22,31 +22,13 @@ pub struct AgentDiscovery {
 
 impl AgentDiscovery {
     /// Create a new discovery service.
-    ///
-    /// # Errors
-    /// Returns an error if the HTTP client cannot be created.
-    pub fn try_new(registry: Arc<AgentRegistry>) -> Result<Self, NexusError> {
+    pub fn new(registry: Arc<AgentRegistry>) -> Self {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| NexusError::ConfigurationError {
-                message: format!("Failed to create HTTP client: {}", e),
-            })?;
+            .expect("Failed to create HTTP client for agent discovery - this is a critical initialization error");
 
-        Ok(Self { registry, client })
-    }
-
-    /// Create a new discovery service, panicking on failure.
-    ///
-    /// Prefer `try_new()` in application code. This method is provided
-    /// for convenience in tests and initialization where failure is fatal.
-    ///
-    /// # Panics
-    /// Panics if the HTTP client cannot be created.
-    #[must_use]
-    pub fn new(registry: Arc<AgentRegistry>) -> Self {
-        Self::try_new(registry)
-            .expect("Failed to create AgentDiscovery - HTTP client initialization failed")
+        Self { registry, client }
     }
 
     /// Get the underlying agent registry.

@@ -376,7 +376,8 @@ mod tests {
     #[tokio::test]
     async fn test_embed_placeholder() {
         let embedder = PolyglotEmbedder::default();
-        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        // SAFETY: test-only env var manipulation
+        unsafe { std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test") };
         let embedding = embedder
             .embed("مرحبا بالعالم", SynapseRegion::Mena)
             .await

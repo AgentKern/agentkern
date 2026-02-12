@@ -4,6 +4,8 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
 
+use crate::auth::Environment;
+
 pub fn init_telemetry() -> anyhow::Result<()> {
     // Set global propagator for context propagation
     global::set_text_map_propagator(TraceContextPropagator::new());
@@ -23,7 +25,11 @@ pub fn init_telemetry() -> anyhow::Result<()> {
             opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
             opentelemetry::KeyValue::new(
                 "deployment.environment",
-                std::env::var("AGENTKERN_ENV").unwrap_or_else(|_| "development".into()),
+                match Environment::from_env() {
+                    Environment::Development => "development",
+                    Environment::Staging => "staging",
+                    Environment::Production => "production",
+                },
             ),
         ]))
         .build();

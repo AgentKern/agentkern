@@ -345,46 +345,47 @@ async fn report_failure(
 // ============================================================================
 
 #[derive(Deserialize)]
-struct AuditRequest {
+struct LogAuditEventRequest {
     event_type: String,
+    actor_id: Option<String>,
+    actor_type: Option<String>,
+    target_id: Option<String>,
+    target_type: Option<String>,
     action: String,
     outcome: String,
-    actor_id: Option<String>,
-    target_id: Option<String>,
+    details: Option<Value>,
+    ip_address: Option<String>,
 }
 
 async fn log_audit_event(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<AuditRequest>,
+    Json(payload): Json<LogAuditEventRequest>,
 ) -> (StatusCode, Json<Value>) {
-    if let Some(ref audit) = state.audit_service {
-        match audit
+    if let Some(ref audit_service) = state.audit_service {
+        match audit_service
             .log(
                 &payload.event_type,
                 payload.actor_id.as_deref(),
-                None, // actor_type
+                payload.actor_type.as_deref(),
                 payload.target_id.as_deref(),
-                None, // target_type
+                payload.target_type.as_deref(),
                 &payload.action,
                 &payload.outcome,
-                None, // details
-                None, // ip_address
+                payload.details,
+                payload.ip_address.as_deref(),
             )
             .await
         {
-            Ok(id) => (
-                StatusCode::CREATED,
-                Json(json!({ "logged": true, "id": id.to_string() })),
-            ),
+            Ok(id) => (StatusCode::CREATED, Json(json!({ "id": id }))),
             Err(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::BAD_REQUEST,
                 Json(json!({ "error": e.to_string() })),
             ),
         }
     } else {
         (
-            StatusCode::CREATED,
-            Json(json!({ "logged": true, "note": "No database connected" })),
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": "Audit service unavailable without database connection" })),
         )
     }
 }
@@ -407,23 +408,25 @@ async fn register_key(
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref pool) = state.pool {
         // Insert key into database
-        let result = sqlx::query(
+        let result = sqlx::query_scalar::<_, uuid::Uuid>(
             r#"
-            INSERT INTO verification_keys (id, principal_id, algorithm, public_key_pem, created_at, last_used_at, active)
+            INSERT INTO verification_keys (principal_id, credential_id, algorithm, public_key, created_at, updated_at, active)
             VALUES ($1, $2, $3, $4, NOW(), NOW(), true)
+            RETURNING id
             "#
         )
-        .bind(&payload.credential_id)
         .bind(&payload.principal_id)
+        .bind(&payload.credential_id)
         .bind(payload.algorithm.as_deref().unwrap_or("Ed25519"))
         .bind(&payload.public_key)
-        .execute(pool)
+        .fetch_one(pool)
         .await;
 
         match result {
-            Ok(_) => (
+            Ok(id) => (
                 StatusCode::CREATED,
                 Json(json!({
+                    "id": id,
                     "credential_id": payload.credential_id,
                     "principal_id": payload.principal_id,
                     "active": true
@@ -452,8 +455,19 @@ async fn revoke_key(
     Path(id): Path<String>,
 ) -> (StatusCode, Json<Value>) {
     if let Some(ref pool) = state.pool {
-        let result = sqlx::query("UPDATE verification_keys SET active = false WHERE id = $1")
-            .bind(&id)
+        let parsed_id = match uuid::Uuid::parse_str(&id) {
+            Ok(value) => value,
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": "Invalid key id format" })),
+                );
+            }
+        };
+
+        let result =
+            sqlx::query("UPDATE verification_keys SET active = false, updated_at = NOW() WHERE id = $1")
+            .bind(parsed_id)
             .execute(pool)
             .await;
 

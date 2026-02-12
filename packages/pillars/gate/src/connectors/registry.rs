@@ -21,6 +21,68 @@ pub struct RegisteredConnector {
     pub enabled: bool,
     /// Tags for categorization
     pub tags: Vec<String>,
+    /// Community Metadata: Author
+    pub author: Option<String>,
+    /// Community Metadata: Version
+    pub version: Option<String>,
+    /// Community Metadata: Repository
+    pub repository: Option<String>,
+}
+
+/// A manifest for a community-contributed connector.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectorManifest {
+    pub id: String,
+    pub name: String,
+    pub protocol: ConnectorProtocol,
+    pub author: String,
+    pub version: String,
+    pub repository: String,
+    pub tags: Vec<String>,
+}
+
+/// Trait for discovering community connectors.
+#[async_trait::async_trait]
+pub trait MarketplaceDiscovery: Send + Sync {
+    /// Discover available connectors from a remote source.
+    async fn discover_connectors(&self) -> ConnectorResult<Vec<ConnectorManifest>>;
+}
+
+/// HTTP implementation of MarketplaceDiscovery.
+#[cfg(feature = "http")]
+pub struct HttpMarketplaceDiscovery {
+    client: reqwest::Client,
+    registry_url: String,
+}
+
+#[cfg(feature = "http")]
+impl HttpMarketplaceDiscovery {
+    pub fn new(registry_url: impl Into<String>) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            registry_url: registry_url.into(),
+        }
+    }
+}
+
+#[cfg(feature = "http")]
+#[async_trait::async_trait]
+impl MarketplaceDiscovery for HttpMarketplaceDiscovery {
+    async fn discover_connectors(&self) -> ConnectorResult<Vec<ConnectorManifest>> {
+        let response = self
+            .client
+            .get(&self.registry_url)
+            .send()
+            .await
+            .map_err(|e| ConnectorError::Internal(format!("HTTP request failed: {}", e)))?;
+
+        let manifests = response
+            .json::<Vec<ConnectorManifest>>()
+            .await
+            .map_err(|e| ConnectorError::Internal(format!("Failed to parse manifest JSON: {}", e)))?;
+
+        Ok(manifests)
+    }
 }
 
 /// Connector registry for managing multiple connectors.
@@ -66,6 +128,45 @@ impl ConnectorRegistry {
                 registered_at: chrono::Utc::now().timestamp_millis() as u64,
                 enabled: true,
                 tags,
+                author: None,
+                version: None,
+                repository: None,
+            },
+        );
+
+        Ok(())
+    }
+
+    /// Register a connector with full marketplace metadata.
+    pub fn register_with_metadata(
+        &self,
+        id: impl Into<String>,
+        connector: Arc<dyn LegacyConnector>,
+        tags: Vec<String>,
+        author: Option<String>,
+        version: Option<String>,
+        repository: Option<String>,
+    ) -> ConnectorResult<()> {
+        let id = id.into();
+        let mut connectors = self.connectors.write();
+
+        if connectors.contains_key(&id) {
+            return Err(ConnectorError::Internal(format!(
+                "Connector '{}' already registered",
+                id
+            )));
+        }
+
+        connectors.insert(
+            id,
+            RegisteredConnector {
+                connector,
+                registered_at: chrono::Utc::now().timestamp_millis() as u64,
+                enabled: true,
+                tags,
+                author,
+                version,
+                repository,
             },
         );
 

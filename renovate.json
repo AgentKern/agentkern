@@ -1,14 +1,16 @@
-version: 1
-update_configs:
-  - package_manager: "javascript"
-    directory: "/sdks/typescript/agentkern"
-    update_schedule: "weekly"
-  - package_manager: "rust:cargo"
-    directory: "/packages/pillars/gate"
-    update_schedule: "weekly"
-  - package_manager: "rust:cargo"
-    directory: "/packages/pillars/synapse"
-    update_schedule: "weekly"
-  - package_manager: "rust:cargo"
-    directory: "/packages/pillars/arbiter"
-    update_schedule: "weekly"
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["apps/playground/**", "apps/dashboard/**"],
+      "schedule": ["every weekend"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["Cargo.toml", "packages/**", "apps/server/**", "sdks/**"],
+      "schedule": ["every weekend"]
+    }
+  ]
+}

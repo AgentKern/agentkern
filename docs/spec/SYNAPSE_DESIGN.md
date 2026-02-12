@@ -61,12 +61,11 @@
 | CRDT Sync | `crdt.rs` | Conflict-free distributed replication |
 | Intent Tracking | `intent.rs`, `drift.rs` | Goal progression and drift alerts |
 | Polyglot Memory | `polyglot/`, `embeddings.rs` | Native language embeddings |
-| Encryption | `encryption.rs` | AES-256-GCM envelope encryption |
-| Secure Passports | `secure_passport.rs` | Field-level Zero-Trust encryption |
+| Context Protection | `context_guard.rs` | RAG safety and context filtering |
 | Memory Portability | `passport/` | GDPR Article 20 export/import |
 | Chain Snapshots | `state_snapshot.rs` | Immutable blockchain-anchored backups |
 | Global Mesh | `mesh/` | Geo-fenced multi-region sync |
-| Digital Twins | `sandbox.rs` | Chaos testing and simulation |
+| Adaptive Queries | `adaptive.rs` | Runtime query optimization |
 
 ### Location
 
@@ -83,13 +82,11 @@ packages/pillars/synapse/
 │   ├── adaptive.rs          # Adaptive query execution
 │   ├── context_guard.rs     # RAG context injection protection
 │   ├── embeddings.rs        # Embedding configuration
-│   ├── encryption.rs        # Encryption-at-rest
-│   ├── secure_passport.rs   # Field-level encrypted passports
 │   ├── state_snapshot.rs    # Chain-anchored snapshots
-│   ├── sandbox.rs           # Digital twin sandbox
 │   ├── mesh/                # Global mesh sync
 │   │   ├── mod.rs           # Mesh controller
-│   │   ├── geo_fence.rs     # Data residency enforcement
+│   │   ├── migration.rs     # Region migration orchestration
+│   │   ├── orchestrator.rs  # Runtime mesh orchestration
 │   │   └── sync.rs          # CRDT sync protocol
 │   ├── passport/            # Memory passport (GDPR)
 │   │   ├── mod.rs
@@ -1037,12 +1034,10 @@ curl http://localhost:3002/intent/agent-123/drift
 | [`adaptive.rs`](../../packages/pillars/synapse/src/adaptive.rs) | 305 | Adaptive query execution |
 | [`context_guard.rs`](../../packages/pillars/synapse/src/context_guard.rs) | 381 | RAG context protection |
 | [`embeddings.rs`](../../packages/pillars/synapse/src/embeddings.rs) | 386 | Embedding configuration |
-| [`encryption.rs`](../../packages/pillars/synapse/src/encryption.rs) | 511 | Envelope encryption |
-| [`secure_passport.rs`](../../packages/pillars/synapse/src/secure_passport.rs) | 525 | Zero-Trust passports |
 | [`state_snapshot.rs`](../../packages/pillars/synapse/src/state_snapshot.rs) | 501 | Chain-anchored snapshots |
-| [`sandbox.rs`](../../packages/pillars/synapse/src/sandbox.rs) | 529 | Digital twin sandbox |
 | [`mesh/mod.rs`](../../packages/pillars/synapse/src/mesh/mod.rs) | 226 | Global mesh controller |
-| [`mesh/geo_fence.rs`](../../packages/pillars/synapse/src/mesh/geo_fence.rs) | 212 | Geo-fence policy |
+| [`mesh/migration.rs`](../../packages/pillars/synapse/src/mesh/migration.rs) | ~160 | Data-region migration |
+| [`mesh/orchestrator.rs`](../../packages/pillars/synapse/src/mesh/orchestrator.rs) | ~250 | Mesh orchestration |
 | [`mesh/sync.rs`](../../packages/pillars/synapse/src/mesh/sync.rs) | 264 | CRDT sync protocol |
 | [`passport/mod.rs`](../../packages/pillars/synapse/src/passport/mod.rs) | 24 | Memory passport exports |
 | [`passport/export.rs`](../../packages/pillars/synapse/src/passport/export.rs) | ~250 | Passport export |

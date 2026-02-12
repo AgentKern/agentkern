@@ -11,7 +11,7 @@ This document defines the canonical directory structure of the AgentKern reposit
     *   `pillars/`: Implementation of the 6 core pillars (Gate, Synapse, Arbiter, Nexus, Treasury, Identity).
     *   `foundation/`: Lower-level shared infrastructure (Runtime, Edge, Crypto, Observability).
 *   **`sdks/`**: Polyglot interface libraries.
-    *   `typescript/`: N-API bound high-performance SDK for Node.js environments.
+    *   `node/`: Node.js SDK for local proofs and HTTP runtime integration.
     *   `python/`: Python bindings for AI agent frameworks.
 *   **`ee/`**: Enterprise Edition (Proprietary). Licensed modules for multi-tenancy and global mesh sync.
 *   **`docs/`**: Pragmatic documentation (this directory).

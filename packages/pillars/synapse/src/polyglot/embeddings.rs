@@ -196,7 +196,8 @@ mod tests {
     async fn test_embedding_dimensions() {
         let embedder = PolyglotEmbedder::new(Language::English);
         // Set fake key for test
-        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        // SAFETY: test-only env var manipulation
+        unsafe { std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test") };
         let result = embedder.embed("Hello world").await.unwrap();
 
         assert_eq!(result.dimensions, 1024);
@@ -206,7 +207,8 @@ mod tests {
     #[tokio::test]
     async fn test_arabic_embedder() {
         let embedder = PolyglotEmbedder::new(Language::Arabic);
-        std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test");
+        // SAFETY: test-only env var manipulation
+        unsafe { std::env::set_var("AGENTKERN_EMBEDDINGS_API_KEY", "test") };
         let result = embedder.embed("مرحبا").await.unwrap();
 
         assert_eq!(result.model, "jais-embedding-v1");

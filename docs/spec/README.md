@@ -20,7 +20,6 @@ This directory contains the authoritative technical design specifications for th
 | Module | Purpose | Link |
 | :--- | :--- | :--- |
 | 📜 **Governance** | Regulatory Compliance as Code | [GOVERNANCE_DESIGN.md](GOVERNANCE_DESIGN.md) |
-| 🛠️ **Infrastructure** | Unified Server & Edge Runtimes | [INFRASTRUCTURE_DESIGN.md](INFRASTRUCTURE_DESIGN.md) |
 | 📦 **SDK Design** | Polyglot (Rust/Node/Python) Strategy | [SDK_DESIGN.md](SDK_DESIGN.md) |
 | 🔌 **Integration** | Connecting Sidecars & External AI | [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) |
 

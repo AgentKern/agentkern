@@ -3,7 +3,7 @@
 //! Actively manages agent placement across the multi-cloud mesh.
 //! Per GLOBAL_GAPS.md: "Sovereign Orchestration"
 
-use super::{DataRegion, GlobalMesh, MeshError, MigrationManager, MigrationTicket};
+use super::{DataRegion, GlobalMesh, MeshError};
 use crate::passport::MemoryPassport;
 use agentkern_pulse::{HealthStatus, SemanticHealthReport};
 use serde::{Deserialize, Serialize};
@@ -27,8 +27,8 @@ pub enum MigrationReason {
 /// Result of a migration check.
 #[derive(Debug)]
 pub enum MigrationDecision {
-    /// Agent should migrate to a new region
-    Migrate(MigrationTicket),
+    /// Agent should migrate to a new region (stub)
+    Migrate,
     /// Agent should stay in current region (passport returned)
     Stay(MemoryPassport),
     /// Agent stayed but performed self-healing (passport renewed)
@@ -38,17 +38,18 @@ pub enum MigrationDecision {
 /// Orchestrator for the autonomous mesh.
 pub struct MeshOrchestrator {
     _mesh: Arc<GlobalMesh>,
-    migration: Arc<MigrationManager>,
+    // Migration Manager moved to Enterprise Edition
+    // migration: Arc<MigrationManager>,
     /// Track health reports per region
     region_health: Arc<RwLock<HashMap<DataRegion, SemanticHealthReport>>>,
 }
 
 impl MeshOrchestrator {
     /// Create a new orchestrator.
-    pub fn new(mesh: Arc<GlobalMesh>, migration: Arc<MigrationManager>) -> Self {
+    pub fn new(mesh: Arc<GlobalMesh>) -> Self {
         Self {
             _mesh: mesh,
-            migration,
+            // migration,
             region_health: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -82,8 +83,8 @@ impl MeshOrchestrator {
                             target_region
                         );
 
-                        let ticket = self.migration.hibernate(passport, target_region)?;
-                        return Ok(MigrationDecision::Migrate(ticket));
+                        tracing::warn!("Migration requires Enterprise Edition");
+                        return Ok(MigrationDecision::Stay(passport));
                     }
                 }
                 HealthStatus::Degraded => {
@@ -108,7 +109,7 @@ impl MeshOrchestrator {
     pub async fn heal_local_agent(
         &self,
         passport: MemoryPassport,
-        current_region: DataRegion,
+        _current_region: DataRegion,
     ) -> Result<MemoryPassport, MeshError> {
         let start = std::time::Instant::now();
         tracing::info!(
@@ -116,12 +117,10 @@ impl MeshOrchestrator {
             passport.identity.did
         );
 
-        // 1. Hibernate (Persistence Check)
-        let ticket = self.migration.hibernate(passport, current_region)?;
-
-        // 2. Restart (Reload)
-        // Simulates a clean slate reload from encrypted state
-        let restored = self.migration.wakeup(ticket, current_region)?;
+        // Enterprise Feature: Self-healing via hibernation/wakeup
+        // let ticket = self.migration.hibernate(passport, current_region)?;
+        // let restored = self.migration.wakeup(ticket, current_region)?;
+        let restored = passport; // Stub for OSS
 
         let duration = start.elapsed();
         tracing::info!(
@@ -138,7 +137,7 @@ impl MeshOrchestrator {
 
         health_map
             .iter()
-            .filter(|(&region, _)| region != exclude_region)
+            .filter(|(region, _)| **region != exclude_region)
             .filter(|(_, report)| report.status == HealthStatus::Healthy)
             // Prioritize low carbon intensity
             .min_by(|a, b| {
@@ -146,7 +145,7 @@ impl MeshOrchestrator {
                     .partial_cmp(&b.1.carbon_intensity)
                     .unwrap()
             })
-            .map(|(&region, _)| region)
+            .map(|(region, _)| *region)
     }
 
     /// Get current health map.
@@ -158,7 +157,6 @@ impl MeshOrchestrator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::encryption::EncryptionEngine;
     use crate::mesh::DataRegion;
     use crate::passport::AgentIdentity;
     use chrono::Utc;
@@ -173,88 +171,53 @@ mod tests {
         }
     }
 
+    fn sample_health_report(status: HealthStatus, carbon: f64) -> SemanticHealthReport {
+        SemanticHealthReport {
+            component: "mesh".into(),
+            status,
+            timestamp: Utc::now(),
+            carbon_intensity: carbon,
+            cost_index: 0.5,
+            latency_ms: 50,
+            uptime_secs: 1000,
+            message: "test".into(),
+        }
+    }
+
     #[tokio::test]
-    async fn test_orchestrator_auto_migration() {
+    async fn test_orchestrator_critical_region_stays_in_oss() {
         let mesh = Arc::new(GlobalMesh::new("local".into(), DataRegion::UsEast));
-        let encryption = EncryptionEngine::new();
-        let migration = Arc::new(MigrationManager::new(encryption));
-        let orchestrator = MeshOrchestrator::new(mesh, migration);
+        let orchestrator = MeshOrchestrator::new(mesh);
 
-        // Mark US East as Critical
+        // Mark US East as Critical and EU as Healthy
         orchestrator
-            .update_region_health(
-                DataRegion::UsEast,
-                SemanticHealthReport {
-                    component: "mesh".into(),
-                    status: HealthStatus::Critical,
-                    timestamp: Utc::now(),
-                    carbon_intensity: 450.0,
-                    cost_index: 0.5,
-                    latency_ms: 500,
-                    uptime_secs: 100,
-                    message: "Power outage".into(),
-                },
-            )
+            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Critical, 450.0))
             .await;
-
-        // Mark EU Frankfurt as Healthy
         orchestrator
-            .update_region_health(
-                DataRegion::EuFrankfurt,
-                SemanticHealthReport {
-                    component: "mesh".into(),
-                    status: HealthStatus::Healthy,
-                    timestamp: Utc::now(),
-                    carbon_intensity: 200.0,
-                    cost_index: 0.4,
-                    latency_ms: 50,
-                    uptime_secs: 1000,
-                    message: "All systems green".into(),
-                },
-            )
+            .update_region_health(DataRegion::EuFrankfurt, sample_health_report(HealthStatus::Healthy, 200.0))
             .await;
 
         let passport = MemoryPassport::new(sample_identity(), "US".to_string());
-
         let decision = orchestrator
             .check_and_migrate("agent-1", passport, DataRegion::UsEast)
             .await
             .unwrap();
 
-        match decision {
-            MigrationDecision::Migrate(ticket) => {
-                assert_eq!(ticket.target_region, DataRegion::EuFrankfurt);
-            }
-            _ => panic!("Expected migration, got {:?}", decision),
-        }
+        // OSS edition stays (migration requires EE)
+        assert!(matches!(decision, MigrationDecision::Stay(_)));
     }
 
     #[tokio::test]
     async fn test_orchestrator_healing() {
         let mesh = Arc::new(GlobalMesh::new("local".into(), DataRegion::UsEast));
-        let encryption = EncryptionEngine::new();
-        let migration = Arc::new(MigrationManager::new(encryption));
-        let orchestrator = MeshOrchestrator::new(mesh, migration);
+        let orchestrator = MeshOrchestrator::new(mesh);
 
-        // Mark US East as Degraded
+        // Mark US East as Degraded — should trigger self-healing
         orchestrator
-            .update_region_health(
-                DataRegion::UsEast,
-                SemanticHealthReport {
-                    component: "mesh".into(),
-                    status: HealthStatus::Degraded,
-                    timestamp: Utc::now(),
-                    carbon_intensity: 100.0,
-                    cost_index: 0.5,
-                    latency_ms: 100,
-                    uptime_secs: 100,
-                    message: "Memory leak detected".into(),
-                },
-            )
+            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Degraded, 100.0))
             .await;
 
         let passport = MemoryPassport::new(sample_identity(), "US".to_string());
-
         let decision = orchestrator
             .check_and_migrate("agent-1", passport, DataRegion::UsEast)
             .await
@@ -266,5 +229,24 @@ mod tests {
             }
             _ => panic!("Expected healing, got {:?}", decision),
         }
+    }
+
+    #[tokio::test]
+    async fn test_orchestrator_healthy_region_stays() {
+        let mesh = Arc::new(GlobalMesh::new("local".into(), DataRegion::UsEast));
+        let orchestrator = MeshOrchestrator::new(mesh);
+
+        // Mark US East as Healthy
+        orchestrator
+            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Healthy, 100.0))
+            .await;
+
+        let passport = MemoryPassport::new(sample_identity(), "US".to_string());
+        let decision = orchestrator
+            .check_and_migrate("agent-1", passport, DataRegion::UsEast)
+            .await
+            .unwrap();
+
+        assert!(matches!(decision, MigrationDecision::Stay(_)));
     }
 }

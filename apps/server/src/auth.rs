@@ -20,17 +20,22 @@ use axum::{
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::AppState;
 
 /// Token blacklist for revocation tracking (production should use Redis)
-static TOKEN_BLACKLIST: std::sync::OnceLock<Mutex<HashSet<String>>> = std::sync::OnceLock::new();
+static TOKEN_BLACKLIST: std::sync::OnceLock<Mutex<HashMap<String, i64>>> =
+    std::sync::OnceLock::new();
 
-fn get_token_blacklist() -> &'static Mutex<HashSet<String>> {
-    TOKEN_BLACKLIST.get_or_init(|| Mutex::new(HashSet::new()))
+fn get_token_blacklist() -> &'static Mutex<HashMap<String, i64>> {
+    TOKEN_BLACKLIST.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn prune_expired_tokens(blacklist: &mut HashMap<String, i64>, now: i64) {
+    blacklist.retain(|_, expires_at| *expires_at > now);
 }
 
 /// Minimum secret length for security (256 bits = 32 bytes)
@@ -79,12 +84,12 @@ pub enum Environment {
 }
 
 impl Environment {
-    fn from_env() -> Self {
-        match std::env::var("AGENTKERN_ENV")
-            .unwrap_or_else(|_| "development".to_string())
-            .to_lowercase()
-            .as_str()
-        {
+    pub fn from_env() -> Self {
+        let raw = std::env::var("AGENTKERN_ENV")
+            .or_else(|_| std::env::var("RUST_ENV"))
+            .unwrap_or_else(|_| "development".to_string());
+
+        match raw.to_lowercase().as_str() {
             "production" | "prod" => Environment::Production,
             "staging" | "stage" => Environment::Staging,
             _ => Environment::Development,
@@ -174,6 +179,10 @@ impl JwtConfig {
 
 /// Check if secret has low entropy (simple patterns)
 fn is_low_entropy(secret: &str) -> bool {
+    if secret.is_empty() {
+        return true;
+    }
+
     // Check for common weak patterns
     let weak_patterns = [
         "password", "secret", "12345", "qwerty", "admin", "changeme", "default", "test", "demo",
@@ -187,11 +196,39 @@ fn is_low_entropy(secret: &str) -> bool {
     }
 
     // Check for all same character
-    if secret.chars().all(|c| c == secret.chars().next().unwrap()) {
+    if let Some(first_char) = secret.chars().next()
+        && secret.chars().all(|c| c == first_char)
+    {
         return true;
     }
 
     false
+}
+
+fn has_admin_role(claims: &Claims) -> bool {
+    claims
+        .roles
+        .iter()
+        .map(|role| role.to_lowercase())
+        .any(|role| role == "admin" || role == "superadmin" || role == "root")
+}
+
+fn require_admin_claims(
+    claims: Option<axum::Extension<Claims>>,
+) -> Result<Claims, (StatusCode, Json<serde_json::Value>)> {
+    let claims = claims.ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(serde_json::json!({ "error": "No valid token" })),
+    ))?;
+
+    if !has_admin_role(&claims) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": "Admin role required" })),
+        ));
+    }
+
+    Ok(claims.0)
 }
 
 /// Create a new JWT token
@@ -478,25 +515,29 @@ async fn decrypt_with_kms(
 /// Check if a token has been revoked
 async fn is_token_revoked(redis_client: Option<&redis::Client>, jti: &str) -> bool {
     // 1. Check Redis if available
-    if let Some(client) = redis_client {
-        if let Ok(mut conn) = client.get_multiplexed_async_connection().await {
-            use redis::AsyncCommands;
-            let key = format!("auth:revocation:{}", jti);
-            match conn.exists::<_, bool>(key).await {
-                Ok(exists) => {
-                    if exists {
-                        return true;
-                    }
+    if let Some(client) = redis_client
+        && let Ok(mut conn) = client.get_multiplexed_async_connection().await
+    {
+        use redis::AsyncCommands;
+        let key = format!("auth:revocation:{}", jti);
+        match conn.exists::<_, bool>(key).await {
+            Ok(exists) => {
+                if exists {
+                    return true;
                 }
-                Err(e) => tracing::error!("Redis revocation check failed: {}", e),
             }
+            Err(e) => tracing::error!("Redis revocation check failed: {}", e),
         }
     }
 
-    // 2. Fallback to in-memory blacklist
+    // 2. Fallback to in-memory blacklist (TTL-aware)
+    let now = Utc::now().timestamp();
     get_token_blacklist()
         .lock()
-        .map(|bl| bl.contains(jti))
+        .map(|mut blacklist| {
+            prune_expired_tokens(&mut blacklist, now);
+            blacklist.get(jti).is_some_and(|expires_at| *expires_at > now)
+        })
         .unwrap_or(false)
 }
 
@@ -506,25 +547,33 @@ pub async fn revoke_token(
     jti: String,
     ttl_secs: i64,
 ) -> Result<(), String> {
+    let now = Utc::now().timestamp();
+    let ttl_secs = ttl_secs.max(0);
+    if ttl_secs == 0 {
+        return Ok(());
+    }
+    let expires_at = now.saturating_add(ttl_secs);
+
     // 1. Revoke in Redis if available
-    if let Some(client) = redis_client {
-        if let Ok(mut conn) = client.get_multiplexed_async_connection().await {
-            use redis::AsyncCommands;
-            let key = format!("auth:revocation:{}", jti);
-            // Set with TTL (max token life)
-            let _: () = conn
-                .set_ex(key, 1, ttl_secs.max(0) as u64)
-                .await
-                .map_err(|e| e.to_string())?;
-            return Ok(());
-        }
+    if let Some(client) = redis_client
+        && let Ok(mut conn) = client.get_multiplexed_async_connection().await
+    {
+        use redis::AsyncCommands;
+        let key = format!("auth:revocation:{}", jti);
+        // Set with TTL (max token life)
+        let _: () = conn
+            .set_ex(key, 1, ttl_secs as u64)
+            .await
+            .map_err(|e| e.to_string())?;
+        return Ok(());
     }
 
     // 2. Fallback to in-memory blacklist
-    get_token_blacklist()
+    let mut blacklist = get_token_blacklist()
         .lock()
-        .map_err(|e| format!("Failed to acquire lock: {}", e))?
-        .insert(jti);
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    prune_expired_tokens(&mut blacklist, now);
+    blacklist.insert(jti, expires_at);
     Ok(())
 }
 
@@ -560,8 +609,12 @@ pub struct HashSecretRequest {
 
 /// Admin endpoint to hash a secret (for manual DB updates)
 pub async fn admin_hash_secret(
+    claims: Option<axum::Extension<Claims>>,
     Json(payload): Json<HashSecretRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let claims = require_admin_claims(claims)?;
+    tracing::info!(subject = %claims.sub, "Admin requested secret hashing");
+
     match hash_secret(&payload.secret) {
         Ok(hash) => Ok(Json(serde_json::json!({ "hash": hash }))),
         Err(e) => Err((
@@ -580,8 +633,12 @@ pub struct RevokeRequest {
 /// Admin endpoint to manually revoke a token JTI
 pub async fn admin_revoke(
     State(state): State<Arc<AppState>>,
+    claims: Option<axum::Extension<Claims>>,
     Json(payload): Json<RevokeRequest>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
+    let claims = require_admin_claims(claims)?;
+    tracing::info!(subject = %claims.sub, jti = %payload.jti, "Admin requested token revocation");
+
     // For admin revoke, we use a default TTL of 24h if we don't know the exact expiry
     let ttl = 24 * 3600;
 
@@ -638,6 +695,7 @@ mod tests {
 
     #[test]
     fn test_low_entropy_detection() {
+        assert!(is_low_entropy(""));
         assert!(is_low_entropy("password123"));
         assert!(is_low_entropy("mysecret"));
         assert!(is_low_entropy("test12345"));
@@ -672,6 +730,15 @@ mod tests {
         assert!(is_token_revoked(None, jti).await);
     }
 
+    #[tokio::test]
+    async fn test_expired_token_not_retained() {
+        let jti = "expired-jti";
+        revoke_token(None, jti.to_string(), 0)
+            .await
+            .expect("Failed to handle zero TTL");
+        assert!(!is_token_revoked(None, jti).await);
+    }
+
     #[test]
     fn test_bcrypt_performance() {
         use std::time::Instant;
@@ -688,5 +755,19 @@ mod tests {
             duration.as_millis() >= 50,
             "Bcrypt verification too fast! Check cost factor."
         );
+    }
+
+    #[test]
+    fn test_admin_role_detection() {
+        let claims = Claims {
+            sub: "agent-1".to_string(),
+            iss: "agentkern".to_string(),
+            exp: Utc::now().timestamp() + 3600,
+            iat: Utc::now().timestamp(),
+            jti: "jti-1".to_string(),
+            roles: vec!["Admin".to_string()],
+            namespace: None,
+        };
+        assert!(has_admin_role(&claims));
     }
 }

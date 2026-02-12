@@ -42,32 +42,8 @@ pub enum ConnectorError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConnectorProtocol {
-    /// SAP Remote Function Call
-    SapRfc,
-    /// SAP BAPI
-    SapBapi,
-    /// SAP OData v4 (S/4HANA)
-    SapOdata,
-    /// SAP IDOC
-    SapIdoc,
-    /// SWIFT MT (FIN messages)
-    SwiftMt,
-    /// SWIFT MX (ISO 20022 XML)
-    SwiftMx,
-    /// SWIFT GPI
-    SwiftGpi,
-    /// IBM CICS
-    IbmCics,
-    /// IBM IMS
-    IbmIms,
-    /// IBM MQ
-    IbmMq,
     /// Generic JDBC/SQL
     Sql,
-    /// Oracle OCI
-    OracleOci,
-    /// Salesforce API
-    Salesforce,
     /// Custom protocol
     Custom(u32),
 }
@@ -76,29 +52,14 @@ impl ConnectorProtocol {
     /// Get human-readable name.
     pub fn name(&self) -> &'static str {
         match self {
-            Self::SapRfc => "SAP RFC",
-            Self::SapBapi => "SAP BAPI",
-            Self::SapOdata => "SAP OData",
-            Self::SapIdoc => "SAP IDOC",
-            Self::SwiftMt => "SWIFT MT",
-            Self::SwiftMx => "SWIFT MX",
-            Self::SwiftGpi => "SWIFT GPI",
-            Self::IbmCics => "IBM CICS",
-            Self::IbmIms => "IBM IMS",
-            Self::IbmMq => "IBM MQ",
             Self::Sql => "SQL/JDBC",
-            Self::OracleOci => "Oracle OCI",
-            Self::Salesforce => "Salesforce",
             Self::Custom(_) => "Custom",
         }
     }
 
     /// Check if protocol requires enterprise license.
     pub fn requires_enterprise(&self) -> bool {
-        match self {
-            Self::Sql => false, // Free tier
-            _ => true,          // All others require enterprise
-        }
+        !matches!(self, Self::Sql)
     }
 }
 
@@ -259,16 +220,12 @@ mod tests {
 
     #[test]
     fn test_connector_protocol_names() {
-        assert_eq!(ConnectorProtocol::SapRfc.name(), "SAP RFC");
-        assert_eq!(ConnectorProtocol::SwiftMt.name(), "SWIFT MT");
         assert_eq!(ConnectorProtocol::Sql.name(), "SQL/JDBC");
     }
 
     #[test]
     fn test_connector_protocol_enterprise() {
         assert!(!ConnectorProtocol::Sql.requires_enterprise());
-        assert!(ConnectorProtocol::SapRfc.requires_enterprise());
-        assert!(ConnectorProtocol::SwiftMt.requires_enterprise());
     }
 
     #[test]

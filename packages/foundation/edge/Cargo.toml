@@ -1,7 +1,7 @@
 [package]
 name = "agentkern-edge"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Minimal AgentKern kernel for edge/IoT devices"
 license = "Apache-2.0"
 authors = ["AgentKern Team"]

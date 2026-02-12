@@ -79,20 +79,20 @@ pub async fn check_prompt(
         "context": context
     });
 
-    let input_bytes = serde_json::to_vec(&input).unwrap_or_default();
+    let input_bytes = serde_json::to_vec(&input)
+        .map_err(|e| RegistryError::InvalidModule(format!("Failed to encode prompt input: {}", e)))?;
 
     let result = registry
         .invoke_capability("prompt_guard", &input_bytes)
         .await?;
 
-    // Parse output
-    let output: PromptCheckResult =
-        serde_json::from_slice(&result.output).unwrap_or_else(|_| PromptCheckResult {
-            safe: true,
-            threat_level: "Unknown".to_string(),
-            score: 0,
-            latency_us: result.latency_us,
-        });
+    // Parse output (fail closed on invalid response)
+    let output: PromptCheckResult = serde_json::from_slice(&result.output).map_err(|e| {
+        RegistryError::InvocationFailed(format!(
+            "prompt_guard returned invalid response payload: {}",
+            e
+        ))
+    })?;
 
     Ok(PromptCheckResult {
         latency_us: result.latency_us,

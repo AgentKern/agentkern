@@ -2,3 +2,5 @@ packages:
   - 'apps/*'
   - 'packages/**'
   - 'sdks/**'
+  
+# Note: ee/ directory is excluded (Enterprise Edition, proprietary)

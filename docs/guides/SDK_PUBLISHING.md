@@ -23,7 +23,7 @@ pip install twine
 **Path**: `sdks/node`
 
 ### 1. Build Native Bindings
-The Node.js SDK uses `napi-rs` to bind the Rust core.
+The Node.js SDK is compiled from Rust core crates and packaged for Node.js.
 
 ```bash
 cd sdks/node
@@ -91,4 +91,4 @@ SDKs are automatically published via GitHub Actions when a tag starting with `v*
 Ensure versions match in:
 1. `sdks/node/package.json`
 2. `sdks/python/pyproject.toml`
-3. `packages/foundation/core/Cargo.toml` (if core changed)
+3. `sdks/core/Cargo.toml` (if core changed)

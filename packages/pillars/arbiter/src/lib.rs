@@ -62,14 +62,13 @@ pub use agentkern_governance::ai::iso42001;
 pub use agentkern_governance::audit;
 
 // EXECUTION_MANDATE.md modules
-pub mod carbon;
-pub mod killswitch; // Kill Switch for agent termination (Section 6) // Carbon-Aware Computing (Section 7)
+pub mod killswitch; // Kill Switch for agent termination (Section 6)
 
 // Roadmap modules
-pub mod antifragile; // Anti-Fragile Self-Healing Engine
+// pub mod antifragile; // Anti-Fragile Self-Healing Engine (EE)
 pub mod bulkhead;
 pub mod chaos; // Chaos Testing / Fault Injection
-pub mod dr_scheduler; // Automated DR Drill Scheduler (2026 Roadmap)
+// pub mod dr_scheduler; // Automated DR Drill Scheduler (2026 Roadmap) (EE)
 pub mod loop_prevention; // Runaway Loop Prevention ($47k incident) // Bulkhead Pattern for Agent Isolation
 
 // Phase 2: Human-in-the-Loop Escalation
@@ -82,12 +81,11 @@ pub mod cost;
 // See: packages/pillars/nexus/src/agent_card.rs, protocols/, marketplace/
 
 // Re-exports
-pub use antifragile::{
-    AdaptationRate, AntifragileEngine, CircuitBreaker, CircuitState, Failure, FailureCategory,
-    FailureClass, FailureSeverity, RecoveryStrategy, RecoveryStrategyType,
-};
+// pub use antifragile::{
+//     AdaptationRate, AntifragileEngine, CircuitBreaker, CircuitState, Failure, FailureCategory,
+//     FailureClass, FailureSeverity, RecoveryStrategy, RecoveryStrategyType,
+// };
 pub use audit::{AuditLedger, AuditOutcome, AuditRecord, AuditStatistics};
-pub use carbon::{CarbonIntensity, CarbonRegion, CarbonScheduler};
 pub use chaos::{ChaosConfig, ChaosError, ChaosMonkey, ChaosResult, ChaosStats};
 pub use consensus::{ConsensusEngine, ProposalStatus, ProposalType, Vote as ConsensusVote};
 pub use coordinator::Coordinator;

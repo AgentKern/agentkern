@@ -9,10 +9,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@agentkern/bridge": "file:../../packages/foundation/native-binding",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

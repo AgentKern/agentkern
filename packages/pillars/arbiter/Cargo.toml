@@ -1,9 +1,9 @@
 [package]
 name = "agentkern-arbiter"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "AgentKern-Arbiter: Conflict Resolution & Coordination Engine with Raft Consensus"
-license = "MIT"
+license = "Apache-2.0"
 
 [lib]
 name = "agentkern_arbiter"
@@ -20,7 +20,7 @@ default = []
 # Thread-per-core for minimal context switching
 thread_per_core = ["tokio-uring"]
 full = ["thread_per_core"]
-ee = []
+# ee = [] # Broken: missing dependencies
 
 [dependencies]
 # Async runtime (per ARCHITECTURE: Thread-per-Core)

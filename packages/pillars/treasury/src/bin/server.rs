@@ -11,7 +11,12 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new().route("/health", get(|| async { "OK" }));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3003));
+    let port_raw = std::env::var("PORT").unwrap_or_else(|_| "3003".to_string());
+    let port = port_raw
+        .parse::<u16>()
+        .map_err(|e| anyhow::anyhow!("Invalid PORT '{}': {}", port_raw, e))?;
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("Treasury listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr)
@@ -22,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
 
     axum::serve(listener, app)
         .await
-        .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Server error occurred: {}", e))?;
 
     Ok(())
 }

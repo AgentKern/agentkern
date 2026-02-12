@@ -13,6 +13,10 @@ pub enum ManagerError {
     AlreadyExists(String),
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("Invalid agent status: {0}")]
+    InvalidStatus(String),
     #[error("Agent is terminated")]
     Terminated,
 }
@@ -98,6 +102,10 @@ impl AgentManager {
             flags: vec![],
         };
 
+        let budget_json = serde_json::to_value(&budget)?;
+        let usage_json = serde_json::to_value(&usage)?;
+        let reputation_json = serde_json::to_value(&reputation)?;
+
         sqlx::query(
             r#"
             INSERT INTO agent_records 
@@ -110,9 +118,9 @@ impl AgentManager {
         .bind(namespace)
         .bind(version)
         .bind("active")
-        .bind(serde_json::to_value(&budget).unwrap())
-        .bind(serde_json::to_value(&usage).unwrap())
-        .bind(serde_json::to_value(&reputation).unwrap())
+        .bind(budget_json)
+        .bind(usage_json)
+        .bind(reputation_json)
         .bind(now)
         .bind(now)
         .execute(&self.pool)
@@ -142,7 +150,7 @@ impl AgentManager {
             .await?
             .ok_or_else(|| ManagerError::NotFound(agent_id.to_string()))?;
 
-        Ok(row.into())
+        row.try_into()
     }
 
     /// List all agents in a namespace
@@ -162,7 +170,7 @@ impl AgentManager {
             .await?
         };
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        rows.into_iter().map(TryInto::try_into).collect()
     }
 
     /// Update agent status
@@ -232,7 +240,7 @@ impl AgentManager {
         agent_id: &str,
         tokens_used: u64,
     ) -> Result<(), ManagerError> {
-        sqlx::query(
+        let result = sqlx::query(
             r#"
             UPDATE agent_records 
             SET 
@@ -251,12 +259,16 @@ impl AgentManager {
         .execute(&self.pool)
         .await?;
 
+        if result.rows_affected() == 0 {
+            return Err(ManagerError::NotFound(agent_id.to_string()));
+        }
+
         Ok(())
     }
 
     /// Record a failed action (updates reputation)
     pub async fn record_failure(&self, agent_id: &str) -> Result<(), ManagerError> {
-        sqlx::query(
+        let result = sqlx::query(
             r#"
             UPDATE agent_records 
             SET 
@@ -269,6 +281,10 @@ impl AgentManager {
         .bind(agent_id)
         .execute(&self.pool)
         .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(ManagerError::NotFound(agent_id.to_string()));
+        }
 
         Ok(())
     }
@@ -291,35 +307,40 @@ struct AgentRecordRow {
     termination_reason: Option<String>,
 }
 
-impl From<AgentRecordRow> for AgentRecord {
-    fn from(row: AgentRecordRow) -> Self {
-        Self {
+impl TryFrom<AgentRecordRow> for AgentRecord {
+    type Error = ManagerError;
+
+    fn try_from(row: AgentRecordRow) -> Result<Self, Self::Error> {
+        let status = match row.status.as_str() {
+            "active" => AgentStatus::Active,
+            "suspended" => AgentStatus::Suspended,
+            "revoked" => AgentStatus::Revoked,
+            "terminated" => AgentStatus::Terminated,
+            "pending" => AgentStatus::Pending,
+            _ => return Err(ManagerError::InvalidStatus(row.status)),
+        };
+
+        Ok(Self {
             id: row.id,
             name: row.name,
             namespace: row.namespace,
             version: row.version,
-            status: match row.status.as_str() {
-                "active" => AgentStatus::Active,
-                "suspended" => AgentStatus::Suspended,
-                "revoked" => AgentStatus::Revoked,
-                "terminated" => AgentStatus::Terminated,
-                "pending" => AgentStatus::Pending,
-                _ => AgentStatus::Active,
-            },
-            budget: serde_json::from_value(row.budget).unwrap_or_default(),
-            usage: serde_json::from_value(row.usage).unwrap_or_default(),
-            reputation: serde_json::from_value(row.reputation).unwrap_or_default(),
+            status,
+            budget: serde_json::from_value(row.budget)?,
+            usage: serde_json::from_value(row.usage)?,
+            reputation: serde_json::from_value(row.reputation)?,
             created_at: row.created_at,
             last_active_at: row.last_active_at,
             terminated_at: row.terminated_at,
             termination_reason: row.termination_reason,
-        }
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     async fn setup_test_db() -> PgPool {
         // Since we can't easily start a real Postgres here without complex env,
@@ -371,5 +392,67 @@ mod tests {
 
         // Clean up
         manager.delete(&agent_id).await.unwrap();
+    }
+
+    #[test]
+    fn row_conversion_rejects_invalid_status() {
+        let row = AgentRecordRow {
+            id: "a-1".to_string(),
+            name: "Agent".to_string(),
+            namespace: "default".to_string(),
+            version: "1.0.0".to_string(),
+            status: "unknown".to_string(),
+            budget: json!({
+                "max_daily_spend": 10.0,
+                "max_tokens_per_minute": 100,
+                "remaining_credits": 10.0
+            }),
+            usage: json!({
+                "total_requests": 0,
+                "total_tokens": 0,
+                "last_24h_spend": 0.0
+            }),
+            reputation: json!({
+                "score": 50,
+                "trust_level": "neutral",
+                "flags": []
+            }),
+            created_at: Utc::now(),
+            last_active_at: Utc::now(),
+            terminated_at: None,
+            termination_reason: None,
+        };
+
+        let result = AgentRecord::try_from(row);
+        assert!(matches!(result, Err(ManagerError::InvalidStatus(ref status)) if status == "unknown"));
+    }
+
+    #[test]
+    fn row_conversion_rejects_invalid_json_payload() {
+        let row = AgentRecordRow {
+            id: "a-1".to_string(),
+            name: "Agent".to_string(),
+            namespace: "default".to_string(),
+            version: "1.0.0".to_string(),
+            status: "active".to_string(),
+            budget: json!({ "unexpected": true }),
+            usage: json!({
+                "total_requests": 0,
+                "total_tokens": 0,
+                "last_24h_spend": 0.0
+            }),
+            reputation: json!({
+                "score": 50,
+                "trust_level": "neutral",
+                "flags": []
+            }),
+            created_at: Utc::now(),
+            last_active_at: Utc::now(),
+            terminated_at: None,
+            termination_reason: None,
+        };
+
+        let result = AgentRecord::try_from(row);
+        assert!(matches!(result, Err(ManagerError::Serialization(_))));
     }
 }

@@ -214,13 +214,16 @@ impl WasmRegistry {
             .await
             .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
 
-        // Call evaluate function
-        if let Ok(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate") {
-            evaluate
-                .call_async(&mut store, ())
-                .await
-                .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
-        }
+        // Call evaluate function (must exist with () -> () signature)
+        let evaluate = instance
+            .get_typed_func::<(), ()>(&mut store, "evaluate")
+            .map_err(|e| {
+                RegistryError::InvalidModule(format!("Missing or invalid evaluate() export: {}", e))
+            })?;
+        evaluate
+            .call_async(&mut store, ())
+            .await
+            .map_err(|e| RegistryError::InvocationFailed(e.to_string()))?;
 
         let latency = start.elapsed().as_micros() as u64;
 

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+import { createBridgeClient } from './bridgeClient.js'
 
 // ============================================================================
 // TYPES
@@ -43,106 +44,83 @@ interface PromptCheckResult {
   reason?: string;
 }
 
-// ============================================================================
-// REAL N-API INTEGRATION (via @agentkern/bridge)
-// ============================================================================
+type BridgeStatus = 'connected' | 'simulated' | 'checking';
 
-// Try to import native bridge, fallback to simulation if not available
-let nativeBridge: {
-  guardPrompt?: (prompt: string) => string;
-  guardContext?: (chunks: string[]) => string;
-  verify?: (agentId: string, action: string, context?: string) => Promise<string>;
-  attest?: (nonce: string) => string;
-} = {};
-
-let bridgeAvailable = false;
-
-try {
-  // Dynamic import for native module (may fail in browser without proper bundling)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  nativeBridge = require('@agentkern/bridge');
-  bridgeAvailable = true;
-  console.log('✅ N-API Bridge loaded successfully');
-} catch (e) {
-  console.warn('⚠️ N-API Bridge not available, using simulation mode');
-  bridgeAvailable = false;
+interface LockResult {
+  acquired: boolean;
+  lockId?: string;
+  queue?: number;
+  expiresIn?: number;
 }
 
-// ============================================================================
-// REAL IMPLEMENTATIONS (when bridge is available)
-// ============================================================================
+interface DiscoveredAgent {
+  id: string;
+  name: string;
+  protocols: string[];
+  status: string;
+}
 
-const realPromptCheck = async (prompt: string): Promise<PromptCheckResult> => {
-  if (!nativeBridge.guardPrompt) {
-    throw new Error('guardPrompt not available');
-  }
-  
-  const resultJson = nativeBridge.guardPrompt(prompt);
-  const result = JSON.parse(resultJson);
-  
-  return {
-    safe: result.threat_level === 'None' || result.threat_level === 'Low',
-    threatLevel: result.threat_level || 'None',
-    attackType: result.attacks?.[0] || undefined,
-    score: result.confidence || 0,
-    reason: result.matched_patterns?.join('; ') || undefined,
-  };
-};
+// API URL (configurable via Vite env, defaults to localhost unified server)
+const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
+const AGENTKERN_API_URL = env.VITE_AGENTKERN_API_URL?.trim() || 'http://localhost:3000';
+const AGENTKERN_AUTH_AGENT_ID = env.VITE_AGENTKERN_AUTH_AGENT_ID?.trim() || 'playground-auth-agent';
+const AGENTKERN_AUTH_SECRET = env.VITE_AGENTKERN_AUTH_SECRET?.trim() || 'playground-auth-secret';
+const bridgeClient = createBridgeClient({
+  baseUrl: AGENTKERN_API_URL,
+  authAgentId: AGENTKERN_AUTH_AGENT_ID,
+  authSecret: AGENTKERN_AUTH_SECRET,
+});
 
-const realVerify = async (agentId: string, action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
-  if (!nativeBridge.verify) {
-    throw new Error('verify not available');
-  }
-  
-  const resultJson = await nativeBridge.verify(agentId, action, JSON.stringify(context));
-  const result = JSON.parse(resultJson);
-  
-  return {
-    allowed: result.allowed,
-    riskScore: result.final_risk_score || 0,
-    evaluatedPolicies: result.evaluated_policies || [],
-    reasoning: result.reasoning || 'Unknown',
-  };
-};
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 
-// ============================================================================
-// SIMULATION FALLBACKS (when bridge/API is not available)
-// ============================================================================
+const clampScore = (value: number): number => Math.max(0, Math.min(100, Math.round(value)));
 
-// Identity API URL (configurable via environment or defaults to localhost)
-const IDENTITY_API_URL = 'http://localhost:3000';
+const toThreatLevel = (score: number): PromptCheckResult['threatLevel'] =>
+  score === 0 ? 'None' : score <= 30 ? 'Low' : score <= 50 ? 'Medium' : score <= 75 ? 'High' : 'Critical';
+
+const buildReputation = (trustScore: number): Agent['reputation'] => ({
+  behavioral: clampScore(trustScore),
+  attestation: trustScore >= 70 ? 100 : 0,
+  networkEndorsements: Math.max(0, Math.floor((trustScore - 50) / 10)),
+  complianceHistory: clampScore(trustScore + 5),
+  ageBonus: 0,
+});
+
+const checkBridgeAvailability = async (): Promise<boolean> => bridgeClient.checkAvailability();
 
 const realRegister = async (name: string): Promise<Agent> => {
-  const response = await fetch(`${IDENTITY_API_URL}/api/v1/agents/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, version: '1.0.0' }),
+  const agentId = `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const created = await bridgeClient.createIdentityAgent({
+    id: agentId,
+    name,
+    version: '1.0.0',
+    namespace: 'playground',
   });
-  
-  if (!response.ok) {
-    throw new Error(`Registration failed: ${response.statusText}`);
-  }
-  
-  const data = await response.json();
+
+  const reputation = await bridgeClient
+    .getReputation(created.id || agentId)
+    .catch(() => ({ score: 75 }));
+
+  const trustScore = clampScore(reputation.score ?? 75);
+  const now = new Date().toISOString();
+
   return {
-    id: data.agent.id,
-    name: data.agent.name,
-    capabilities: data.agent.capabilities || ['read', 'write'],
-    trustScore: data.agent.trustScore || 100,
-    reputation: data.agent.reputation || {
-      behavioral: 85,
-      attestation: 0,
-      networkEndorsements: 0,
-      complianceHistory: 100,
-      ageBonus: 0,
-    },
-    registeredAt: data.agent.registeredAt || new Date().toISOString(),
-    lastActivity: data.agent.lastActivity || new Date().toISOString(),
+    id: created.id || agentId,
+    name: created.name || name,
+    capabilities: ['read', 'write'],
+    trustScore,
+    reputation: buildReputation(trustScore),
+    registeredAt: now,
+    lastActivity: now,
   };
 };
 
 const simulateRegister = async (name: string): Promise<Agent> => {
-  await new Promise(r => setTimeout(r, 500));
+  await delay(500);
   
   // Simulate realistic trust calculation
   const behavioral = 80 + Math.floor(Math.random() * 15);  // 80-95
@@ -180,7 +158,7 @@ const simulateRegister = async (name: string): Promise<Agent> => {
 };
 
 const simulateVerify = async (_action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
-  await new Promise(r => setTimeout(r, 300));
+  await delay(300);
   const amount = (context.amount as number) || 0;
   const riskScore = Math.min(100, Math.floor(amount / 100));
   return {
@@ -192,7 +170,7 @@ const simulateVerify = async (_action: string, context: Record<string, unknown>)
 };
 
 const simulateStartIntent = async (intent: string, steps: number): Promise<IntentPath> => {
-  await new Promise(r => setTimeout(r, 200));
+  await delay(200);
   return {
     intent,
     currentStep: 0,
@@ -214,7 +192,7 @@ const INJECTION_PATTERNS = [
 ];
 
 const simulatePromptCheck = async (prompt: string): Promise<PromptCheckResult> => {
-  await new Promise(r => setTimeout(r, 150));
+  await delay(150);
   const normalized = prompt.toLowerCase();
   let score = 0;
   let attackType: string | undefined;
@@ -228,11 +206,7 @@ const simulatePromptCheck = async (prompt: string): Promise<PromptCheckResult> =
     }
   }
 
-  const threatLevel: PromptCheckResult['threatLevel'] = 
-    score === 0 ? 'None' :
-    score <= 30 ? 'Low' :
-    score <= 50 ? 'Medium' :
-    score <= 75 ? 'High' : 'Critical';
+  const threatLevel = toThreatLevel(score);
 
   return {
     safe: threatLevel === 'None' || threatLevel === 'Low',
@@ -243,32 +217,114 @@ const simulatePromptCheck = async (prompt: string): Promise<PromptCheckResult> =
   };
 };
 
-// ============================================================================
-// UNIFIED API (uses real bridge when available, simulation otherwise)
-// ============================================================================
+const realVerify = async (agentId: string, action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
+  const response = await bridgeClient.verifyGate({
+    agent_id: agentId,
+    action,
+    namespace: 'playground',
+    context,
+  });
 
-const checkPrompt = async (prompt: string): Promise<PromptCheckResult> => {
-  if (bridgeAvailable && nativeBridge.guardPrompt) {
-    return realPromptCheck(prompt);
-  }
-  return simulatePromptCheck(prompt);
+  const riskScore = clampScore(response.final_risk_score ?? 0);
+  return {
+    allowed: response.allowed,
+    riskScore,
+    evaluatedPolicies: response.blocking_policies ?? [],
+    reasoning: response.reasoning ?? 'No reasoning provided',
+  };
 };
 
-const verifyAction = async (agentId: string, action: string, context: Record<string, unknown>): Promise<VerificationResult> => {
-  if (bridgeAvailable && nativeBridge.verify) {
-    return realVerify(agentId, action, context);
-  }
-  return simulateVerify(action, context);
+const realStartIntent = async (agentId: string, intent: string, steps: number): Promise<IntentPath> => {
+  await bridgeClient.storeSynapseMemory({
+    content: {
+      type: 'intent_path',
+      agent_id: agentId,
+      intent,
+      expected_steps: steps,
+      created_at: new Date().toISOString(),
+    },
+  });
+
+  return {
+    intent,
+    currentStep: 0,
+    expectedSteps: steps,
+    driftScore: 0,
+  };
 };
 
-const registerAgent = async (name: string): Promise<Agent> => {
-  // Try real API first
-  try {
-    return await realRegister(name);
-  } catch (error) {
-    console.warn('Real API unavailable, using simulation:', error);
-    return simulateRegister(name);
+const realPromptCheck = async (prompt: string): Promise<PromptCheckResult> => {
+  const result = await realVerify(AGENTKERN_AUTH_AGENT_ID, 'prompt_scan', { prompt });
+  const usedDefaultDeny = result.evaluatedPolicies.includes('default-deny');
+  if (usedDefaultDeny) {
+    return simulatePromptCheck(prompt);
   }
+
+  const threatLevel = toThreatLevel(result.riskScore);
+  return {
+    safe: result.allowed && result.riskScore < 50,
+    threatLevel,
+    attackType: result.evaluatedPolicies.find((policyId) => policyId !== 'default-deny'),
+    score: result.riskScore,
+    reason: result.reasoning,
+  };
+};
+
+const simulateRequestLock = async (): Promise<LockResult> => {
+  await delay(300);
+  const acquired = Math.random() > 0.3;
+  return {
+    acquired,
+    lockId: acquired ? `lock-${Date.now().toString(36)}` : undefined,
+    queue: acquired ? undefined : Math.floor(Math.random() * 3) + 1,
+    expiresIn: acquired ? 30 : undefined,
+  };
+};
+
+const realRequestLock = async (agentId: string, resource: string, priority: number): Promise<LockResult> => {
+  const response = await bridgeClient.acquireArbiterLock({
+    agent_id: agentId,
+    resource,
+    priority,
+  });
+  const payload = response.payload;
+
+  if (response.ok && payload.locked) {
+    return {
+      acquired: true,
+      lockId: payload.lock_id,
+      expiresIn: 30,
+    };
+  }
+
+  if (response.status === 409) {
+    return {
+      acquired: false,
+      queue: 1,
+    };
+  }
+
+  throw new Error(payload.error || 'Lock request failed');
+};
+
+const simulateDiscoverAgents = async (): Promise<DiscoveredAgent[]> => {
+  await delay(500);
+  return [
+    { id: 'agent-001', name: 'DataFetcher', protocols: ['a2a', 'mcp'], status: 'online' },
+    { id: 'agent-002', name: 'Analyzer', protocols: ['a2a'], status: 'online' },
+    { id: 'agent-003', name: 'Reporter', protocols: ['mcp', 'anp'], status: 'busy' },
+  ];
+};
+
+const realDiscoverAgents = async (): Promise<DiscoveredAgent[]> => {
+  const response = await bridgeClient.listIdentityAgents();
+  const agents = response.agents ?? [];
+  return agents.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    protocols: ['a2a', 'mcp'],
+    status: entry.status?.toLowerCase() || 'online',
+  }));
 };
 
 // ============================================================================
@@ -277,10 +333,10 @@ const registerAgent = async (name: string): Promise<Agent> => {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'identity' | 'gate' | 'synapse' | 'arbiter' | 'treasury' | 'nexus' | 'promptguard' | 'integrate'>('identity');
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('checking');
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agentName, setAgentName] = useState('my-agent');
   const [loading, setLoading] = useState(false);
-  const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'connected' | 'simulated'>('checking');
   const [showWelcome, setShowWelcome] = useState(true);
 
   // Gate state
@@ -299,27 +355,59 @@ export default function App() {
   // Arbiter state
   const [resource, setResource] = useState('database:accounts');
   const [priority, setPriority] = useState(5);
-  const [lockResult, setLockResult] = useState<{ acquired: boolean; lockId?: string; queue?: number; expiresIn?: number } | null>(null);
+  const [lockResult, setLockResult] = useState<LockResult | null>(null);
   const [killSwitchActive, setKillSwitchActive] = useState(false);
 
   // Treasury state
   const [balance, setBalance] = useState(10000);
-  const [carbonUsage, setCarbonUsage] = useState(0);
-  const [transactions, setTransactions] = useState<Array<{ id: string; type: string; amount: number; carbon: number; time: string }>>([]);
+  const [transactions, setTransactions] = useState<Array<{ id: string; type: string; amount: number; time: string }>>([]);
 
   // Nexus state
-  const [discoveredAgents, setDiscoveredAgents] = useState<Array<{ id: string; name: string; protocols: string[]; status: string }>>([]);
+  const [discoveredAgents, setDiscoveredAgents] = useState<DiscoveredAgent[]>([]);
   const [selectedProtocol, setSelectedProtocol] = useState('a2a');
 
-  // Check bridge status on mount
   useEffect(() => {
-    setBridgeStatus(bridgeAvailable ? 'connected' : 'simulated');
+    let cancelled = false;
+    const probe = async () => {
+      const connected = await checkBridgeAvailability();
+      if (!cancelled) {
+        setBridgeStatus(connected ? 'connected' : 'simulated');
+      }
+    };
+    void probe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const withBridgeFallback = async <T,>(
+    realAction: () => Promise<T>,
+    simulatedAction: () => Promise<T>,
+  ): Promise<T> => {
+    if (bridgeStatus === 'simulated') {
+      return simulatedAction();
+    }
+
+    try {
+      const result = await realAction();
+      if (bridgeStatus !== 'connected') {
+        setBridgeStatus('connected');
+      }
+      return result;
+    } catch (error) {
+      console.warn('Bridge/API request failed, falling back to simulation mode.', error);
+      setBridgeStatus('simulated');
+      return simulatedAction();
+    }
+  };
 
   const handleRegister = async () => {
     setLoading(true);
     try {
-      const newAgent = await registerAgent(agentName);
+      const newAgent = await withBridgeFallback(
+        () => realRegister(agentName),
+        () => simulateRegister(agentName),
+      );
       setAgent(newAgent);
     } catch (error) {
       console.error('Registration failed:', error);
@@ -331,16 +419,32 @@ export default function App() {
   const handleVerify = async () => {
     if (!agent) return;
     setLoading(true);
-    const result = await verifyAction(agent.id, action, { amount: parseInt(amount) });
-    setVerification(result);
-    setLoading(false);
+    const parsedAmount = Number.parseInt(amount, 10);
+    const safeAmount = Number.isFinite(parsedAmount) ? parsedAmount : 0;
+
+    try {
+      const result = await withBridgeFallback(
+        () => realVerify(agent.id, action, { amount: safeAmount }),
+        () => simulateVerify(action, { amount: safeAmount }),
+      );
+      setVerification(result);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStartIntent = async () => {
+    if (!agent) return;
     setLoading(true);
-    const path = await simulateStartIntent(intent, 4);
-    setIntentPath(path);
-    setLoading(false);
+    try {
+      const path = await withBridgeFallback(
+        () => realStartIntent(agent.id, intent, 4),
+        () => simulateStartIntent(intent, 4),
+      );
+      setIntentPath(path);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRecordStep = async () => {
@@ -354,23 +458,30 @@ export default function App() {
 
   const handlePromptCheck = async () => {
     setLoading(true);
-    const result = await checkPrompt(promptText);
-    setPromptResult(result);
-    setLoading(false);
+    try {
+      const result = await withBridgeFallback(
+        () => realPromptCheck(promptText),
+        () => simulatePromptCheck(promptText),
+      );
+      setPromptResult(result);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Arbiter handlers
   const handleRequestLock = async () => {
+    if (!agent) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 300));
-    const acquired = Math.random() > 0.3;
-    setLockResult({
-      acquired,
-      lockId: acquired ? `lock-${Date.now().toString(36)}` : undefined,
-      queue: acquired ? undefined : Math.floor(Math.random() * 3) + 1,
-      expiresIn: acquired ? 30 : undefined,
-    });
-    setLoading(false);
+    try {
+      const result = await withBridgeFallback(
+        () => realRequestLock(agent.id, resource, priority),
+        () => simulateRequestLock(),
+      );
+      setLockResult(result);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReleaseLock = () => {
@@ -384,17 +495,14 @@ export default function App() {
   // Treasury handlers
   const handleAllocateBudget = async (allocationAmount: number) => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 200));
-    const carbon = Math.round(allocationAmount * 0.001 * 10) / 10; // 0.1g CO2 per $1
+    await delay(200);
     const tx = {
       id: `tx-${Date.now().toString(36)}`,
       type: 'allocation',
       amount: allocationAmount,
-      carbon,
       time: new Date().toLocaleTimeString(),
     };
     setBalance(prev => prev - allocationAmount);
-    setCarbonUsage(prev => prev + carbon);
     setTransactions(prev => [tx, ...prev].slice(0, 5));
     setLoading(false);
   };
@@ -402,14 +510,15 @@ export default function App() {
   // Nexus handlers
   const handleDiscoverAgents = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 500));
-    const mockAgents = [
-      { id: 'agent-001', name: 'DataFetcher', protocols: ['a2a', 'mcp'], status: 'online' },
-      { id: 'agent-002', name: 'Analyzer', protocols: ['a2a'], status: 'online' },
-      { id: 'agent-003', name: 'Reporter', protocols: ['mcp', 'anp'], status: 'busy' },
-    ];
-    setDiscoveredAgents(mockAgents);
-    setLoading(false);
+    try {
+      const agents = await withBridgeFallback(
+        () => realDiscoverAgents(),
+        () => simulateDiscoverAgents(),
+      );
+      setDiscoveredAgents(agents);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -458,7 +567,7 @@ export default function App() {
             </div>
             
             <div style={{ marginTop: '1.5rem', padding: '0.75rem', background: '#3b82f620', borderRadius: '6px', borderLeft: '3px solid #3b82f6' }}>
-              <strong>💡 Simulation Mode:</strong> This demo uses simulated data. In production, these would connect to the Rust N-API bridge and real databases.
+              <strong>💡 Bridge Mode:</strong> Playground first tries live Rust HTTP APIs, then falls back to simulation if unavailable.
             </div>
             
             <button className="primary" onClick={() => setShowWelcome(false)} style={{ marginTop: '1.5rem', width: '100%' }}>
@@ -479,7 +588,7 @@ export default function App() {
         </div>
         <div className="bridge-status">
           {bridgeStatus === 'connected' ? (
-            <span className="status-badge connected">🔗 N-API Connected</span>
+            <span className="status-badge connected">🔗 API Connected</span>
           ) : bridgeStatus === 'simulated' ? (
             <span className="status-badge simulated">⚠️ Simulation Mode</span>
           ) : (
@@ -880,7 +989,7 @@ export default function App() {
           {activeTab === 'treasury' && (
             <div className="panel">
               <h2>💰 Treasury</h2>
-              <p className="description">Manage agent budgets, micropayments, and carbon tracking.</p>
+              <p className="description">Manage agent budgets and micropayments.</p>
 
               <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="stat-card" style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
@@ -888,8 +997,8 @@ export default function App() {
                   <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>${balance.toLocaleString()}</div>
                 </div>
                 <div className="stat-card" style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Carbon Usage</label>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{carbonUsage.toFixed(1)}g CO₂</div>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Status</label>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#22c55e' }}>Active</div>
                 </div>
               </div>
 
@@ -918,7 +1027,6 @@ export default function App() {
                         {' - '}
                         <strong>${tx.amount}</strong>
                         {' allocated '}
-                        <span style={{ color: '#22c55e' }}>({tx.carbon}g CO₂)</span>
                       </div>
                     ))}
                   </div>
@@ -1066,30 +1174,38 @@ export default function App() {
               </div>
 
               <div className="info-box" style={{ marginBottom: '1.5rem', borderLeft: '3px solid #3b82f6' }}>
-                <h4>🔧 Step 2: Initialize AgentKern</h4>
+                <h4>🔧 Step 2: Configure Live HTTP Bridge</h4>
                 <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '0.5rem', overflow: 'auto' }}>
-                  <div style={{ color: '#8b949e' }}>// TypeScript Example</div>
-                  <div><span style={{ color: '#ff7b72' }}>import</span> {'{'} <span style={{ color: '#79c0ff' }}>AgentKern</span> {'}'} <span style={{ color: '#ff7b72' }}>from</span> <span style={{ color: '#a5d6ff' }}>'@agentkern/sdk'</span>;</div>
-                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#ff7b72' }}>const</span> kern = <span style={{ color: '#ff7b72' }}>new</span> <span style={{ color: '#d2a8ff' }}>AgentKern</span>({'{'})</div>
-                  <div style={{ paddingLeft: '1rem' }}>apiUrl: <span style={{ color: '#a5d6ff' }}>'https://api.agentkern.io'</span>,</div>
-                  <div style={{ paddingLeft: '1rem' }}>apiKey: process.env.<span style={{ color: '#79c0ff' }}>AGENTKERN_API_KEY</span>,</div>
-                  <div>{'}'});</div>
-                  <div style={{ marginTop: '1rem', color: '#8b949e' }}>// Register your agent</div>
-                  <div><span style={{ color: '#ff7b72' }}>const</span> agent = <span style={{ color: '#ff7b72' }}>await</span> kern.identity.<span style={{ color: '#d2a8ff' }}>register</span>({'{'})</div>
-                  <div style={{ paddingLeft: '1rem' }}>name: <span style={{ color: '#a5d6ff' }}>'my-trading-agent'</span>,</div>
-                  <div style={{ paddingLeft: '1rem' }}>capabilities: [<span style={{ color: '#a5d6ff' }}>'trade'</span>, <span style={{ color: '#a5d6ff' }}>'read_market'</span>],</div>
-                  <div>{'}'});</div>
+                  <div style={{ color: '#8b949e' }}>// TypeScript: HTTP-first setup</div>
+                  <div><span style={{ color: '#ff7b72' }}>const</span> API_URL = process.env.<span style={{ color: '#79c0ff' }}>AGENTKERN_API_URL</span> ?? <span style={{ color: '#a5d6ff' }}>'http://localhost:3000'</span>;</div>
+                  <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#ff7b72' }}>const</span> auth = <span style={{ color: '#ff7b72' }}>await</span> fetch(<span style={{ color: '#a5d6ff' }}>{'`${API_URL}/api/v1/auth/login`'}</span>, {'{'}</div>
+                  <div style={{ paddingLeft: '1rem' }}>method: <span style={{ color: '#a5d6ff' }}>'POST'</span>,</div>
+                  <div style={{ paddingLeft: '1rem' }}>headers: {'{'} <span style={{ color: '#a5d6ff' }}>'content-type'</span>: <span style={{ color: '#a5d6ff' }}>'application/json'</span> {'}'},</div>
+                  <div style={{ paddingLeft: '1rem' }}>body: JSON.stringify({'{'}</div>
+                  <div style={{ paddingLeft: '2rem' }}>agent_id: process.env.<span style={{ color: '#79c0ff' }}>AGENTKERN_AUTH_AGENT_ID</span>,</div>
+                  <div style={{ paddingLeft: '2rem' }}>secret: process.env.<span style={{ color: '#79c0ff' }}>AGENTKERN_AUTH_SECRET</span>,</div>
+                  <div style={{ paddingLeft: '1rem' }}>{'}'}),</div>
+                  <div>{'}'}).then(r =&gt; r.json());</div>
                 </div>
               </div>
 
               <div className="info-box" style={{ marginBottom: '1.5rem', borderLeft: '3px solid #8b5cf6' }}>
-                <h4>🛡️ Step 3: Verify Before Every Action</h4>
+                <h4>🛡️ Step 3: Verify Before Every Action (with fallback)</h4>
                 <div style={{ background: '#0d1117', padding: '1rem', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '0.5rem', overflow: 'auto' }}>
-                  <div style={{ color: '#8b949e' }}>// Before your agent takes an action, verify it</div>
-                  <div><span style={{ color: '#ff7b72' }}>const</span> result = <span style={{ color: '#ff7b72' }}>await</span> kern.gate.<span style={{ color: '#d2a8ff' }}>verify</span>(agent.id, <span style={{ color: '#a5d6ff' }}>'transfer_funds'</span>, {'{'}</div>
-                  <div style={{ paddingLeft: '1rem' }}>amount: <span style={{ color: '#79c0ff' }}>5000</span>,</div>
-                  <div style={{ paddingLeft: '1rem' }}>recipient: <span style={{ color: '#a5d6ff' }}>'vendor-123'</span>,</div>
-                  <div>{'}'});</div>
+                  <div style={{ color: '#8b949e' }}>// Live Gate verification</div>
+                  <div><span style={{ color: '#ff7b72' }}>let</span> result;</div>
+                  <div><span style={{ color: '#ff7b72' }}>try</span> {'{'}</div>
+                  <div style={{ paddingLeft: '1rem' }}>result = <span style={{ color: '#ff7b72' }}>await</span> fetch(<span style={{ color: '#a5d6ff' }}>{'`${API_URL}/api/v1/gate/verify`'}</span>, {'{'}</div>
+                  <div style={{ paddingLeft: '2rem' }}>method: <span style={{ color: '#a5d6ff' }}>'POST'</span>,</div>
+                  <div style={{ paddingLeft: '2rem' }}>headers: {'{'} authorization: <span style={{ color: '#a5d6ff' }}>{'`${auth.token_type ?? "Bearer"} ${auth.token}`'}</span>, <span style={{ color: '#a5d6ff' }}>'content-type'</span>: <span style={{ color: '#a5d6ff' }}>'application/json'</span> {'}'},</div>
+                  <div style={{ paddingLeft: '2rem' }}>body: JSON.stringify({'{'}</div>
+                  <div style={{ paddingLeft: '3rem' }}>agent_id: agent.id, action: <span style={{ color: '#a5d6ff' }}>'transfer_funds'</span>, namespace: <span style={{ color: '#a5d6ff' }}>'default'</span>, context: {'{'} amount: <span style={{ color: '#79c0ff' }}>5000</span> {'}'}</div>
+                  <div style={{ paddingLeft: '2rem' }}>{'}'}),</div>
+                  <div style={{ paddingLeft: '1rem' }}>{'}'}).then(r =&gt; r.json());</div>
+                  <div>{'}'} <span style={{ color: '#ff7b72' }}>catch</span> {'{'}</div>
+                  <div style={{ paddingLeft: '1rem', color: '#8b949e' }}>// Safe fallback policy</div>
+                  <div style={{ paddingLeft: '1rem' }}>result = {'{'} allowed: <span style={{ color: '#79c0ff' }}>false</span>, reasoning: <span style={{ color: '#a5d6ff' }}>'Verification unavailable'</span> {'}'};</div>
+                  <div>{'}'}</div>
                   <div style={{ marginTop: '0.5rem' }}><span style={{ color: '#ff7b72' }}>if</span> (!result.allowed) {'{'}</div>
                   <div style={{ paddingLeft: '1rem', color: '#8b949e' }}>// Action blocked by policy</div>
                   <div style={{ paddingLeft: '1rem' }}><span style={{ color: '#ff7b72' }}>throw new</span> <span style={{ color: '#d2a8ff' }}>Error</span>(<span style={{ color: '#a5d6ff' }}>`Blocked: ${'{'}result.reasoning{'}'}`</span>);</div>
@@ -1102,24 +1218,29 @@ export default function App() {
               <h4 style={{ marginTop: '2rem', marginBottom: '1rem' }}>📡 API Endpoints</h4>
               <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
-                  <span style={{ background: '#22c55e', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
-                  <code>/api/v1/agents/register</code>
-                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Register agent</span>
+                  <span style={{ background: '#16a34a', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/auth/login</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Get JWT token</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
                   <span style={{ background: '#3b82f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/identity/agents</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Register agent</span>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
+                  <span style={{ background: '#2563eb', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
                   <code>/api/v1/gate/verify</code>
                   <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Verify action</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
                   <span style={{ background: '#8b5cf6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
-                  <code>/api/v1/gate/guard-prompt</code>
-                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Check prompt</span>
+                  <code>/api/v1/arbiter/locks</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Acquire resource lock</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem', background: 'var(--color-surface)', borderRadius: '6px' }}>
-                  <span style={{ background: '#f59e0b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>GET</span>
-                  <code>/api/v1/agents/:id/trust</code>
-                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Get trust score</span>
+                  <span style={{ background: '#d97706', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>POST</span>
+                  <code>/api/v1/synapse/memory/store</code>
+                  <span style={{ color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>Persist intent memory</span>
                 </div>
               </div>
 

@@ -29,10 +29,15 @@ pub async fn serve(config: &RuntimeConfig) -> Result<(), ServeError> {
         }
     }
 
-    // In a full implementation, we would start the actual servers here
-    // For now, this is the interface contract
+    // The serve function currently acts as a lifecycle placeholder.
+    // The actual HTTP/gRPC serving is handled by `agentkern-server` (apps/server).
+    // This stub starts no listeners — it only logs configuration and waits for shutdown.
+    tracing::warn!(
+        "Runtime serve is a stub: no HTTP/gRPC listeners are started. \
+         Use `agentkern-server` for the production server binary."
+    );
 
-    tracing::info!("AgentKern running. Press Ctrl+C to stop.");
+    tracing::info!("AgentKern running (stub mode). Press Ctrl+C to stop.");
 
     // Wait for shutdown signal
     tokio::signal::ctrl_c()

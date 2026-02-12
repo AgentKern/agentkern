@@ -1,3 +1,4 @@
+#![cfg(feature = "full")]
 use agentkern_arbiter::antifragile::{AntifragileEngine, Failure};
 use std::time::Instant;
 

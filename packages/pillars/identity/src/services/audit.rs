@@ -58,6 +58,7 @@ impl AuditService {
         ip_address: Option<&str>,
     ) -> Result<Uuid, AuditError> {
         let id = Uuid::new_v4();
+        let created_at = Utc::now();
 
         // Create canonical message for signing
         let canonical = format!(
@@ -69,7 +70,7 @@ impl AuditService {
             action,
             outcome,
             details.as_ref().map(|d| d.to_string()).unwrap_or_default(),
-            Utc::now().to_rfc3339()
+            created_at.to_rfc3339()
         );
 
         // Sign with PQC (Hybrid Ed25519 + ML-DSA)
@@ -96,7 +97,7 @@ impl AuditService {
         .bind(details)
         .bind(ip_address)
         .bind(&signature.value)
-        .bind(Utc::now())
+        .bind(created_at)
         .execute(&self.pool)
         .await?;
 
@@ -114,11 +115,11 @@ impl AuditService {
         // We can verify by re-computing the hash for the last N records
         // and checking if they match the stored event_hash and link to previous_hash.
 
-        let rows = sqlx::query_as::<_, (String, String, String, String)>(
+        let rows = sqlx::query_as::<_, (Uuid, Option<String>, Option<String>, String)>(
             "SELECT id, event_hash, previous_hash, 
                     coalesce(event_type,'') || coalesce(actor_id,'') || coalesce(target_id,'') || 
                     coalesce(action,'') || coalesce(outcome,'') || coalesce(details::text,'') || 
-                    created_at::text || previous_hash as content
+                    created_at::text || coalesce(previous_hash,'genesis') as content
              FROM audit_events 
              ORDER BY created_at DESC, id DESC 
              LIMIT 100",
@@ -126,7 +127,10 @@ impl AuditService {
         .fetch_all(&self.pool)
         .await?;
 
-        for (_id, stored_hash, _prev_hash, content) in rows {
+        for (event_id, stored_hash, _prev_hash, content) in rows {
+            let Some(stored_hash) = stored_hash else {
+                continue;
+            };
             use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(content.as_bytes());
@@ -135,7 +139,7 @@ impl AuditService {
             if stored_hash != computed_hash {
                 tracing::error!(
                     "Audit log tampering detected! ID: {}, Stored: {}, Computed: {}",
-                    _id,
+                    event_id,
                     stored_hash,
                     computed_hash
                 );

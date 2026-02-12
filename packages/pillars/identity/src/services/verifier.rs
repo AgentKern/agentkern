@@ -146,15 +146,15 @@ impl VerificationService {
         }
 
         // 4. Verify Constraints (Time of Day)
-        if let Some(constraints) = &proof.payload.constraints {
-            if let Some(valid_hours) = &constraints.valid_hours {
-                let current_hour = now.hour() as u8;
-                if current_hour < valid_hours.start || current_hour > valid_hours.end {
-                    return Err(VerificationError::ConstraintViolation(format!(
-                        "Current hour {} outside allowed {}-{}",
-                        current_hour, valid_hours.start, valid_hours.end
-                    )));
-                }
+        if let Some(constraints) = &proof.payload.constraints
+            && let Some(valid_hours) = &constraints.valid_hours
+        {
+            let current_hour = now.hour() as u8;
+            if current_hour < valid_hours.start || current_hour > valid_hours.end {
+                return Err(VerificationError::ConstraintViolation(format!(
+                    "Current hour {} outside allowed {}-{}",
+                    current_hour, valid_hours.start, valid_hours.end
+                )));
             }
         }
 
@@ -266,10 +266,10 @@ impl InMemoryReplayCache {
 impl ReplayCache for InMemoryReplayCache {
     async fn has_seen(&self, proof_id: &str) -> bool {
         let now = Utc::now();
-        if let Ok(guard) = self.cache.read() {
-            if let Some(expiry) = guard.get(proof_id) {
-                return *expiry > now;
-            }
+        if let Ok(guard) = self.cache.read()
+            && let Some(expiry) = guard.get(proof_id)
+        {
+            return *expiry > now;
         }
         false
     }
@@ -319,10 +319,10 @@ impl InMemoryRevocationCache {
 impl RevocationCache for InMemoryRevocationCache {
     async fn is_revoked(&self, id: &str) -> bool {
         let now = Utc::now();
-        if let Ok(guard) = self.cache.read() {
-            if let Some(expiry) = guard.get(id) {
-                return *expiry > now;
-            }
+        if let Ok(guard) = self.cache.read()
+            && let Some(expiry) = guard.get(id)
+        {
+            return *expiry > now;
         }
         false
     }

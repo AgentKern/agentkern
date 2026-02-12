@@ -9,7 +9,6 @@ use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
 use agentkern_treasury::types::Amount;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use tokio;
 use uuid::Uuid;
 
 #[tokio::test]

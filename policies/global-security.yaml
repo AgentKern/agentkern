@@ -1,0 +1,20 @@
+metadata:
+  author: Local Developer
+  version: 0.1.0
+  tags:
+  - local
+  category: community
+policy:
+  id: global-security
+  name: New Policy global-security
+  description: Replace with your description
+  priority: 10
+  enabled: true
+  jurisdictions: []
+  namespace: default
+  rules:
+  - id: global-security-rule-1
+    condition: context.amount < 100
+    action: allow
+    message: Default small-amount allow
+    risk_score: 0

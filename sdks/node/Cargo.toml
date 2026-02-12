@@ -2,7 +2,7 @@
 name = "agentkern-sdk-node"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 description = "AgentKern SDK Node.js Bindings via N-API"
 repository = "https://github.com/agentkern/agentkern"
 

@@ -144,9 +144,9 @@ impl WasmPolicyEngine {
                 action: action.to_string(),
                 context: context.clone(),
                 result: WasmPolicyResult {
-                    allowed: true,
-                    risk_score: 0,
-                    message: None,
+                    allowed: false,
+                    risk_score: 100,
+                    message: Some("Policy denied by default".to_string()),
                 },
             },
         );
@@ -159,10 +159,10 @@ impl WasmPolicyEngine {
             .instantiate_async(&mut store, &policy.module)
             .await?;
 
-        // Call the evaluate function
-        if let Ok(evaluate) = instance.get_typed_func::<(), ()>(&mut store, "evaluate") {
-            evaluate.call_async(&mut store, ()).await?;
-        }
+        let evaluate = instance
+            .get_typed_func::<(), ()>(&mut store, "evaluate")
+            .map_err(|_| anyhow::anyhow!("Policy '{}' missing required `evaluate` export", policy_name))?;
+        evaluate.call_async(&mut store, ()).await?;
 
         Ok(store.data().result.clone())
     }
@@ -263,5 +263,26 @@ mod tests {
 
         assert!(result.allowed);
         assert_eq!(result.risk_score, 10);
+    }
+
+    #[cfg(feature = "wasm")]
+    #[tokio::test]
+    async fn test_wasm_policy_requires_evaluate_export() {
+        let mut engine = WasmPolicyEngine::new().unwrap();
+
+        let wat = r#"
+            (module
+                (func (export "not_evaluate"))
+            )
+        "#;
+
+        engine.load_policy_wat("missing-evaluate", wat).unwrap();
+
+        let err = engine
+            .evaluate("missing-evaluate", "test_action", &serde_json::json!({}))
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("missing required `evaluate` export"));
     }
 }

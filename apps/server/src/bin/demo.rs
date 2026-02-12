@@ -148,7 +148,7 @@ async fn main() {
 
     // --- PILLAR 6 ---
     println!("{BOLD}{YELLOW}🔀  PILLAR 6: NEXUS (Universal Cross-Protocol Routing){RESET}");
-    println!("{WHITE}Narrative: AgentKern acts as a bridge between diverse protocols like A2A, MCP, and MCP.{RESET}");
+    println!("{WHITE}Narrative: AgentKern acts as a bridge between diverse protocols like A2A, MCP, and NLIP.{RESET}");
     let nexus = Nexus::new();
     let card = agentkern_nexus::AgentCard {
         id: agent_id.clone(),

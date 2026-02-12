@@ -6,8 +6,6 @@ use chrono::Utc;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
-use crate::antifragile::AntifragileEngine;
-use crate::carbon::CarbonScheduler;
 use crate::consensus::ConsensusEngine;
 use crate::cost::CostTracker;
 use crate::locks_pg::{LockError, PgLockManager};
@@ -17,24 +15,20 @@ use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
 
 use agentkern_gate::NeuroSymbolicValidator;
-use agentkern_pulse::{HealthStatus, Pulse, PulseManager, SemanticHealthReport};
+use agentkern_pulse::{HealthStatus, Pulse, SemanticHealthReport};
 use agentkern_synapse::drift::DriftDetector;
 use agentkern_synapse::intent::IntentPath;
 use sqlx::types::Json;
 
 /// Postgres-backed Arbiter Coordinator.
 pub struct PgCoordinator {
-    pool: PgPool, // Added pool for direct access
+    pool: PgPool,
     lock_manager: PgLockManager,
     queue: PgQueue,
-    avg_lock_duration_ms: u64,
-    antifragile: Arc<AntifragileEngine>,
+    _avg_lock_duration_ms: u64,
     cost_tracker: Arc<CostTracker>,
-    carbon_scheduler: Arc<CarbonScheduler>,
     validator: Arc<NeuroSymbolicValidator>,
     drift_detector: Arc<DriftDetector>,
-    // intent_paths removed (replaced by DB)
-    pulse: PulseManager,
     consensus: Arc<ConsensusEngine>,
 }
 
@@ -44,33 +38,19 @@ impl PgCoordinator {
             pool: pool.clone(),
             lock_manager: PgLockManager::new(pool.clone()),
             queue: PgQueue::new(pool),
-            avg_lock_duration_ms: 5000,
-            antifragile: Arc::new(AntifragileEngine::new()),
+            _avg_lock_duration_ms: 5000,
             cost_tracker: Arc::new(CostTracker::new()),
-            carbon_scheduler: Arc::new(CarbonScheduler::new()),
             validator: Arc::new(
                 NeuroSymbolicValidator::new().expect("Failed to load NeuroSymbolicValidator"),
             ),
             drift_detector: Arc::new(DriftDetector::new()),
-            pulse: PulseManager::new(),
             consensus: Arc::new(ConsensusEngine::new()),
         }
     }
 
     /// Request coordination for a resource.
     pub async fn request(&self, request: CoordinationRequest) -> CoordinationResult {
-        // 1. Antifragile Check (Circuit Breaker)
-        if !self
-            .antifragile
-            .is_service_available(&request.resource)
-            .await
-        {
-            return CoordinationResult::denied(String::from(
-                "Antifragile: Service circuit breaker is OPEN",
-            ));
-        }
-
-        // 2. Cost/Budget Check
+        // 1. Cost/Budget Check
         let current_cost = self.cost_tracker.get_agent_total(&request.agent_id);
         let budget_override = self.consensus.get_budget_override(&request.agent_id).await;
         let total_budget = Decimal::from(10) + budget_override;
@@ -82,51 +62,24 @@ impl PgCoordinator {
             ));
         }
 
-        // 3. Carbon/Sustainability Check
-        if let Some(intensity) = self
-            .carbon_scheduler
-            .get_current_intensity("us-east-1")
-            .await
-        {
-            self.pulse.report_carbon(intensity as f64);
-
-            if intensity > 500.0 && request.priority < 50 {
-                return CoordinationResult::denied(String::from(
-                    "Sustainability: High grid carbon intensity, task deferred",
-                ));
-            }
-        }
-
-        // 4. Intent Drift Check (PERSISTENT via Postgres)
-        // Fetch the active intent path for this agent from DB
+        // 2. Intent Drift Check
         match self.get_intent(&request.agent_id).await {
             Ok(Some(path)) => {
                 let drift = self.drift_detector.check(&path);
                 if drift.drifted && drift.score > 70 {
-                    let failure = crate::antifragile::Failure::new(
-                        &request.resource,
-                        "Critical intent drift detected",
-                    );
-                    self.antifragile.handle_failure(failure).await;
                     return CoordinationResult::denied(format!(
                         "Sovereign Governance: Critical intent drift ({})",
                         drift.score
                     ));
                 }
             }
-            Ok(None) => {
-                // No intent registered, strict mode might block this
-                tracing::debug!(agent = %request.agent_id, "No intent path found, assuming ad-hoc");
-            }
+            Ok(None) => {}
             Err(e) => {
                 tracing::error!(error = %e, "Failed to fetch intent path during check");
-                // Fail-safe: Allow if DB read fails? Or Block?
-                // High-assurance safety means we should probably block or warn.
-                // For now, log error and proceed.
             }
         }
 
-        // 5. Semantic Intent Check
+        // 3. Semantic Intent Check
         let intent_text = request
             .intent
             .clone()
@@ -149,7 +102,7 @@ impl PgCoordinator {
             }
         }
 
-        // Try to acquire lock (PERSISTENT via Postgres)
+        // Try to acquire lock
         match self
             .lock_manager
             .acquire(
@@ -162,7 +115,6 @@ impl PgCoordinator {
             .await
         {
             Ok(lock) => {
-                // Remove from queue if present
                 let _ = self
                     .queue
                     .dequeue(&request.agent_id, &request.resource)
@@ -170,23 +122,17 @@ impl PgCoordinator {
                 CoordinationResult::granted(lock)
             }
             Err(LockError::ResourceLocked { .. }) => {
-                // Enqueue in PERSISTENT queue
                 match self.queue.enqueue(request.clone()).await {
                     Ok(position) => {
                         let wait_ms = self
                             .queue
-                            .estimate_wait_ms(position, self.avg_lock_duration_ms);
+                            .estimate_wait_ms(position, 5000);
                         CoordinationResult::queued(position as u32, wait_ms)
                     }
                     Err(e) => CoordinationResult::denied(format!("Queue error: {}", e)),
                 }
             }
             Err(e) => {
-                let failure = crate::antifragile::Failure::new(
-                    &request.resource,
-                    format!("Lock failed: {}", e),
-                );
-                self.antifragile.handle_failure(failure).await;
                 CoordinationResult::denied(e.to_string())
             }
         }
@@ -212,7 +158,6 @@ impl PgCoordinator {
             .await
             .map_err(|e| e.to_string())?;
 
-        // Check queue for next waiter
         if let Some(next_request) = self.queue.pop(resource).await {
             let _ = self
                 .lock_manager
@@ -234,7 +179,7 @@ impl PgCoordinator {
         self.lock_manager.get_status(resource).await
     }
 
-    /// Register an intent path for an agent (Persistent).
+    /// Register an intent path for an agent.
     pub async fn register_intent(&self, path: IntentPath) -> Result<(), String> {
         let history_json = Json(&path.history);
 
@@ -272,7 +217,6 @@ impl PgCoordinator {
         Ok(())
     }
 
-    // Helper to get intent
     async fn get_intent(&self, agent_id: &str) -> Result<Option<IntentPath>, String> {
         let row = sqlx::query(
             r#"
@@ -319,7 +263,6 @@ impl PgCoordinator {
         }
     }
 
-    /// Access the consensus engine.
     pub fn consensus(&self) -> Arc<ConsensusEngine> {
         self.consensus.clone()
     }
@@ -328,12 +271,6 @@ impl PgCoordinator {
 #[async_trait::async_trait]
 impl Pulse for PgCoordinator {
     async fn get_health(&self) -> SemanticHealthReport {
-        let intensity = self
-            .carbon_scheduler
-            .get_current_intensity("us-east-1")
-            .await
-            .unwrap_or(0.0) as f64;
-
         let cost_total = self.cost_tracker.get_global_summary().total_usd;
         let cost_index = (cost_total / Decimal::from(1000))
             .to_f64()
@@ -342,15 +279,11 @@ impl Pulse for PgCoordinator {
 
         SemanticHealthReport {
             component: "Arbiter::PgCoordinator".to_string(),
-            status: if intensity > 500.0 {
-                HealthStatus::Degraded
-            } else {
-                HealthStatus::Healthy
-            },
+            status: HealthStatus::Healthy,
             timestamp: Utc::now(),
-            carbon_intensity: intensity,
+            carbon_intensity: 0.0,
             cost_index,
-            latency_ms: 10, // Slightly higher due to DB
+            latency_ms: 10,
             uptime_secs: 3600,
             message: "Persistent Distributed Coordination Engine active".to_string(),
         }

@@ -243,7 +243,7 @@ async fn raft_init(
         }
 
         let nodes: std::collections::BTreeMap<u64, ()> =
-            nodes_req.into_iter().map(|(k, _)| (k, ())).collect();
+            nodes_req.into_keys().map(|k| (k, ())).collect();
         let res = raft_manager.raft.initialize(nodes).await;
         match res {
             Ok(_) => (StatusCode::OK, Json(json!({"ok": true}))).into_response(),

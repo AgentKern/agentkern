@@ -1,22 +1,34 @@
 //! AgentKern Unified Server
 //!
-//! Single binary gateway to all AgentKern pillars.
-//! Replaces the Node.js `apps/identity` service.
+//! HTTP Gateway that exposes all Six Pillars via REST API.
+//! 
+//! Routes:
+//! - /api/v1/identity → Identity pillar (packages/pillars/identity)
+//! - /api/v1/gate → Gate pillar (packages/pillars/gate)
+//! - /api/v1/synapse → Synapse pillar (packages/pillars/synapse)
+//! - /api/v1/arbiter → Arbiter pillar (packages/pillars/arbiter)
+//! - /api/v1/nexus → Nexus pillar (packages/pillars/nexus)
+//! - /api/v1/treasury → Treasury pillar (packages/pillars/treasury)
+//!
+//! All pillars are Rust libraries. This server is a unified HTTP gateway.
 
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use axum::response::IntoResponse;
 use axum::{middleware, routing::post, Router};
+use futures_util::{sink::SinkExt, stream::StreamExt};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::sync::broadcast;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 mod agents;
 mod auth;
 mod chaos;
-mod ee;
 mod telemetry;
 
-use auth::JwtConfig;
+use auth::{Environment, JwtConfig};
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
@@ -25,6 +37,7 @@ pub struct AppState {
     pub jwt_config: JwtConfig,
     pub gate: Arc<agentkern_gate::engine::GateEngine>,
     pub arbiter: Arc<agentkern_arbiter::Coordinator>,
+    pub tx: broadcast::Sender<agentkern_gate::DashboardEvent>,
 }
 
 #[tokio::main]
@@ -67,12 +80,10 @@ async fn main() {
     // Connect to database (optional - server can run without DB for testing)
     let database_url = std::env::var("DATABASE_URL").ok();
 
-    let pool = if let Some(ref url) = database_url {
+    let pool: Option<sqlx::PgPool> = if let Some(ref url) = database_url {
         tracing::info!("🗄️  Connecting to database...");
         match PgPoolOptions::new().max_connections(10).connect(url).await {
             Ok(pool) => {
-                tracing::info!("✅ Database connected");
-
                 tracing::info!("✅ Database connected");
                 Some(pool)
             }
@@ -123,6 +134,8 @@ async fn main() {
         Arc::new(agentkern_arbiter::Coordinator::new())
     };
 
+    let (tx, _) = broadcast::channel(1024);
+
     // Build application state
     let state = Arc::new(AppState {
         pool,
@@ -130,37 +143,62 @@ async fn main() {
         jwt_config,
         gate: gate.clone(),
         arbiter: arbiter.clone(),
+        tx: tx.clone(),
     });
+
+    // Start background activity monitor
+    tokio::spawn(monitor_gate_activity(gate.clone(), tx.clone()));
 
     // Start Resident Agents
     agents::start_agents(state.clone());
 
     // Build the unified router
-    let app = build_router(state).await;
+    let app = match build_router(state).await {
+        Ok(app) => app,
+        Err(e) => {
+            tracing::error!("❌ Failed to build router: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     // Configure server address
-    let port: u16 = std::env::var("PORT")
-        .unwrap_or_else(|_| "3000".to_string())
-        .parse()
-        .expect("PORT must be a number");
+    let port_raw = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let port: u16 = match port_raw.parse() {
+        Ok(value) => value,
+        Err(e) => {
+            tracing::error!("❌ Invalid PORT '{}': {}", port_raw, e);
+            std::process::exit(1);
+        }
+    };
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("📡 Listening on {}", addr);
 
     // Start server
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app)
-        .await
-        .expect("Server failed to start");
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            tracing::error!("❌ Failed to bind to {}: {}", addr, e);
+            std::process::exit(1);
+        }
+    };
+
+    if let Err(e) = axum::serve(listener, app).await {
+        tracing::error!("❌ Server failed to start: {}", e);
+        std::process::exit(1);
+    }
 }
 
-async fn build_router(state: Arc<AppState>) -> Router {
+async fn build_router(state: Arc<AppState>) -> anyhow::Result<Router> {
     // CORS configuration
     let allowed_origins = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "*".to_string());
+    let is_production = Environment::from_env() == Environment::Production;
 
     let cors = if allowed_origins == "*" {
-        if std::env::var("RUST_ENV").unwrap_or_default() == "production" {
-            tracing::warn!("⚠️  CORS allowed_origin is '*' in PRODUCTION! (Set ALLOWED_ORIGINS)");
+        if is_production {
+            return Err(anyhow::anyhow!(
+                "ALLOWED_ORIGINS must be explicitly configured in production"
+            ));
         }
         CorsLayer::new()
             .allow_origin(Any)
@@ -169,8 +207,20 @@ async fn build_router(state: Arc<AppState>) -> Router {
     } else {
         let origins: Vec<axum::http::HeaderValue> = allowed_origins
             .split(',')
-            .map(|s| s.trim().parse().expect("Invalid CORS origin"))
-            .collect();
+            .map(str::trim)
+            .filter(|origin| !origin.is_empty())
+            .map(|origin| {
+                origin
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("Invalid CORS origin: {}", origin))
+            })
+            .collect::<Result<_, _>>()?;
+
+        if origins.is_empty() {
+            return Err(anyhow::anyhow!(
+                "ALLOWED_ORIGINS is set but contains no valid origins"
+            ));
+        }
 
         CorsLayer::new()
             .allow_origin(origins)
@@ -199,7 +249,7 @@ async fn build_router(state: Arc<AppState>) -> Router {
         .with_state(state.clone());
     // Build unified router with all pillars
     // Explicitly declare Router<()> to catch type mismatches
-    Router::<()>::new()
+    Ok(Router::<()>::new()
         // Auth routes (public)
         .nest_service("/api/v1/auth", auth_routes)
         // Identity Pillar
@@ -242,15 +292,19 @@ async fn build_router(state: Arc<AppState>) -> Router {
             resilient_service(agentkern_treasury::api::router(state.pool.clone()), 50, 30),
         )
         */
-        // Enterprise Extension (Wiring)
-        .nest_service(
-            "/api/v1/ee",
-            ee::router(), // Intentionally not resilient (management routes)
-        )
         // Admin Auth Endpoints (Protected)
         .nest("/api/v1/admin", admin_routes)
         // Root health check
         .route("/health", axum::routing::get(root_health))
+        // WebSocket Activity Feed (Live Dashboard) - requires state
+        .merge(
+            Router::new()
+                .route(
+                    "/api/v1/gate/ws/activity",
+                    axum::routing::get(ws_activity_handler),
+                )
+                .with_state(state.clone()),
+        )
         // Authentication middleware for protected routes
         .layer(middleware::from_fn_with_state(
             state.clone(),
@@ -259,7 +313,7 @@ async fn build_router(state: Arc<AppState>) -> Router {
         // Tracing
         .layer(TraceLayer::new_for_http())
         // CORS
-        .layer(cors)
+        .layer(cors))
 }
 
 fn resilient_service(
@@ -327,13 +381,10 @@ async fn handle_middleware_error(
 /// Validate required environment variables at startup
 /// Fail-fast principle: exit if critical configs are missing
 fn validate_required_environment_variables() {
-    let is_production = std::env::var("RUST_ENV")
-        .unwrap_or_else(|_| "development".to_string())
-        .to_lowercase()
-        == "production";
+    let is_production = Environment::from_env() == Environment::Production;
 
     // Always required
-    if let Err(_) = std::env::var("JWT_SECRET") {
+    if std::env::var("JWT_SECRET").is_err() {
         if is_production {
             tracing::error!("❌ CRITICAL: JWT_SECRET not set in PRODUCTION");
             std::process::exit(1);
@@ -343,17 +394,16 @@ fn validate_required_environment_variables() {
     }
 
     // Validate JWT_SECRET length in production
-    if is_production {
-        if let Ok(secret) = std::env::var("JWT_SECRET") {
-            if secret.len() < 32 {
-                tracing::error!("❌ CRITICAL: JWT_SECRET must be at least 32 bytes in PRODUCTION");
-                std::process::exit(1);
-            }
-        }
+    if is_production
+        && let Ok(secret) = std::env::var("JWT_SECRET")
+        && secret.len() < 32
+    {
+        tracing::error!("❌ CRITICAL: JWT_SECRET must be at least 32 bytes in PRODUCTION");
+        std::process::exit(1);
     }
 
     // Warn if DATABASE_URL not set (optional but recommended)
-    if let Err(_) = std::env::var("DATABASE_URL") {
+    if std::env::var("DATABASE_URL").is_err() {
         if is_production {
             tracing::warn!("⚠️  DATABASE_URL not set in PRODUCTION (running stateless)");
         } else {
@@ -362,18 +412,63 @@ fn validate_required_environment_variables() {
     }
 
     // Validate PORT if specified
-    if let Ok(port_str) = std::env::var("PORT") {
-        if let Err(_) = port_str.parse::<u16>() {
-            tracing::error!(
-                "❌ PORT must be a valid u16 number (0-65535), got: {}",
-                port_str
-            );
-            std::process::exit(1);
-        }
+    if let Ok(port_str) = std::env::var("PORT")
+        && port_str.parse::<u16>().is_err()
+    {
+        tracing::error!(
+            "❌ PORT must be a valid u16 number (0-65535), got: {}",
+            port_str
+        );
+        std::process::exit(1);
     }
 
     // Log startup validation complete
     if is_production {
         tracing::info!("✅ Production environment variables validated");
+    }
+}
+/// Start background task to pipe GateEngine events to the Dashboard broadcast channel
+async fn monitor_gate_activity(
+    gate: Arc<agentkern_gate::GateEngine>,
+    tx: broadcast::Sender<agentkern_gate::DashboardEvent>,
+) {
+    let mut rx = gate.subscribe();
+    tracing::info!("📡 Background Gate Activity Monitor started");
+
+    while let Ok(event) = rx.recv().await {
+        let dashboard_event = agentkern_gate::DashboardEvent::Verification(event);
+        if let Err(e) = tx.send(dashboard_event) {
+            tracing::debug!("No active dashboard listeners: {}", e);
+        }
+    }
+}
+
+/// WebSocket handler for the live dashboard feed
+async fn ws_activity_handler(
+    ws: WebSocketUpgrade,
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> impl IntoResponse {
+    ws.on_upgrade(|socket| handle_socket(socket, state))
+}
+
+async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
+    let (mut sender, mut _receiver) = socket.split();
+    let mut rx = state.tx.subscribe();
+
+    tracing::info!("🔌 New Dashboard WebSocket client connected");
+
+    while let Ok(event) = rx.recv().await {
+        let msg = match serde_json::to_string(&event) {
+            Ok(json) => Message::Text(json.into()),
+            Err(e) => {
+                tracing::error!("Failed to serialize dashboard event: {}", e);
+                continue;
+            }
+        };
+
+        if let Err(e) = sender.send(msg).await {
+            tracing::debug!("Dashboard WebSocket client disconnected: {}", e);
+            break;
+        }
     }
 }

@@ -1,9 +1,9 @@
 [package]
 name = "agentkern-treasury"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "AgentKern-Treasury: Agent Payment Infrastructure"
-license = "MIT"
+license = "Apache-2.0"
 
 [lints]
 workspace = true

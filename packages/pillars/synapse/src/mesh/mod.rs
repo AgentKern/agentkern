@@ -1,10 +1,7 @@
-//! Global Mesh Sync
+//! AgentKern-Synapse: Global Mesh Sync
 //!
-//! Multi-region CRDT synchronization with geo-fencing.
-//! Per GLOBAL_GAPS.md: "Geo-Fenced Cells"
+//! Multi-region CRDT synchronization.
 
-pub mod geo_fence;
-pub mod migration;
 pub mod orchestrator;
 pub mod sync;
 
@@ -13,8 +10,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-pub use geo_fence::{GeoFence, ResidencyRule, TransferPolicy};
-pub use migration::{MigrationManager, MigrationTicket};
 pub use orchestrator::{MeshOrchestrator, MigrationReason};
 pub use sync::{ConflictResolution, MeshSync, SyncEvent};
 
@@ -42,55 +37,38 @@ pub enum DataRegion {
     EuIreland,
     AsiaSingapore,
     AsiaJapan,
-    MenaRiyadh,
-    MenaDubai,
-    IndiaMumbai,
     Global,
 }
 
 impl DataRegion {
-    /// Check if data localization is required.
+    /// Check if data localization is required (Stub).
     pub fn requires_localization(&self) -> bool {
-        matches!(
-            self,
-            DataRegion::EuFrankfurt
-                | DataRegion::EuIreland
-                | DataRegion::MenaRiyadh
-                | DataRegion::MenaDubai
-                | DataRegion::IndiaMumbai
-        )
+        false
     }
 
     /// Get the governing privacy law.
     pub fn privacy_law(&self) -> &'static str {
         match self {
             DataRegion::EuFrankfurt | DataRegion::EuIreland => "GDPR",
-            DataRegion::MenaRiyadh | DataRegion::MenaDubai => "PDPL",
-            DataRegion::IndiaMumbai => "DPDP",
             _ => "None",
         }
     }
 }
 
-/// Global mesh controller.
 pub struct GlobalMesh {
     /// All registered cells
     cells: Arc<RwLock<HashMap<String, MeshCell>>>,
     /// Local cell ID
     local_cell_id: String,
-    /// Geo-fence policy
-    geo_fence: GeoFence,
     /// Sync engine
     sync: MeshSync,
 }
 
 impl GlobalMesh {
-    /// Create a new mesh controller.
-    pub fn new(local_cell_id: String, region: DataRegion) -> Self {
+    pub fn new(local_cell_id: String, _region: DataRegion) -> Self {
         Self {
             cells: Arc::new(RwLock::new(HashMap::new())),
             local_cell_id: local_cell_id.clone(),
-            geo_fence: GeoFence::new(region),
             sync: MeshSync::new(local_cell_id),
         }
     }
@@ -106,23 +84,12 @@ impl GlobalMesh {
         &self.local_cell_id
     }
 
-    /// Sync data to a target region (with geo-fence check).
     pub async fn sync_to_region(
         &self,
         data_id: &str,
         target_region: DataRegion,
         data: &[u8],
     ) -> Result<SyncResult, MeshError> {
-        // Check geo-fence policy
-        if !self.geo_fence.can_transfer(target_region, data_id) {
-            return Err(MeshError::GeoFenceBlocked {
-                reason: format!(
-                    "Data {} cannot leave {}",
-                    data_id,
-                    self.geo_fence.local_region().privacy_law()
-                ),
-            });
-        }
 
         // Find cells in target region
         let cells = self.cells.read().await;
@@ -233,8 +200,6 @@ mod tests {
 
     #[test]
     fn test_region_localization() {
-        assert!(DataRegion::EuFrankfurt.requires_localization());
-        assert!(DataRegion::MenaRiyadh.requires_localization());
         assert!(!DataRegion::UsEast.requires_localization());
     }
 }

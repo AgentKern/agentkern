@@ -199,67 +199,39 @@ pub enum LockMode {
 
 ---
 
-## 8. GreenOps: Carbon Ledger
+## 8. Operational Budget Ledger
 
-Tracks environmental impact in [`carbon.rs`](../../packages/pillars/treasury/src/carbon.rs).
+Tracks operational spend and limits in [`budget.rs`](../../packages/pillars/treasury/src/budget.rs).
 
-### Hardware Awareness
-
-Treasury knows the TDP (Thermal Design Power) of AI accelerators to calculate energy usage accurately.
-
-| Compute Type | Typical Power | Water Usage (L/kWh) |
-|--------------|---------------|---------------------|
-| `H100` | 700W | 0.30 |
-| `A100` | 400W | 0.35 |
-| `T4` | 70W | 0.30 |
-| `Cpu` | 150W | 0.40 |
-
-### Footprint Calculation
-
-$$ \text{Carbon} = \text{Power (kW)} \times \text{Time (h)} \times \text{Intensity (gCO}_2\text{/kWh)} $$
+### Spending Limits
 
 ```rust
-let footprint = CarbonFootprint::calculate(
+let manager = BudgetManager::new();
+manager.set_limit(
     "agent-1",
-    "inference",
-    ComputeType::H100,
-    5000, // 5s duration
-    CarbonRegion::UsEast, // ~350 gCO2/kWh
+    SpendingLimit::new(Amount::from_float(100.0, 2), BudgetPeriod::Daily),
 );
+
+manager.record_spend("agent-1", &Amount::from_float(12.5, 2))?;
+let remaining = manager.get_remaining("agent-1");
 ```
 
 ---
 
-## 9. Solar Curve Scheduling
+## 9. Period-Based Controls
 
-Optimizes job scheduling based on renewable energy availability.
-
-```rust
-// Check if we are in "peak solar" window (e.g., 10 AM - 2 PM)
-if solar_curve.is_peak_now() {
-    // Run Low-Priority Batch Jobs
-} else {
-    // Delay non-urgent work
-    let delay = solar_curve.hours_until_peak();
-}
-```
-
-### Intensity Multiplier
-
-Jobs run during peak renewable hours get a "Green Discount" on their calculated carbon footprint.
+`SpendingLimit` supports transaction, hourly, daily, weekly, and monthly windows with automatic reset.
 
 ---
 
-## 10. WattTime Integration
+## 10. Transfer Verification
 
-Real-time grid emissions data via [`watttime.rs`](../../packages/pillars/treasury/src/watttime.rs).
+Deterministic transfer verification and invariants in [`verification.rs`](../../packages/pillars/treasury/src/verification.rs).
 
 ```rust
-let client = WattTimeClient::from_env()?;
-
-// Get real-time marginal emissions for location
-let intensity = client.get_intensity(37.77, -122.41).await?;
-// Returns gCO2/kWh (e.g., 250 for CAISO)
+let report = VerificationReport::new();
+report.assert_balance_consistency()?;
+report.assert_no_double_spend()?;
 ```
 
 ---
@@ -289,8 +261,8 @@ Currently serves primarily as a health-check endpoint for orchestrators.
 | [`budget.rs`](../../packages/pillars/treasury/src/budget.rs) | 263 | Spending limits |
 | [`micropayments.rs`](../../packages/pillars/treasury/src/micropayments.rs) | 272 | Aggregation logic |
 | [`lock.rs`](../../packages/pillars/treasury/src/lock.rs) | 279 | Distributed locking |
-| [`carbon.rs`](../../packages/pillars/treasury/src/carbon.rs) | 926 | GreenOps & Hardware data |
-| [`watttime.rs`](../../packages/pillars/treasury/src/watttime.rs) | 248 | WattTime API Client |
+| [`verification.rs`](../../packages/pillars/treasury/src/verification.rs) | ~80 | Transfer invariants and checks |
+| [`db.rs`](../../packages/pillars/treasury/src/db.rs) | ~120 | Database integration layer |
 | [`bin/server.rs`](../../packages/pillars/treasury/src/bin/server.rs) | 20 | HTTP Server |
 
 **Total: ~2,800 lines of Rust**

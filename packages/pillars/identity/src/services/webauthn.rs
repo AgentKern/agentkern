@@ -7,6 +7,8 @@ use webauthn_rs::prelude::*;
 pub enum WebAuthnError {
     #[error("WebAuthn error: {0}")]
     Core(#[from] WebauthnError),
+    #[error("WebAuthn configuration error: {0}")]
+    InvalidConfig(String),
     #[error("Database error")]
     Database,
     #[error("User not found")]
@@ -18,11 +20,15 @@ pub struct WebAuthnService {
 }
 
 impl WebAuthnService {
-    pub fn new(rp_id: &str, rp_origin: &str) -> Self {
-        let rp_origin_url = Url::parse(rp_origin).expect("Invalid RP Origin URL");
-        let builder = WebauthnBuilder::new(rp_id, &rp_origin_url).expect("Invalid RP Protocol");
-        let webauthn = Arc::new(builder.build().expect("Failed to build WebAuthn instance"));
-        Self { webauthn }
+    pub fn new(rp_id: &str, rp_origin: &str) -> Result<Self, WebAuthnError> {
+        let rp_origin_url = Url::parse(rp_origin)
+            .map_err(|e| WebAuthnError::InvalidConfig(format!("Invalid RP origin URL: {e}")))?;
+        let builder = WebauthnBuilder::new(rp_id, &rp_origin_url)
+            .map_err(|e| WebAuthnError::InvalidConfig(format!("Invalid RP protocol: {e}")))?;
+        let webauthn = Arc::new(builder.build().map_err(|e| {
+            WebAuthnError::InvalidConfig(format!("Failed to build WebAuthn instance: {e}"))
+        })?);
+        Ok(Self { webauthn })
     }
 
     pub async fn start_registration(
@@ -52,5 +58,16 @@ impl WebAuthnService {
             .map_err(WebAuthnError::Core)?;
 
         Ok(passkey)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_rejects_invalid_origin() {
+        let result = WebAuthnService::new("localhost", "not-a-url");
+        assert!(matches!(result, Err(WebAuthnError::InvalidConfig(_))));
     }
 }

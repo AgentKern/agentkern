@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-The **Identity Pillar** is the foundation of trust in the AgentKern ecosystem. Unlike the legacy Node.js implementation, the Rust Identity pillar is a high-performance, memory-safe library integrated directly into the `AgentKern Unified Server`.
+The **Identity Pillar** is the foundation of trust in the AgentKern ecosystem. The Rust Identity pillar is a high-performance, memory-safe library integrated directly into the `AgentKern Unified Server`.
 
 It is responsible for:
 1.  **Agent Lifecycle**: Registration, status management, and termination.
@@ -28,8 +28,8 @@ The pillar is designed as a standalone Rust crate (`agentkern-identity`) that ca
 | **Models** (`models/*.rs`) | **Type Definitions**. Pure Rust structs for `AgentRecord`, `LiabilityProof`, `Intent`, etc. |
 
 ### Technical Specifications
-* [Protocol Specification](specs/identity/PROTOCOL_SPEC.md) - Liability Proof format and validation rules.
-* [Trust Mesh Specification](specs/identity/TRUST_MESH_SPEC.md) - Trust score propagation and synchronization.
+* [Protocol Specification](identity/PROTOCOL_SPEC.md) - Liability Proof format and validation rules.
+* [Trust Mesh Specification](identity/TRUST_MESH_SPEC.md) - Trust score propagation and synchronization.
 
 ---
 

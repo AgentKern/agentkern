@@ -135,3 +135,24 @@ impl DataRegion {
 }
 
 pub type AgentId = String;
+
+/// Event emitted after a verification is complete.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VerificationEvent {
+    pub timestamp: DateTime<Utc>,
+    pub agent_id: AgentId,
+    pub action: String,
+    pub result: VerificationResult,
+}
+
+/// Aggregated activity for the dashboard.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum DashboardEvent {
+    Verification(VerificationEvent),
+    SystemStatus {
+        uptime: u64,
+        policy_count: usize,
+        active_agents: usize,
+    },
+}

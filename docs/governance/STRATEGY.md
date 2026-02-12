@@ -1,6 +1,6 @@
 # AgentKern Technical Strategy & Market Moats (2026)
 
-AgentKern is the deterministic security and coordination layer for the autonomous agent economy. We provide the "Hard-Security Runtime" that bridges the gap between stochastic AI models and high-stakes production execution.
+AgentKern is the deterministic security and coordination layer for the autonomous agent economy. We provide the "Hard-Security Runtime" that closes the gap between stochastic AI models and high-stakes production execution.
 
 ---
 

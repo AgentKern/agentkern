@@ -20,18 +20,23 @@ RUN cargo build --release --package agentkern-synapse --bin synapse-server
 # Runtime stage - minimal image
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S agentkern \
+    && adduser -S -u 1000 -G agentkern agentkern
 
 WORKDIR /app
 
 # Copy the built binary
 COPY --from=builder /app/target/release/synapse-server /app/synapse-server
+RUN chown -R agentkern:agentkern /app
 
 # Set environment
 ENV PORT=3002
 ENV RUST_LOG=info
 
 EXPOSE 3002
+
+USER agentkern
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

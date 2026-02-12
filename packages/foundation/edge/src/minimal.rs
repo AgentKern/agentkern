@@ -151,6 +151,9 @@ impl core::fmt::Display for EdgeError {
     }
 }
 
+#[cfg(feature = "std")]
+impl std::error::Error for EdgeError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

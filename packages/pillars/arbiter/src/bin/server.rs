@@ -46,6 +46,7 @@ async fn main() {
         #[allow(unused_mut)]
         let mut coordinator = Coordinator::new();
 
+        /*
         // Enterprise Feature Wiring
         #[cfg(feature = "ee")]
         {
@@ -74,6 +75,7 @@ async fn main() {
                 }
             }
         }
+        */
         coordinator
     };
 

@@ -1,4 +1,4 @@
-version: '3.8'
+# AgentKern Docker Compose - Development Environment
 
 services:
   # ===========================================

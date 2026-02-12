@@ -127,11 +127,20 @@ impl PyGateEngine {
         action: String,
         context: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<bool> {
-        let builder = VerificationRequestBuilder::new(agent_id, action);
+        let mut builder = VerificationRequestBuilder::new(agent_id, action);
 
-        if let Some(_ctx) = context {
-            // Basic context conversion (string keys/values for now)
-            // In a real SDK we'd do full recursive dict -> serde_json conversion
+        if let Some(ctx) = context {
+            for (key, value) in ctx.iter() {
+                let key_str: String = key.extract().map_err(|e| {
+                    pyo3::exceptions::PyTypeError::new_err(format!(
+                        "Context keys must be strings: {}",
+                        e
+                    ))
+                })?;
+
+                let json_value = python_to_json_value(&value)?;
+                builder = builder.context(key_str, json_value);
+            }
         }
 
         let request = builder.build();
@@ -140,6 +149,55 @@ impl PyGateEngine {
         let result = self.rt.block_on(self.inner.verify(request));
 
         Ok(result.allowed)
+    }
+}
+
+
+// ============================================================================
+// PYTHON → JSON CONVERSION HELPERS
+// ============================================================================
+
+/// Convert a Python object to a serde_json::Value.
+///
+/// Supports: str, int, float, bool, None, list, and dict (recursively).
+fn python_to_json_value(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<serde_json::Value> {
+    use pyo3::types::{PyBool, PyFloat, PyInt, PyList, PyNone, PyString};
+
+    // Order matters: PyBool must be checked before PyInt (bool is a subclass of int in Python)
+    if obj.is_instance_of::<PyNone>() {
+        Ok(serde_json::Value::Null)
+    } else if obj.is_instance_of::<PyBool>() {
+        let val: bool = obj.extract()?;
+        Ok(serde_json::Value::Bool(val))
+    } else if obj.is_instance_of::<PyInt>() {
+        let val: i64 = obj.extract()?;
+        Ok(serde_json::json!(val))
+    } else if obj.is_instance_of::<PyFloat>() {
+        let val: f64 = obj.extract()?;
+        Ok(serde_json::json!(val))
+    } else if obj.is_instance_of::<PyString>() {
+        let val: String = obj.extract()?;
+        Ok(serde_json::Value::String(val))
+    } else if obj.is_instance_of::<PyList>() {
+        let list = obj.downcast::<PyList>().map_err(|e| {
+            pyo3::exceptions::PyTypeError::new_err(format!("Expected list: {}", e))
+        })?;
+        let items: Result<Vec<_>, _> = list.iter().map(|item| python_to_json_value(&item)).collect();
+        Ok(serde_json::Value::Array(items?))
+    } else if obj.is_instance_of::<PyDict>() {
+        let dict = obj.downcast::<PyDict>().map_err(|e| {
+            pyo3::exceptions::PyTypeError::new_err(format!("Expected dict: {}", e))
+        })?;
+        let mut map = serde_json::Map::new();
+        for (key, value) in dict.iter() {
+            let key_str: String = key.extract()?;
+            map.insert(key_str, python_to_json_value(&value)?);
+        }
+        Ok(serde_json::Value::Object(map))
+    } else {
+        // Fallback: convert to string representation
+        let repr: String = obj.str()?.extract()?;
+        Ok(serde_json::Value::String(repr))
     }
 }
 

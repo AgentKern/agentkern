@@ -32,8 +32,8 @@ fn create_request(agent_id: &str, action: &str, resource: &str) -> VerificationR
     VerificationRequest {
         request_id: Uuid::new_v4(),
         agent_id: agent_id.to_string(),
-        action: action.to_string(),
         namespace: "default".to_string(),
+        action: action.to_string(),
         context: VerificationContext { data: context_data },
         timestamp: Utc::now(),
     }
@@ -44,11 +44,11 @@ fn create_policy(name: &str, action: &str, policy_action: PolicyAction) -> Polic
     Policy {
         id: uuid::Uuid::new_v4().to_string(),
         name: name.to_string(),
+        namespace: "default".to_string(),
         description: format!("Policy for {}", name),
         priority: 100,
         enabled: true,
         jurisdictions: vec![],
-        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-1".to_string(),
             condition: format!("action == \"{}\"", action),
@@ -94,14 +94,24 @@ async fn golden_block_delete_action() {
 }
 
 #[tokio::test]
-async fn golden_default_allow_unmatched() {
+async fn golden_default_deny_unmatched() {
     let engine = GateEngine::new();
     // No policies registered
 
     let request = create_request("agent-1", "unknown_action", "resource-1");
-    let _result = engine.verify(request).await;
+    let result = engine.verify(request).await;
 
-    // GOLDEN: Unmatched actions should use default policy (allow)
+    // GOLDEN: Unmatched actions should default-deny.
+    assert!(
+        !result.allowed,
+        "GOLDEN: unmatched action should be blocked by default-deny"
+    );
+    assert!(
+        result
+            .blocking_policies
+            .contains(&"default-deny".to_string()),
+        "GOLDEN: default-deny policy marker should be present"
+    );
 }
 
 #[tokio::test]
@@ -112,11 +122,11 @@ async fn golden_priority_ordering() {
     let allow_policy = Policy {
         id: "allow-1".to_string(),
         name: "allow_write".to_string(),
+        namespace: "default".to_string(),
         description: "Allow write actions".to_string(),
         priority: 50, // Lower priority
         enabled: true,
         jurisdictions: vec![],
-        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-allow".to_string(),
             condition: "action == \"write\"".to_string(),
@@ -129,11 +139,11 @@ async fn golden_priority_ordering() {
     let deny_policy = Policy {
         id: "deny-1".to_string(),
         name: "deny_write".to_string(),
+        namespace: "default".to_string(),
         description: "Deny write actions".to_string(),
         priority: 100, // Higher priority wins
         enabled: true,
         jurisdictions: vec![],
-        namespace: "global".to_string(),
         rules: vec![PolicyRule {
             id: "rule-deny".to_string(),
             condition: "action == \"write\"".to_string(),
