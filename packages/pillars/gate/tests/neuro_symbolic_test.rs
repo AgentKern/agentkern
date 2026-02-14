@@ -82,9 +82,11 @@ fn test_neuro_symbolic_validator_integration() -> Result<(), NeuralError> {
         action_large, result_large.action
     );
     assert_eq!(result_large.action, RuleAction::Review);
-    assert!(result_large
-        .reason
-        .contains("Symbolic rule: review_large_transfer"));
+    assert!(
+        result_large
+            .reason
+            .contains("Symbolic rule: review_large_transfer")
+    );
 
     // 3. Test: "Root Command" (SystemOp + sudo)
     let root_action = "sudo rm -rf /";

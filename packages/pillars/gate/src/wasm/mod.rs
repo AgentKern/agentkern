@@ -10,7 +10,7 @@
 pub mod loader;
 pub mod registry;
 
-pub use loader::{check_prompt, load_policies, PromptCheckResult, PROMPT_GUARD_WASM};
+pub use loader::{PROMPT_GUARD_WASM, PromptCheckResult, check_prompt, load_policies};
 pub use registry::{Capability, RegistryError, RegistryStats, WasmActorMeta, WasmRegistry};
 
 use serde::{Deserialize, Serialize};
@@ -161,7 +161,12 @@ impl WasmPolicyEngine {
 
         let evaluate = instance
             .get_typed_func::<(), ()>(&mut store, "evaluate")
-            .map_err(|_| anyhow::anyhow!("Policy '{}' missing required `evaluate` export", policy_name))?;
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "Policy '{}' missing required `evaluate` export",
+                    policy_name
+                )
+            })?;
         evaluate.call_async(&mut store, ()).await?;
 
         Ok(store.data().result.clone())
@@ -283,6 +288,9 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(err.to_string().contains("missing required `evaluate` export"));
+        assert!(
+            err.to_string()
+                .contains("missing required `evaluate` export")
+        );
     }
 }

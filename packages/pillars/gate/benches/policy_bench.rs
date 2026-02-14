@@ -4,7 +4,7 @@
 //!
 //! Run with: cargo bench
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::collections::HashMap;
 
 // Simulated policy check
@@ -80,8 +80,14 @@ fn benchmark_tokenization(c: &mut Criterion) {
 
     let texts = vec![
         ("short", "transfer money"),
-        ("medium", "please transfer one hundred dollars to the savings account"),
-        ("long", "this is a very long text that contains many words and should take longer to tokenize because it has more content to process through the tokenization pipeline"),
+        (
+            "medium",
+            "please transfer one hundred dollars to the savings account",
+        ),
+        (
+            "long",
+            "this is a very long text that contains many words and should take longer to tokenize because it has more content to process through the tokenization pipeline",
+        ),
     ];
 
     for (name, text) in texts {

@@ -17,11 +17,11 @@ pub mod fallback;
 pub mod isolation;
 pub mod serve;
 
-pub use config::{auto_configure, RuntimeConfig};
-pub use detect::{detect_environment, Environment};
+pub use config::{RuntimeConfig, auto_configure};
+pub use detect::{Environment, detect_environment};
 pub use fallback::{FallbackResult, GracefulFallback, ServiceMode};
-pub use isolation::{detect_best_isolation, IsolationConfig, IsolationMode};
-pub use serve::{serve, Protocol};
+pub use isolation::{IsolationConfig, IsolationMode, detect_best_isolation};
+pub use serve::{Protocol, serve};
 
 /// AgentKern kernel version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

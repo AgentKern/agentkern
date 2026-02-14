@@ -424,7 +424,9 @@ mod tests {
         };
 
         let result = AgentRecord::try_from(row);
-        assert!(matches!(result, Err(ManagerError::InvalidStatus(ref status)) if status == "unknown"));
+        assert!(
+            matches!(result, Err(ManagerError::InvalidStatus(ref status)) if status == "unknown")
+        );
     }
 
     #[test]

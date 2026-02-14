@@ -9,8 +9,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Metrics collected by the observability plane.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -537,8 +537,8 @@ pub fn init_otel_tracer(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use opentelemetry::KeyValue;
     use opentelemetry_otlp::WithExportConfig;
-    use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
 
     // Build OTLP exporter
     let exporter = opentelemetry_otlp::SpanExporter::builder()

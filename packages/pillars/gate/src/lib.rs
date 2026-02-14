@@ -29,7 +29,7 @@ pub mod types;
 pub mod metrics; // Production Prometheus metrics
 pub mod observability;
 pub mod runtime; // Native Tokio io_uring runtime
- // eBPF-compatible tracing
+// eBPF-compatible tracing
 
 // ENGINEERING_STANDARD.md modules
 pub mod actors; // Dynamic Supervision (Section 1)
@@ -65,7 +65,9 @@ pub mod sovereign {
     }
 
     impl SovereignController {
-        pub fn new() -> Self { Self }
+        pub fn new() -> Self {
+            Self
+        }
 
         /// Check whether a cross-region data transfer is allowed.
         ///
@@ -195,4 +197,6 @@ pub use runtime::{HyperRuntime, TokioRuntime};
 //     ComplianceResult, ShariahComplianceError, ShariahComplianceValidator,
 // };
 pub use sovereign::{DataTransfer, SovereignController, TransferDecision};
-pub use types::{DataRegion, DashboardEvent, VerificationEvent, VerificationRequest, VerificationResult};
+pub use types::{
+    DashboardEvent, DataRegion, VerificationEvent, VerificationRequest, VerificationResult,
+};

@@ -79,7 +79,9 @@ impl MarketplaceDiscovery for HttpMarketplaceDiscovery {
         let manifests = response
             .json::<Vec<ConnectorManifest>>()
             .await
-            .map_err(|e| ConnectorError::Internal(format!("Failed to parse manifest JSON: {}", e)))?;
+            .map_err(|e| {
+                ConnectorError::Internal(format!("Failed to parse manifest JSON: {}", e))
+            })?;
 
         Ok(manifests)
     }

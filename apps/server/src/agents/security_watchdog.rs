@@ -1,5 +1,5 @@
-use crate::auth::Environment;
 use crate::AppState;
+use crate::auth::Environment;
 use agentkern_gate::engine::VerificationRequestBuilder;
 use agentkern_identity::services::manager::AgentManager;
 use agentkern_synapse::passport::export::{ExportFormat, ExportOptions, PassportExporter};
@@ -111,7 +111,11 @@ impl SecurityWatchdog {
                 tracing::debug!("🐕 Watchdog pulse (iteration {})", iteration);
 
                 // Task A: Check Arbiter for stale locks
-                if let Some(lock) = state.arbiter.get_lock_status("global:shared_resource").await {
+                if let Some(lock) = state
+                    .arbiter
+                    .get_lock_status("global:shared_resource")
+                    .await
+                {
                     let now = chrono::Utc::now().timestamp();
                     let acquired_at = lock.acquired_at.timestamp();
                     let held_for_secs = now - acquired_at;
@@ -133,10 +137,11 @@ impl SecurityWatchdog {
                 }
 
                 // Task B: Self-Governance Check via Gate
-                let gate_request = VerificationRequestBuilder::new(&config.agent_id, "system_audit")
-                    .namespace("internal")
-                    .context("iteration", iteration)
-                    .build();
+                let gate_request =
+                    VerificationRequestBuilder::new(&config.agent_id, "system_audit")
+                        .namespace("internal")
+                        .context("iteration", iteration)
+                        .build();
 
                 let gate_result = state.gate.verify(gate_request).await;
                 if !gate_result.allowed {

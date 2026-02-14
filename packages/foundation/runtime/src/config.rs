@@ -127,48 +127,39 @@ pub fn auto_configure(env: &Environment) -> RuntimeConfig {
 
 /// Apply environment variable overrides.
 fn apply_env_overrides(config: &mut RuntimeConfig) {
-    if let Ok(port) = env::var("PORT") {
-        if let Ok(p) = port.parse() {
-            config.http_port = p;
-        }
+    if let Ok(port) = env::var("PORT") && let Ok(p) = port.parse() {
+        config.http_port = p;
     }
 
-    if let Ok(port) = env::var("GRPC_PORT") {
-        if let Ok(p) = port.parse() {
-            config.grpc_port = Some(p);
-        }
+    if let Ok(port) = env::var("GRPC_PORT") && let Ok(p) = port.parse() {
+        config.grpc_port = Some(p);
     }
 
-    if let Ok(addr) = env::var("BIND_ADDRESS") {
-        if let Ok(a) = addr.parse() {
-            config.bind_address = a;
-        }
+    if let Ok(addr) = env::var("BIND_ADDRESS") && let Ok(a) = addr.parse() {
+        config.bind_address = a;
     }
 
-    if let Ok(max) = env::var("MAX_CONNECTIONS") {
-        if let Ok(m) = max.parse() {
-            config.max_connections = m;
-        }
+    if let Ok(max) = env::var("MAX_CONNECTIONS") && let Ok(m) = max.parse() {
+        config.max_connections = m;
     }
 }
 
 /// Detect memory limit from cgroup or system.
 fn detect_memory_limit() -> usize {
     // Try cgroup v2
-    if let Ok(limit) = std::fs::read_to_string("/sys/fs/cgroup/memory.max") {
-        if let Ok(bytes) = limit.trim().parse::<usize>() {
-            return bytes;
-        }
+    if let Ok(limit) = std::fs::read_to_string("/sys/fs/cgroup/memory.max")
+        && let Ok(bytes) = limit.trim().parse::<usize>()
+    {
+        return bytes;
     }
 
     // Try cgroup v1
-    if let Ok(limit) = std::fs::read_to_string("/sys/fs/cgroup/memory/memory.limit_in_bytes") {
-        if let Ok(bytes) = limit.trim().parse::<usize>() {
-            if bytes < usize::MAX / 2 {
-                // Not "unlimited"
-                return bytes;
-            }
-        }
+    if let Ok(limit) = std::fs::read_to_string("/sys/fs/cgroup/memory/memory.limit_in_bytes")
+        && let Ok(bytes) = limit.trim().parse::<usize>()
+        && bytes < usize::MAX / 2
+    {
+        // Not "unlimited"
+        return bytes;
     }
 
     // No limit

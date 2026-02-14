@@ -1,8 +1,8 @@
 use axum::{
+    BoxError,
     body::Body,
     http::{Request, StatusCode},
     response::Response,
-    BoxError,
 };
 use rand::Rng;
 use std::future::Future;

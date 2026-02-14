@@ -7,7 +7,7 @@
 //!   agentkern detect  # Show detected environment
 //!   agentkern config  # Show auto-generated config
 
-use agentkern_runtime::{auto_configure, detect_environment, VERSION};
+use agentkern_runtime::{VERSION, auto_configure, detect_environment};
 
 #[tokio::main]
 async fn main() {

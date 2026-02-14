@@ -1,7 +1,7 @@
 //! AgentKern Unified Server
 //!
 //! HTTP Gateway that exposes all Six Pillars via REST API.
-//! 
+//!
 //! Routes:
 //! - /api/v1/identity → Identity pillar (packages/pillars/identity)
 //! - /api/v1/gate → Gate pillar (packages/pillars/gate)
@@ -14,7 +14,7 @@
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::IntoResponse;
-use axum::{middleware, routing::post, Router};
+use axum::{Router, middleware, routing::post};
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -326,8 +326,8 @@ fn resilient_service(
     Error = std::convert::Infallible,
     Future = impl Send,
 > + Clone
-       + Send
-       + Sync {
++ Send
++ Sync {
     tower::ServiceBuilder::new()
         .layer(axum::error_handling::HandleErrorLayer::new(
             handle_middleware_error,

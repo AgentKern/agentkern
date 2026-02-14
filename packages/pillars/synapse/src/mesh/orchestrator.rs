@@ -191,10 +191,16 @@ mod tests {
 
         // Mark US East as Critical and EU as Healthy
         orchestrator
-            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Critical, 450.0))
+            .update_region_health(
+                DataRegion::UsEast,
+                sample_health_report(HealthStatus::Critical, 450.0),
+            )
             .await;
         orchestrator
-            .update_region_health(DataRegion::EuFrankfurt, sample_health_report(HealthStatus::Healthy, 200.0))
+            .update_region_health(
+                DataRegion::EuFrankfurt,
+                sample_health_report(HealthStatus::Healthy, 200.0),
+            )
             .await;
 
         let passport = MemoryPassport::new(sample_identity(), "US".to_string());
@@ -214,7 +220,10 @@ mod tests {
 
         // Mark US East as Degraded — should trigger self-healing
         orchestrator
-            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Degraded, 100.0))
+            .update_region_health(
+                DataRegion::UsEast,
+                sample_health_report(HealthStatus::Degraded, 100.0),
+            )
             .await;
 
         let passport = MemoryPassport::new(sample_identity(), "US".to_string());
@@ -238,7 +247,10 @@ mod tests {
 
         // Mark US East as Healthy
         orchestrator
-            .update_region_health(DataRegion::UsEast, sample_health_report(HealthStatus::Healthy, 100.0))
+            .update_region_health(
+                DataRegion::UsEast,
+                sample_health_report(HealthStatus::Healthy, 100.0),
+            )
             .await;
 
         let passport = MemoryPassport::new(sample_identity(), "US".to_string());

@@ -26,7 +26,10 @@ impl AuditService {
         let keypair = match crypto.generate_keypair() {
             Ok(kp) => kp,
             Err(e) => {
-                tracing::warn!("Failed to generate audit signing keypair with default mode: {}. Falling back to Classical.", e);
+                tracing::warn!(
+                    "Failed to generate audit signing keypair with default mode: {}. Falling back to Classical.",
+                    e
+                );
                 crypto = CryptoProvider::new(CryptoMode::Classical);
                 crypto
                     .generate_keypair()

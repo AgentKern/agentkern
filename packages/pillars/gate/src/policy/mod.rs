@@ -173,4 +173,4 @@ rules:
     }
 }
 pub mod registry;
-pub use registry::{PolicyBundle, PolicyMetadata, PolicyRegistry, PolicyCategory};
+pub use registry::{PolicyBundle, PolicyCategory, PolicyMetadata, PolicyRegistry};

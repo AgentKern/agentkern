@@ -7,7 +7,7 @@ use std::time::Duration;
 use thiserror::Error;
 
 #[cfg(feature = "redis")]
-use bb8_redis::{bb8, redis::AsyncCommands, RedisConnectionManager};
+use bb8_redis::{RedisConnectionManager, bb8, redis::AsyncCommands};
 
 #[derive(Error, Debug)]
 pub enum CacheError {

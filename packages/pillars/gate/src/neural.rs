@@ -25,7 +25,7 @@ use crate::types::VerificationContext;
 use deunicode::deunicode;
 #[cfg(feature = "neural")]
 use ort::{
-    session::{builder::GraphOptimizationLevel, Session},
+    session::{Session, builder::GraphOptimizationLevel},
     value::Value,
 };
 use serde::{Deserialize, Serialize};

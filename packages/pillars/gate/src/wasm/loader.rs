@@ -79,8 +79,9 @@ pub async fn check_prompt(
         "context": context
     });
 
-    let input_bytes = serde_json::to_vec(&input)
-        .map_err(|e| RegistryError::InvalidModule(format!("Failed to encode prompt input: {}", e)))?;
+    let input_bytes = serde_json::to_vec(&input).map_err(|e| {
+        RegistryError::InvalidModule(format!("Failed to encode prompt input: {}", e))
+    })?;
 
     let result = registry
         .invoke_capability("prompt_guard", &input_bytes)

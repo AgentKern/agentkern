@@ -1,10 +1,10 @@
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -52,7 +52,7 @@ async fn transfer(
             return (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(json!({ "error": "Database not connected" })),
-            )
+            );
         }
     };
 
@@ -108,7 +108,7 @@ async fn get_balance(
             return (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(json!({ "error": "Database not connected" })),
-            )
+            );
         }
     };
 

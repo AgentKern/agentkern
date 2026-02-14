@@ -2,8 +2,8 @@
 //!
 //! Supports common webhook formats for Slack, Teams, PagerDuty, and custom endpoints.
 
-use super::triggers::{EscalationLevel, TriggerResult};
 use super::EscalationConnector;
+use super::triggers::{EscalationLevel, TriggerResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

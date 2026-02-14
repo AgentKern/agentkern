@@ -11,8 +11,8 @@ use crate::cost::CostTracker;
 use crate::locks_pg::{LockError, PgLockManager};
 use crate::queue_pg::PgQueue;
 use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 use agentkern_gate::NeuroSymbolicValidator;
 use agentkern_pulse::{HealthStatus, Pulse, SemanticHealthReport};
@@ -124,17 +124,13 @@ impl PgCoordinator {
             Err(LockError::ResourceLocked { .. }) => {
                 match self.queue.enqueue(request.clone()).await {
                     Ok(position) => {
-                        let wait_ms = self
-                            .queue
-                            .estimate_wait_ms(position, 5000);
+                        let wait_ms = self.queue.estimate_wait_ms(position, 5000);
                         CoordinationResult::queued(position as u32, wait_ms)
                     }
                     Err(e) => CoordinationResult::denied(format!("Queue error: {}", e)),
                 }
             }
-            Err(e) => {
-                CoordinationResult::denied(e.to_string())
-            }
+            Err(e) => CoordinationResult::denied(e.to_string()),
         }
     }
 

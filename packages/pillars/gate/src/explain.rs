@@ -542,8 +542,10 @@ mod tests {
         // "delete" and "admin" should be high importance
         let top_contribution = &explanation.contributions[0];
         assert!(top_contribution.value >= 0.8);
-        assert!(["delete", "admin", "root"]
-            .iter()
-            .any(|&s| top_contribution.feature.contains(s)));
+        assert!(
+            ["delete", "admin", "root"]
+                .iter()
+                .any(|&s| top_contribution.feature.contains(s))
+        );
     }
 }

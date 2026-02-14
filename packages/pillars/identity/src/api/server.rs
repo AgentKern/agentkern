@@ -1,11 +1,11 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
     routing::{delete, get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use std::sync::Arc;
 
@@ -465,11 +465,12 @@ async fn revoke_key(
             }
         };
 
-        let result =
-            sqlx::query("UPDATE verification_keys SET active = false, updated_at = NOW() WHERE id = $1")
-            .bind(parsed_id)
-            .execute(pool)
-            .await;
+        let result = sqlx::query(
+            "UPDATE verification_keys SET active = false, updated_at = NOW() WHERE id = $1",
+        )
+        .bind(parsed_id)
+        .execute(pool)
+        .await;
 
         match result {
             Ok(r) if r.rows_affected() > 0 => (StatusCode::OK, Json(json!({ "revoked": id }))),

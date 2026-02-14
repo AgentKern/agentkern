@@ -90,7 +90,6 @@ impl GlobalMesh {
         target_region: DataRegion,
         data: &[u8],
     ) -> Result<SyncResult, MeshError> {
-
         // Find cells in target region
         let cells = self.cells.read().await;
         let target_cells: Vec<_> = cells
@@ -176,10 +175,11 @@ mod tests {
     #[tokio::test]
     async fn test_mesh_creation() {
         let mesh = GlobalMesh::new("cell-eu-1".to_string(), DataRegion::EuFrankfurt);
-        assert!(mesh
-            .cells_in_region(DataRegion::EuFrankfurt)
-            .await
-            .is_empty());
+        assert!(
+            mesh.cells_in_region(DataRegion::EuFrankfurt)
+                .await
+                .is_empty()
+        );
     }
 
     #[tokio::test]

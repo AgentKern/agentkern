@@ -10,15 +10,15 @@
 //! - AWS KMS support for secret decryption
 
 use axum::{
+    Json,
     body::Body,
     extract::State,
-    http::{header, Request, StatusCode},
+    http::{Request, StatusCode, header},
     middleware::Next,
     response::Response,
-    Json,
 };
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, TokenData, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -536,7 +536,9 @@ async fn is_token_revoked(redis_client: Option<&redis::Client>, jti: &str) -> bo
         .lock()
         .map(|mut blacklist| {
             prune_expired_tokens(&mut blacklist, now);
-            blacklist.get(jti).is_some_and(|expires_at| *expires_at > now)
+            blacklist
+                .get(jti)
+                .is_some_and(|expires_at| *expires_at > now)
         })
         .unwrap_or(false)
 }

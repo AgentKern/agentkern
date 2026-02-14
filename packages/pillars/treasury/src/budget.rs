@@ -190,9 +190,7 @@ impl BudgetManager {
 /// Budget errors.
 #[derive(Debug, thiserror::Error)]
 pub enum BudgetError {
-    #[error(
-        "Spending limit exceeded: limit={limit}, requested={requested}, remaining={remaining}"
-    )]
+    #[error("Spending limit exceeded: limit={limit}, requested={requested}, remaining={remaining}")]
     LimitExceeded {
         limit: Amount,
         requested: Amount,

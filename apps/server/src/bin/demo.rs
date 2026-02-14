@@ -4,8 +4,8 @@ use agentkern_gate::types::{DataRegion as GateRegion, VerificationContext, Verif
 use agentkern_identity::services::manager::AgentManager;
 // use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
 // use agentkern_treasury::types::Amount;
-use agentkern_nexus::agent_card::ProtocolSupport;
 use agentkern_nexus::Nexus;
+use agentkern_nexus::agent_card::ProtocolSupport;
 use agentkern_synapse::passport::export::{ExportFormat, ExportOptions, PassportExporter};
 use agentkern_synapse::passport::schema::{AgentIdentity, MemoryPassport, ProvenanceSignature};
 // use std::sync::Arc;
@@ -57,7 +57,9 @@ async fn main() {
 
     // --- PILLAR 2 ---
     println!("{BOLD}{YELLOW}⚖️  PILLAR 2: ARBITER (Distributed Coordination){RESET}");
-    println!("{WHITE}Narrative: Agents cooperate by acquiring distributed locks on shared resources.{RESET}");
+    println!(
+        "{WHITE}Narrative: Agents cooperate by acquiring distributed locks on shared resources.{RESET}"
+    );
     let arbiter = Coordinator::new();
     let lock_id = arbiter
         .acquire_lock("global:shared_resource", &agent_id, 10)
@@ -68,7 +70,9 @@ async fn main() {
 
     // --- PILLAR 3 ---
     println!("{BOLD}{YELLOW}🛡️  PILLAR 3: GATE (Neuro-Symbolic Verification){RESET}");
-    println!("{WHITE}Narrative: Actions are verified against core safety policies at the speed of thought.{RESET}");
+    println!(
+        "{WHITE}Narrative: Actions are verified against core safety policies at the speed of thought.{RESET}"
+    );
     let gate = GateEngine::new().with_jurisdiction(GateRegion::Global);
     let request = VerificationRequest {
         request_id: Uuid::new_v4(),
@@ -114,7 +118,9 @@ async fn main() {
 
     // --- PILLAR 5 ---
     println!("{BOLD}{YELLOW}🧠  PILLAR 5: SYNAPSE (Memory & Sovereign Passport){RESET}");
-    println!("{WHITE}Narrative: Agent state is exported into a portable, encrypted 'Passport' for migration.{RESET}");
+    println!(
+        "{WHITE}Narrative: Agent state is exported into a portable, encrypted 'Passport' for migration.{RESET}"
+    );
     let exporter = PassportExporter::new();
     let mut passport = MemoryPassport::new(
         AgentIdentity {
@@ -148,7 +154,9 @@ async fn main() {
 
     // --- PILLAR 6 ---
     println!("{BOLD}{YELLOW}🔀  PILLAR 6: NEXUS (Universal Cross-Protocol Routing){RESET}");
-    println!("{WHITE}Narrative: AgentKern acts as a bridge between diverse protocols like A2A, MCP, and NLIP.{RESET}");
+    println!(
+        "{WHITE}Narrative: AgentKern acts as a bridge between diverse protocols like A2A, MCP, and NLIP.{RESET}"
+    );
     let nexus = Nexus::new();
     let card = agentkern_nexus::AgentCard {
         id: agent_id.clone(),

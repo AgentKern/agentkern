@@ -11,10 +11,10 @@ use dashmap::DashMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
 
-use crate::dsl::{evaluate, EvalContext};
+use crate::dsl::{EvalContext, evaluate};
 use crate::neural::NeuralScorer;
 use crate::policy::{Policy, PolicyAction};
 use crate::types::{
@@ -481,9 +481,11 @@ mod tests {
 
         let result = engine.verify(request).await;
         assert!(!result.allowed);
-        assert!(result
-            .blocking_policies
-            .contains(&"no-transfers".to_string()));
+        assert!(
+            result
+                .blocking_policies
+                .contains(&"no-transfers".to_string())
+        );
     }
 
     #[tokio::test]

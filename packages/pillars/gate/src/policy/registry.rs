@@ -59,14 +59,17 @@ impl PolicyRegistry {
         for entry in entries {
             let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
-            
+
             if path
                 .extension()
                 .is_some_and(|ext| ext == "json" || ext == "yaml")
             {
                 match self.load_bundle(&path) {
                     Ok(bundle) => {
-                        info!("Loaded policy bundle: {} (v{})", bundle.policy.id, bundle.metadata.version);
+                        info!(
+                            "Loaded policy bundle: {} (v{})",
+                            bundle.policy.id, bundle.metadata.version
+                        );
                         self.policies.insert(bundle.policy.id.clone(), bundle);
                     }
                     Err(e) => {
@@ -79,9 +82,9 @@ impl PolicyRegistry {
     }
 
     fn load_bundle(&self, path: &Path) -> Result<PolicyBundle, String> {
-        let content = fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
-        
+        let content =
+            fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
+
         if path.extension().is_some_and(|ext| ext == "json") {
             serde_json::from_str(&content).map_err(|e| format!("JSON parse error: {}", e))
         } else {
@@ -93,13 +96,12 @@ impl PolicyRegistry {
     pub fn save_bundle(&mut self, bundle: PolicyBundle) -> Result<(), String> {
         let filename = format!("{}.yaml", bundle.policy.id);
         let path = self.storage_path.join(filename);
-        
-        let content = serde_yaml::to_string(&bundle)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        
-        fs::write(&path, content)
-            .map_err(|e| format!("Failed to write file: {}", e))?;
-        
+
+        let content =
+            serde_yaml::to_string(&bundle).map_err(|e| format!("Serialization error: {}", e))?;
+
+        fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))?;
+
         self.policies.insert(bundle.policy.id.clone(), bundle);
         Ok(())
     }
@@ -116,9 +118,10 @@ impl PolicyRegistry {
 
     /// Export a policy as a standardized JSON bundle string.
     pub fn export_bundle(&self, id: &str) -> Result<String, String> {
-        let bundle = self.get_policy(id)
+        let bundle = self
+            .get_policy(id)
             .ok_or_else(|| format!("Policy '{}' not found", id))?;
-        
+
         serde_json::to_string_pretty(bundle)
             .map_err(|e| format!("Export serialization error: {}", e))
     }
@@ -127,7 +130,7 @@ impl PolicyRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::policy::{Policy, PolicyRule, PolicyAction};
+    use crate::policy::{Policy, PolicyAction, PolicyRule};
     use tempfile::tempdir;
 
     fn create_mock_bundle(id: &str) -> PolicyBundle {
@@ -161,25 +164,28 @@ mod tests {
     fn test_registry_save_and_load() {
         let dir = tempdir().unwrap();
         let mut registry = PolicyRegistry::new(dir.path()).unwrap();
-        
+
         let bundle = create_mock_bundle("p1");
         registry.save_bundle(bundle).unwrap();
-        
+
         let mut registry2 = PolicyRegistry::new(dir.path()).unwrap();
         registry2.load_all().unwrap();
-        
+
         assert_eq!(registry2.list_policies().len(), 1);
-        assert_eq!(registry2.get_policy("p1").unwrap().policy.name, "Test Policy p1");
+        assert_eq!(
+            registry2.get_policy("p1").unwrap().policy.name,
+            "Test Policy p1"
+        );
     }
 
     #[test]
     fn test_registry_export() {
         let dir = tempdir().unwrap();
         let mut registry = PolicyRegistry::new(dir.path()).unwrap();
-        
+
         let bundle = create_mock_bundle("p1");
         registry.save_bundle(bundle).unwrap();
-        
+
         let export = registry.export_bundle("p1").unwrap();
         assert!(export.contains("\"id\": \"p1\""));
     }

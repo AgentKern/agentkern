@@ -192,8 +192,8 @@ impl PassportImporter {
     /// Decrypt data using AES-256-GCM.
     fn decrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, PassportError> {
         use aes_gcm::{
-            aead::{Aead, KeyInit},
             Aes256Gcm, Nonce,
+            aead::{Aead, KeyInit},
         };
         use sha2::{Digest, Sha256};
 

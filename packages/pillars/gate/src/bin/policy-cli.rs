@@ -2,11 +2,13 @@
 //!
 //! Standalone tool for managing the security policy registry.
 
-use agentkern_gate::policy::registry::{PolicyRegistry, PolicyBundle, PolicyMetadata, PolicyCategory};
 use agentkern_gate::Policy;
+use agentkern_gate::policy::registry::{
+    PolicyBundle, PolicyCategory, PolicyMetadata, PolicyRegistry,
+};
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "gate-cli")]
@@ -50,18 +52,24 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let mut registry = PolicyRegistry::new(&cli.policy_dir)
         .map_err(|e| anyhow::anyhow!("Failed to initialize policy registry: {}", e))?;
-    
+
     // Attempt to load existing policies
     let _ = registry.load_all();
 
     match cli.command {
         Commands::List => {
             let policies = registry.list_policies();
-            println!("\n🛡️  AgentKern Policy Registry: {}", cli.policy_dir.display());
+            println!(
+                "\n🛡️  AgentKern Policy Registry: {}",
+                cli.policy_dir.display()
+            );
             println!("{:-<60}", "");
-            println!("{:<20} | {:<10} | {:<10} | {:<15}", "ID", "Version", "Category", "Author");
+            println!(
+                "{:<20} | {:<10} | {:<10} | {:<15}",
+                "ID", "Version", "Category", "Author"
+            );
             println!("{:-<60}", "");
-            
+
             for bundle in policies {
                 println!(
                     "{:<20} | {:<10} | {:<10?} | {:<15}",
@@ -75,9 +83,10 @@ fn main() -> anyhow::Result<()> {
             println!("Total: {} policies", registry.list_policies().len());
         }
         Commands::Export { id, output } => {
-            let export_data = registry.export_bundle(&id)
+            let export_data = registry
+                .export_bundle(&id)
                 .map_err(|e| anyhow::anyhow!("Export failed: {}", e))?;
-            
+
             let out_path = output.unwrap_or_else(|| PathBuf::from(format!("{}.json", id)));
             fs::write(&out_path, export_data)?;
             println!("✅ Policy '{}' exported to {}", id, out_path.display());
@@ -89,16 +98,21 @@ fn main() -> anyhow::Result<()> {
             } else {
                 serde_yaml::from_str(&content)?
             };
-            
+
             if let Some(new_author) = author {
                 bundle.metadata.author = new_author;
             }
-            
+
             let id = bundle.policy.id.clone();
-            registry.save_bundle(bundle)
+            registry
+                .save_bundle(bundle)
                 .map_err(|e| anyhow::anyhow!("Import failed: {}", e))?;
-            
-            println!("✅ Successfully imported policy '{}' from {}", id, file.display());
+
+            println!(
+                "✅ Successfully imported policy '{}' from {}",
+                id,
+                file.display()
+            );
         }
         Commands::Init { id } => {
             use agentkern_gate::PolicyRule;
@@ -128,11 +142,16 @@ fn main() -> anyhow::Result<()> {
                     }],
                 },
             };
-            
-            registry.save_bundle(bundle)
+
+            registry
+                .save_bundle(bundle)
                 .map_err(|e| anyhow::anyhow!("Init failed: {}", e))?;
-            
-            println!("✅ Initialized new policy '{}' in {}", id, cli.policy_dir.display());
+
+            println!(
+                "✅ Initialized new policy '{}' in {}",
+                id,
+                cli.policy_dir.display()
+            );
         }
     }
 

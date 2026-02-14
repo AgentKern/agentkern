@@ -152,7 +152,6 @@ impl PyGateEngine {
     }
 }
 
-
 // ============================================================================
 // PYTHON → JSON CONVERSION HELPERS
 // ============================================================================
@@ -179,15 +178,18 @@ fn python_to_json_value(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<serde_json::Va
         let val: String = obj.extract()?;
         Ok(serde_json::Value::String(val))
     } else if obj.is_instance_of::<PyList>() {
-        let list = obj.downcast::<PyList>().map_err(|e| {
-            pyo3::exceptions::PyTypeError::new_err(format!("Expected list: {}", e))
-        })?;
-        let items: Result<Vec<_>, _> = list.iter().map(|item| python_to_json_value(&item)).collect();
+        let list = obj
+            .downcast::<PyList>()
+            .map_err(|e| pyo3::exceptions::PyTypeError::new_err(format!("Expected list: {}", e)))?;
+        let items: Result<Vec<_>, _> = list
+            .iter()
+            .map(|item| python_to_json_value(&item))
+            .collect();
         Ok(serde_json::Value::Array(items?))
     } else if obj.is_instance_of::<PyDict>() {
-        let dict = obj.downcast::<PyDict>().map_err(|e| {
-            pyo3::exceptions::PyTypeError::new_err(format!("Expected dict: {}", e))
-        })?;
+        let dict = obj
+            .downcast::<PyDict>()
+            .map_err(|e| pyo3::exceptions::PyTypeError::new_err(format!("Expected dict: {}", e)))?;
         let mut map = serde_json::Map::new();
         for (key, value) in dict.iter() {
             let key_str: String = key.extract()?;

@@ -2,8 +2,8 @@
 //!
 //! Per ENGINEERING_STANDARD.md: Fast Path <1ms, Safety Path <20ms
 
-use agentkern_gate::{engine::VerificationRequestBuilder, GateEngine, Policy};
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use agentkern_gate::{GateEngine, Policy, engine::VerificationRequestBuilder};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 fn create_test_engine() -> GateEngine {
     let engine = GateEngine::new();

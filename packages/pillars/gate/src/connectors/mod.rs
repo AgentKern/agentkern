@@ -14,7 +14,6 @@ pub mod registry;
 pub mod sdk;
 pub mod sql;
 
-
 // Re-exports
 pub use mock::MockConnector;
 pub use registry::{ConnectorRegistry, RegisteredConnector};

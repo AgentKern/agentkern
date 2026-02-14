@@ -4,7 +4,7 @@
 
 use crate::models::{LiabilityProof, LiabilityProofPayload, VerificationKey};
 use agentkern_crypto::{CryptoMode, CryptoProvider};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Timelike, Utc};
 use serde_json;
 use thiserror::Error;

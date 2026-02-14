@@ -13,8 +13,8 @@ use crate::escalation::{EscalationConnector, WebhookNotifier};
 use crate::locks::{LockError, LockManager};
 use crate::queue::PriorityQueue;
 use crate::types::{BusinessLock, CoordinationRequest, CoordinationResult, LockType};
-use rust_decimal::prelude::*;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 use agentkern_gate::NeuroSymbolicValidator;
 use agentkern_pulse::{HealthStatus, Pulse, SemanticHealthReport};
@@ -151,8 +151,7 @@ impl Coordinator {
                 Ok(false) => {
                     let mut queue = self.queue.write().await;
                     let position = queue.enqueue(request.clone()) as u32;
-                    let wait_ms =
-                        queue.estimate_wait_ms(position as usize, 5000);
+                    let wait_ms = queue.estimate_wait_ms(position as usize, 5000);
                     return CoordinationResult::queued(position, wait_ms);
                 }
                 Err(e) => {
@@ -183,9 +182,7 @@ impl Coordinator {
                 let wait_ms = queue.estimate_wait_ms(position as usize, 5000);
                 CoordinationResult::queued(position, wait_ms)
             }
-            Err(e) => {
-                CoordinationResult::denied(e.to_string())
-            }
+            Err(e) => CoordinationResult::denied(e.to_string()),
         }
     }
 

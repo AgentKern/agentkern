@@ -68,11 +68,13 @@ fn test_circular_behavior_detection() {
     let result = detector.check(&path);
 
     assert!(result.drifted);
-    assert!(result
-        .reason
-        .as_ref()
-        .unwrap()
-        .contains("behavioral pattern"));
+    assert!(
+        result
+            .reason
+            .as_ref()
+            .unwrap()
+            .contains("behavioral pattern")
+    );
 }
 
 #[test]
