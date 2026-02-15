@@ -72,4 +72,6 @@ agentkern-nexus = { path = "../../packages/pillars/nexus" }
 agentkern-synapse = { path = "../../packages/pillars/synapse" }
 # Enterprise Pillars
 agentkern-treasury = { path = "../../packages/pillars/treasury" }
-# Enterprise Pillars
+
+[dev-dependencies]
+agentkern-sdk-core = { path = "../../sdks/core" }

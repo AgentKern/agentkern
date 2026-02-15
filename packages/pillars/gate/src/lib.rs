@@ -1,6 +1,16 @@
+// ===========================================================================
+// Clippy Allowances - Each with documented justification
+// ===========================================================================
+// collapsible_if: Nested if statements are more readable in verification logic
+// where we want to clearly see each condition that leads to a block decision.
 #![allow(clippy::collapsible_if)]
+// derivable_impls: Some Default implementations have explicit documentation
+// or are intentionally verbose for clarity in security-critical code.
 #![allow(clippy::derivable_impls)]
+// manual_range_contains: Using explicit range checks (x >= min && x <= max)
+// is more readable in security validation code where bounds are critical.
 #![allow(clippy::manual_range_contains)]
+
 //! AgentKern-Gate: Neuro-Symbolic Verification Engine
 //!
 //! Per ARCHITECTURE.md: "The Core (Rust/Hyper-Loop)"

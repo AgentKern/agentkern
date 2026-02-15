@@ -285,7 +285,19 @@ async fn build_router(state: Arc<AppState>) -> anyhow::Result<Router> {
             "/api/v1/synapse",
             resilient_service(agentkern_synapse::api::router(), 100, 5),
         )
-        // Treasury Pillar (Quarantined)
+        // =====================================================================
+        // Treasury Pillar - QUARANTINED (Enterprise Edition Feature)
+        // =====================================================================
+        // The Treasury pillar is reserved for AgentKern Enterprise Edition.
+        // It provides:
+        // - Atomic payments and budget management
+        // - Carbon footprint tracking and offsetting
+        // - Multi-currency support and financial compliance
+        //
+        // OSS builds: this endpoint is disabled (404).
+        // EE builds: see docs/ENTERPRISE_SETUP.md for enablement.
+        //
+        // To enable locally, uncomment the block below and build with the EE overlay.
         /*
         .nest_service(
             "/api/v1/treasury",

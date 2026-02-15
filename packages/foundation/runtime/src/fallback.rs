@@ -74,11 +74,11 @@ impl ServiceMode {
         ];
 
         for pattern in &api_key_patterns {
-            if let Ok(key) = env::var(pattern) {
-                if !key.is_empty() {
-                    tracing::info!(feature = %feature, "Live mode - credentials found");
-                    return Self::Live;
-                }
+            if let Ok(key) = env::var(pattern)
+                && !key.is_empty()
+            {
+                tracing::info!(feature = %feature, "Live mode - credentials found");
+                return Self::Live;
             }
         }
 

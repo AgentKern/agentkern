@@ -31,13 +31,12 @@ async fn main() {
     // Register peers from PEERS env var (format: 1=127.0.0.1:3001,2=127.0.0.1:3002)
     if let Ok(peers_str) = std::env::var("PEERS") {
         for peer in peers_str.split(',') {
-            if let Some((id_str, addr_str)) = peer.split_once('=') {
-                if let Ok(id) = id_str.parse::<u64>() {
-                    if id != node_id {
-                        raft_manager.network.register_node(id, addr_str.to_string());
-                        tracing::info!("Registered peer {} at {}", id, addr_str);
-                    }
-                }
+            if let Some((id_str, addr_str)) = peer.split_once('=')
+                && let Ok(id) = id_str.parse::<u64>()
+                && id != node_id
+            {
+                raft_manager.network.register_node(id, addr_str.to_string());
+                tracing::info!("Registered peer {} at {}", id, addr_str);
             }
         }
     }

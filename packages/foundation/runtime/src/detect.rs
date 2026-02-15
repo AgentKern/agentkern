@@ -155,17 +155,14 @@ fn detect_edge_device() -> Option<EdgeDevice> {
     }
 
     // Check for low-memory edge device
-    if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
-        if let Some(line) = meminfo.lines().find(|l| l.starts_with("MemTotal:")) {
-            if let Some(kb) = line.split_whitespace().nth(1) {
-                if let Ok(kb_val) = kb.parse::<u64>() {
-                    // Less than 4GB = likely edge device
-                    if kb_val < 4_000_000 {
-                        return Some(EdgeDevice::Generic);
-                    }
-                }
-            }
-        }
+    if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo")
+        && let Some(line) = meminfo.lines().find(|l| l.starts_with("MemTotal:"))
+        && let Some(kb) = line.split_whitespace().nth(1)
+        && let Ok(kb_val) = kb.parse::<u64>()
+        && kb_val < 4_000_000
+    {
+        // Less than 4GB = likely edge device
+        return Some(EdgeDevice::Generic);
     }
 
     None

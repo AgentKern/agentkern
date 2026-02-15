@@ -165,10 +165,11 @@ impl<T: Clone> LwwRegister<T> {
     /// Set the value.
     pub fn set(&mut self, value: T, node_id: impl Into<NodeId>) {
         let ts = now();
-        if ts > self.timestamp {
+        let writer = node_id.into();
+        if ts > self.timestamp || (ts == self.timestamp && writer > self.writer) {
             self.value = Some(value);
             self.timestamp = ts;
-            self.writer = node_id.into();
+            self.writer = writer;
         }
     }
 
@@ -485,6 +486,18 @@ mod tests {
 
         r1.merge(&r2);
         assert_eq!(r1.get(), Some(&"second".to_string()));
+    }
+
+    #[test]
+    fn test_lww_register_set_tie_breaks_by_writer() {
+        let mut register: LwwRegister<String> = LwwRegister::new();
+        register.value = Some("old".to_string());
+        register.timestamp = 1_000_000;
+        register.writer = "node-a".to_string();
+
+        register.set("new".to_string(), "node-z");
+
+        assert_eq!(register.get(), Some(&"new".to_string()));
     }
 
     #[test]

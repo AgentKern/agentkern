@@ -127,19 +127,27 @@ pub fn auto_configure(env: &Environment) -> RuntimeConfig {
 
 /// Apply environment variable overrides.
 fn apply_env_overrides(config: &mut RuntimeConfig) {
-    if let Ok(port) = env::var("PORT") && let Ok(p) = port.parse() {
+    if let Ok(port) = env::var("PORT")
+        && let Ok(p) = port.parse()
+    {
         config.http_port = p;
     }
 
-    if let Ok(port) = env::var("GRPC_PORT") && let Ok(p) = port.parse() {
+    if let Ok(port) = env::var("GRPC_PORT")
+        && let Ok(p) = port.parse()
+    {
         config.grpc_port = Some(p);
     }
 
-    if let Ok(addr) = env::var("BIND_ADDRESS") && let Ok(a) = addr.parse() {
+    if let Ok(addr) = env::var("BIND_ADDRESS")
+        && let Ok(a) = addr.parse()
+    {
         config.bind_address = a;
     }
 
-    if let Ok(max) = env::var("MAX_CONNECTIONS") && let Ok(m) = max.parse() {
+    if let Ok(max) = env::var("MAX_CONNECTIONS")
+        && let Ok(m) = max.parse()
+    {
         config.max_connections = m;
     }
 }

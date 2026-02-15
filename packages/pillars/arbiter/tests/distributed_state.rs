@@ -15,21 +15,28 @@ use sqlx::postgres::PgPoolOptions;
 // use std::sync::Arc;
 
 /// Get database URL from environment (use TEST_DATABASE_URL for isolated testing)
-fn get_database_url() -> String {
+fn get_database_url() -> Option<String> {
     std::env::var("TEST_DATABASE_URL")
         .or_else(|_| std::env::var("DATABASE_URL"))
-        .expect("DATABASE_URL or TEST_DATABASE_URL must be set")
+        .ok()
 }
 
-/// Helper to run migrations (assumes migrations are applied)
-async fn setup_pool() -> sqlx::PgPool {
-    let database_url = get_database_url();
+/// Helper to connect and run migrations (no-op when DB env vars are missing).
+async fn setup_pool() -> Option<sqlx::PgPool> {
+    let database_url = get_database_url()?;
 
-    PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await
-        .expect("Failed to connect to database")
+        .expect("Failed to connect to database");
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run migrations");
+
+    Some(pool)
 }
 
 /// Clean up test data for a specific resource
@@ -48,7 +55,10 @@ async fn cleanup_resource(pool: &sqlx::PgPool, resource: &str) {
 
 #[tokio::test]
 async fn test_lock_persists_across_restart() {
-    let pool = setup_pool().await;
+    let Some(pool) = setup_pool().await else {
+        eprintln!("Skipping: set TEST_DATABASE_URL or DATABASE_URL to run DB integration tests");
+        return;
+    };
     let resource = "test:lock_persistence_1";
     cleanup_resource(&pool, resource).await;
     let agent_id = "agent-persistence-test";
@@ -102,7 +112,10 @@ async fn test_lock_persists_across_restart() {
 
 #[tokio::test]
 async fn test_queue_persists_across_restart() {
-    let pool = setup_pool().await;
+    let Some(pool) = setup_pool().await else {
+        eprintln!("Skipping: set TEST_DATABASE_URL or DATABASE_URL to run DB integration tests");
+        return;
+    };
     let resource = "test:queue_persistence_2";
     cleanup_resource(&pool, resource).await;
 
@@ -185,7 +198,10 @@ async fn test_queue_persists_across_restart() {
 
 #[tokio::test]
 async fn test_lock_manager_direct() {
-    let pool = setup_pool().await;
+    let Some(pool) = setup_pool().await else {
+        eprintln!("Skipping: set TEST_DATABASE_URL or DATABASE_URL to run DB integration tests");
+        return;
+    };
     let resource = "test:lock_manager_3";
     cleanup_resource(&pool, resource).await;
 
@@ -218,7 +234,10 @@ async fn test_lock_manager_direct() {
 
 #[tokio::test]
 async fn test_queue_direct() {
-    let pool = setup_pool().await;
+    let Some(pool) = setup_pool().await else {
+        eprintln!("Skipping: set TEST_DATABASE_URL or DATABASE_URL to run DB integration tests");
+        return;
+    };
     let resource = "test:queue_direct_4";
     cleanup_resource(&pool, resource).await;
 
@@ -266,7 +285,10 @@ async fn test_queue_direct() {
 
 #[tokio::test]
 async fn test_priority_preemption() {
-    let pool = setup_pool().await;
+    let Some(pool) = setup_pool().await else {
+        eprintln!("Skipping: set TEST_DATABASE_URL or DATABASE_URL to run DB integration tests");
+        return;
+    };
     let resource = "test:preemption_5";
     cleanup_resource(&pool, resource).await;
 

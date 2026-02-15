@@ -377,6 +377,7 @@ dependencies = [
  "agentkern-gate",
  "agentkern-identity",
  "agentkern-nexus",
+ "agentkern-sdk-core",
  "agentkern-synapse",
  "agentkern-treasury",
  "anyhow",
