@@ -47,10 +47,14 @@ pub struct SledStore {
 }
 
 impl SledStore {
-    pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        let db = sled::open(path).expect("Failed to open sled db");
-        let logs = db.open_tree("logs").expect("Failed to open logs tree");
-        let store = db.open_tree("store").expect("Failed to open store tree");
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+        let db = sled::open(path).map_err(|e| format!("Failed to open sled db: {}", e))?;
+        let logs = db
+            .open_tree("logs")
+            .map_err(|e| format!("Failed to open logs tree: {}", e))?;
+        let store = db
+            .open_tree("store")
+            .map_err(|e| format!("Failed to open store tree: {}", e))?;
 
         // Load state machine if it exists
         let sm = if let Ok(Some(v)) = store.get(b"state_machine") {
@@ -59,12 +63,12 @@ impl SledStore {
             LockStateMachine::new()
         };
 
-        Self {
+        Ok(Self {
             db,
             logs,
             store,
             state_machine: Arc::new(RwLock::new(sm)),
-        }
+        })
     }
 
     fn get_last_log_id(&self) -> Option<LogId<u64>> {
@@ -92,7 +96,10 @@ impl RaftLogReader<TypeConfig> for SledStore {
         let mut entries = Vec::new();
         for item in self.logs.range(start.to_be_bytes()..) {
             let (key, val) = item.map_err(|e| StorageIOError::read_logs(AnyError::new(&e)))?;
-            let idx = u64::from_be_bytes(key[..8].try_into().unwrap());
+            let idx = match <[u8; 8]>::try_from(&key[..8]) {
+                Ok(bytes) => u64::from_be_bytes(bytes),
+                Err(e) => return Err(StorageIOError::read_logs(AnyError::new(&e)))?,
+            };
             if let std::ops::Bound::Excluded(e) = range.end_bound() {
                 if idx >= *e {
                     break;
@@ -206,7 +213,10 @@ impl RaftLogStorage<TypeConfig> for SledStore {
         let keys: Vec<_> = self.logs.iter().keys().collect();
         for key in keys {
             let k = key.map_err(|e| StorageIOError::write_logs(AnyError::new(&e)))?;
-            let idx = u64::from_be_bytes(k[..8].try_into().unwrap());
+            let idx = match <[u8; 8]>::try_from(&k[..8]) {
+                Ok(bytes) => u64::from_be_bytes(bytes),
+                Err(e) => return Err(StorageIOError::write_logs(AnyError::new(&e)))?,
+            };
             if idx <= log_id.index {
                 self.logs
                     .remove(k)

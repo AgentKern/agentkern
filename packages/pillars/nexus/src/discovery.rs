@@ -23,10 +23,16 @@ pub struct AgentDiscovery {
 impl AgentDiscovery {
     /// Create a new discovery service.
     pub fn new(registry: Arc<AgentRegistry>) -> Self {
-        let client = reqwest::Client::builder()
+        let client = match reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .expect("Failed to create HTTP client for agent discovery - this is a critical initialization error");
+        {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to create HTTP client for agent discovery - fatal initialization error");
+                std::process::exit(1);
+            }
+        };
 
         Self { registry, client }
     }

@@ -143,7 +143,11 @@ impl Agent {
     /// Verify a Liability Proof (static method).
     #[napi]
     pub fn verify_proof(proof: LiabilityProof) -> Result<bool> {
-        CoreAgent::verify_proof(&proof.to_core()).map_err(|e| Error::from_reason(e.to_string()))
+        // Prefer parsing the JWT and failing loudly rather than using a silent fallback
+        let core_proof = CoreLiabilityProof::from_jwt(&proof.jwt)
+            .map_err(|e| Error::from_reason(format!("Invalid JWT proof: {}", e)))?;
+
+        CoreAgent::verify_proof(&core_proof).map_err(|e| Error::from_reason(e.to_string()))
     }
 }
 

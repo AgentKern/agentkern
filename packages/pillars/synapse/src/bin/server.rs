@@ -65,8 +65,18 @@ async fn main() {
 
     tracing::info!("🧠 AgentKern-Synapse server running on http://{}", addr);
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::error!(error = %e, addr = %addr, "Failed to bind address - cannot start server");
+            std::process::exit(1);
+        }
+    };
+
+    if let Err(e) = axum::serve(listener, app).await {
+        tracing::error!(error = %e, "Server encountered an error while running");
+        std::process::exit(1);
+    }
 }
 
 async fn health() -> Json<HealthResponse> {

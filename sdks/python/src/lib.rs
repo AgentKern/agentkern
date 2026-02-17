@@ -108,16 +108,19 @@ pub struct PyGateEngine {
 #[pymethods]
 impl PyGateEngine {
     #[new]
-    fn new() -> Self {
+    fn new() -> PyResult<Self> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .unwrap();
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Failed to build Tokio runtime: {}",
+                e
+            )))?;
 
-        Self {
+        Ok(Self {
             inner: Arc::new(GateEngine::new()),
             rt,
-        }
+        })
     }
 
     /// Verify an action (blocking call for Python).

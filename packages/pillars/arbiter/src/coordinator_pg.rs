@@ -242,17 +242,35 @@ impl PgCoordinator {
                         .map_err(|e| format!("Failed to deserialize history: {}", e))?;
 
                 Ok(Some(IntentPath {
-                    id: r.try_get("id").unwrap(),
-                    agent_id: r.try_get("agent_id").unwrap(),
-                    original_intent: r.try_get("original_intent").unwrap(),
+                    id: r
+                        .try_get("id")
+                        .map_err(|e| format!("Failed to read id: {}", e))?,
+                    agent_id: r
+                        .try_get("agent_id")
+                        .map_err(|e| format!("Failed to read agent_id: {}", e))?,
+                    original_intent: r
+                        .try_get("original_intent")
+                        .map_err(|e| format!("Failed to read original_intent: {}", e))?,
                     intent_embedding: r.try_get("intent_embedding").ok(),
-                    current_step: r.try_get::<i32, _>("current_step").unwrap() as u32,
-                    expected_steps: r.try_get::<i32, _>("expected_steps").unwrap() as u32,
+                    current_step: r
+                        .try_get::<i32, _>("current_step")
+                        .map_err(|e| format!("Failed to read current_step: {}", e))? as u32,
+                    expected_steps: r
+                        .try_get::<i32, _>("expected_steps")
+                        .map_err(|e| format!("Failed to read expected_steps: {}", e))? as u32,
                     history: history_vec,
-                    drift_detected: r.try_get("drift_detected").unwrap(),
-                    drift_score: r.try_get::<i32, _>("drift_score").unwrap() as u8,
-                    created_at: r.try_get("created_at").unwrap(),
-                    updated_at: r.try_get("updated_at").unwrap(),
+                    drift_detected: r
+                        .try_get("drift_detected")
+                        .map_err(|e| format!("Failed to read drift_detected: {}", e))?,
+                    drift_score: r
+                        .try_get::<i32, _>("drift_score")
+                        .map_err(|e| format!("Failed to read drift_score: {}", e))? as u8,
+                    created_at: r
+                        .try_get("created_at")
+                        .map_err(|e| format!("Failed to read created_at: {}", e))?,
+                    updated_at: r
+                        .try_get("updated_at")
+                        .map_err(|e| format!("Failed to read updated_at: {}", e))?,
                 }))
             }
             None => Ok(None),

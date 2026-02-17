@@ -54,9 +54,13 @@ impl Coordinator {
             queue: Arc::new(RwLock::new(PriorityQueue::new())),
             _avg_lock_duration_ms: 5000,
             cost_tracker: Arc::new(CostTracker::new()),
-            validator: Arc::new(
-                NeuroSymbolicValidator::new().expect("Failed to load NeuroSymbolicValidator"),
-            ),
+            validator: Arc::new(match NeuroSymbolicValidator::new() {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to initialize NeuroSymbolicValidator: {}", e);
+                    std::process::exit(1);
+                }
+            }),
             drift_detector: Arc::new(DriftDetector::new()),
             intent_paths: Arc::new(RwLock::new(HashMap::new())),
             consensus: Arc::new(ConsensusEngine::new()),

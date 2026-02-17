@@ -15,7 +15,8 @@ async fn test_raft_lock_persistence_across_restarts() {
     // === Phase 1: Initialize Raft and acquire lock ===
     {
         let manager =
-            RaftLockManager::new(node_id, "127.0.0.1:9001".to_string(), path.clone()).await;
+            RaftLockManager::new(node_id, "127.0.0.1:9001".to_string(), path.clone()).await
+                .expect("Failed to create RaftLockManager");
 
         // Initialize single-node cluster
         let nodes = std::collections::BTreeMap::from([(node_id, ())]);
@@ -48,7 +49,8 @@ async fn test_raft_lock_persistence_across_restarts() {
     {
         // Re-open with same path
         let manager =
-            RaftLockManager::new(node_id, "127.0.0.1:9001".to_string(), path.clone()).await;
+            RaftLockManager::new(node_id, "127.0.0.1:9001".to_string(), path.clone()).await
+                .expect("Failed to create RaftLockManager on restart");
 
         // Wait for Raft to stabilize and elect leader (it should be us)
         let mut leader_ready = false;

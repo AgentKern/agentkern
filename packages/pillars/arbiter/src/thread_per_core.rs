@@ -65,7 +65,10 @@ pub struct ThreadPerCoreRuntime {
 
 impl ThreadPerCoreRuntime {
     /// Create a new thread-per-core runtime.
-    pub fn new(config: ThreadPerCoreConfig) -> Self {
+    /// 
+    /// # Errors
+    /// Returns an error if thread spawning fails for any core.
+    pub fn new(config: ThreadPerCoreConfig) -> Result<Self, String> {
         let mut queues = Vec::with_capacity(config.cores);
         let mut handles = Vec::with_capacity(config.cores);
 
@@ -95,16 +98,19 @@ impl ThreadPerCoreRuntime {
 
                     tracing::debug!(core_id, "Worker thread stopped");
                 })
-                .expect("Failed to spawn worker thread");
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to spawn worker thread for core {}", core_id);
+                    format!("Failed to spawn worker thread for core {}: {}", core_id, e)
+                })?;
 
             handles.push(handle);
         }
 
-        Self {
+        Ok(Self {
             config,
             queues,
             handles,
-        }
+        })
     }
 
     /// Get the number of cores.
@@ -147,6 +153,7 @@ impl ThreadPerCoreRuntime {
 impl Default for ThreadPerCoreRuntime {
     fn default() -> Self {
         Self::new(ThreadPerCoreConfig::default())
+            .expect("Failed to create default ThreadPerCoreRuntime")
     }
 }
 
@@ -187,7 +194,8 @@ mod tests {
             cores: 2,
             pin_threads: false,
             queue_size: 16,
-        });
+        })
+        .expect("Failed to create ThreadPerCoreRuntime");
 
         let counter = Arc::new(AtomicUsize::new(0));
         let counter_clone = Arc::clone(&counter);
@@ -215,7 +223,8 @@ mod tests {
             cores: 4,
             pin_threads: false,
             queue_size: 16,
-        });
+        })
+        .expect("Failed to create ThreadPerCoreRuntime");
 
         // Same key should always go to same core
         let key = "user:12345";

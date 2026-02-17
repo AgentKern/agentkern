@@ -186,7 +186,10 @@ impl WasmPolicyEngine {
 #[cfg(feature = "wasm")]
 impl Default for WasmPolicyEngine {
     fn default() -> Self {
-        Self::new().expect("Failed to create WASM engine")
+        Self::new().unwrap_or_else(|e| {
+            tracing::error!(error = %e, "Failed to create WASM engine - fatal initialization error");
+            std::process::exit(1);
+        })
     }
 }
 

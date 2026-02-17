@@ -131,20 +131,14 @@ pub enum KeyType {
 impl CertificateInfo {
     /// Check if certificate is currently valid.
     pub fn is_valid_now(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = now_secs();
 
         now >= self.not_before && now <= self.not_after
     }
 
     /// Get remaining validity in days.
     pub fn days_until_expiry(&self) -> i64 {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = now_secs();
 
         ((self.not_after as i64) - (now as i64)) / 86400
     }
@@ -174,10 +168,7 @@ impl CertificateValidator {
     /// Validate a certificate.
     pub fn validate(&self, cert: &CertificateInfo) -> Result<(), MtlsError> {
         // Check expiry
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = now_secs();
 
         if now < cert.not_before {
             return Err(MtlsError::CertificateNotYetValid);
@@ -254,10 +245,7 @@ impl JitCredentialIssuer {
 
     /// Issue ephemeral credentials for an agent.
     pub fn issue(&self, agent_id: &str, scope: &str) -> EphemeralCredential {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = now_secs();
 
         EphemeralCredential {
             credential_id: uuid::Uuid::new_v4().to_string(),
@@ -284,22 +272,27 @@ pub struct EphemeralCredential {
 impl EphemeralCredential {
     /// Check if credential is still valid.
     pub fn is_valid(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = now_secs();
 
         now >= self.issued_at && now <= self.expires_at
     }
 
     /// Get remaining TTL in seconds.
     pub fn ttl_secs(&self) -> i64 {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let now = now_secs() as i64;
 
         (self.expires_at as i64) - now
+    }
+}
+
+/// Helper to get current unix seconds with error handling.
+fn now_secs() -> u64 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(d) => d.as_secs(),
+        Err(e) => {
+            tracing::error!(error = %e, "System time is before UNIX_EPOCH; using 0 as fallback");
+            0
+        }
     }
 }
 

@@ -110,7 +110,10 @@ impl Default for TokioRuntime {
     /// as constructing a default runtime from the Default trait cannot
     /// return a Result. Use `TokioRuntime::new()` for fallible construction.
     fn default() -> Self {
-        Self::new().expect("Failed to create Tokio runtime - this is a fatal initialization error")
+        Self::new().unwrap_or_else(|e| {
+            tracing::error!(error = %e, "Failed to create Tokio runtime - fatal initialization error");
+            std::process::exit(1);
+        })
     }
 }
 
@@ -140,8 +143,10 @@ impl HyperRuntime {
 
     #[cfg(not(all(target_os = "linux", feature = "io_uring")))]
     pub fn run<F: Future>(future: F) -> F::Output {
-        let rt = TokioRuntime::new()
-            .expect("Failed to create runtime - this is a fatal initialization error");
+        let rt = TokioRuntime::new().unwrap_or_else(|e| {
+            tracing::error!(error = %e, "Failed to create runtime - fatal initialization error");
+            std::process::exit(1);
+        });
         rt.block_on(future)
     }
 

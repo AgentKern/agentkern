@@ -149,7 +149,7 @@ pub struct RaftLockManager {
 }
 
 impl RaftLockManager {
-    pub async fn new(node_id: NodeId, _addr: String, path: String) -> Self {
+    pub async fn new(node_id: NodeId, _addr: String, path: String) -> Result<Self, String> {
         let config = Config {
             heartbeat_interval: 100,
             election_timeout_min: 200,
@@ -158,7 +158,7 @@ impl RaftLockManager {
         };
 
         let config = Arc::new(config);
-        let store = SledStore::new(path);
+        let store = SledStore::new(path).map_err(|e| format!("Failed to open SledStore: {}", e))?;
         let network = Network::new();
 
         let raft = RaftType::new(
@@ -169,13 +169,13 @@ impl RaftLockManager {
             store.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| format!("Failed to initialize Raft: {}", e))?;
 
-        Self {
+        Ok(Self {
             raft,
             store,
             network,
-        }
+        })
     }
 
     /// Acquire a lock via Raft consensus.
@@ -237,11 +237,13 @@ mod tests {
     async fn test_raft_initialization_with_sled() {
         let temp_dir = std::env::temp_dir().join("raft_test_arbiter");
         let _ = std::fs::remove_dir_all(&temp_dir);
-        std::fs::create_dir_all(&temp_dir).unwrap();
-        let path = temp_dir.to_str().unwrap().to_string();
+        std::fs::create_dir_all(&temp_dir).expect("failed to create temp dir");
+        let path = temp_dir.to_str().expect("temp dir path invalid").to_string();
 
         // Initialize Raft node 1
-        let manager = RaftLockManager::new(1, "127.0.0.1:9000".to_string(), path.clone()).await;
+        let manager = RaftLockManager::new(1, "127.0.0.1:9000".to_string(), path.clone())
+            .await
+            .expect("Failed to init RaftLockManager");
 
         // Initialize single-node cluster
         let nodes = std::collections::BTreeMap::from([(1, ())]);
