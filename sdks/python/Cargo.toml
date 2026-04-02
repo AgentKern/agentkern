@@ -33,7 +33,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 # Async (needed for GateEngine)
-tokio = { version = "1.48", features = ["full"] }
+tokio = { version = "1.50", features = ["full"] }
 
 # Encoding
 base64 = "0.22"

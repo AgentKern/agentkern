@@ -33,7 +33,7 @@ full = ["crypto_payments", "fiat", "micropayments", "distributed", "http"]
 [dependencies]
 # Async runtime (Dec 2025)
 # Async runtime (Dec 2025)
-tokio = { version = "1.48", features = ["full"] }
+tokio = { version = "1.50", features = ["full"] }
 async-trait = { workspace = true }
 
 # Serialization
@@ -47,26 +47,26 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Tracing
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Error handling (Dec 2025)
 thiserror = "2.0"
-anyhow = "1.0.95"
+anyhow = "1.0.102"
 
 # Database
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "uuid", "chrono", "bigdecimal"] }
 
 # UUID and time
-uuid = { version = "1.11", features = ["v4", "serde"] }
-chrono = { version = "0.4.39", features = ["serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
+chrono = { version = "0.4.44", features = ["serde"] }
 
 # Concurrent data structures
 parking_lot = "0.12.3"
 
 # Decimal for financial calculations
 # Note: default-features = false to avoid RUSTSEC-2026-0001 (rkyv vulnerability)
-rust_decimal = { version = "1.39", default-features = false, features = ["serde", "std"] }
-rust_decimal_macros = "1.39"
+rust_decimal = { version = "1.41", default-features = false, features = ["serde", "std"] }
+rust_decimal_macros = "1.40"
 agentkern-governance = { path = "../../foundation/governance" }
 
 # ============================================================
