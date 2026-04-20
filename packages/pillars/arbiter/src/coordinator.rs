@@ -5,6 +5,7 @@
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use thiserror::Error;
 use tokio::sync::RwLock;
 
 use crate::consensus::ConsensusEngine;
@@ -20,6 +21,22 @@ use agentkern_gate::NeuroSymbolicValidator;
 use agentkern_pulse::{HealthStatus, Pulse, SemanticHealthReport};
 use agentkern_synapse::drift::DriftDetector;
 use agentkern_synapse::intent::IntentPath;
+
+/// Errors that can occur during coordinator operations.
+#[derive(Debug, Error)]
+pub enum CoordinatorError {
+    /// Failed to initialize the neuro-symbolic validator
+    #[error("Failed to initialize NeuroSymbolicValidator: {0}")]
+    ValidatorInit(String),
+    
+    /// Lock operation failed
+    #[error("Lock error: {0}")]
+    Lock(#[from] LockError),
+    
+    /// Internal error
+    #[error("Internal error: {0}")]
+    Internal(String),
+}
 
 /// The Arbiter Coordinator.
 pub struct Coordinator {
@@ -41,26 +58,40 @@ pub struct Coordinator {
     notifier: Arc<RwLock<WebhookNotifier>>,
 }
 
-impl Default for Coordinator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Coordinator {
-    pub fn new() -> Self {
+    /// Create a new coordinator with fallible initialization.
+    /// 
+    /// Returns an error if the neuro-symbolic validator fails to initialize.
+    /// This allows callers to handle initialization errors gracefully
+    /// instead of terminating the process.
+    pub fn new() -> Result<Self, CoordinatorError> {
+        let validator = NeuroSymbolicValidator::new()
+            .map_err(|e| CoordinatorError::ValidatorInit(e.to_string()))?;
+        
+        Ok(Self {
+            lock_manager: LockManager::new(),
+            queue: Arc::new(RwLock::new(PriorityQueue::new())),
+            _avg_lock_duration_ms: 5000,
+            cost_tracker: Arc::new(CostTracker::new()),
+            validator: Arc::new(validator),
+            drift_detector: Arc::new(DriftDetector::new()),
+            intent_paths: Arc::new(RwLock::new(HashMap::new())),
+            consensus: Arc::new(ConsensusEngine::new()),
+            raft_manager: None,
+            notifier: Arc::new(RwLock::new(WebhookNotifier::new())),
+        })
+    }
+    
+    /// Create a new coordinator with a pre-configured validator.
+    /// 
+    /// This is useful for testing or when the validator needs custom configuration.
+    pub fn with_validator(validator: Arc<NeuroSymbolicValidator>) -> Self {
         Self {
             lock_manager: LockManager::new(),
             queue: Arc::new(RwLock::new(PriorityQueue::new())),
             _avg_lock_duration_ms: 5000,
             cost_tracker: Arc::new(CostTracker::new()),
-            validator: Arc::new(match NeuroSymbolicValidator::new() {
-                Ok(v) => v,
-                Err(e) => {
-                    tracing::error!(error = %e, "Failed to initialize NeuroSymbolicValidator: {}", e);
-                    std::process::exit(1);
-                }
-            }),
+            validator,
             drift_detector: Arc::new(DriftDetector::new()),
             intent_paths: Arc::new(RwLock::new(HashMap::new())),
             consensus: Arc::new(ConsensusEngine::new()),

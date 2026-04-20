@@ -53,15 +53,24 @@ pub fn router(
 }
 
 /// Create router with database (Postgres-backed, for production)
+/// 
+/// # Panics
+/// Panics if the coordinator fails to initialize.
 pub fn router_with_pool(pool: PgPool) -> Router {
-    let coordinator = Arc::new(Coordinator::new()); // Standard coordinator
+    let coordinator = Arc::new(
+        Coordinator::new().expect("Failed to initialize coordinator")
+    );
     router(coordinator, None, Some(pool))
 }
 
-pub fn init_coordinator_with_pool(_pool: PgPool) -> Arc<Coordinator> {
+/// Initialize coordinator with pool.
+/// 
+/// # Errors
+/// Returns an error if the coordinator fails to initialize.
+pub fn init_coordinator_with_pool(_pool: PgPool) -> Result<Arc<Coordinator>, crate::CoordinatorError> {
     // Current Coordinator handles PG via internal managers if needed
     // or we use the PgCoordinator. For now, let's keep it simple.
-    Arc::new(Coordinator::new())
+    Ok(Arc::new(Coordinator::new()?))
 }
 
 async fn health_check(State(state): State<ArbiterState>) -> Json<Value> {
@@ -261,3 +270,4 @@ async fn raft_init(
             .into_response()
     }
 }
+

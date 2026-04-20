@@ -53,7 +53,13 @@ async fn main() {
 
     let coordinator = {
         #[allow(unused_mut)]
-        let mut coordinator = Coordinator::new();
+        let mut coordinator = match Coordinator::new() {
+            Ok(coordinator) => coordinator,
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to initialize Coordinator");
+                std::process::exit(1);
+            }
+        };
 
         /*
         // Enterprise Feature Wiring
