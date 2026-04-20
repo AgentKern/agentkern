@@ -196,31 +196,6 @@ impl LiabilityProof {
             jwt: proof.raw.clone(),
         }
     }
-
-    fn to_core(&self) -> CoreLiabilityProof {
-        CoreLiabilityProof::from_jwt(&self.jwt).unwrap_or_else(|_| {
-            // Fallback: construct from fields
-            CoreLiabilityProof {
-                header: agentkern_sdk_core::proof::ProofHeader {
-                    alg: self.alg.clone(),
-                    typ: self.typ.clone(),
-                    kid: self.kid.clone(),
-                },
-                claims: agentkern_sdk_core::proof::ProofClaims {
-                    iss: self.issuer.clone(),
-                    sub: self.subject.clone(),
-                    aud: None,
-                    iat: self.issued_at,
-                    exp: self.expires_at,
-                    jti: self.jti.clone(),
-                    action: self.action.clone(),
-                    scope: vec![],
-                },
-                signature: String::new(),
-                raw: self.jwt.clone(),
-            }
-        })
-    }
 }
 
 /// Parse a JWT string into a LiabilityProof.

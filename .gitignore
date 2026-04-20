@@ -39,10 +39,6 @@ load-test-results/
 .pnpm-store/
 *.tsbuildinfo
 
-# стратегические документы (Stale)
-# Removed for clarity: MANDATE, ARCHITECTURE, etc.
-# These are now in docs/ or deleted.
-
 docs/governance/articles
 
 # chaos

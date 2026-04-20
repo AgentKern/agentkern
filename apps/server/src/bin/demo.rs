@@ -2,13 +2,10 @@ use agentkern_arbiter::Coordinator;
 use agentkern_gate::engine::GateEngine;
 use agentkern_gate::types::{DataRegion as GateRegion, VerificationContext, VerificationRequest};
 use agentkern_identity::services::manager::AgentManager;
-// use agentkern_treasury::transfer::{TransferEngine, TransferRequest};
-// use agentkern_treasury::types::Amount;
 use agentkern_nexus::Nexus;
 use agentkern_nexus::agent_card::ProtocolSupport;
 use agentkern_synapse::passport::export::{ExportFormat, ExportOptions, PassportExporter};
 use agentkern_synapse::passport::schema::{AgentIdentity, MemoryPassport, ProvenanceSignature};
-// use std::sync::Arc;
 use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -19,8 +16,6 @@ const CYAN: &str = "\x1b[36m";
 const GREEN: &str = "\x1b[32m";
 const YELLOW: &str = "\x1b[33m";
 const BLUE: &str = "\x1b[34m";
-#[allow(dead_code)]
-const MAGENTA: &str = "\x1b[35m";
 const WHITE: &str = "\x1b[37m";
 const BOLD: &str = "\x1b[1m";
 const RESET: &str = "\x1b[0m";
@@ -97,23 +92,9 @@ async fn main() {
     // --- PILLAR 4 ---
     println!("{BOLD}{YELLOW}💰  PILLAR 4: TREASURY (Micropayment Rails){RESET}");
     println!("{WHITE}Narrative: Agents pay other agents atomically for resources or data.{RESET}");
-    // use agentkern_treasury::{BalanceLedger, Currency};
     println!(
         "{YELLOW}⚠️  Treasury Pillar is currently quarantined for core stabilization.{RESET}\n"
     );
-    /*
-    let ledger = Arc::new(BalanceLedger::new(Currency::VMC));
-    let treasury = TransferEngine::new(ledger);
-    let tx_request = TransferRequest {
-        from: agent_id.clone(),
-        to: "service-provider".to_string(),
-        amount: Amount::from_float(0.05, 6), // 0.05 credits
-        reference: Some("API call payment".to_string()),
-        idempotency_key: None,
-    };
-    let tx_result = treasury.transfer(tx_request).await;
-    println!("{GREEN}✅ Treasury Request Processed. Status: {:?}{RESET}\n", tx_result.status);
-    */
     sleep(Duration::from_millis(1500)).await;
 
     // --- PILLAR 5 ---
