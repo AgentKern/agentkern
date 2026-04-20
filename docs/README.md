@@ -11,6 +11,7 @@ Welcome to the AgentKern documentation. This directory contains comprehensive gu
 - **[STRUCTURE.md](STRUCTURE.md)** - Repository structure and organization
 - **[ARCHITECTURE_FINAL.md](ARCHITECTURE_FINAL.md)** - Rust-first architecture overview
 - **[OSS_SETUP.md](OSS_SETUP.md)** - OSS workspace setup and scope
+- **[OSS_CAPABILITY_MATRIX.md](OSS_CAPABILITY_MATRIX.md)** - Canonical OSS runtime feature matrix
 - **[ENTERPRISE_SETUP.md](ENTERPRISE_SETUP.md)** - Private EE overlay workflow
 
 ### Core Concepts
@@ -24,7 +25,10 @@ Welcome to the AgentKern documentation. This directory contains comprehensive gu
 - **[governance/EPISTEMIC_HEALTH.md](governance/EPISTEMIC_HEALTH.md)** - Architecture health status
 - **[governance/STRATEGY.md](governance/STRATEGY.md)** - Strategic direction
 - **[governance/CONTRIBUTING.md](governance/CONTRIBUTING.md)** - How to contribute
+- **[governance/CI_POLICY.md](governance/CI_POLICY.md)** - Blocking vs advisory CI checks
 - **[governance/LICENSING.md](governance/LICENSING.md)** - License information
+- **[governance/OSS_PRODUCT_BOUNDARY.md](governance/OSS_PRODUCT_BOUNDARY.md)** - OSS/enterprise runtime boundary
+- **[governance/OSS_TRANSITION_STATUS.md](governance/OSS_TRANSITION_STATUS.md)** - OSS transition progress and release gates
 - **[governance/adr/](governance/adr/)** - Architecture Decision Records
 
 ### Guides
@@ -60,6 +64,7 @@ Welcome to the AgentKern documentation. This directory contains comprehensive gu
 - **[reference/BENCHMARKS.md](reference/BENCHMARKS.md)** - Performance benchmarks
 - **[reference/DEBUGGING.md](reference/DEBUGGING.md)** - Debugging guide
 - **[reference/ROADMAP.md](reference/ROADMAP.md)** - Product roadmap
+- **[reference/POSITIONING_VS_ALTERNATIVES.md](reference/POSITIONING_VS_ALTERNATIVES.md)** - Positioning and category boundaries
 
 ---
 

@@ -29,6 +29,10 @@ mod chaos;
 mod telemetry;
 
 use auth::{Environment, JwtConfig};
+
+const RUNTIME_EDITION_MODE: &str = "oss-core";
+const ACTIVE_PILLARS: [&str; 5] = ["identity", "gate", "arbiter", "nexus", "synapse"];
+const QUARANTINED_PILLARS: [&str; 1] = ["treasury"];
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
@@ -131,7 +135,14 @@ async fn main() {
     let arbiter = if let Some(ref p) = pool {
         agentkern_arbiter::api::init_coordinator_with_pool(p.clone())
     } else {
-        Arc::new(agentkern_arbiter::Coordinator::new())
+        agentkern_arbiter::Coordinator::new().map(Arc::new)
+    };
+    let arbiter = match arbiter {
+        Ok(coordinator) => coordinator,
+        Err(e) => {
+            tracing::error!("❌ Failed to initialize Arbiter coordinator: {}", e);
+            std::process::exit(1);
+        }
     };
 
     let (tx, _) = broadcast::channel(1024);
@@ -145,6 +156,13 @@ async fn main() {
         arbiter: arbiter.clone(),
         tx: tx.clone(),
     });
+
+    tracing::info!(
+        "🧭 Runtime edition mode: {} (active: {:?}, quarantined: {:?})",
+        RUNTIME_EDITION_MODE,
+        ACTIVE_PILLARS,
+        QUARANTINED_PILLARS
+    );
 
     // Start background activity monitor
     tokio::spawn(monitor_gate_activity(gate.clone(), tx.clone()));
@@ -352,11 +370,18 @@ fn resilient_service(
 }
 
 async fn root_health() -> axum::Json<serde_json::Value> {
-    axum::Json(serde_json::json!({
+    axum::Json(health_payload())
+}
+
+fn health_payload() -> serde_json::Value {
+    serde_json::json!({
         "status": "ok",
         "service": "agentkern-server",
         "version": env!("CARGO_PKG_VERSION"),
+        "edition_mode": RUNTIME_EDITION_MODE,
         "auth": "jwt",
+        "active_pillars": ACTIVE_PILLARS,
+        "quarantined_pillars": QUARANTINED_PILLARS,
         "pillars": {
             "identity": "active",
             "gate": "active",
@@ -365,7 +390,7 @@ async fn root_health() -> axum::Json<serde_json::Value> {
             "synapse": "active",
             "treasury": "quarantined"
         }
-    }))
+    })
 }
 
 /// Handle errors from middleware (Timeout, ConcurrencyLimit)
@@ -482,5 +507,41 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
             tracing::debug!("Dashboard WebSocket client disconnected: {}", e);
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn health_payload_contract_is_stable() {
+        let payload = health_payload();
+
+        assert_eq!(payload["status"], "ok");
+        assert_eq!(payload["service"], "agentkern-server");
+        assert_eq!(payload["edition_mode"], RUNTIME_EDITION_MODE);
+        assert_eq!(payload["auth"], "jwt");
+        assert_eq!(payload["pillars"]["identity"], "active");
+        assert_eq!(payload["pillars"]["gate"], "active");
+        assert_eq!(payload["pillars"]["arbiter"], "active");
+        assert_eq!(payload["pillars"]["nexus"], "active");
+        assert_eq!(payload["pillars"]["synapse"], "active");
+        assert_eq!(payload["pillars"]["treasury"], "quarantined");
+
+        let active_pillars = payload["active_pillars"]
+            .as_array()
+            .expect("active_pillars must be an array");
+        assert!(active_pillars.iter().any(|v| v == "identity"));
+        assert!(active_pillars.iter().any(|v| v == "gate"));
+        assert!(active_pillars.iter().any(|v| v == "arbiter"));
+        assert!(active_pillars.iter().any(|v| v == "nexus"));
+        assert!(active_pillars.iter().any(|v| v == "synapse"));
+
+        let quarantined_pillars = payload["quarantined_pillars"]
+            .as_array()
+            .expect("quarantined_pillars must be an array");
+        assert_eq!(quarantined_pillars.len(), 1);
+        assert_eq!(quarantined_pillars[0], "treasury");
     }
 }

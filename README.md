@@ -73,7 +73,7 @@ Just as Unix solved common problems for programs (memory, files, processes), Age
 | **gate** | Rust | Policy enforcement, prompt guard, verification, compliance | 127 |
 | **synapse** | Rust | Memory state, CRDTs, embeddings, passport, drift detection | 67 |
 | **arbiter** | Rust | Coordination, kill switch, escalation, EU AI Act, chaos testing | 86 |
-| **treasury** | Rust | Agent payments, 2PC transfers, carbon tracking, budgets | — |
+| **treasury** | Rust | Agent payments, 2PC transfers, carbon tracking, budgets | — (HTTP route quarantined in OSS server) |
 | **nexus** | Rust | Protocol gateway (A2A, MCP, ANP), routing, marketplace | 54 |
 
 ### Applications
@@ -102,6 +102,8 @@ pnpm install
 pnpm build
 cd sdks/node && pnpm test
 ```
+
+For canonical OSS runtime availability, see `docs/OSS_CAPABILITY_MATRIX.md`.
 
 ## Developer Tools
 
@@ -248,6 +250,8 @@ cargo build --workspace
 
 See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md) for full setup details.
 
+> In default OSS server mode, `/api/v1/treasury/*` remains quarantined.
+
 ---
 
 ## Compliance & Standards
@@ -294,6 +298,8 @@ cargo test -p agentkern-nexus
 - **packages/** — Apache 2.0 (Free, Open Source)
 - **apps/** — Apache 2.0
 - **Enterprise Features** — Commercial License (See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md))
+
+Runtime capability truth table: [docs/OSS_CAPABILITY_MATRIX.md](docs/OSS_CAPABILITY_MATRIX.md)
 
 ---
 

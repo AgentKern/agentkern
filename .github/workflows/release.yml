@@ -160,4 +160,3 @@ jobs:
           else
             echo "CRATES_IO_TOKEN not set, skipping publish"
           fi
-        continue-on-error: true

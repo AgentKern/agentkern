@@ -211,7 +211,6 @@ jobs:
       - name: Audit npm dependencies (Playground)
         working-directory: apps/playground
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
   # ============================================
   # SAST - Semgrep Static Analysis
@@ -290,7 +289,6 @@ jobs:
       
       - name: Check licenses (workspace)
         run: cargo deny check licenses
-        continue-on-error: true
 
   # ============================================
   # Code Quality Analysis (SonarQube)
@@ -319,6 +317,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       
       - name: SonarQube Scan (Rust)
+        # Advisory-only: external service/token availability should not block merges.
+        # CI policy: docs/governance/CI_POLICY.md
         uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

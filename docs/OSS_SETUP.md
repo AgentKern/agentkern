@@ -93,7 +93,8 @@ cargo test --workspace
 ### What Doesn't Get Built
 
 - ❌ Enterprise modules (not in repository)
-- ❌ Enterprise endpoints return "quarantined" status
+- ❌ Enterprise overlay endpoints return "quarantined" status
+- ❌ Treasury HTTP routes in the unified OSS server are quarantined by default
 
 If you previously enabled EE members and want to return to OSS-only workspace mode:
 
@@ -123,7 +124,9 @@ cargo run --bin agentkern-server
 - `/api/v1/synapse/*` - Synapse pillar
 - `/api/v1/arbiter/*` - Arbiter pillar
 - `/api/v1/nexus/*` - Nexus pillar
-- `/api/v1/treasury/*` - Treasury pillar
+- `/api/v1/treasury/*` - Quarantined in default OSS server mode
+
+See [OSS_CAPABILITY_MATRIX.md](OSS_CAPABILITY_MATRIX.md) for canonical route and pillar availability.
 
 ---
 

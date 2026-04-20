@@ -57,6 +57,9 @@ curl -sS http://localhost:3000/api/v1/gate/health
 curl -sS http://localhost:3000/api/v1/identity/health
 ```
 
+The default OSS server reports Treasury as quarantined and does not expose `/api/v1/treasury/*`.
+See `docs/OSS_CAPABILITY_MATRIX.md`.
+
 ---
 
 ## SDK (Node local crypto)
@@ -97,7 +100,7 @@ ak nexus translate --msg ./input.json --from MCP --to NLIP
 ```
 
 ### `ak treasury`
-Audit transactions.
+Audit transactions (enterprise-enabled workflows).
 ```bash
 ak treasury balance --agent my-agent
 ak treasury logs --limit 50

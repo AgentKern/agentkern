@@ -13,6 +13,22 @@ env:
 
 jobs:
   # ============================================
+  # OSS Capability Consistency
+  # ============================================
+  oss-capability-consistency:
+    name: OSS Capability Consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify OSS docs/runtime consistency
+        run: ./scripts/verify-oss-capability-consistency.sh
+
+      - name: Verify CI policy compliance
+        run: ./scripts/verify-ci-policy.sh
+
+  # ============================================
   # Rust Gate Tests
   # ============================================
   gate-test:
@@ -161,7 +177,6 @@ jobs:
           tags: agentkern/server:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        continue-on-error: true
 
   # ============================================
   # Rust Coverage
@@ -190,6 +205,8 @@ jobs:
         run: cargo install cargo-tarpaulin || true
       
       - name: Run coverage
+        # Advisory-only: coverage toolchain can be environment-sensitive.
+        # CI policy: docs/governance/CI_POLICY.md
         run: cargo tarpaulin --workspace --out Html --output-dir coverage
         continue-on-error: true
       

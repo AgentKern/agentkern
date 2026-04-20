@@ -39,3 +39,4 @@
 1. **Feature Flags**: Always enable `full` features for local testing.
 2. **Docs**: Update `docs/` if you change public APIs.
 3. **Tests**: Run `cargo test --workspace` before pushing.
+4. **CI Policy**: Follow `docs/governance/CI_POLICY.md` when proposing workflow gate changes.
