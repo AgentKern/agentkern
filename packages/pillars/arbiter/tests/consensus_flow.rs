@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 
 #[tokio::test]
 async fn test_consensus_security_override() {
-    let coordinator = Coordinator::new();
+    let coordinator = Coordinator::new().expect("coordinator must initialize");
     let consensus = coordinator.consensus();
 
     let resource = "database:restricted";
@@ -51,7 +51,7 @@ async fn test_consensus_security_override() {
 
 #[tokio::test]
 async fn test_consensus_budget_override() {
-    let coordinator = Coordinator::new();
+    let coordinator = Coordinator::new().expect("coordinator must initialize");
     let consensus = coordinator.consensus();
 
     let agent_id = "agent-rich";

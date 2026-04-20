@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[madsim::test]
 async fn test_arbiter_deterministic_chaos() {
-    let coord = Arc::new(Coordinator::new());
+    let coord = Arc::new(Coordinator::new().expect("coordinator must initialize"));
     let num_agents = 50;
     let resource = "global_lock";
 

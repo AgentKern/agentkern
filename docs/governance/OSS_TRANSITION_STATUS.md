@@ -61,14 +61,14 @@ Policy and rationale:
 
 ### 1) Release workflow publish completeness
 
-Status: In progress  
-Current gap: crates publish section remains scaffolded/commented for package publish commands.
+Status: Completed  
+Current state: release workflow now enforces deterministic publishability checks and explicit publish intent.
 
 Exit criteria:
 
-- publish targets are explicitly defined
-- release flow is deterministic for tagged releases
-- failure behavior is documented
+- [x] publish targets are explicitly defined
+- [x] release flow is deterministic for tagged releases
+- [x] failure behavior is documented
 
 ### 2) Operational SLO/SLA governance docs linkage
 
@@ -93,12 +93,12 @@ Exit criteria:
 
 A transition milestone release is ready when all are true:
 
-- [ ] `cargo test --workspace` passes on main
-- [ ] `cargo test --bin agentkern-server` passes on main
-- [ ] `./scripts/verify-oss-capability-consistency.sh` passes
-- [ ] `./scripts/verify-ci-policy.sh` passes
-- [ ] no docs/runtime contradictions for route availability
-- [ ] release workflow publish behavior is finalized and documented
+- [x] `cargo test --workspace` passes on main
+- [x] `cargo test --bin agentkern-server` passes on main
+- [x] `./scripts/verify-oss-capability-consistency.sh` passes
+- [x] `./scripts/verify-ci-policy.sh` passes
+- [x] no docs/runtime contradictions for route availability
+- [x] release workflow publish behavior is finalized and documented
 - [ ] advisory check outcomes reviewed and signed off by release owner
 
 ## Governance Rule

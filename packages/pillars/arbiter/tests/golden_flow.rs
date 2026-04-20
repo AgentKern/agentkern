@@ -4,7 +4,7 @@ use agentkern_arbiter::types::{CoordinationRequest, LockType};
 
 #[tokio::test]
 async fn test_golden_flow_autonomy() {
-    let coordinator = Coordinator::new();
+    let coordinator = Coordinator::new().expect("coordinator must initialize");
 
     // 1. SAFE FLOW
     // A standard request with safe intent should be granted.
@@ -76,7 +76,7 @@ async fn test_golden_flow_autonomy() {
 
 #[tokio::test]
 async fn test_neural_risk_escalation() {
-    let coordinator = Coordinator::new();
+    let coordinator = Coordinator::new().expect("coordinator must initialize");
 
     // "bypass security" triggers a symbolic rule.
     let high_risk_req = CoordinationRequest::new("agent-sys", "security:config")

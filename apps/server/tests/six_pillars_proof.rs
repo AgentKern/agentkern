@@ -52,7 +52,7 @@ async fn test_six_pillars_full_workflow_proof() {
     // PILLAR 2: ARBITER (Coordination & Distributed Locking)
     // -------------------------------------------------------------------------
     println!("⚖️ Pillar 2: Arbiter - Acquiring Distributed Lock...");
-    let arbiter = Coordinator::new();
+    let arbiter = Coordinator::new().expect("coordinator must initialize");
     let resource = "global:shared_resource";
 
     let lock_id = arbiter

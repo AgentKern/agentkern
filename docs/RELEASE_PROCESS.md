@@ -110,6 +110,8 @@ The release workflow (`.github/workflows/release.yml`) automatically:
    - Source code archive
 
 3. **Publishes** (optional) to crates.io if `CRATES_IO_TOKEN` is set
+   - Always runs `cargo publish --dry-run` for the supported crates on tag releases
+   - Performs real publish only when manually dispatched with `publish_crates=true`
 
 ### Triggering Release
 
@@ -122,6 +124,7 @@ git push origin v0.1.0
 **Option 2: Manual Workflow**
 - Go to Actions → Release → Run workflow
 - Enter version number
+- Set `publish_crates=true` only when you intend crates.io publish
 - Workflow will create tag and release
 
 ---
@@ -138,6 +141,15 @@ cargo publish -p agentkern-identity
 
 # Requires: CRATES_IO_TOKEN secret in GitHub
 ```
+
+### Automated crates publish behavior
+
+- Tag push (`v*.*.*`):
+  - Runs publishability validation via `cargo publish --dry-run`
+  - Does not perform real crates publish
+- Manual dispatch (`workflow_dispatch`):
+  - If `publish_crates=true`, performs real publish for the supported crate set
+  - Fails fast if `CRATES_IO_TOKEN` is missing
 
 ### npm (Node.js SDK)
 

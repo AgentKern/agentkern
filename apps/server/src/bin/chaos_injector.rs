@@ -11,7 +11,7 @@ async fn main() {
 
     // 1. Setup local pillars (simulating direct access or shared lib usage)
     let gate = Arc::new(GateEngine::new());
-    let arbiter = Arc::new(Coordinator::new());
+    let arbiter = Arc::new(Coordinator::new().expect("coordinator must initialize"));
 
     // SCENARIO 1: The Stale Lock Injection
     // The rogue agent acquires a lock and "hangs" it.

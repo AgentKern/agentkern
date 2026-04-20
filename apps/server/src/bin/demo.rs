@@ -60,7 +60,7 @@ async fn main() {
     println!(
         "{WHITE}Narrative: Agents cooperate by acquiring distributed locks on shared resources.{RESET}"
     );
-    let arbiter = Coordinator::new();
+    let arbiter = Coordinator::new().expect("coordinator must initialize");
     let lock_id = arbiter
         .acquire_lock("global:shared_resource", &agent_id, 10)
         .await

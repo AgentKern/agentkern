@@ -337,7 +337,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_coordinator_request_granted() {
-        let coord = Coordinator::new();
+        let coord = Coordinator::new().expect("coordinator must initialize");
 
         let request = CoordinationRequest::new("agent-1", "resource-1");
         let result = coord.request(request).await;
