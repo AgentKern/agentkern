@@ -36,7 +36,7 @@ openraft = { version = "0.9", features = ["serde", "storage-v2"] }
 async-trait = { workspace = true }
 
 # HTTP server (updated Dec 2025)
-axum = "0.8.8"
+axum = "0.8.9"
 reqwest = { workspace = true }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
@@ -69,8 +69,8 @@ libc = "0.2"
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
 
 # Financial precision
-rust_decimal = { version = "1.36", features = ["serde", "std"] }
-rust_decimal_macros = "1.36"
+rust_decimal = { version = "1.41", features = ["serde", "std"] }
+rust_decimal_macros = "1.40"
 
 # Internal dependencies
 agentkern-governance = { path = "../../foundation/governance" }
