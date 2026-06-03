@@ -23,11 +23,11 @@ full = ["adaptive", "crdts", "graph", "tee"]
 
 [dependencies]
 # Async runtime (Dec 2025 - verified)
-tokio = { version = "1.48", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+serde_json = "1.0.150"
 
 # HTTP client for embedding APIs (Dec 2025 - verified)
 reqwest = { version = "0.12.26", features = ["json", "rustls-tls"] }
@@ -45,21 +45,21 @@ crdts-lib = { package = "crdts", version = "7", optional = true }
 petgraph = { version = "0.6", optional = true }
 
 # HTTP server (Dec 2025 - verified)
-axum = "0.8.8"
+axum = "0.8.9"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Tracing
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Error handling (Dec 2025)
 thiserror = "2.0"
-anyhow = "1.0.95"
+anyhow = "1.0.102"
 
 # UUID and time
-uuid = { version = "1.11", features = ["v4", "serde"] }
-chrono = { version = "0.4.39", features = ["serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
+chrono = { version = "0.4.44", features = ["serde"] }
 
 # Concurrent data structures
 parking_lot = "0.12.3"
